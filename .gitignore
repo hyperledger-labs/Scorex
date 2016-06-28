@@ -20,6 +20,3 @@ Dockerfile
 # db files
 
 *.data
-
-# non-submodules code
-src/main
