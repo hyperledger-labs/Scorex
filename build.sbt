@@ -6,9 +6,12 @@ version := "2.0.0-SNAPSHOT"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
+val circeVersion = "0.4.1"
 libraryDependencies ++= Seq(
+  "io.circe" %% "circe-core" % circeVersion,
+  "io.circe" %% "circe-generic" % circeVersion,
+  "io.circe" %% "circe-parser" % circeVersion,
   "com.google.guava" % "guava" % "18.+",
-  "com.typesafe.play" %% "play-json" % "2.4.+",
   "com.typesafe.akka" %% "akka-actor" % "2.+",
   "org.bitlet" % "weupnp" % "0.1.+",
   "com.h2database" % "h2-mvstore" % "1.+",
