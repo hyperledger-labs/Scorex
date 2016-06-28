@@ -8,6 +8,8 @@ import scorex.serialization.BytesSerializable
 import shapeless.{Nat, Sized, Succ}
 
 import scala.util.{Failure, Success, Try}
+import scorex.settings.SizedConstants
+
 
 sealed trait Proposition extends BytesSerializable
 
@@ -72,26 +74,6 @@ object PublicKey25519Proposition {
         else Failure(new Exception("Wrong checksum"))
       }
     }
-}
-
-object SizedConstants {
-  type Nat32 = Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Nat._22]]]]]]]]]]
-
-  type Nat40 = Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Nat32]]]]]]]]
-
-  type Nat50 = Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Nat40]]]]]]]]]]
-
-  type Nat60 = Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Succ[Nat50]]]]]]]]]]
-
-  type Nat64 = Succ[Succ[Succ[Succ[Nat60]]]]
-
-  type PrivKey25519 = Nat32
-
-  type PubKey25519 = Nat32
-
-  type Blake2bDigestSize = Nat32
-
-  type Signature25519 = Nat64
 }
 
 //todo: a_reserve

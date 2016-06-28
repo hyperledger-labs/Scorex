@@ -1,8 +1,8 @@
 package scorex.crypto.hash
 
 import scorex.crypto.hash.CryptographicHash._
-import scorex.transaction.box.SizedConstants.Blake2bDigestSize
 import shapeless.Sized
+import scorex.settings.SizedConstants.Nat32
 
 /**
   * Interface for fast and secure Blake hash function
@@ -10,7 +10,7 @@ import shapeless.Sized
 
 object FastCryptographicHash {
 
-  type Digest = Sized[Array[Byte], Blake2bDigestSize]
+  type Digest = Sized[Array[Byte], Nat32]
 
   def apply(input: Message): Digest = hash(input)
 

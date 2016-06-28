@@ -2,6 +2,7 @@ package scorex.transaction.state
 
 import scorex.crypto.signatures.Curve25519
 import scorex.serialization.BytesSerializable
+import scorex.settings.SizedConstants
 import scorex.transaction.box._
 import scorex.transaction.proof.{Proof, Signature25519}
 import scorex.transaction.state.PrivateKey25519Holder.PrivateKey25519
