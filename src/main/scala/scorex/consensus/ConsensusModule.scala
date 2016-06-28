@@ -116,7 +116,7 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData, B <: Block[P, CD
     * Fees could go to a single miner(forger) usually, but can go to many parties, e.g. see
     * Proof-of-Activity proposal of Bentov et al. http://eprint.iacr.org/2014/452.pdf
     */
-  def feesDistribution(block: B)(transactionModule: TransactionModule[P, _ <: Transaction[PublicKey25519Proposition, _], _]): Map[P, Long]
+  def feesDistribution[TX <: Transaction[P, TX]](block: B)(transactionModule: TransactionModule[P, TX, _]): Map[P, Long]
 
   /**
     * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
@@ -140,7 +140,7 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData, B <: Block[P, CD
 
   def parentId(block: B): BlockId
 
-  def totalFee(block: B)(transactionModule: TransactionModule[P, _ <: Transaction[PublicKey25519Proposition, _], _]): Long
+  def totalFee[TX <: Transaction[P, TX]](block: B)(transactionModule: TransactionModule[P, TX, _]): Long
     = feesDistribution(block)(transactionModule).values.sum
 
   val MaxRollback: Int
