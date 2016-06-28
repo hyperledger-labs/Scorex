@@ -1,7 +1,6 @@
 package scorex.network
 
 import scorex.app.Application
-import scorex.block.Block
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.network.message.Message
 import scorex.utils.ScorexLogging

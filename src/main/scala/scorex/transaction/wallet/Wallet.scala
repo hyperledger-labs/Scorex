@@ -8,7 +8,7 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.hash.SecureCryptographicHash
 import scorex.settings.Settings
 import scorex.transaction.TransactionModule
-import scorex.transaction.box.{Proposition, AddressableProposition}
+import scorex.transaction.box.{AddressableProposition, Proposition}
 import scorex.transaction.state.SecretHolderGenerator
 import scorex.utils.{ScorexLogging, randomBytes}
 
@@ -19,7 +19,7 @@ import scala.collection.concurrent.TrieMap
 class Wallet[P <: Proposition,
 AP <: P with AddressableProposition,
 TM <: TransactionModule[P, _, _]](settings: Settings,
-                                       generator: SecretHolderGenerator[TM#SH])
+                                  generator: SecretHolderGenerator[TM#SH])
   extends ScorexLogging {
 
   val walletFileOpt: Option[File] = settings.walletDirOpt.map(walletDir => new java.io.File(walletDir, "wallet.s.dat"))

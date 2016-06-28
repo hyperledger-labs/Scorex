@@ -2,15 +2,14 @@ package scorex.network
 
 import akka.actor.Props
 import scorex.app.Application
-import scorex.block.{ConsensusData, Block}
-import scorex.transaction.TransactionModule
-import scorex.utils.BlockTypeable
+import scorex.block.{Block, ConsensusData}
 import scorex.consensus.mining.BlockGeneratorController._
 import scorex.crypto.encode.Base58
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message.Message
-import scorex.utils.ScorexLogging
+import scorex.transaction.TransactionModule
+import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,7 +27,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
   type TData = application.TData
   type B = application.BType
   private implicit val consensusModule = application.consensusModule
-  private implicit val transactionalModule:TransactionModule[P, _, TData] = application.transactionModule
+  private implicit val transactionalModule: TransactionModule[P, _, TData] = application.transactionModule
   private implicit val blockTypeable = new BlockTypeable[P, CData, TData]
 
   override val messageSpecs = Seq(ScoreMessageSpec, SignaturesSpec, BlockMessageSpec)
@@ -252,4 +251,5 @@ object HistorySynchronizer {
   case object GetStatus
 
   case object SelfCheck
+
 }

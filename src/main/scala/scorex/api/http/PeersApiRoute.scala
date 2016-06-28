@@ -6,9 +6,9 @@ import javax.ws.rs.Path
 import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
-import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.parser._
+import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.app.Application
 import scorex.network.Handshake

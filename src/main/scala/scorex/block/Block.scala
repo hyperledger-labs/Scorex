@@ -27,10 +27,10 @@ import scala.util.Try
   */
 
 class Block[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_]](
-                                                                             val version: Byte,
-                                                                             val timestamp: Long,
-                                                                             val consensusData: CData,
-                                                                             val transactionalData: TData)
+                                                                                      val version: Byte,
+                                                                                      val timestamp: Long,
+                                                                                      val consensusData: CData,
+                                                                                      val transactionalData: TData)
   extends BytesSerializable with JsonSerializable {
 
   type TDataExposed = TData
@@ -69,6 +69,7 @@ object SerializeToBytes extends Poly1 {
 
 
 trait ConsensusData {
+
   import ConsensusData.BlockId
 
   val BlockIdLength: Int
@@ -104,25 +105,25 @@ object Block extends ScorexLogging {
 
 
   def parse[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_], B <: Block[P, CData, TData]](bytes: Array[Byte])
-                                                                  (implicit consensusModule: ConsensusModule[P, CData, B],
-                                                                   transactionalModule: TransactionModule[P, _, TData]): Try[B] = {
+                                                                                                                 (implicit consensusModule: ConsensusModule[P, CData, B],
+                                                                                                                  transactionalModule: TransactionModule[P, _, TData]): Try[B] = {
     ???
   }
 
   def build[P <: Proposition, TX <: Transaction[P, TX], CData <: ConsensusData, TData <: TransactionalData[TX]](consensusData: CData)
-                                                                                             (implicit transactionalModule: TransactionModule[P, TX, TData]): Block[P, CData, TData] = {
+                                                                                                               (implicit transactionalModule: TransactionModule[P, TX, TData]): Block[P, CData, TData] = {
     val timestamp = System.currentTimeMillis()
     new Block(Version, timestamp, consensusData, transactionalModule.packUnconfirmed())
   }
 
   def genesis[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_]](genesisTimestamp: Long)
-                                                                    (implicit consensusModule: ConsensusModule[P, CData, _ <: Block[P, CData, TData]],
-                                                                     transactionalModule: TransactionModule[P, _, TData]): Block[P, CData, TData] = {
+                                                                                      (implicit consensusModule: ConsensusModule[P, CData, _ <: Block[P, CData, TData]],
+                                                                                       transactionalModule: TransactionModule[P, _, TData]): Block[P, CData, TData] = {
     new Block(Version, genesisTimestamp, consensusModule.genesisData, transactionalModule.genesisData)
   }
 
   def isValid[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_], B <: Block[P, CData, TData]](block: B)(implicit consensusModule: ConsensusModule[P, CData, B],
-                                                                                                 transactionalModule: TransactionModule[P, _, TData]): Boolean = {
+                                                                                                                              transactionalModule: TransactionModule[P, _, TData]): Boolean = {
     if (consensusModule.contains(block)) true //applied blocks are valid
     else {
       lazy val consensus = consensusModule.isValid(block)

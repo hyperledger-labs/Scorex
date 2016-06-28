@@ -2,15 +2,15 @@ package scorex.consensus
 
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.crypto.encode.Base58
-import scorex.transaction.{Transaction, TransactionModule}
 import scorex.transaction.box.{Proposition, PublicKey25519Proposition}
+import scorex.transaction.{Transaction, TransactionModule}
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 
-trait History[P <: Proposition, CData <: ConsensusData,  B <: Block[P, CData, _]] {
+trait History[P <: Proposition, CData <: ConsensusData, B <: Block[P, CData, _]] {
   this: ConsensusModule[P, CData, B] =>
 
   //todo: finish
@@ -141,7 +141,7 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData, B <: Block[P, CD
   def parentId(block: B): BlockId
 
   def totalFee(block: B)(transactionModule: TransactionModule[P, _ <: Transaction[PublicKey25519Proposition, _], _]): Long
-    = feesDistribution(block)(transactionModule).values.sum
+  = feesDistribution(block)(transactionModule).values.sum
 
   val MaxRollback: Int
 

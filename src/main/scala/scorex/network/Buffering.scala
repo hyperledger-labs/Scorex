@@ -13,7 +13,7 @@ import scala.annotation.tailrec
 trait Buffering {
 
   //1 MB max packet size
-  val MAX_PACKET_LEN: Int = 1024*1024
+  val MAX_PACKET_LEN: Int = 1024 * 1024
 
   /**
     * Extracts complete packets of the specified length, preserving remainder

@@ -16,8 +16,8 @@ import scala.util.Try
 
 
 class BasicMessagesRepo[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_], B <: Block[P, CData, TData]]()
-                                                                              (implicit val transactionalModule: TransactionModule[P, _, TData],
-                                                                               consensusModule: ConsensusModule[P, CData, B]) {
+                                                                                                                             (implicit val transactionalModule: TransactionModule[P, _, TData],
+                                                                                                                              consensusModule: ConsensusModule[P, CData, B]) {
 
   type BlockId = ConsensusData.BlockId
 

@@ -16,6 +16,6 @@ object FastCryptographicHash {
 
   def apply(input: String): Digest = hash(input.getBytes)
 
-  def hash(in: Message): Digest  = Sized.wrap(Blake2b256.hash(in))
+  def hash(in: Message): Digest = Sized.wrap(Blake2b256.hash(in))
 
 }
