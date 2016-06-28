@@ -9,15 +9,16 @@ import scorex.consensus.ConsensusModule
 import scorex.crypto.signatures.SigningFunctions
 import scorex.network.message.Message._
 import scorex.transaction.TransactionModule
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.proof.Signature25519
 
 import scala.util.Try
 
 
-class BasicMessagesRepo[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_], B <: Block[P, CData, TData]]()
-                                                                              (implicit val transactionalModule: TransactionModule[P, _, TData],
-                                                                               consensusModule: ConsensusModule[P, CData, B]) {
+class BasicMessagesRepo[P <: Proposition, CD <: ConsensusData, TD <: TransactionalData[_], B <: Block[P, CD, TD]]
+()
+(implicit val transactionalModule: TransactionModule[P, _, TD],
+ consensusModule: ConsensusModule[P, CD, B]) {
 
   type BlockId = ConsensusData.BlockId
 

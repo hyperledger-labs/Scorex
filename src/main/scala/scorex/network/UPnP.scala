@@ -9,7 +9,7 @@ import scorex.utils.ScorexLogging
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-class UPnP(settings:Settings) extends ScorexLogging {
+class UPnP(settings: Settings) extends ScorexLogging {
 
   private var gateway: Option[GatewayDevice] = None
 

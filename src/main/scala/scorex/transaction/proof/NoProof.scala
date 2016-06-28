@@ -1,6 +1,6 @@
 package scorex.transaction.proof
 
-import scorex.transaction.box.EmptyProposition
+import scorex.transaction.box.proposition.EmptyProposition
 
 case object NoProof extends Proof[EmptyProposition] {
   override val proofId = 1: Byte

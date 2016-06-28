@@ -2,15 +2,14 @@ package scorex.network
 
 import akka.actor.Props
 import scorex.app.Application
-import scorex.block.{ConsensusData, Block}
-import scorex.transaction.TransactionModule
-import scorex.utils.BlockTypeable
+import scorex.block.{Block, ConsensusData}
 import scorex.consensus.mining.BlockGeneratorController._
 import scorex.crypto.encode.Base58
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message.Message
-import scorex.utils.ScorexLogging
+import scorex.transaction.TransactionModule
+import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,7 +27,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
   type TData = application.TData
   type B = application.BType
   private implicit val consensusModule = application.consensusModule
-  private implicit val transactionalModule:TransactionModule[P, _, TData] = application.transactionModule
+  private implicit val transactionalModule: TransactionModule[P, _, TData] = application.transactionModule
   private implicit val blockTypeable = new BlockTypeable[P, CData, TData]
 
   override val messageSpecs = Seq(ScoreMessageSpec, SignaturesSpec, BlockMessageSpec)
@@ -41,7 +40,10 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
 
   private lazy val blockGenerator = application.blockGenerator
 
-  private val GettingBlockTimeout = application.settings.historySynchronizerTimeout
+  private val settings = application.settings
+  private val GettingBlockTimeout = settings.historySynchronizerTimeout
+  //TODO increase from small number up to maxRollback
+  private val blocksToSend = 100
 
   var lastUpdate = System.currentTimeMillis()
 
@@ -57,8 +59,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
 
   }
 
-  override def receive: Receive =
-    if (application.settings.offlineGeneration) gotoSynced() else gotoSyncing()
+  override def receive: Receive = if (settings.offlineGeneration) gotoSynced() else gotoSyncing()
 
   def state(status: Status, logic: Receive): Receive =
   //combine specific logic with common for all the states
@@ -76,7 +77,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
 
       case ConsideredValue(None, _) =>
         log.info("Got no score from outer world")
-        if (application.settings.offlineGeneration) gotoSynced() else gotoSyncing()
+        if (settings.offlineGeneration) gotoSynced() else gotoSyncing()
 
       case SelfCheck =>
         if (status != Syncing && System.currentTimeMillis() - lastUpdate > GettingBlockTimeout.toMillis) gotoSyncing()
@@ -93,7 +94,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
       val localScore = history.score()
       if (networkScore > localScore) {
         log.info(s"networkScore=$networkScore > localScore=$localScore")
-        val lastIds = history.lastBlocks(100).map(consensusModule.id)
+        val lastIds = history.lastBlocks(blocksToSend).map(consensusModule.id)
         val msg = Message(GetSignaturesSpec, Right(lastIds), None)
         networkControllerRef ! NetworkController.SendToNetwork(msg, SendToChosen(witnesses))
         gotoGettingExtension(networkScore, witnesses)
@@ -252,4 +253,5 @@ object HistorySynchronizer {
   case object GetStatus
 
   case object SelfCheck
+
 }

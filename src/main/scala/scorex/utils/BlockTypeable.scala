@@ -1,7 +1,7 @@
 package scorex.utils
 
 import scorex.block.{Block, ConsensusData, TransactionalData}
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 import shapeless.Typeable
 
 

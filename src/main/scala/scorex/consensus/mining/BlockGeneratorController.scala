@@ -103,4 +103,5 @@ object BlockGeneratorController {
   case object StopGeneration
 
   case object CheckWorkers
+
 }

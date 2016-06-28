@@ -1,6 +1,6 @@
 package scorex.transaction.account
 
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 
 
 trait BalanceSheet[P <: Proposition] {

@@ -44,11 +44,11 @@ testOptions in Test += Tests.Argument("-oD", "-u", "target/test-reports")
 
 //publishing settings
 
-publishMavenStyle in ThisBuild := true
+publishMavenStyle := true
 
 publishArtifact in Test := false
 
-publishTo in ThisBuild := {
+publishTo := {
   val nexus = "https://oss.sonatype.org/"
   if (isSnapshot.value)
     Some("snapshots" at nexus + "content/repositories/snapshots")
@@ -56,15 +56,15 @@ publishTo in ThisBuild := {
     Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
-fork in ThisBuild := true
+fork := true
 
-pomIncludeRepository in ThisBuild := { _ => false }
+pomIncludeRepository := { _ => false }
 
-licenses in ThisBuild := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode"))
+licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode"))
 
-homepage in ThisBuild := Some(url("https://github.com/ScorexFoundation/Scorex"))
+homepage := Some(url("https://github.com/ScorexFoundation/Scorex"))
 
-pomExtra in ThisBuild :=
+pomExtra := (
   <scm>
     <url>git@github.com:ScorexFoundation/Scorex.git</url>
     <connection>scm:git:git@github.com:ScorexFoundation/Scorex.git</connection>
@@ -75,11 +75,6 @@ pomExtra in ThisBuild :=
         <name>Alexander Chepurnoy</name>
         <url>http://chepurnoy.org/</url>
       </developer>
-      <developer>
-        <id>catena</id>
-        <name>catena</name>
-        <url>https://github.com/catena2w</url>
-      </developer>
-    </developers>
+    </developers>)
 
-credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")

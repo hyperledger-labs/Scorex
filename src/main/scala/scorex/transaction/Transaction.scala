@@ -3,7 +3,8 @@ package scorex.transaction
 import com.google.common.primitives.Longs
 import io.circe.Json
 import scorex.serialization.{BytesSerializable, JsonSerializable}
-import scorex.transaction.box.{Box, BoxUnlocker, Proposition}
+import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.box.{Box, BoxUnlocker}
 import scorex.transaction.state.MinimalState
 
 import scala.util.{Failure, Success, Try}

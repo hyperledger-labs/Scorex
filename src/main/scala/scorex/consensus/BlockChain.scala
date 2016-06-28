@@ -1,13 +1,13 @@
 package scorex.consensus
 
-import scorex.block.{ConsensusData, Block}
-import scorex.transaction.box.Proposition
+import scorex.block.{Block, ConsensusData}
+import scorex.transaction.box.proposition.Proposition
 import scorex.utils.ScorexLogging
 
 import scala.util.Try
 
 trait BlockChain[P <: Proposition, CData <: ConsensusData, B <: Block[P, CData, _]] extends History[P, CData, B] with ScorexLogging {
-  this : ConsensusModule[P, CData, B] =>
+  this: ConsensusModule[P, CData, B] =>
 
   def blockAt(height: Int): Option[B]
 

@@ -5,8 +5,8 @@ import java.nio.ByteBuffer
 import scorex.crypto.hash.FastCryptographicHash._
 import scorex.network.ConnectedPeer
 
-import scala.util.Try
 import scala.language.existentials
+import scala.util.Try
 
 
 case class MessageHandler(specs: Seq[MessageSpec[_]]) {

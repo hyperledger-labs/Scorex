@@ -1,7 +1,7 @@
 package scorex.transaction.account
 
 import com.google.common.primitives.{Ints, Longs}
-import scorex.transaction.box.PublicKey25519Proposition
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 
 case class PublicKey25519NoncedBox(
                                     proposition: PublicKey25519Proposition,

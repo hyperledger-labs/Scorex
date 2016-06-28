@@ -5,14 +5,12 @@ import javax.ws.rs.Path
 
 import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
+import io.circe._
+import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.app.Application
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.{FastCryptographicHash, SecureCryptographicHash}
-
-import io.circe._
-import io.circe.generic.auto._
-import io.circe.syntax._
 
 
 @Path("/utils")
