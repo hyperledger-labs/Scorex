@@ -40,7 +40,10 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
 
   private lazy val blockGenerator = application.blockGenerator
 
-  private val GettingBlockTimeout = application.settings.historySynchronizerTimeout
+  private val settings = application.settings
+  private val GettingBlockTimeout = settings.historySynchronizerTimeout
+  //TODO increase from small number up to maxRollback
+  private val blocksToSend = 100
 
   var lastUpdate = System.currentTimeMillis()
 
@@ -56,8 +59,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
 
   }
 
-  override def receive: Receive =
-    if (application.settings.offlineGeneration) gotoSynced() else gotoSyncing()
+  override def receive: Receive = if (settings.offlineGeneration) gotoSynced() else gotoSyncing()
 
   def state(status: Status, logic: Receive): Receive =
   //combine specific logic with common for all the states
@@ -75,7 +77,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
 
       case ConsideredValue(None, _) =>
         log.info("Got no score from outer world")
-        if (application.settings.offlineGeneration) gotoSynced() else gotoSyncing()
+        if (settings.offlineGeneration) gotoSynced() else gotoSyncing()
 
       case SelfCheck =>
         if (status != Syncing && System.currentTimeMillis() - lastUpdate > GettingBlockTimeout.toMillis) gotoSyncing()
@@ -92,7 +94,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
       val localScore = history.score()
       if (networkScore > localScore) {
         log.info(s"networkScore=$networkScore > localScore=$localScore")
-        val lastIds = history.lastBlocks(100).map(consensusModule.id)
+        val lastIds = history.lastBlocks(blocksToSend).map(consensusModule.id)
         val msg = Message(GetSignaturesSpec, Right(lastIds), None)
         networkControllerRef ! NetworkController.SendToNetwork(msg, SendToChosen(witnesses))
         gotoGettingExtension(networkScore, witnesses)

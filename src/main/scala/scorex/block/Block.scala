@@ -36,7 +36,8 @@ class Block[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData
   type TDataExposed = TData
   type BlockId = ConsensusData.BlockId
 
-  val blockFields = version :: timestamp :: consensusData.consensusFields :: transactionalData.transactionalFields :: HNil
+  val blockFields =
+    version :: timestamp :: consensusData.consensusFields :: transactionalData.transactionalFields :: HNil
 
   lazy val bytes: Array[Byte] = ???
 
@@ -63,33 +64,42 @@ object Block extends ScorexLogging {
   val Version = 1: Byte
 
 
-  def parse[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_], B <: Block[P, CData, TData]](bytes: Array[Byte])
-                                                                                                                 (implicit consensusModule: ConsensusModule[P, CData, B],
-                                                                                                                  transactionalModule: TransactionModule[P, _, TData]): Try[B] = {
+  def parse[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_], B <: Block[P, CData, TData]]
+  (bytes: Array[Byte])
+  (implicit consensusModule: ConsensusModule[P, CData, B],
+   transactionalModule: TransactionModule[P, _, TData]): Try[B] = {
+
     ???
   }
 
-  def build[P <: Proposition, TX <: Transaction[P, TX], CData <: ConsensusData, TData <: TransactionalData[TX]](consensusData: CData)
-                                                                                                               (implicit transactionalModule: TransactionModule[P, TX, TData]): Block[P, CData, TData] = {
+  def build[P <: Proposition, TX <: Transaction[P, TX], CData <: ConsensusData, TData <: TransactionalData[TX]]
+  (consensusData: CData)
+  (implicit transactionalModule: TransactionModule[P, TX, TData]): Block[P, CData, TData] = {
+
     val timestamp = System.currentTimeMillis()
     new Block(Version, timestamp, consensusData, transactionalModule.packUnconfirmed())
   }
 
-  def genesis[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_]](genesisTimestamp: Long)
-                                                                                      (implicit consensusModule: ConsensusModule[P, CData, _ <: Block[P, CData, TData]],
-                                                                                       transactionalModule: TransactionModule[P, _, TData]): Block[P, CData, TData] = {
+  def genesis[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_]]
+  (genesisTimestamp: Long)
+  (implicit consensusModule: ConsensusModule[P, CData, _ <: Block[P, CData, TData]],
+   transactionalModule: TransactionModule[P, _, TData]): Block[P, CData, TData] = {
+
     new Block(Version, genesisTimestamp, consensusModule.genesisData, transactionalModule.genesisData)
   }
 
-  def isValid[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_], B <: Block[P, CData, TData]](block: B)(implicit consensusModule: ConsensusModule[P, CData, B],
-                                                                                                                              transactionalModule: TransactionModule[P, _, TData]): Boolean = {
+  def isValid[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_], B <: Block[P, CData, TData]]
+  (block: B)
+  (implicit consensusModule: ConsensusModule[P, CData, B],
+   transactionalModule: TransactionModule[P, _, TData]): Boolean = {
+
     if (consensusModule.contains(block)) true //applied blocks are valid
     else {
       lazy val consensus = consensusModule.isValid(block)
       lazy val transaction = transactionalModule.isValid(block)
 
-      if (!consensus) log.debug(s"Invalid block ${consensusModule.encodedId(block)}: consensus data is not valid")
-      else if (!transaction) log.debug(s"Invalid block ${consensusModule.encodedId(block)}: transaction data is not valid")
+      if (!consensus) log.debug(s"Invalid consensus data in block ${consensusModule.encodedId(block)}")
+      else if (!transaction) log.debug(s"Invalid transaction data in block ${consensusModule.encodedId(block)}")
 
       consensus && transaction
     }
