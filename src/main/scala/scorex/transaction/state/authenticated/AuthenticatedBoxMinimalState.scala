@@ -4,7 +4,7 @@ import scorex.crypto.authds.storage.StorageType
 import scorex.crypto.authds.{AuthenticatedDictionary, DataProof}
 import scorex.crypto.hash.CryptographicHash
 import scorex.transaction.Transaction
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.state.MinimalState
 
 import scala.util.Try

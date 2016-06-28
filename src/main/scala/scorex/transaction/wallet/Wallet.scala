@@ -1,4 +1,4 @@
-package scorex.wallet
+package scorex.transaction.wallet
 
 import java.io.File
 
@@ -8,7 +8,7 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.hash.SecureCryptographicHash
 import scorex.settings.Settings
 import scorex.transaction.TransactionModule
-import scorex.transaction.box.{AddressableProposition, Proposition}
+import scorex.transaction.box.proposition.{AddressableProposition, Proposition}
 import scorex.transaction.state.SecretHolderGenerator
 import scorex.utils.{ScorexLogging, randomBytes}
 

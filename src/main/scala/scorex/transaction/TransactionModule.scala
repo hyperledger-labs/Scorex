@@ -2,11 +2,11 @@ package scorex.transaction
 
 import scorex.block.{Block, TransactionalData}
 import scorex.settings.Settings
-import scorex.transaction.box.{AddressableProposition, Proposition}
+import scorex.transaction.box.proposition.{AddressableProposition, Proposition}
 import scorex.transaction.proof.Proof
 import scorex.transaction.state.{MinimalState, SecretHolder, SecretHolderGenerator}
 import scorex.utils.ScorexLogging
-import scorex.wallet.Wallet
+import scorex.transaction.wallet.Wallet
 
 
 trait TransactionModule[P <: Proposition, TX <: Transaction[P, TX], TBD <: TransactionalData[TX]]

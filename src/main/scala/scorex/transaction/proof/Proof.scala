@@ -1,7 +1,7 @@
 package scorex.transaction.proof
 
 import scorex.serialization.BytesSerializable
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 
 /**
   * The most general abstraction of fact a prover can provide a non-interactive proof

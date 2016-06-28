@@ -1,7 +1,8 @@
 package scorex.transaction.account
 
 import com.google.common.primitives.Ints
-import scorex.transaction.box.{Box, PublicKeyProposition}
+import scorex.transaction.box.Box
+import scorex.transaction.box.proposition.PublicKeyProposition
 
 trait PublicKeyNoncedBox[PKP <: PublicKeyProposition] extends Box[PKP] {
   val nonce: Int

@@ -1,6 +1,6 @@
 package scorex.transaction.proof
 
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 
 case class OrProofs[P <: Proposition](proofs: (Proof[P], Proof[P])) extends Proof[P] {
   override val proofId = 30: Byte

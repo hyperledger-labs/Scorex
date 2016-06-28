@@ -9,7 +9,7 @@ import scorex.consensus.ConsensusModule
 import scorex.crypto.signatures.SigningFunctions
 import scorex.network.message.Message._
 import scorex.transaction.TransactionModule
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.proof.Signature25519
 
 import scala.util.Try

@@ -2,7 +2,7 @@ package scorex.consensus
 
 import scorex.block.{Block, ConsensusData}
 import scorex.crypto.encode.Base58
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 
 import scala.util.Try
 

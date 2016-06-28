@@ -3,7 +3,7 @@ package scorex.block
 import io.circe.Json
 import scorex.consensus.ConsensusModule
 import scorex.serialization.{BytesSerializable, JsonSerializable}
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.{Transaction, TransactionModule}
 import scorex.utils.ScorexLogging
 import shapeless._

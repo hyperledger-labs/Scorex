@@ -1,7 +1,7 @@
 package scorex.consensus
 
 import scorex.block.{Block, ConsensusData}
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 import scorex.utils.ScorexLogging
 
 import scala.util.Try

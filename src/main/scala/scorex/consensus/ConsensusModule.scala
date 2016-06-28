@@ -2,7 +2,7 @@ package scorex.consensus
 
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.crypto.encode.Base58
-import scorex.transaction.box.{Proposition, PublicKey25519Proposition}
+import scorex.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
 import scorex.transaction.{Transaction, TransactionModule}
 import scorex.utils.ScorexLogging
 

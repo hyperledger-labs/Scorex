@@ -3,7 +3,7 @@ package scorex.api.http
 import io.circe.Json
 import scorex.block.{Block, ConsensusData}
 import scorex.consensus.BlockChain
-import scorex.transaction.box.Proposition
+import scorex.transaction.box.proposition.Proposition
 
 trait CommonApiFunctions {
 

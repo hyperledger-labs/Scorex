@@ -2,7 +2,8 @@ package scorex.transaction.state
 
 import scorex.block.Block
 import scorex.transaction.Transaction
-import scorex.transaction.box.{Box, Proposition}
+import scorex.transaction.box.Box
+import scorex.transaction.box.proposition.Proposition
 
 import scala.util.Try
 

@@ -1,40 +1,11 @@
-package scorex.transaction.box
+package scorex.transaction.box.proposition
 
-import com.google.common.primitives.Ints
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.FastCryptographicHash._
-import scorex.crypto.signatures.Curve25519
-import scorex.serialization.BytesSerializable
-import shapeless.{Nat, Sized, Succ}
-
-import scala.util.{Failure, Success, Try}
 import scorex.settings.SizedConstants
+import shapeless.Sized
 
-
-sealed trait Proposition extends BytesSerializable
-
-sealed trait AddressableProposition extends Proposition {
-  val id: Array[Byte]
-  val address: String
-}
-
-trait EmptyProposition extends Proposition
-
-trait PublicKeyProposition extends AddressableProposition {
-  type PublicKeySize <: Nat
-  val publicKey: Sized[Array[Byte], PublicKeySize]
-
-  override val bytes = publicKey.unsized
-
-
-  override def toString: String = address
-
-  override lazy val id: Array[Byte] = publicKey.unsized
-
-  def verify(message: Array[Byte], signature: Sized[Array[Byte], SizedConstants.Signature25519]): Boolean =
-    Curve25519.verify(signature, message, publicKey)
-}
-
+import scala.util.{Success, Failure, Try}
 
 trait PublicKey25519Proposition extends PublicKeyProposition {
 
@@ -74,15 +45,4 @@ object PublicKey25519Proposition {
         else Failure(new Exception("Wrong checksum"))
       }
     }
-}
-
-//todo: a_reserve
-//todo: sigma protocol id
-sealed trait SigmaProposition extends AddressableProposition {
-  val a: Array[Byte]
-  val bytes = a
-}
-
-case class HeightOpenProposition(height: Int) extends Proposition {
-  override val bytes = Ints.toByteArray(height)
 }
