@@ -59,47 +59,6 @@ class Block[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData
   } */
 }
 
-object SerializeToBytes extends Poly1 {
-  implicit def caseByte = at[Byte](b => Array(b))
-
-  implicit def caseBytesSerializable[B <: BytesSerializable] = at[B](_.bytes)
-
-  implicit def default[A] = at[A](a => a)
-}
-
-
-trait ConsensusData {
-
-  import ConsensusData.BlockId
-
-  val BlockIdLength: Int
-
-  type ConsensusFields <: HList
-
-  val consensusFields: ConsensusFields
-
-  val parentId: BlockId
-}
-
-object ConsensusData {
-  type BlockId = Array[Byte]
-}
-
-trait TransactionalData[TX <: Transaction[_, TX]] {
-  type TransactionalHeaderFields <: HList
-
-  val mbTransactions: Option[Traversable[TX]]
-
-  val transactionalHeaderFields: TransactionalHeaderFields
-
-  val headerOnly = mbTransactions.isDefined
-
-  val transactionalFields = mbTransactions match {
-    case Some(txs) => transactionalHeaderFields :: txs :: HNil
-    case None => transactionalHeaderFields
-  }
-}
-
 object Block extends ScorexLogging {
   val Version = 1: Byte
 
