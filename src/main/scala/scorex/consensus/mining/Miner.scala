@@ -41,16 +41,15 @@ class Miner(application: Application) extends Actor with ScorexLogging {
 
     lastTryTime = System.currentTimeMillis()
     if (blockGenerationDelay > 500.milliseconds) log.info("Trying to generate a new block")
-    val blocksFuture = application.consensusModule.generateNextBlocks(application.transactionModule)
-    val blocks = Await.result(blocksFuture, BlockGenerationTimeLimit)
-    if (blocks.nonEmpty) application.historySynchronizer ! blocks.maxBy(application.consensusModule.blockScore)
+    val blockFuture = application.consensusModule.generateNextBlock()
+    val blockOpt = Await.result(blockFuture, BlockGenerationTimeLimit)
+    blockOpt.foreach(b => application.historySynchronizer ! b)
     if (!stopped) scheduleAGuess()
   }.recoverWith {
     case ex =>
       log.error(s"Failed to generate new block: ${ex.getMessage}")
       Failure(ex)
   }
-
 }
 
 object Miner {
@@ -62,5 +61,4 @@ object Miner {
   case object GetLastGenerationTime
 
   case class LastGenerationTime(time: Long)
-
 }

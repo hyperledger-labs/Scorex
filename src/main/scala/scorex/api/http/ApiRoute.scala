@@ -6,21 +6,21 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.{Directive0, Directives, Route}
 import akka.util.Timeout
 import io.circe.Json
-import scorex.app.Application
 import scorex.crypto.hash.{CryptographicHash, SecureCryptographicHash}
+import scorex.settings.Settings
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 trait ApiRoute extends Directives with CommonApiFunctions {
-  val application: Application
+  val settings: Settings
   val context: ActorRefFactory
   val route: Route
 
   implicit val timeout = Timeout(5.seconds)
 
-  lazy val corsAllowed = application.settings.corsAllowed
-  lazy val apiKeyHash = application.settings.apiKeyHash
+  lazy val corsAllowed = settings.corsAllowed
+  lazy val apiKeyHash = settings.apiKeyHash
 
   def actorRefFactory: ActorRefFactory = context
 
@@ -62,5 +62,4 @@ trait ApiRoute extends Directives with CommonApiFunctions {
       case _ => false
     }
   }
-
 }

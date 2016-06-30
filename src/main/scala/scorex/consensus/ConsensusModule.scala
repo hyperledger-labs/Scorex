@@ -9,19 +9,21 @@ import scorex.utils.ScorexLogging
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
-trait ConsensusModule[P <: Proposition, CData <: ConsensusData, B <: Block[P, CData, _]]
-  extends History[P, CData, B] with ScorexLogging {
+trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
+  extends History[P, TX, TData, CData] with ScorexLogging {
 
   type BlockId = ConsensusData.BlockId
   val BlockIdLength: Int
 
-  def isValid(block: B)(implicit transactionModule: TransactionModule[_, _, _]): Boolean
+  val transactionalModule: TransactionModule[P, TX, TData]
+
+  def isValid(block: Block[P, CData, TData]): Boolean
 
   /**
     * Fees could go to a single miner(forger) usually, but can go to many parties, e.g. see
     * Proof-of-Activity proposal of Bentov et al. http://eprint.iacr.org/2014/452.pdf
     */
-  def feesDistribution[TX <: Transaction[P, TX]](block: B)(transactionModule: TransactionModule[P, TX, _]): Map[P, Long]
+  def feesDistribution(block: Block[P, CData, TData]): Map[P, Long]
 
   /**
     * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
@@ -29,31 +31,27 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData, B <: Block[P, CD
     * @param block
     * @return
     */
-  def producers(block: B): Seq[P]
+  def producers(block: Block[P, CData, TData]): Seq[P]
 
-  def blockScore(block: B)(implicit transactionModule: TransactionModule[P, _, _]): BigInt
+  def blockScore(block: Block[P, CData, TData]): BigInt
 
-  def generateNextBlock[TData <: TransactionalData[_]](transactionModule: TransactionModule[P, _, TData]): Future[Option[B]]
+  def generateNextBlock(): Future[Option[Block[P, CData, TData]]]
 
-  def generateNextBlocks[TData <: TransactionalData[_]](transactionModule: TransactionModule[P, _, TData]): Future[Seq[B]]
-
+  //def generateNextBlocks(transactionModule: TransactionModule[P, _, _]): Future[Seq[B]]
   //Future.sequence(accounts.map(acc => generateNextBlock(acc))).map(_.flatten)
 
-  def id(block: B): BlockId
+  def id(block: Block[P, CData, TData]): BlockId
 
-  def encodedId(block: B): String = Base58.encode(id(block))
+  def encodedId(block: Block[P, CData, TData]): String = Base58.encode(id(block))
 
-  def parentId(block: B): BlockId
-
-  def totalFee[TX <: Transaction[P, TX]](block: B)(transactionModule: TransactionModule[P, TX, _]): Long
-    = feesDistribution(block)(transactionModule).values.sum
+  def parentId(block: Block[P, CData, TData]): BlockId
 
   val MaxRollback: Int
 
 
   //Append block to current state
   //todo: check possible conflicts
-  def processBlock(block: B)(implicit transactionalModule: TransactionModule[P, _, _]): Try[Unit] = synchronized {
+  def processBlock(block: Block[P, CData, TData]): Try[Unit] = synchronized {
     appendBlock(block).map { _ =>
       transactionalModule.processBlock(block) match {
         case Failure(e) =>
@@ -68,8 +66,7 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData, B <: Block[P, CD
 
   //Should be used for linear blockchain only
   //todo: check possible conflicts
-  def removeAfter(blockId: BlockId)
-                 (implicit transactionalModule: TransactionModule[_, _, _]): Unit = synchronized {
+  def removeAfter(blockId: BlockId): Unit = synchronized {
     heightOf(blockId) match {
       case Some(height) =>
         while (id(lastBlock).sameElements(blockId)) {

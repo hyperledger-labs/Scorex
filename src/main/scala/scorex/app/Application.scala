@@ -34,11 +34,11 @@ trait Application extends ScorexLogging {
   type CData <: ConsensusData
   type TData <: TransactionalData[TX]
 
-  type BType = Block[P, CData, TData]
-
   //modules
-  implicit val consensusModule: ConsensusModule[P, CData, BType]
+  implicit val consensusModule: ConsensusModule[P, TX, TData, CData]
   implicit val transactionModule: TransactionModule[P, TX, TData]
+
+  type BType = Block[P, CData, TData]
 
   //api
   val apiRoutes: Seq[ApiRoute]
@@ -48,7 +48,7 @@ trait Application extends ScorexLogging {
 
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
-  lazy val basicMessagesSpecsRepo = new BasicMessagesRepo[P, CData, TData, BType]()
+  lazy val basicMessagesSpecsRepo = new BasicMessagesRepo[P, TX, CData, TData]()
 
   //p2p
   lazy val upnp = new UPnP(settings)
@@ -107,7 +107,7 @@ trait Application extends ScorexLogging {
 
   def checkGenesis(): Unit = {
     if (consensusModule.isEmpty) {
-      val genesisBlock: BType = Block.genesis(settings.genesisTimestamp)
+      val genesisBlock: BType = Block.genesis[P, TX, CData, TData](settings.genesisTimestamp)
       consensusModule.appendBlock(genesisBlock)
       log.info("Genesis block has been added to the state")
     }

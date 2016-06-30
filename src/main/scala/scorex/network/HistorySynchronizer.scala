@@ -23,11 +23,12 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
   import application.basicMessagesSpecsRepo._
 
   private type P = application.P
+  private type TX = application.TX
   type CData = application.CData
   type TData = application.TData
   type B = application.BType
   private implicit val consensusModule = application.consensusModule
-  private implicit val transactionalModule: TransactionModule[P, _, TData] = application.transactionModule
+  private implicit val transactionalModule: TransactionModule[P, TX, TData] = application.transactionModule
   private implicit val blockTypeable = new BlockTypeable[P, CData, TData]
 
   override val messageSpecs = Seq(ScoreMessageSpec, SignaturesSpec, BlockMessageSpec)
@@ -113,7 +114,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
 
       val toDownload = blockIds.tail.filter(b => !history.contains(b))
       if (consensusModule.contains(common) && toDownload.nonEmpty) {
-        Try(consensusModule.removeAfter(common)(transactionalModule)) //todo we don't need this call for blockTree
+        Try(consensusModule.removeAfter(common)) //todo we don't need this call for blockTree
         gotoGettingBlocks(witnesses, toDownload.map(_ -> None))
         blockIds.tail.foreach { blockId =>
           val msg = Message(GetBlockSpec, Right(blockId), None)
@@ -200,7 +201,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
   }
 
   private def processNewBlock(block: B, local: Boolean): Boolean = Try {
-    if (Block.isValid[P, CData, TData, B](block)(consensusModule, transactionalModule)) {
+    if (Block.isValid[P, TX, CData, TData](block)(consensusModule, transactionalModule)) {
       log.info(s"New block(local: $local): ${block.json}")
 
       if (local) networkControllerRef ! SendToNetwork(Message(BlockMessageSpec, Right(block), None), Broadcast)

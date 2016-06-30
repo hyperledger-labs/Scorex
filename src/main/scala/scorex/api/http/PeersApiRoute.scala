@@ -3,23 +3,25 @@ package scorex.api.http
 import java.net.{InetAddress, InetSocketAddress}
 import javax.ws.rs.Path
 
-import akka.actor.ActorRefFactory
+import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
 import io.swagger.annotations._
-import scorex.app.Application
 import scorex.network.Handshake
 import scorex.network.NetworkController.ConnectTo
 import scorex.network.peer.{PeerInfo, PeerManager}
+import scorex.settings.Settings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @Path("/peers")
 @Api(value = "/peers", description = "Get info about peers", position = 2)
-case class PeersApiRoute(override val application: Application)(implicit val context: ActorRefFactory)
+case class PeersApiRoute(peerManager: ActorRef,
+                         networkController: ActorRef,
+                         override val settings: Settings)(implicit val context: ActorRefFactory)
   extends ApiRoute {
 
   override lazy val route =
@@ -34,7 +36,7 @@ case class PeersApiRoute(override val application: Application)(implicit val con
   ))
   def allPeers: Route = path("all") {
     getJsonRoute {
-      (application.peerManager ? PeerManager.GetAllPeers)
+      (peerManager ? PeerManager.GetAllPeers)
         .mapTo[Map[InetSocketAddress, PeerInfo]]
         .map { peers =>
           peers.map { case (address, peerInfo) =>
@@ -55,7 +57,7 @@ case class PeersApiRoute(override val application: Application)(implicit val con
   ))
   def connectedPeers: Route = path("connected") {
     getJsonRoute {
-      (application.peerManager ? PeerManager.GetConnectedPeers)
+      (peerManager ? PeerManager.GetConnectedPeers)
         .mapTo[Seq[Handshake]]
         .map { handshakes =>
           val peerData = handshakes.map { handshake =>
@@ -88,7 +90,7 @@ case class PeersApiRoute(override val application: Application)(implicit val con
         postJsonRoute {
           decode[ConnectCommandParams](body).map { case ConnectCommandParams(host, port) =>
             val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port)
-            application.networkController ! ConnectTo(add)
+            networkController ! ConnectTo(add)
             Map("hostname" -> add.getHostName, "status" -> "Trying to connect").asJson
           }.getOrElse(ApiError.wrongJson)
         }
@@ -103,7 +105,7 @@ case class PeersApiRoute(override val application: Application)(implicit val con
   ))
   def blacklistedPeers: Route = path("blacklisted") {
     getJsonRoute {
-      (application.peerManager ? PeerManager.GetBlacklistedPeers)
+      (peerManager ? PeerManager.GetBlacklistedPeers)
         .mapTo[Seq[String]]
         .map(_.asJson)
     }

@@ -1,13 +1,14 @@
 package scorex.consensus
 
-import scorex.block.{Block, ConsensusData}
+import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.crypto.encode.Base58
+import scorex.transaction.Transaction
 import scorex.transaction.box.proposition.Proposition
 
 import scala.util.Try
 
-trait History[P <: Proposition, CData <: ConsensusData, B <: Block[P, CData, _]] {
-  this: ConsensusModule[P, CData, B] =>
+trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData] {
+  this: ConsensusModule[P, TX, TData, CData] =>
 
   //todo: finish
   //val id: BlockId
@@ -46,13 +47,13 @@ trait History[P <: Proposition, CData <: ConsensusData, B <: Block[P, CData, _]]
     */
   def isEmpty: Boolean = height() == 0
 
-  def contains(block: B): Boolean = contains(id(block))
+  def contains(block: Block[P, CData, TData]): Boolean = contains(id(block))
 
   def contains(id: BlockId): Boolean = blockById(id).isDefined
 
-  def blockById(blockId: BlockId): Option[B]
+  def blockById(blockId: BlockId): Option[Block[P, CData, TData]]
 
-  def blockById(blockId: String): Option[B] =
+  def blockById(blockId: String): Option[Block[P, CData, TData]] =
     Base58
       .decode(blockId)
       .toOption
@@ -61,22 +62,22 @@ trait History[P <: Proposition, CData <: ConsensusData, B <: Block[P, CData, _]]
   /**
     * Height of a block if it's in the blocktree
     */
-  def heightOf(block: B): Option[Int] = heightOf(id(block))
+  def heightOf(block: Block[P, CData, TData]): Option[Int] = heightOf(id(block))
 
   def heightOf(blockId: BlockId): Option[Int]
 
-  def parent(block: B, back: Int = 1): Option[B]
+  def parent(block: Block[P, CData, TData], back: Int = 1): Option[Block[P, CData, TData]]
 
-  def confirmations(block: B): Option[Int] = heightOf(block).map(height() - _)
+  def confirmations(block: Block[P, CData, TData]): Option[Int] = heightOf(block).map(height() - _)
 
-  def generatedBy(id: P): Seq[B]
+  def generatedBy(id: P): Seq[Block[P, CData, TData]]
 
   /**
     * Block with maximum blockchain score
     */
-  def lastBlock: B = lastBlocks(1).head
+  def lastBlock: Block[P, CData, TData] = lastBlocks(1).head
 
-  def lastBlocks(howMany: Int): Seq[B]
+  def lastBlocks(howMany: Int): Seq[Block[P, CData, TData]]
 
   def lastBlockIds(howMany: Int): Seq[BlockId] = lastBlocks(howMany).map(id)
 
@@ -88,13 +89,13 @@ trait History[P <: Proposition, CData <: ConsensusData, B <: Block[P, CData, _]]
   /**
     * Average delay in milliseconds between last $blockNum blocks starting from $block
     */
-  def averageDelay(block: B, blockNum: Int): Try[Long] = Try {
+  def averageDelay(block: Block[P, CData, TData], blockNum: Int): Try[Long] = Try {
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
   }
 
-  def appendBlock(block: B): Try[Unit]
+  def appendBlock(block: Block[P, CData, TData]): Try[Unit]
 
   def discardBlock(): Try[Unit]
 
-  val genesisBlock: B
+  val genesisBlock: Block[P, CData, TData]
 }
