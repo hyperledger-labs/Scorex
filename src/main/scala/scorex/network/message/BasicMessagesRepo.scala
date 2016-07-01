@@ -115,14 +115,14 @@ class BasicMessagesRepo[P <: Proposition, TX <: Transaction[P, TX], CD <: Consen
     }
   }
 
-  object BlockMessageSpec extends MessageSpec[Block[P, CD, TD]] {
+  object BlockMessageSpec extends MessageSpec[Block[P, TD, CD]] {
     override val messageCode: MessageCode = 23: Byte
 
     override val messageName: String = "Block message"
 
-    override def serializeData(block: Block[P, CD, TD]): Array[Byte] = block.bytes
+    override def serializeData(block: Block[P, TD, CD]): Array[Byte] = block.bytes
 
-    override def deserializeData(bytes: Array[Byte]): Try[Block[P, CD, TD]] = Block.parse[P, TX, CD, TD](bytes)(consensusModule, transactionalModule)
+    override def deserializeData(bytes: Array[Byte]): Try[Block[P, TD, CD]] = Block.parse[P, TX, TD, CD](bytes)(consensusModule, transactionalModule)
   }
 
   object ScoreMessageSpec extends MessageSpec[BigInt] {

@@ -24,7 +24,7 @@ import scala.util.Try
   * - additional data: block structure version no, timestamp etc
   */
 
-class Block[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData[_ <: Transaction[P, _]]](
+class Block[P <: Proposition, TData <: TransactionalData[_ <: Transaction[P, _]], CData <: ConsensusData](
                                                                                       val version: Byte,
                                                                                       val timestamp: Long,
                                                                                       val consensusData: CData,
@@ -47,43 +47,37 @@ class Block[P <: Proposition, CData <: ConsensusData, TData <: TransactionalData
         "fee" -> consensusModule.totalFee(this),
         "blocksize" -> bytes.length
       )*/
-
-  /*
-  override def equals(obj: Any): Boolean = obj match {
-    case b: Block => consensusModule.id(b).unsized sameElements consensusModule.id(this).unsized
-    case _ => false
-  } */
 }
 
 object Block extends ScorexLogging {
   val Version = 1: Byte
 
-  def parse[P <: Proposition, TX <: Transaction[P, TX], CData <: ConsensusData, TData <: TransactionalData[TX]]
+  def parse[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (bytes: Array[Byte])
   (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
-   transactionalModule: TransactionModule[P, TX, TData]): Try[Block[P, CData, TData]] = {
+   transactionalModule: TransactionModule[P, TX, TData]): Try[Block[P, TData, CData]] = {
 
     ???
   }
 
   def build[P <: Proposition, TX <: Transaction[P, TX], CData <: ConsensusData, TData <: TransactionalData[TX]]
   (consensusData: CData)
-  (transactionalData: TData): Block[P, CData, TData] = {
+  (transactionalData: TData): Block[P, TData, CData] = {
 
     val timestamp = System.currentTimeMillis()
     new Block(Version, timestamp, consensusData, transactionalData)
   }
 
-  def genesis[P <: Proposition, TX <: Transaction[P, TX], CData <: ConsensusData, TData <: TransactionalData[TX]]
+  def genesis[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (genesisTimestamp: Long)
   (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
-   transactionalModule: TransactionModule[P, TX, TData]): Block[P, CData, TData] = {
+   transactionalModule: TransactionModule[P, TX, TData]): Block[P, TData, CData] = {
 
     new Block(Version, genesisTimestamp, consensusModule.genesisData, transactionalModule.genesisData)
   }
 
-  def isValid[P <: Proposition, TX <: Transaction[P, TX], CData <: ConsensusData, TData <: TransactionalData[TX]]
-  (block: Block[P, CData, TData])
+  def isValid[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
+  (block: Block[P, TData, CData])
   (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
    transactionalModule: TransactionModule[P, TX, TData]): Boolean = {
 

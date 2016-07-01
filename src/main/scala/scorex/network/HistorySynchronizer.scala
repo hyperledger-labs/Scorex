@@ -27,9 +27,11 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
   type CData = application.CData
   type TData = application.TData
   type B = application.BType
+
   private implicit val consensusModule = application.consensusModule
   private implicit val transactionalModule: TransactionModule[P, TX, TData] = application.transactionModule
-  private implicit val blockTypeable = new BlockTypeable[P, CData, TData]
+
+  private implicit val blockTypeable = new BlockTypeable[P, TData, CData]
 
   override val messageSpecs = Seq(ScoreMessageSpec, SignaturesSpec, BlockMessageSpec)
 
@@ -132,7 +134,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
 
       case DataFromPeer(msgId, block: B@unchecked, connectedPeer)
         if msgId == BlockMessageSpec.messageCode
-          && block.cast[Block[P, CData, TData]].isDefined =>
+          && block.cast[Block[P, TData, CData]].isDefined =>
 
         lastUpdate = System.currentTimeMillis()
         val blockId = consensusModule.id(block)
@@ -169,7 +171,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
       if (networkScore > history.score()) gotoGettingExtension(networkScore, witnesses)
 
     case DataFromPeer(msgId, block: B@unchecked, _)
-      if msgId == BlockMessageSpec.messageCode && block.cast[Block[P, CData, TData]].isDefined =>
+      if msgId == BlockMessageSpec.messageCode && block.cast[Block[P, TData, CData]].isDefined =>
       processNewBlock(block, local = false)
   }: Receive)
 
@@ -201,7 +203,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
   }
 
   private def processNewBlock(block: B, local: Boolean): Boolean = Try {
-    if (Block.isValid[P, TX, CData, TData](block)(consensusModule, transactionalModule)) {
+    if (Block.isValid[P, TX, TData, CData](block)(consensusModule, transactionalModule)) {
       log.info(s"New block(local: $local): ${block.json}")
 
       if (local) networkControllerRef ! SendToNetwork(Message(BlockMessageSpec, Right(block), None), Broadcast)

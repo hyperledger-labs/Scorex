@@ -17,13 +17,13 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
 
   val transactionalModule: TransactionModule[P, TX, TData]
 
-  def isValid(block: Block[P, CData, TData]): Boolean
+  def isValid(block: Block[P, TData, CData]): Boolean
 
   /**
     * Fees could go to a single miner(forger) usually, but can go to many parties, e.g. see
     * Proof-of-Activity proposal of Bentov et al. http://eprint.iacr.org/2014/452.pdf
     */
-  def feesDistribution(block: Block[P, CData, TData]): Map[P, Long]
+  def feesDistribution(block: Block[P, TData, CData]): Map[P, Long]
 
   /**
     * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
@@ -31,27 +31,27 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
     * @param block
     * @return
     */
-  def producers(block: Block[P, CData, TData]): Seq[P]
+  def producers(block: Block[P, TData, CData]): Seq[P]
 
-  def blockScore(block: Block[P, CData, TData]): BigInt
+  def blockScore(block: Block[P, TData, CData]): BigInt
 
-  def generateNextBlock(): Future[Option[Block[P, CData, TData]]]
+  def generateNextBlock(): Future[Option[Block[P, TData, CData]]]
 
   //def generateNextBlocks(transactionModule: TransactionModule[P, _, _]): Future[Seq[B]]
   //Future.sequence(accounts.map(acc => generateNextBlock(acc))).map(_.flatten)
 
-  def id(block: Block[P, CData, TData]): BlockId
+  def id(block: Block[P, TData, CData]): BlockId
 
-  def encodedId(block: Block[P, CData, TData]): String = Base58.encode(id(block))
+  def encodedId(block: Block[P, TData, CData]): String = Base58.encode(id(block))
 
-  def parentId(block: Block[P, CData, TData]): BlockId
+  def parentId(block: Block[P, TData, CData]): BlockId
 
   val MaxRollback: Int
 
 
   //Append block to current state
   //todo: check possible conflicts
-  def processBlock(block: Block[P, CData, TData]): Try[Unit] = synchronized {
+  def processBlock(block: Block[P, TData, CData]): Try[Unit] = synchronized {
     appendBlock(block).map { _ =>
       transactionalModule.processBlock(block) match {
         case Failure(e) =>

@@ -12,7 +12,7 @@ trait CommonApiFunctions {
 
   protected[api] def withBlock[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (history: BlockChain[P, TX, TData, CData], encodedId: String)
-  (action: Block[P, CData, TData] => Json): Json =
+  (action: Block[P, TData, CData] => Json): Json =
     history.blockById(encodedId) match {
       case Some(block) => action(block)
       case None => blockNotExists

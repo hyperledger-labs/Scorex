@@ -38,7 +38,7 @@ trait Application extends ScorexLogging {
   implicit val consensusModule: ConsensusModule[P, TX, TData, CData]
   implicit val transactionModule: TransactionModule[P, TX, TData]
 
-  type BType = Block[P, CData, TData]
+  type BType = Block[P, TData, CData]
 
   //api
   val apiRoutes: Seq[ApiRoute]
@@ -107,7 +107,7 @@ trait Application extends ScorexLogging {
 
   def checkGenesis(): Unit = {
     if (consensusModule.isEmpty) {
-      val genesisBlock: BType = Block.genesis[P, TX, CData, TData](settings.genesisTimestamp)
+      val genesisBlock: BType = Block.genesis[P, TX, TData, CData](settings.genesisTimestamp)
       consensusModule.appendBlock(genesisBlock)
       log.info("Genesis block has been added to the state")
     }

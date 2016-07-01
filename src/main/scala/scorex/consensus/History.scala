@@ -47,13 +47,13 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
     */
   def isEmpty: Boolean = height() == 0
 
-  def contains(block: Block[P, CData, TData]): Boolean = contains(id(block))
+  def contains(block: Block[P, TData, CData]): Boolean = contains(id(block))
 
   def contains(id: BlockId): Boolean = blockById(id).isDefined
 
-  def blockById(blockId: BlockId): Option[Block[P, CData, TData]]
+  def blockById(blockId: BlockId): Option[Block[P, TData, CData]]
 
-  def blockById(blockId: String): Option[Block[P, CData, TData]] =
+  def blockById(blockId: String): Option[Block[P, TData, CData]] =
     Base58
       .decode(blockId)
       .toOption
@@ -62,22 +62,22 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
   /**
     * Height of a block if it's in the blocktree
     */
-  def heightOf(block: Block[P, CData, TData]): Option[Int] = heightOf(id(block))
+  def heightOf(block: Block[P, TData, CData]): Option[Int] = heightOf(id(block))
 
   def heightOf(blockId: BlockId): Option[Int]
 
-  def parent(block: Block[P, CData, TData], back: Int = 1): Option[Block[P, CData, TData]]
+  def parent(block: Block[P, TData, CData], back: Int = 1): Option[Block[P, TData, CData]]
 
-  def confirmations(block: Block[P, CData, TData]): Option[Int] = heightOf(block).map(height() - _)
+  def confirmations(block: Block[P, TData, CData]): Option[Int] = heightOf(block).map(height() - _)
 
-  def generatedBy(id: P): Seq[Block[P, CData, TData]]
+  def generatedBy(id: P): Seq[Block[P, TData, CData]]
 
   /**
     * Block with maximum blockchain score
     */
-  def lastBlock: Block[P, CData, TData] = lastBlocks(1).head
+  def lastBlock: Block[P, TData, CData] = lastBlocks(1).head
 
-  def lastBlocks(howMany: Int): Seq[Block[P, CData, TData]]
+  def lastBlocks(howMany: Int): Seq[Block[P, TData, CData]]
 
   def lastBlockIds(howMany: Int): Seq[BlockId] = lastBlocks(howMany).map(id)
 
@@ -89,13 +89,13 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
   /**
     * Average delay in milliseconds between last $blockNum blocks starting from $block
     */
-  def averageDelay(block: Block[P, CData, TData], blockNum: Int): Try[Long] = Try {
+  def averageDelay(block: Block[P, TData, CData], blockNum: Int): Try[Long] = Try {
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
   }
 
-  def appendBlock(block: Block[P, CData, TData]): Try[Unit]
+  def appendBlock(block: Block[P, TData, CData]): Try[Unit]
 
   def discardBlock(): Try[Unit]
 
-  val genesisBlock: Block[P, CData, TData]
+  val genesisBlock: Block[P, TData, CData]
 }
