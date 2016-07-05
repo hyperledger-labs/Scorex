@@ -22,7 +22,7 @@ package object utils {
     }
   }
 
-  def randomBytes(howMany: Int = 32): Array[Byte] = {
+  def randomBytes(howMany: Int): Array[Byte] = {
     val r = new Array[Byte](howMany)
     new SecureRandom().nextBytes(r) //overrides r
     r
