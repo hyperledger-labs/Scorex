@@ -7,14 +7,13 @@ version := "2.0.0-M3"
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
 val circeVersion = "0.4.1"
+
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
-  "com.google.guava" % "guava" % "18.+",
   "com.typesafe.akka" %% "akka-actor" % "2.+",
   "org.bitlet" % "weupnp" % "0.1.+",
-  "com.h2database" % "h2-mvstore" % "1.+",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.+",
   "com.chuusai" %% "shapeless" % "2.+",
   "io.swagger" %% "swagger-scala-module" % "1.+",
@@ -23,15 +22,15 @@ libraryDependencies ++= Seq(
   "io.swagger" % "swagger-models" % "1.+",
   "io.swagger" % "swagger-jaxrs" % "1.+",
   "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.+",
+  "ch.qos.logback" % "logback-classic" % "1.+",
+  "ch.qos.logback" % "logback-core" % "1.+",
+  "org.consensusresearch" %% "scrypto" % "1.2.0-RC1",
+  "commons-net" % "commons-net" % "3.+",
   "com.typesafe.akka" %% "akka-testkit" % "2.+" % "test",
   "org.scalatest" %% "scalatest" % "2.+" % "test",
   "org.scalactic" %% "scalactic" % "2.+" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.+" % "test",
-  "net.databinder.dispatch" %% "dispatch-core" % "+" % "test",
-  "ch.qos.logback" % "logback-classic" % "1.+",
-  "ch.qos.logback" % "logback-core" % "1.+",
-  "org.consensusresearch" %% "scrypto" % "1.2.0-RC1",
-  "commons-net" % "commons-net" % "3.+"
+  "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"
 )
 
 scalacOptions ++= Seq("-feature", "-deprecation")
