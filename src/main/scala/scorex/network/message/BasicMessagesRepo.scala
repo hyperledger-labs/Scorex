@@ -15,7 +15,7 @@ import scorex.transaction.proof.Signature25519
 import scala.util.Try
 
 
-class BasicMessagesRepo[P <: Proposition, TX <: Transaction[P, TX], CD <: ConsensusData, TD <: TransactionalData[TX]]
+class BasicMessagesRepo[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
 ()
 (implicit val transactionalModule: TransactionModule[P, TX, TD],
  consensusModule: ConsensusModule[P, TX, TD, CD]) {

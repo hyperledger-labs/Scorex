@@ -48,7 +48,7 @@ trait Application extends ScorexLogging {
 
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
-  lazy val basicMessagesSpecsRepo = new BasicMessagesRepo[P, TX, CData, TData]()
+  lazy val basicMessagesSpecsRepo = new BasicMessagesRepo[P, TX, TData, CData]()
 
   //p2p
   lazy val upnp = new UPnP(settings)
