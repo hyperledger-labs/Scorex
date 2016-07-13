@@ -9,6 +9,8 @@ import scorex.transaction.state.MinimalState
 
 import scala.util.{Failure, Success, Try}
 
+import scorex.utils.toTry
+
 
 case class StateChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]], minerReward: Long)
 
@@ -32,12 +34,6 @@ abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]] extends B
   def validate(state: MinimalState[P, TX]): Try[Unit]
 
   def changes(state: MinimalState[P, TX]): Try[StateChanges[P]]
-
-  //todo: move to some utils class
-  protected def toTry(b: Boolean, msg: String): Try[Unit] = b match {
-    case true => Success(Unit)
-    case false => Failure(new Exception(msg))
-  }
 
   val messageToSign: Array[Byte]
 }

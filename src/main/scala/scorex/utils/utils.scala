@@ -8,6 +8,11 @@ import scala.util.{Failure, Success, Try}
 
 package object utils {
 
+  def toTry(b: Boolean, msg: String): Try[Unit] = b match {
+    case true => Success(Unit)
+    case false => Failure(new Exception(msg))
+  }
+
   @tailrec
   final def untilTimeout[T](timeout: FiniteDuration,
                             delay: FiniteDuration = 100.milliseconds)(fn: => T): T = {
