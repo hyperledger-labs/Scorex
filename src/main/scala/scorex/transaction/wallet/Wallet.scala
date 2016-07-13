@@ -15,7 +15,7 @@ import scorex.utils.{ScorexLogging, randomBytes}
 import scala.collection.JavaConversions._
 import scala.collection.concurrent.TrieMap
 
-//todo: add accs txs?
+//todo: add txs watching
 class Wallet[P <: Proposition,
 AP <: P with AddressableProposition,
 TM <: TransactionModule[P, _, _]](settings: Settings,
@@ -67,7 +67,7 @@ TM <: TransactionModule[P, _, _]](settings: Settings,
     seedPersistence.put("seed", seed)
   }
 
-  lazy val seed: Array[Byte] = seedPersistence.get("seed")
+  private lazy val seed: Array[Byte] = seedPersistence.get("seed")
 
   private val accountsCache: TrieMap[String, SH] = {
     val shs = accountsPersistence
