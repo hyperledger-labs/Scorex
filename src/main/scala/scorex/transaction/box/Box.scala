@@ -6,11 +6,11 @@ import scorex.transaction.box.proposition.Proposition
 /**
   * Box is a state element locked by some proposition.
   */
-trait Box[L <: Proposition] extends BytesSerializable {
-  val lock: L
-
-  val id: Array[Byte]
+trait Box[P <: Proposition] extends BytesSerializable {
+  val proposition: P
 
   val value: Long
+
+  val id: Array[Byte]
 }
 

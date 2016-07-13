@@ -70,7 +70,7 @@ abstract class BoxTransaction[P <: Proposition] extends Transaction[P, BoxTransa
         partialRes.flatMap { partialSum =>
           state.closedBox(unlocker.closedBoxId) match {
             case Some(box) =>
-              unlocker.boxKey.isValid(box.lock, messageToSign) match {
+              unlocker.boxKey.isValid(box.proposition, messageToSign) match {
                 case true => Success(partialSum + box.value)
                 case false => Failure(new Exception(""))
               }
