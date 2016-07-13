@@ -11,8 +11,7 @@ import scorex.network._
 import scorex.network.message.{BasicMessagesRepo, MessageHandler, MessageSpec}
 import scorex.network.peer.PeerManager
 import scorex.settings.Settings
-import scorex.transaction.box.proposition.{AddressableProposition, Proposition}
-import scorex.transaction.wallet.Wallet
+import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.{Transaction, TransactionModule}
 import scorex.utils.ScorexLogging
 
