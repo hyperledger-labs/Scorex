@@ -25,14 +25,13 @@ abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]] extends B
 
   val timestamp: Long
 
-  /**
-    * A transaction could be serialized into JSON
-    * A Transaction opens existing boxes and creates new ones
-    */
   def json: Json
 
   def validate(state: MinimalState[P, TX]): Try[Unit]
 
+  /**
+    * A Transaction opens existing boxes and creates new ones
+    */
   def changes(state: MinimalState[P, TX]): Try[StateChanges[P]]
 
   val messageToSign: Array[Byte]
