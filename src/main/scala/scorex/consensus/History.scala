@@ -7,28 +7,21 @@ import scorex.transaction.box.proposition.Proposition
 
 import scala.util.Try
 
+/**
+  * History of a blockchain system is some blocktree in fact
+  * (like this: http://image.slidesharecdn.com/sfbitcoindev-chepurnoy-2015-150322043044-conversion-gate01/95/proofofstake-its-improvements-san-francisco-bitcoin-devs-hackathon-12-638.jpg),
+  * where longest chain is being considered as canonical one, containing right kind of history.
+  *
+  * In cryptocurrencies of today blocktree view is usually implicit, means code supports only linear history,
+  * but other options are possible.
+  *
+  * To say "longest chain" is the canonical one is simplification, usually some kind of "cumulative difficulty"
+  * function has been used instead, even in PoW systems.
+  */
+
+
 trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData] {
   this: ConsensusModule[P, TX, TData, CData] =>
-
-  //todo: finish
-  //val id: BlockId
-  //val parentId: BlockId
-  //val producerField: ProducerBlockField
-  //val signatureField: SignatureBlockField
-  //lazy val history = transactionModule.blockStorage.history.contains(referenceField.value)
-  //lazy val sigValid = producer.verify(messageToSign, signature, nonce)
-
-  /**
-    * History of a blockchain system is some blocktree in fact
-    * (like this: http://image.slidesharecdn.com/sfbitcoindev-chepurnoy-2015-150322043044-conversion-gate01/95/proofofstake-its-improvements-san-francisco-bitcoin-devs-hackathon-12-638.jpg),
-    * where longest chain is being considered as canonical one, containing right kind of history.
-    *
-    * In cryptocurrencies of today blocktree view is usually implicit, means code supports only linear history,
-    * but other options are possible.
-    *
-    * To say "longest chain" is the canonical one is simplification, usually some kind of "cumulative difficulty"
-    * function has been used instead, even in PoW systems.
-    */
 
   /**
     * Height of the a chain, or a longest chain in the explicit block-tree
