@@ -26,13 +26,13 @@ trait Application extends ScorexLogging {
   //redefine it as lazy val
   def appVersion: ApplicationVersion
 
-  //settings
-  implicit val settings: Settings
-
   type P <: Proposition
   type TX <: Transaction[P, TX]
   type CData <: ConsensusData
   type TData <: TransactionalData[TX]
+
+  //settings
+  implicit val settings: Settings
 
   //modules
   implicit val consensusModule: ConsensusModule[P, TX, TData, CData]
