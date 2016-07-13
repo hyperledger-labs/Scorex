@@ -17,7 +17,6 @@ trait Proof[P <: Proposition] extends BytesSerializable {
   def proofBytes: Array[Byte]
 
   def isValid(proposition: P, message: Array[Byte]): Boolean
-
-  //todo: include id:  Array(proofId) ++ proofBytes
-  override lazy val bytes = proofBytes
+  
+  override lazy val bytes = Array(proofId) ++ proofBytes
 }
