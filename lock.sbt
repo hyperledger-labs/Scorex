@@ -28,13 +28,13 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.typesafe" % "config" % "1.3.0",
   "com.typesafe" % "ssl-config-akka_2.11" % "0.2.1",
   "com.typesafe" % "ssl-config-core_2.11" % "0.2.1",
-  "com.typesafe.akka" % "akka-actor_2.11" % "2.4.7",
-  "com.typesafe.akka" % "akka-http-core_2.11" % "2.4.7",
-  "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.4.7",
+  "com.typesafe.akka" % "akka-actor_2.11" % "2.4.8",
+  "com.typesafe.akka" % "akka-http-core_2.11" % "2.4.8",
+  "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.4.8",
   "com.typesafe.akka" % "akka-http-spray-json-experimental_2.11" % "2.4.7",
-  "com.typesafe.akka" % "akka-parsing_2.11" % "2.4.7",
-  "com.typesafe.akka" % "akka-stream_2.11" % "2.4.7",
-  "com.typesafe.akka" % "akka-testkit_2.11" % "2.4.7",
+  "com.typesafe.akka" % "akka-parsing_2.11" % "2.4.8",
+  "com.typesafe.akka" % "akka-stream_2.11" % "2.4.8",
+  "com.typesafe.akka" % "akka-testkit_2.11" % "2.4.8",
   "com.typesafe.play" % "play-datacommons_2.11" % "2.4.6",
   "com.typesafe.play" % "play-functional_2.11" % "2.4.6",
   "com.typesafe.play" % "play-iteratees_2.11" % "2.4.6",
@@ -54,6 +54,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "io.swagger" % "swagger-scala-module_2.11" % "1.0.2",
   "javax.validation" % "validation-api" % "1.1.0.Final",
   "javax.ws.rs" % "jsr311-api" % "1.1.1",
+  "jline" % "jline" % "2.12.1",
   "joda-time" % "joda-time" % "2.8.1",
   "net.databinder.dispatch" % "dispatch-core_2.11" % "0.11.3",
   "org.apache.commons" % "commons-lang3" % "3.2.1",
@@ -85,4 +86,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.4",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH 3cc5941f1a8f6f26eb3f0182959cea8c41146a42
+// LIBRARY_DEPENDENCIES_HASH 7ab582f7e8e5bd9caad1d3f6692173ad7de07529
