@@ -3,6 +3,7 @@ package scorex.consensus
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.crypto.encode.Base58
 import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.wallet.Wallet
 import scorex.transaction.{Transaction, TransactionModule}
 import scorex.utils.ScorexLogging
 
@@ -35,10 +36,7 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
 
   def blockScore(block: Block[P, TData, CData]): BigInt
 
-  def generateNextBlock(): Future[Option[Block[P, TData, CData]]]
-
-  //def generateNextBlocks(transactionModule: TransactionModule[P, _, _]): Future[Seq[B]]
-  //Future.sequence(accounts.map(acc => generateNextBlock(acc))).map(_.flatten)
+  def generateNextBlock(wallet: Wallet[P, _, _]): Future[Option[Block[P, TData, CData]]]
 
   def id(block: Block[P, TData, CData]): BlockId
 
