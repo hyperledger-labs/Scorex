@@ -13,11 +13,12 @@ trait TransactionModule[P <: Proposition, TX <: Transaction[P, TX], TBD <: Trans
   extends UnconfirmedTransactionsDatabase[TX] with MinimalState[P, TX] with ScorexLogging {
 
   type SH <: SecretHolder[P with AddressableProposition, _ <: Proof[P]]
+  type W <: Wallet[_ <: P, _ <: TransactionModule[P, TX, TBD]]
 
   val settings: Settings
 
   val generator: SecretHolderGenerator[SH]
-  val wallet: Wallet[P, P with AddressableProposition, _ <: TransactionModule[P, TX, TBD]]
+  val wallet: W
 
   def isValid(blockData: TBD): Boolean
 
