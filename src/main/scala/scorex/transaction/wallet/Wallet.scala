@@ -100,7 +100,6 @@ TM <: TransactionModule[P, _, _]](settings: Settings,
     SecureCryptographicHash(Bytes.concat(Ints.toByteArray(nonce), seed))
 
   def deleteAccount(account: SH): Boolean = synchronized {
-    //    val res = accountsPersistence.remove(account.seed)
     val res = accountsPersistence.keys.find { k =>
       if (accountsPersistence.get(k) sameElements account.bytes) {
         accountsPersistence.remove(k)
@@ -120,7 +119,7 @@ TM <: TransactionModule[P, _, _]](settings: Settings,
     accountsCache.clear()
   }
 
-  def exists(): Boolean = walletFileOpt.map(_.exists()).getOrElse(true)
+  def exists(): Boolean = walletFileOpt.forall(_.exists())
 
   def nonce(): Int = Option(noncePersistence.get(NonceFieldName)).getOrElse(0)
 
