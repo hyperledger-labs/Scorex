@@ -6,7 +6,6 @@ import scorex.transaction.box.proposition.Proposition
 /**
   * Box is a state element locked by some proposition.
   */
-//todo: Box is a Functor?
 trait Box[L <: Proposition] extends BytesSerializable {
   val lock: L
 
