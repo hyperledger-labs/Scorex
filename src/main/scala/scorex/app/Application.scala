@@ -12,7 +12,7 @@ import scorex.network.message.{BasicMessagesRepo, MessageHandler, MessageSpec}
 import scorex.network.peer.PeerManager
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.Proposition
-import scorex.transaction.{Transaction, TransactionModule}
+import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,7 +36,7 @@ trait Application extends ScorexLogging {
 
   //modules
   implicit val consensusModule: ConsensusModule[P, TX, TData, CData]
-  implicit val transactionModule: TransactionModule[P, TX, TData]
+  implicit val transactionModule: TransactionalModule[P, TX, TData]
 
   val wallet = transactionModule.wallet
 

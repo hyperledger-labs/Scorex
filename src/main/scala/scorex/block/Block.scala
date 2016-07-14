@@ -4,7 +4,7 @@ import io.circe.Json
 import scorex.consensus.ConsensusModule
 import scorex.serialization.{BytesSerializable, JsonSerializable}
 import scorex.transaction.box.proposition.Proposition
-import scorex.transaction.{Transaction, TransactionModule}
+import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.ScorexLogging
 import scala.util.Try
 
@@ -55,7 +55,7 @@ object Block extends ScorexLogging {
   def parse[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (bytes: Array[Byte])
   (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
-   transactionalModule: TransactionModule[P, TX, TData]): Try[Block[P, TData, CData]] = {
+   transactionalModule: TransactionalModule[P, TX, TData]): Try[Block[P, TData, CData]] = {
 
     ???
   }
@@ -71,7 +71,7 @@ object Block extends ScorexLogging {
   def genesis[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (genesisTimestamp: Long)
   (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
-   transactionalModule: TransactionModule[P, TX, TData]): Block[P, TData, CData] = {
+   transactionalModule: TransactionalModule[P, TX, TData]): Block[P, TData, CData] = {
 
     new Block(Version, genesisTimestamp, consensusModule.genesisData, transactionalModule.genesisData)
   }
@@ -79,7 +79,7 @@ object Block extends ScorexLogging {
   def isValid[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (block: Block[P, TData, CData])
   (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
-   transactionalModule: TransactionModule[P, TX, TData]): Boolean = {
+   transactionalModule: TransactionalModule[P, TX, TData]): Boolean = {
 
     if (consensusModule.contains(block)) true //applied blocks are valid
     else {

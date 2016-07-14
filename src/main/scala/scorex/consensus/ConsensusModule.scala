@@ -4,7 +4,7 @@ import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.crypto.encode.Base58
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.wallet.Wallet
-import scorex.transaction.{Transaction, TransactionModule}
+import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.Future
@@ -16,7 +16,7 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
   type BlockId = ConsensusData.BlockId
   val BlockIdLength: Int
 
-  val transactionalModule: TransactionModule[P, TX, TData]
+  val transactionalModule: TransactionalModule[P, TX, TData]
 
   def isValid(block: Block[P, TData, CData]): Boolean
 
@@ -29,6 +29,7 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
   /**
     * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
     * (see e.g. Proof-of-Activity paper of Bentov et al. http://eprint.iacr.org/2014/452.pdf)
+ *
     * @param block
     * @return
     */
@@ -36,7 +37,7 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
 
   def blockScore(block: Block[P, TData, CData]): BigInt
 
-  def generateNextBlock(wallet: Wallet[_ <: P, _ <: TransactionModule[P, TX, TData]]): Future[Option[Block[P, TData, CData]]]
+  def generateNextBlock(wallet: Wallet[_ <: P, _ <: TransactionalModule[P, TX, TData]]): Future[Option[Block[P, TData, CData]]]
 
   def id(block: Block[P, TData, CData]): BlockId
 

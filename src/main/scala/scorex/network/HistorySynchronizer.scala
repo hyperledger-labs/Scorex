@@ -8,7 +8,7 @@ import scorex.crypto.encode.Base58
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message.Message
-import scorex.transaction.TransactionModule
+import scorex.transaction.TransactionalModule
 import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
 
@@ -29,7 +29,7 @@ class HistorySynchronizer(val application: Application) extends ViewSynchronizer
   type B = application.BType
 
   private implicit val consensusModule = application.consensusModule
-  private implicit val transactionalModule: TransactionModule[P, TX, TData] = application.transactionModule
+  private implicit val transactionalModule: TransactionalModule[P, TX, TData] = application.transactionModule
 
   private implicit val blockTypeable = new BlockTypeable[P, TData, CData]
 

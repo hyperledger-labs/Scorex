@@ -8,7 +8,7 @@ import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.crypto.signatures.SigningFunctions
 import scorex.network.message.Message._
-import scorex.transaction.{Transaction, TransactionModule}
+import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.proof.Signature25519
 
@@ -17,7 +17,7 @@ import scala.util.Try
 
 class BasicMessagesRepo[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
 ()
-(implicit val transactionalModule: TransactionModule[P, TX, TD],
+(implicit val transactionalModule: TransactionalModule[P, TX, TD],
  consensusModule: ConsensusModule[P, TX, TD, CD]) {
 
   type BlockId = ConsensusData.BlockId

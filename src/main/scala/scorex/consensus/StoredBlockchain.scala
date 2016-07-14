@@ -3,7 +3,7 @@ package scorex.consensus
 import org.h2.mvstore.{MVMap, MVStore}
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.transaction.box.proposition.Proposition
-import scorex.transaction.{Transaction, TransactionModule}
+import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.ScorexLogging
 
 import scala.collection.JavaConversions._
@@ -19,7 +19,7 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
 
   val dataFolderOpt: Option[String]
 
-  val transactionalModule: TransactionModule[P, TX, TData]
+  val transactionalModule: TransactionalModule[P, TX, TData]
 
   private val self: ConsensusModule[P, TX, TData, CData] = this
 

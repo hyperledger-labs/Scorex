@@ -7,7 +7,7 @@ import org.h2.mvstore.{MVMap, MVStore}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.SecureCryptographicHash
 import scorex.settings.Settings
-import scorex.transaction.TransactionModule
+import scorex.transaction.TransactionalModule
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.state.SecretHolderGenerator
 import scorex.utils.{ScorexLogging, randomBytes}
@@ -16,7 +16,7 @@ import scala.collection.JavaConversions._
 import scala.collection.concurrent.TrieMap
 
 //todo: add txs watching
-class Wallet[P <: Proposition, TM <: TransactionModule[P, _, _]]
+class Wallet[P <: Proposition, TM <: TransactionalModule[P, _, _]]
   (settings: Settings, generator: SecretHolderGenerator[TM#SH])
   extends ScorexLogging {
 
