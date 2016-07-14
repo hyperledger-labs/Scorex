@@ -7,14 +7,14 @@ import scorex.transaction.box.proposition.PublicKeyProposition
 trait PublicKeyNoncedBox[PKP <: PublicKeyProposition] extends Box[PKP] {
   val nonce: Int
 
-  lazy val id = lock.id ++ Ints.toByteArray(nonce)
+  lazy val id = proposition.id ++ Ints.toByteArray(nonce)
 
-  lazy val publicKey = lock.publicKey
+  lazy val publicKey = proposition.publicKey
 
   override def equals(obj: Any): Boolean = obj match {
     case acc: PublicKeyNoncedBox[PKP] => (acc.id sameElements this.id) && acc.value == this.value
     case _ => false
   }
 
-  override def hashCode(): Int = lock.hashCode()
+  override def hashCode(): Int = proposition.hashCode()
 }

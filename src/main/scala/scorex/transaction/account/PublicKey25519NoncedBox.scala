@@ -4,13 +4,10 @@ import com.google.common.primitives.{Ints, Longs}
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 
 case class PublicKey25519NoncedBox(
-                                    proposition: PublicKey25519Proposition,
+                                    override val proposition: PublicKey25519Proposition,
                                     override val nonce: Int,
                                     override val value: Long
                                   ) extends PublicKeyNoncedBox[PublicKey25519Proposition] {
-
-  val lock = proposition
-
   override def bytes: Array[Byte] =
     proposition.publicKey.unsized ++ Ints.toByteArray(nonce) ++ Longs.toByteArray(value)
 }
