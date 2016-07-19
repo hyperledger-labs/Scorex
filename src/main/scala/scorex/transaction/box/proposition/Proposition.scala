@@ -10,5 +10,5 @@ trait Proposition extends BytesSerializable
 trait EmptyProposition extends Proposition
 
 case class HeightOpenProposition(height: Int) extends Proposition {
-  override val bytes = Ints.toByteArray(height)
+  override lazy val bytes = Ints.toByteArray(height)
 }

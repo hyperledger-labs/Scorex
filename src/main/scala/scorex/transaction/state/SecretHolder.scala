@@ -41,7 +41,7 @@ case class PrivateKey25519Holder(override val secret: PrivateKey25519,
   override def verify(message: Array[Byte], signature: Signature25519): Boolean =
     Curve25519.verify(signature.signature, message, publicCommitment.publicKey.unsized)
 
-  override def bytes: Array[Byte] = secret.unsized ++ publicCommitment.publicKey.unsized
+  override lazy val bytes: Array[Byte] = secret.unsized ++ publicCommitment.publicKey.unsized
 }
 
 object PrivateKey25519Holder {

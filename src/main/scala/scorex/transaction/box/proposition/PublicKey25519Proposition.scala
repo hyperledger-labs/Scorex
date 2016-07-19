@@ -25,7 +25,7 @@ object PublicKey25519Proposition {
   def apply(pubKey: Sized[Array[Byte], SizedConstants.PubKey25519]): PublicKey25519Proposition =
     new PublicKey25519Proposition {
       override val publicKey = pubKey
-      override val bytes: Array[Byte] = publicKey
+      override lazy val bytes: Array[Byte] = publicKey
     }
 
   //todo: unsized

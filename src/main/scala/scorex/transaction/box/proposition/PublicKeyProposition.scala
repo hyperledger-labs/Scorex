@@ -6,10 +6,10 @@ import shapeless.{Sized, Nat}
 
 trait PublicKeyProposition extends AddressableProposition {
   type PublicKeySize <: Nat
+
   val publicKey: Sized[Array[Byte], PublicKeySize]
 
-  override val bytes = publicKey.unsized
-
+  override lazy val bytes = publicKey.unsized
 
   override def toString: String = address
 

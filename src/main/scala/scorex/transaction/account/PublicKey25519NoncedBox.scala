@@ -8,7 +8,7 @@ case class PublicKey25519NoncedBox(
                                     override val nonce: Int,
                                     override val value: Long
                                   ) extends PublicKeyNoncedBox[PublicKey25519Proposition] {
-  override def bytes: Array[Byte] =
+  override lazy val bytes: Array[Byte] =
     proposition.publicKey.unsized ++ Ints.toByteArray(nonce) ++ Longs.toByteArray(value)
 }
 
