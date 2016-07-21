@@ -1,7 +1,6 @@
 package scorex.crypto.hash
 
 import scorex.crypto._
-import scorex.crypto.hash.CryptographicHash._
 
 
 /**

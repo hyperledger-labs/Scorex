@@ -24,7 +24,7 @@ libraryDependencies ++= Seq(
   "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.+",
   "ch.qos.logback" % "logback-classic" % "1.+",
   "ch.qos.logback" % "logback-core" % "1.+",
-  "org.consensusresearch" %% "scrypto" % "1.2.0-RC1",
+  "org.consensusresearch" %% "scrypto" % "1.2.0-RC2",
   "commons-net" % "commons-net" % "3.+",
   "com.typesafe.akka" %% "akka-testkit" % "2.+" % "test",
   "org.scalatest" %% "scalatest" % "2.+" % "test",

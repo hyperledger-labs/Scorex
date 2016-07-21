@@ -29,7 +29,7 @@ object PublicKey25519Proposition {
     }
 
   //todo: unsized
-  def calcCheckSum(bytes: Array[Byte]): Array[Byte] = hash(bytes).unsized.take(ChecksumLength)
+  def calcCheckSum(bytes: Array[Byte]): Array[Byte] = hash(bytes).take(ChecksumLength)
 
   def validPubKey(address: String): Try[PublicKey25519Proposition] =
     Base58.decode(address).flatMap { addressBytes =>

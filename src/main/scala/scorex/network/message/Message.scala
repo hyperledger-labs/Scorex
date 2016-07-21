@@ -27,7 +27,7 @@ case class Message[Content](spec: MessageSpec[Content],
 
   lazy val bytes: Array[Byte] = {
     val dataWithChecksum = if (dataLength > 0) {
-      val checksum = hash(dataBytes).unsized.take(ChecksumLength)
+      val checksum = hash(dataBytes).take(ChecksumLength)
       Bytes.concat(checksum, dataBytes)
     } else dataBytes //empty array
 

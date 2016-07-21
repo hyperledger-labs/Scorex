@@ -40,7 +40,7 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
         bytes.get(data)
 
         //VALIDATE CHECKSUM
-        val digest = hash(data).unsized.take(Message.ChecksumLength)
+        val digest = hash(data).take(Message.ChecksumLength)
 
         //CHECK IF CHECKSUM MATCHES
         assert(checksum.sameElements(digest), s"Invalid data checksum length = $length")

@@ -1,21 +1,13 @@
 package scorex.crypto.hash
 
-import scorex.crypto.hash.CryptographicHash._
-import shapeless.Sized
-import scorex.settings.SizedConstants.Nat32
+import ove.crypto.digest.Blake2b
 
 /**
-  * Interface for fast and secure Blake hash function
-  */
+ * Interface for fast and secure Blake hash function
+ */
 
-object FastCryptographicHash {
+object FastCryptographicHash extends CryptographicHash32 {
 
-  type Digest = Sized[Array[Byte], Nat32]
-
-  def apply(input: Message): Digest = hash(input)
-
-  def apply(input: String): Digest = hash(input.getBytes)
-
-  def hash(in: Message): Digest = Sized.wrap(Blake2b256.hash(in))
+  override def hash(input: Message): Digest = Blake2b256.hash(input)
 
 }
