@@ -56,7 +56,12 @@ trait SecretHolderGenerator[SH <: SecretHolder[_, _]] {
 }
 
 object SecretGenerator25519 extends SecretHolderGenerator[PrivateKey25519Holder] {
-  override def generateKeys(randomSeed: Array[Byte]): PrivateKey25519Holder = ???
+  override def generateKeys(randomSeed: Array[Byte]): PrivateKey25519Holder = {
+    val pair = Curve25519.createKeyPair(randomSeed)
+    val secret:PrivateKey25519 = Sized.wrap(pair._1)
+    val pubk:PublicKey25519Proposition = PublicKey25519Proposition(Sized.wrap(pair._2))
+    PrivateKey25519Holder(secret, pubk)
+  }
 
   override def parse(bytes: Array[Byte]): Try[PrivateKey25519Holder] = ???
 }
