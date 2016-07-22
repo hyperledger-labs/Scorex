@@ -29,9 +29,9 @@ class NetworkController(settings: Settings, messagesHandler: MessageHandler, upn
 
   import NetworkController._
 
-  val peerManager = context.system.actorOf(Props(classOf[PeerManager], settings, this))
+  val peerManager = context.system.actorOf(Props(classOf[PeerManager], settings, self))
 
-  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], this, peerManager), "PeerSynchronizer")
+  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], self, peerManager), "PeerSynchronizer")
 
   private implicit val system = context.system
 

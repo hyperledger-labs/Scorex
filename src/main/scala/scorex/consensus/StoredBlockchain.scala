@@ -64,16 +64,13 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
     def score(): BigInt = if (height() > 0) scoreMap.get(height()) else 0
   }
 
-  private val blockStorage: BlockchainPersistence = {
+  private lazy val blockStorage: BlockchainPersistence = {
     val db = dataFolderOpt match {
       case Some(dataFolder) => new MVStore.Builder().fileName(dataFolder + s"/blocks.mvstore").compress().open()
       case None => new MVStore.Builder().open()
     }
     new BlockchainPersistence(db)
   }
-
-
-  log.info(s"Initialized blockchain in $dataFolderOpt with ${height()} blocks")
 
   override def appendBlock(block: Block[P, TData, CData]): Try[Unit] = synchronized {
     Try {

@@ -67,7 +67,7 @@ trait Application extends ScorexLogging {
 
 
   implicit val materializer = ActorMaterializer()
-  val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
+  lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
 
 
   def run() {
