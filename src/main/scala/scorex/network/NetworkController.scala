@@ -7,9 +7,10 @@ import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.app.Application
-import scorex.network.message.{Message, MessageSpec}
+import scorex.app.ApplicationVersion
+import scorex.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.network.peer.PeerManager
+import scorex.settings.Settings
 import scorex.utils.ScorexLogging
 
 import scala.collection.JavaConversions._
@@ -23,7 +24,8 @@ import scala.util.{Failure, Success, Try}
  * Control all network interaction
  * must be singleton
  */
-class NetworkController(application: Application) extends Actor with ScorexLogging {
+class NetworkController(settings: Settings, peerManager: ActorRef, messagesHandler: MessageHandler, upnp: UPnP,
+                        applicationName: String, appVersion: ApplicationVersion) extends Actor with ScorexLogging {
 
   import NetworkController._
 
@@ -31,11 +33,7 @@ class NetworkController(application: Application) extends Actor with ScorexLoggi
 
   private implicit val timeout = Timeout(5.seconds)
 
-  private lazy val settings = application.settings
-  private lazy val peerManager = application.peerManager
-
   private val messageHandlers = mutable.Map[Seq[Message.MessageCode], ActorRef]()
-  val messagesHandler = application.messagesHandler
 
   //check own declared address for validity
   if (!settings.localOnly) {
@@ -54,7 +52,7 @@ class NetworkController(application: Application) extends Actor with ScorexLoggi
           case true => true
           case false =>
             if (settings.upnpEnabled) {
-              val extAddr = application.upnp.externalAddress
+              val extAddr = upnp.externalAddress
               myAddrs.contains(extAddr)
             } else false
         }
@@ -70,18 +68,18 @@ class NetworkController(application: Application) extends Actor with ScorexLoggi
   lazy val externalSocketAddress = settings.declaredAddress
     .flatMap(s => Try(InetAddress.getByName(s)).toOption)
     .orElse {
-      if (settings.upnpEnabled) application.upnp.externalAddress else None
-    }.map(ia => new InetSocketAddress(ia, application.settings.port))
+      if (settings.upnpEnabled) upnp.externalAddress else None
+    }.map(ia => new InetSocketAddress(ia, settings.port))
 
   //an address to send to peers
   lazy val ownSocketAddress = externalSocketAddress
 
   log.info(s"Declared address: $ownSocketAddress")
 
-  private lazy val handshakeTemplate = Handshake(application.applicationName,
-    application.appVersion,
+  private lazy val handshakeTemplate = Handshake(applicationName,
+    appVersion,
     settings.nodeName,
-    application.settings.nodeNonce,
+    settings.nodeNonce,
     ownSocketAddress,
     0
   )
@@ -100,7 +98,7 @@ class NetworkController(application: Application) extends Actor with ScorexLoggi
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.port + " already in use!")
       context stop self
-      application.stopAll()
+      //TODO catch?
   }
 
   def businessLogic: Receive = {

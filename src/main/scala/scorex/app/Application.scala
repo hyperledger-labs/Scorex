@@ -1,6 +1,6 @@
 package scorex.app
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import scorex.api.http.{ApiRoute, CompositeHttpService}
@@ -60,7 +60,9 @@ trait Application extends ScorexLogging {
 
   lazy val peerManager = actorSystem.actorOf(Props(classOf[PeerManager], this))
 
-  lazy val networkController = actorSystem.actorOf(Props(classOf[NetworkController], this), "networkController")
+
+  lazy val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, peerManager,
+    messagesHandler, upnp, applicationName, appVersion), "networkController")
   lazy val blockGenerator = actorSystem.actorOf(Props(classOf[BlockGeneratorController], this), "blockGenerator")
 
   lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer], this), "HistorySynchronizer")
