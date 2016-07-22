@@ -24,13 +24,14 @@ import scala.util.{Failure, Success, Try}
  * Control all network interaction
  * must be singleton
  */
-class NetworkController(settings: Settings, peerManager: ActorRef, messagesHandler: MessageHandler, upnp: UPnP,
+class NetworkController(settings: Settings, messagesHandler: MessageHandler, upnp: UPnP,
                         applicationName: String, appVersion: ApplicationVersion) extends Actor with ScorexLogging {
 
   import NetworkController._
 
+  val peerManager = context.system.actorOf(Props(classOf[PeerManager], settings, this))
 
-  context.system.actorOf(Props(classOf[PeerSynchronizer], this, peerManager), "PeerSynchronizer")
+  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], this, peerManager), "PeerSynchronizer")
 
   private implicit val system = context.system
 

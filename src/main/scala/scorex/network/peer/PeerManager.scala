@@ -2,9 +2,9 @@ package scorex.network.peer
 
 import java.net.InetSocketAddress
 
-import akka.actor.Actor
-import scorex.app.Application
+import akka.actor.{Actor, ActorRef}
 import scorex.network._
+import scorex.settings.Settings
 import scorex.utils.ScorexLogging
 
 import scala.collection.JavaConversions._
@@ -12,18 +12,16 @@ import scala.collection.mutable
 import scala.util.Random
 
 /**
-  * Must be singleton
-  *
-  */
-class PeerManager(application: Application) extends Actor with ScorexLogging {
+ * Must be singleton
+ *
+ */
+class PeerManager(settings: Settings, networkController: ActorRef) extends Actor with ScorexLogging {
 
   import PeerManager._
 
   private val connectedPeers = mutable.Map[ConnectedPeer, Option[Handshake]]()
   private var connectingPeer: Option[InetSocketAddress] = None
 
-  private lazy val settings = application.settings
-  private lazy val networkController = application.networkController
   private lazy val peerDatabase = new PeerDatabaseImpl(settings, settings.dataDirOpt.map(f => f + "/peers.dat"))
 
   settings.knownPeers.foreach { address =>
@@ -99,7 +97,7 @@ class PeerManager(application: Application) extends Actor with ScorexLogging {
           toUpdate.keys.foreach(connectedPeers.remove)
 
           //drop connection to self if occurred
-          if (handshake.nodeNonce == application.settings.nodeNonce) {
+          if (handshake.nodeNonce == settings.nodeNonce) {
             newCp.handlerRef ! PeerConnectionHandler.CloseConnection
           } else {
             handshake.declaredAddress.foreach(address => self ! PeerManager.AddOrUpdatePeer(address, None, None))
