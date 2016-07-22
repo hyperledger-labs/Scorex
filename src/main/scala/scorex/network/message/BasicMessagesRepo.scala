@@ -22,52 +22,7 @@ class BasicMessagesRepo[P <: Proposition, TX <: Transaction[P, TX], TD <: Transa
 
   type BlockId = ConsensusData.BlockId
 
-  object GetPeersSpec extends MessageSpec[Unit] {
-    override val messageCode: Message.MessageCode = 1: Byte
-
-    override val messageName: String = "GetPeers message"
-
-    override def deserializeData(bytes: Array[Byte]): Try[Unit] =
-      Try(require(bytes.isEmpty, "Non-empty data for GetPeers"))
-
-    override def serializeData(data: Unit): Array[Byte] = Array()
-  }
-
-  object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
-    private val AddressLength = 4
-    private val PortLength = 4
-    private val DataLength = 4
-
-    override val messageCode: Message.MessageCode = 2: Byte
-
-    override val messageName: String = "Peers message"
-
-    override def deserializeData(bytes: Array[Byte]): Try[Seq[InetSocketAddress]] = Try {
-      val lengthBytes = util.Arrays.copyOfRange(bytes, 0, DataLength)
-      val length = Ints.fromByteArray(lengthBytes)
-
-      assert(bytes.length == DataLength + (length * (AddressLength + PortLength)), "Data does not match length")
-
-      (0 until length).map { i =>
-        val position = lengthBytes.length + (i * (AddressLength + PortLength))
-        val addressBytes = util.Arrays.copyOfRange(bytes, position, position + AddressLength)
-        val address = InetAddress.getByAddress(addressBytes)
-        val portBytes = util.Arrays.copyOfRange(bytes, position + AddressLength, position + AddressLength + PortLength)
-        new InetSocketAddress(address, Ints.fromByteArray(portBytes))
-      }
-    }
-
-    override def serializeData(peers: Seq[InetSocketAddress]): Array[Byte] = {
-      val length = peers.size
-      val lengthBytes = Ints.toByteArray(length)
-
-      peers.foldLeft(lengthBytes) { case (bs, peer) =>
-        Bytes.concat(bs, peer.getAddress.getAddress, Ints.toByteArray(peer.getPort))
-      }
-    }
-  }
-
-  trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
+   trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
 
     private val SignatureLength = Signature25519.SignatureSize
     private val DataLength = 4
@@ -144,4 +99,49 @@ class BasicMessagesRepo[P <: Proposition, TX <: Transaction[P, TX], TD <: Transa
 
   val specs = Seq(GetPeersSpec, PeersSpec, GetSignaturesSpec, SignaturesSpec,
     GetBlockSpec, BlockMessageSpec, ScoreMessageSpec)
+}
+
+object GetPeersSpec extends MessageSpec[Unit] {
+  override val messageCode: Message.MessageCode = 1: Byte
+
+  override val messageName: String = "GetPeers message"
+
+  override def deserializeData(bytes: Array[Byte]): Try[Unit] =
+    Try(require(bytes.isEmpty, "Non-empty data for GetPeers"))
+
+  override def serializeData(data: Unit): Array[Byte] = Array()
+}
+
+object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
+  private val AddressLength = 4
+  private val PortLength = 4
+  private val DataLength = 4
+
+  override val messageCode: Message.MessageCode = 2: Byte
+
+  override val messageName: String = "Peers message"
+
+  override def deserializeData(bytes: Array[Byte]): Try[Seq[InetSocketAddress]] = Try {
+    val lengthBytes = util.Arrays.copyOfRange(bytes, 0, DataLength)
+    val length = Ints.fromByteArray(lengthBytes)
+
+    assert(bytes.length == DataLength + (length * (AddressLength + PortLength)), "Data does not match length")
+
+    (0 until length).map { i =>
+      val position = lengthBytes.length + (i * (AddressLength + PortLength))
+      val addressBytes = util.Arrays.copyOfRange(bytes, position, position + AddressLength)
+      val address = InetAddress.getByAddress(addressBytes)
+      val portBytes = util.Arrays.copyOfRange(bytes, position + AddressLength, position + AddressLength + PortLength)
+      new InetSocketAddress(address, Ints.fromByteArray(portBytes))
+    }
+  }
+
+  override def serializeData(peers: Seq[InetSocketAddress]): Array[Byte] = {
+    val length = peers.size
+    val lengthBytes = Ints.toByteArray(length)
+
+    peers.foldLeft(lengthBytes) { case (bs, peer) =>
+      Bytes.concat(bs, peer.getAddress.getAddress, Ints.toByteArray(peer.getPort))
+    }
+  }
 }

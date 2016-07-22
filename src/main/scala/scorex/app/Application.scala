@@ -83,7 +83,6 @@ trait Application extends ScorexLogging {
 
     historySynchronizer ! Unit
     historyReplier ! Unit
-    actorSystem.actorOf(Props(classOf[PeerSynchronizer], this), "PeerSynchronizer")
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {

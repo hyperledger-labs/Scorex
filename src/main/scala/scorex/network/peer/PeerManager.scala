@@ -14,7 +14,6 @@ import scala.util.Random
 /**
   * Must be singleton
   *
-  * @param application - Scorex-based application
   */
 class PeerManager(application: Application) extends Actor with ScorexLogging {
 

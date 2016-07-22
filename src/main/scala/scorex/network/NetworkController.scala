@@ -29,6 +29,9 @@ class NetworkController(settings: Settings, peerManager: ActorRef, messagesHandl
 
   import NetworkController._
 
+
+  context.system.actorOf(Props(classOf[PeerSynchronizer], this, peerManager), "PeerSynchronizer")
+
   private implicit val system = context.system
 
   private implicit val timeout = Timeout(5.seconds)
@@ -98,7 +101,7 @@ class NetworkController(settings: Settings, peerManager: ActorRef, messagesHandl
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.port + " already in use!")
       context stop self
-      //TODO catch?
+    //TODO catch?
   }
 
   def businessLogic: Receive = {
