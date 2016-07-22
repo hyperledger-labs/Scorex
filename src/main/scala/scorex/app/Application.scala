@@ -54,7 +54,6 @@ trait Application extends ScorexLogging {
 
   //p2p
   lazy val upnp = new UPnP(settings)
-  if (settings.upnpEnabled) upnp.addPort(settings.port)
 
   lazy val messagesHandler: MessageHandler = MessageHandler(basicMessagesSpecsRepo.specs ++ additionalMessageSpecs)
 

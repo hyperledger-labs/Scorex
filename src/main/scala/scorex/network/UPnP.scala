@@ -42,6 +42,7 @@ class UPnP(settings: Settings) extends ScorexLogging {
   }.recover { case t: Throwable =>
     log.error("Unable to discover UPnP gateway devices: " + t.toString)
   }
+  if (settings.upnpEnabled) addPort(settings.port)
 
   def addPort(port: Int): Try[Unit] = Try {
     if (gateway.get.addPortMapping(port, port, localAddress.get.getHostAddress, "TCP", "Scorex")) {
