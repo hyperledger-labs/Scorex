@@ -3,6 +3,7 @@ package scorex.settings
 import java.io.File
 import java.net.InetSocketAddress
 
+import io.circe.parser.parse
 import io.circe.Json
 import scorex.crypto.encode.Base58
 import scorex.utils.ScorexLogging
@@ -11,8 +12,8 @@ import scala.concurrent.duration._
 import scala.util.{Random, Try}
 
 /**
-  * Settings
-  */
+ * Settings
+ */
 
 trait Settings extends ScorexLogging {
 
@@ -20,21 +21,18 @@ trait Settings extends ScorexLogging {
 
   lazy val settingsJSON: Map[String, Json] = Try {
     val jsonString = scala.io.Source.fromFile(filename).mkString
-    Json.fromString(jsonString)
+    parse(jsonString)
   }.recoverWith { case t =>
     Try {
       val jsonString = scala.io.Source.fromURL(getClass.getResource(s"/$filename")).mkString
-      Json.fromString(jsonString)
+      parse(jsonString)
     }
-  }.toOption
-    .flatMap(_.asObject)
-    .map(_.toMap)
-    .getOrElse {
-      log.error(s"Unable to read $filename or not a JSON map there, closing")
-      //catch error?
-      System.exit(10)
-      Map()
-    }
+  }.toOption.flatMap(_.toOption).flatMap(_.asObject).map(_.toMap).getOrElse {
+    log.error(s"Unable to read $filename or not a JSON map there, closing")
+    //catch error?
+    System.exit(10)
+    Map()
+  }
 
   private def directoryEnsuring(dirPath: String): Boolean = {
     val f = new java.io.File(dirPath)
