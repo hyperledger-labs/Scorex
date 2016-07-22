@@ -7,7 +7,8 @@ import org.h2.mvstore.{MVMap, MVStore}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.SecureCryptographicHash
 import scorex.settings.Settings
-import scorex.transaction.TransactionalModule
+import scorex.transaction.box.Box
+import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.state.SecretHolderGenerator
 import scorex.utils.{ScorexLogging, randomBytes}
@@ -15,18 +16,20 @@ import scorex.utils.{ScorexLogging, randomBytes}
 import scala.collection.JavaConversions._
 import scala.collection.concurrent.TrieMap
 
+case class WalletChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]])
+
 //todo: add txs watching
 class Wallet[P <: Proposition, TM <: TransactionalModule[P, _, _]]
-  (settings: Settings, generator: SecretHolderGenerator[TM#SH])
+(settings: Settings, generator: SecretHolderGenerator[TM#SH])
   extends ScorexLogging {
+
+  private val NonceFieldName = "nonce"
 
   val walletFileOpt: Option[File] = settings.walletDirOpt.map(walletDir => new java.io.File(walletDir, "wallet.s.dat"))
   val password: String = settings.walletPassword
   val seedOpt: Option[Array[Byte]] = settings.walletSeed
 
   type SH = TM#SH
-
-  private val NonceFieldName = "nonce"
 
   private val database: MVStore = walletFileOpt match {
     case Some(walletFile) =>
@@ -37,7 +40,7 @@ class Wallet[P <: Proposition, TM <: TransactionalModule[P, _, _]]
     case None => new MVStore.Builder().open()
   }
 
-  private val accountsPersistence: MVMap[Int, Array[Byte]] = database.openMap("secretHolders")
+  private val secretsPersistence: MVMap[Int, Array[Byte]] = database.openMap("secretHolders")
   private val seedPersistence: MVMap[String, Array[Byte]] = database.openMap("seed")
   private val noncePersistence: MVMap[String, Int] = database.openMap("nonce")
 
@@ -67,54 +70,54 @@ class Wallet[P <: Proposition, TM <: TransactionalModule[P, _, _]]
 
   private lazy val seed: Array[Byte] = seedPersistence.get("seed")
 
-  private val accountsCache: TrieMap[String, SH] = {
-    val shs = accountsPersistence
+  private val secretsCache: TrieMap[String, SH] = {
+    val shs = secretsPersistence
       .keys
-      .map(k => accountsPersistence.get(k))
+      .map(k => secretsPersistence.get(k))
       .map(seed => generator.generateKeys(seed))
 
     TrieMap(shs.map(sh => sh.publicAddress -> sh).toSeq: _*)
   }
 
-  def privateKeyAccounts(): Seq[SH] = accountsCache.values.toSeq
+  def privateKeyAccounts(): Seq[SH] = secretsCache.values.toSeq
 
   def generateNewAccounts(howMany: Int): Seq[SH] = (1 to howMany).map(_ => generateNewAccount())
 
   def generateNewAccount(): SH = synchronized {
     val nonce = getAndIncrementNonce()
 
-    val accountSeed = generateAccountSeed(seed, nonce)
+    val accountSeed = generateSecretSeed(seed, nonce)
     val secretHolder: SH = generator.generateKeys(accountSeed)
 
-    accountsCache += secretHolder.publicAddress -> secretHolder
-    accountsPersistence.put(accountsPersistence.lastKey() + 1, secretHolder.bytes)
+    secretsCache += secretHolder.publicAddress -> secretHolder
+    secretsPersistence.put(secretsPersistence.lastKey() + 1, secretHolder.bytes)
     database.commit()
 
     log.info("Added account #" + nonce)
     secretHolder
   }
 
-  def generateAccountSeed(seed: Array[Byte], nonce: Int): Array[Byte] =
+  def generateSecretSeed(seed: Array[Byte], nonce: Int): Array[Byte] =
     SecureCryptographicHash(Bytes.concat(Ints.toByteArray(nonce), seed))
 
-  def deleteAccount(account: SH): Boolean = synchronized {
-    val res = accountsPersistence.keys.find { k =>
-      if (accountsPersistence.get(k) sameElements account.bytes) {
-        accountsPersistence.remove(k)
+  def deleteSecret(secret: SH): Boolean = synchronized {
+    val res = secretsPersistence.keys.find { k =>
+      if (secretsPersistence.get(k) sameElements secret.bytes) {
+        secretsPersistence.remove(k)
         true
       } else false
     }
     database.commit()
-    accountsCache -= account.publicAddress
+    secretsCache -= secret.publicAddress
     res.isDefined
   }
 
-  def privateKeyAccount(publicAddress: String): Option[SH] = accountsCache.get(publicAddress)
+  def correspondingSecret(publicAddress: String): Option[SH] = secretsCache.get(publicAddress)
 
   def close(): Unit = if (!database.isClosed) {
     database.commit()
     database.close()
-    accountsCache.clear()
+    secretsCache.clear()
   }
 
   def exists(): Boolean = walletFileOpt.forall(_.exists())
@@ -123,5 +126,12 @@ class Wallet[P <: Proposition, TM <: TransactionalModule[P, _, _]]
 
   def getAndIncrementNonce(): Int = synchronized {
     noncePersistence.put(NonceFieldName, nonce() + 1) - 1
+  }
+
+  def scanChanges[TX <: Transaction[P, TX]](transactions: Iterable[TX]): WalletChanges[P] = {
+    val (r, a) = transactions.foldLeft(Set[Box[P]]() -> Set[Box[P]]()) { case ((btr, bta), tx) =>
+      (btr ++ tx.boxesToRemove.toSet, bta ++ tx.boxesToAdd.toSet)
+    }
+    WalletChanges(r, a)
   }
 }
