@@ -7,7 +7,7 @@ import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
 import com.google.common.primitives.Ints
-import scorex.app.Application
+import scorex.network.message.MessageHandler
 import scorex.network.peer.PeerManager
 import scorex.network.peer.PeerManager.{AddToBlacklist, Handshaked}
 import scorex.utils.ScorexLogging
@@ -28,15 +28,11 @@ case object Ack extends Event
 
 
 //todo: timeout on Ack waiting
-case class PeerConnectionHandler(application: Application,
-                                 connection: ActorRef,
+case class PeerConnectionHandler(networkControllerRef: ActorRef, peerManager: ActorRef,
+                                 messagesHandler: MessageHandler, connection: ActorRef,
                                  remote: InetSocketAddress) extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler._
-
-  private lazy val networkControllerRef: ActorRef = application.networkController
-
-  private lazy val peerManager: ActorRef = application.peerManager
 
   private val selfPeer = new ConnectedPeer(remote, self)
 
@@ -125,7 +121,7 @@ case class PeerConnectionHandler(application: Application,
       chunksBuffer = t._2
 
       t._1.find { packet =>
-        application.messagesHandler.parseBytes(packet.toByteBuffer, Some(selfPeer)) match {
+        messagesHandler.parseBytes(packet.toByteBuffer, Some(selfPeer)) match {
           case Success(message) =>
             log.info("received message " + message.spec + " from " + remote)
             networkControllerRef ! message
