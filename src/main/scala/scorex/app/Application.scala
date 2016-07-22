@@ -38,7 +38,7 @@ trait Application extends ScorexLogging {
   implicit val consensusModule: ConsensusModule[P, TX, TData, CData]
   implicit val transactionModule: TransactionalModule[P, TX, TData]
 
-  val wallet = transactionModule.wallet
+  lazy val wallet = transactionModule.wallet
 
   type BType = Block[P, TData, CData]
 
