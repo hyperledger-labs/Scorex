@@ -23,4 +23,16 @@ with Matchers {
       }
     }
   }
+
+  property("SecretGenerator25519 serialization") {
+    forAll() { (seed: Array[Byte], message: Array[Byte]) =>
+      val priv = SecretGenerator25519.generateKeys(seed)
+      val parsed = SecretGenerator25519.parseBytes(priv.bytes)
+
+      parsed.isSuccess shouldBe true
+      parsed.get.address shouldBe priv.address
+      parsed.get.sign(message).isValid(priv.publicCommitment, message) shouldBe true
+    }
+  }
+
 }

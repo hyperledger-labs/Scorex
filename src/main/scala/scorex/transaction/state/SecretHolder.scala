@@ -1,10 +1,10 @@
 package scorex.transaction.state
 
 import scorex.crypto.signatures.Curve25519
-import scorex.serialization.BytesSerializable
+import scorex.serialization.{BytesParsable, BytesSerializable}
 import scorex.settings.SizedConstants
 import scorex.transaction.box._
-import scorex.transaction.box.proposition.{PublicKey25519Proposition, AddressableProposition}
+import scorex.transaction.box.proposition.{AddressableProposition, PublicKey25519Proposition}
 import scorex.transaction.proof.{Proof, Signature25519}
 import scorex.transaction.state.PrivateKey25519Holder.PrivateKey25519
 import shapeless.Sized
@@ -27,8 +27,8 @@ trait SecretHolder[P <: AddressableProposition, PR <: Proof[P]] extends BytesSer
   def verify(message: Array[Byte], signature: PR): Boolean
 }
 
-case class PrivateKey25519Holder(override val secret: PrivateKey25519,
-                                 override val publicCommitment: PublicKey25519Proposition) extends SecretHolder[PublicKey25519Proposition, Signature25519] {
+case class PrivateKey25519Holder(secret: PrivateKey25519, publicCommitment: PublicKey25519Proposition)
+  extends SecretHolder[PublicKey25519Proposition, Signature25519] with BytesSerializable {
   override type Secret = PrivateKey25519
 
   lazy val address = publicCommitment.address
@@ -49,19 +49,20 @@ object PrivateKey25519Holder {
 }
 
 
-trait SecretHolderGenerator[SH <: SecretHolder[_, _]] {
+trait SecretHolderGenerator[SH <: SecretHolder[_, _]] extends BytesParsable[SH] {
   def generateKeys(randomSeed: Array[Byte]): SH
 
-  def parse(bytes: Array[Byte]): Try[SH]
 }
 
 object SecretGenerator25519 extends SecretHolderGenerator[PrivateKey25519Holder] {
   override def generateKeys(randomSeed: Array[Byte]): PrivateKey25519Holder = {
     val pair = Curve25519.createKeyPair(randomSeed)
-    val secret:PrivateKey25519 = Sized.wrap(pair._1)
-    val pubk:PublicKey25519Proposition = PublicKey25519Proposition(Sized.wrap(pair._2))
+    val secret: PrivateKey25519 = Sized.wrap(pair._1)
+    val pubk: PublicKey25519Proposition = PublicKey25519Proposition(Sized.wrap(pair._2))
     PrivateKey25519Holder(secret, pubk)
   }
 
-  override def parse(bytes: Array[Byte]): Try[PrivateKey25519Holder] = ???
+  override def parseBytes(bytes: Array[Byte]): Try[PrivateKey25519Holder] = Try {
+    PrivateKey25519Holder(Sized.wrap(bytes.slice(0, 32)), PublicKey25519Proposition(Sized.wrap(bytes.slice(32, 64))))
+  }
 }

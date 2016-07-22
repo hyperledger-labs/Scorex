@@ -1,7 +1,7 @@
 package scorex.app
 
 import com.google.common.primitives.Ints
-import scorex.serialization.{BytesParseable, BytesSerializable}
+import scorex.serialization.{BytesParsable, BytesSerializable}
 
 import scala.util.Try
 
@@ -9,7 +9,7 @@ case class ApplicationVersion(firstDigit: Int, secondDigit: Int, thirdDigit: Int
   lazy val bytes: Array[Byte] = Ints.toByteArray(firstDigit) ++ Ints.toByteArray(secondDigit) ++ Ints.toByteArray(thirdDigit)
 }
 
-object ApplicationVersion extends BytesParseable[ApplicationVersion] {
+object ApplicationVersion extends BytesParsable[ApplicationVersion] {
   val SerializedVersionLength = 4 * 3
 
   def parseBytes(bytes: Array[Byte]): Try[ApplicationVersion] = Try {
