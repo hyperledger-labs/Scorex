@@ -62,10 +62,6 @@ trait Application extends ScorexLogging {
   lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer[P, TX, TData, CData]], settings,
     consensusModule, networkController, basicMessagesSpecsRepo), "HistorySynchronizer")
 
-  lazy val historyReplier = actorSystem.actorOf(Props(classOf[HistoryReplier[P, TX, TData, CData]], settings,
-    basicMessagesSpecsRepo, networkController, consensusModule), "HistoryReplier")
-
-
   implicit val materializer = ActorMaterializer()
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
 
@@ -79,7 +75,6 @@ trait Application extends ScorexLogging {
     Http().bindAndHandle(combinedRoute, "0.0.0.0", settings.rpcPort)
 
     historySynchronizer ! Unit
-    historyReplier ! Unit
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {

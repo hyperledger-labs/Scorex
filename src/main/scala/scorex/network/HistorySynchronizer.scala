@@ -29,6 +29,9 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
   import HistorySynchronizer._
   import repo._
 
+  lazy val historyReplier = context.system.actorOf(Props(classOf[HistoryReplier[P, TX, TD, CD]], settings,
+    repo, networkControllerRef, consensusModule), "HistoryReplier")
+
   lazy val blockGenerator = context.system.actorOf(Props(classOf[BlockGeneratorController[P, TX, TD, CD]],
     settings, this, consensusModule), "blockGenerator")
 
@@ -85,6 +88,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
 
       //the signal to initialize
       case Unit =>
+        historyReplier ! Unit
 
       case nonsense: Any =>
         log.warn(s"Got something strange in ${status.name}: $nonsense")
