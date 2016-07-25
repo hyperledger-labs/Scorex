@@ -1,18 +1,25 @@
 package scorex.network
 
-import scorex.app.Application
+import akka.actor.ActorRef
+import scorex.block.{ConsensusData, TransactionalData}
+import scorex.consensus.ConsensusModule
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
-import scorex.network.message.Message
+import scorex.network.message.{BasicMessagesRepo, Message}
+import scorex.settings.Settings
+import scorex.transaction.Transaction
+import scorex.transaction.box.proposition.Proposition
 import scorex.utils.ScorexLogging
 
-class HistoryReplier(application: Application) extends ViewSynchronizer with ScorexLogging {
+class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
+(settings: Settings,
+ repo: BasicMessagesRepo[P, TX, TD, CD],
+ val networkControllerRef: ActorRef,
+ val consensusModule: ConsensusModule[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
 
-  import application.basicMessagesSpecsRepo._
+  import repo._
 
   override val messageSpecs = Seq(GetSignaturesSpec, GetBlockSpec)
-  protected override lazy val networkControllerRef = application.networkController
 
-  private lazy val consensusModule = application.consensusModule
   private type BlockId = consensusModule.BlockId
 
   override def receive: Receive = {
@@ -24,7 +31,7 @@ class HistoryReplier(application: Application) extends ViewSynchronizer with Sco
       log.info(s"Got GetSignaturesMessage with ${otherSigs.length} sigs within")
 
       otherSigs.exists { parent =>
-        val headers = consensusModule.lookForward(parent, application.settings.MaxBlocksChunks)
+        val headers = consensusModule.lookForward(parent, settings.MaxBlocksChunks)
 
         if (headers.nonEmpty) {
           val msg = Message(SignaturesSpec, Right(Seq(parent) ++ headers), None)

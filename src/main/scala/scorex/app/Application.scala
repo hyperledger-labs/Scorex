@@ -1,15 +1,13 @@
 package scorex.app
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import scorex.api.http.{ApiRoute, CompositeHttpService}
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
-import scorex.consensus.mining.BlockGeneratorController
 import scorex.network._
 import scorex.network.message.{BasicMessagesRepo, MessageHandler, MessageSpec}
-import scorex.network.peer.PeerManager
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.{Transaction, TransactionalModule}
@@ -64,7 +62,8 @@ trait Application extends ScorexLogging {
   lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer[P, TX, TData, CData]], settings,
     consensusModule, networkController, basicMessagesSpecsRepo), "HistorySynchronizer")
 
-  lazy val historyReplier = actorSystem.actorOf(Props(classOf[HistoryReplier], this), "HistoryReplier")
+  lazy val historyReplier = actorSystem.actorOf(Props(classOf[HistoryReplier[P, TX, TData, CData]], settings,
+    basicMessagesSpecsRepo, networkController, consensusModule), "HistoryReplier")
 
 
   implicit val materializer = ActorMaterializer()
