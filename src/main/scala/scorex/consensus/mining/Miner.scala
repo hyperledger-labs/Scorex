@@ -1,8 +1,14 @@
 package scorex.consensus.mining
 
-import akka.actor.Actor
+import akka.actor.{ActorRef, Actor}
 import scorex.app.Application
+import scorex.block.{ConsensusData, TransactionalData}
+import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.Miner._
+import scorex.settings.Settings
+import scorex.transaction.wallet.Wallet
+import scorex.transaction.{Transaction, TransactionalModule}
+import scorex.transaction.box.proposition.Proposition
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.Await
@@ -10,10 +16,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.{Failure, Try}
 
-class Miner(application: Application) extends Actor with ScorexLogging {
+class Miner[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
+(settings: Settings, historySynchronizer: ActorRef, consensusModule: ConsensusModule[P, TX, TD, CD])
+  extends Actor with ScorexLogging {
 
+  implicit val tm = consensusModule.transactionalModule
   // BlockGenerator is trying to generate a new block every $blockGenerationDelay. Should be 0 for PoW consensus model.
-  val blockGenerationDelay = application.settings.blockGenerationDelay
+  val blockGenerationDelay = settings.blockGenerationDelay
   val BlockGenerationTimeLimit = 5.seconds
 
   var lastTryTime = 0L
@@ -37,13 +46,12 @@ class Miner(application: Application) extends Actor with ScorexLogging {
   }
 
   def tryToGenerateABlock(): Unit = Try {
-    implicit val transactionalModule = application.transactionModule
 
     lastTryTime = System.currentTimeMillis()
     if (blockGenerationDelay > 500.milliseconds) log.info("Trying to generate a new block")
-    val blockFuture = application.consensusModule.generateNextBlock(application.wallet)
+    val blockFuture = consensusModule.generateNextBlock(tm.wallet)
     val blockOpt = Await.result(blockFuture, BlockGenerationTimeLimit)
-    blockOpt.foreach(b => application.historySynchronizer ! b)
+    blockOpt.foreach(b => historySynchronizer ! b)
     if (!stopped) scheduleAGuess()
   }.recoverWith {
     case ex =>
@@ -61,4 +69,5 @@ object Miner {
   case object GetLastGenerationTime
 
   case class LastGenerationTime(time: Long)
+
 }

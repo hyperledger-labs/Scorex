@@ -58,9 +58,10 @@ trait Application extends ScorexLogging {
   lazy val messagesHandler: MessageHandler = MessageHandler(basicMessagesSpecsRepo.specs ++ additionalMessageSpecs)
 
 
-  lazy val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings,  messagesHandler, upnp,
+  lazy val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
     applicationName, appVersion), "networkController")
-  lazy val blockGenerator = actorSystem.actorOf(Props(classOf[BlockGeneratorController], this), "blockGenerator")
+  lazy val blockGenerator = actorSystem.actorOf(Props(classOf[BlockGeneratorController[P, TX, TData, CData]],
+    settings, historySynchronizer, consensusModule), "blockGenerator")
 
   lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer], this), "HistorySynchronizer")
   lazy val historyReplier = actorSystem.actorOf(Props(classOf[HistoryReplier], this), "HistoryReplier")

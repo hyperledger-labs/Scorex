@@ -4,18 +4,26 @@ import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.app.Application
+import scorex.block.{ConsensusData, TransactionalData}
+import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.BlockGeneratorController._
 import scorex.consensus.mining.Miner._
+import scorex.settings.Settings
+import scorex.transaction.{TransactionalModule, Transaction}
+import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.wallet.Wallet
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Success
 
-class BlockGeneratorController(application: Application) extends Actor with ScorexLogging {
+class BlockGeneratorController[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
+(settings: Settings, historySynchronizer: ActorRef, consensusModule: ConsensusModule[P, TX, TD, CD]) extends Actor
+with ScorexLogging {
 
-  val threads = application.settings.mininigThreads
-  val FailedGenerationDelay: FiniteDuration = Math.max(10, application.settings.blockGenerationDelay.toSeconds).seconds
+  val threads = settings.mininigThreads
+  val FailedGenerationDelay: FiniteDuration = Math.max(10, settings.blockGenerationDelay.toSeconds).seconds
   implicit val timeout = Timeout(FailedGenerationDelay)
 
   var workers: Seq[ActorRef] = Seq.empty
@@ -78,7 +86,8 @@ class BlockGeneratorController(application: Application) extends Actor with Scor
   }
 
   def newWorkers(count: Int): Seq[ActorRef] = (1 to count).map { i =>
-    context.watch(context.actorOf(Props(classOf[Miner], application), s"Worker-${System.currentTimeMillis()}-$i"))
+    context.watch(context.actorOf(Props(classOf[Miner[P, TX, TD, CD]], settings, historySynchronizer, consensusModule),
+      s"Worker-${System.currentTimeMillis()}-$i"))
   }
 }
 
