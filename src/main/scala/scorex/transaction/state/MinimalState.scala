@@ -1,6 +1,6 @@
 package scorex.transaction.state
 
-import scorex.block.Block
+import scorex.block.{TransactionalData, Block}
 import scorex.transaction.Transaction
 import scorex.transaction.box.Box
 import scorex.transaction.box.proposition.Proposition
@@ -20,7 +20,7 @@ trait MinimalState[P <: Proposition, TX <: Transaction[P, TX]] {
 
   def filterValid(txs: Seq[TX]): Seq[TX] = txs.filter(isValid)
 
-  def processBlock(block: Block[P, _, _]): Try[Unit]
+  def processBlock(block: Block[P, _ <: TransactionalData[TX], _]): Try[Unit]
 
   def rollbackTo(height: Int): Try[Unit]
 
