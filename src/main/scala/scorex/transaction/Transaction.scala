@@ -21,7 +21,7 @@ case class StateChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[B
 
 abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]] extends BytesSerializable with JsonSerializable {
 
-  def fee: Long
+  lazy val fee: Long = boxesToAdd.map(_.value).sum - boxesToAdd.map(_.value).sum
 
   val timestamp: Long
 
@@ -32,7 +32,9 @@ abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]] extends B
   /**
     * A Transaction opens existing boxes and creates new ones
     */
-  def changes(state: MinimalState[P, TX]): Try[StateChanges[P]]
+  val boxesToRemove: Iterable[Box[P]]
+
+  val boxesToAdd: Iterable[Box[P]]
 
   val messageToSign: Array[Byte]
 }
