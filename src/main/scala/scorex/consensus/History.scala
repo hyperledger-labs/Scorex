@@ -75,12 +75,12 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
   def lastBlockIds(howMany: Int): Seq[BlockId] = lastBlocks(howMany).map(id)
 
   /**
-    * Return $howMany blocks starting from $parentSignature
+    * Return howMany blocks starting from parentSignature
     */
   def lookForward(parentSignature: BlockId, howMany: Int): Seq[BlockId]
 
   /**
-    * Average delay in milliseconds between last $blockNum blocks starting from $block
+    * Average delay in milliseconds between last blockNum blocks starting from block
     */
   def averageDelay(block: Block[P, TData, CData], blockNum: Int): Try[Long] = Try {
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
