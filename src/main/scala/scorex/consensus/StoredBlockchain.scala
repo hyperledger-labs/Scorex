@@ -23,8 +23,6 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
 
   private val self: ConsensusModule[P, TX, TData, CData] = this
 
-  //compiler hangs if uncomment: private implicit val consensusModule: ConsensusModule[P, CData, B] = this
-
   case class BlockchainPersistence(database: MVStore) {
     val blocks: MVMap[Int, Array[Byte]] = database.openMap("blocks")
     val signatures: MVMap[Int, BlockId] = database.openMap("signatures")
