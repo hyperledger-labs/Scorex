@@ -53,7 +53,7 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
   //todo: check possible conflicts
   def processBlock(block: Block[P, TData, CData]): Try[Unit] = synchronized {
     appendBlock(block).map { _ =>
-      transactionalModule.processBlock(block) match {
+      transactionalModule.processBlock(block, feesDistribution(block)) match {
         case Failure(e) =>
           log.error("Failed to apply block to state", e)
           discardBlock()
