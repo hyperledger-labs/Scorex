@@ -19,7 +19,6 @@ import scala.util.Try
   * function has been used instead, even in PoW systems.
   */
 
-
 trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData] {
   this: ConsensusModule[P, TX, TData, CData] =>
 

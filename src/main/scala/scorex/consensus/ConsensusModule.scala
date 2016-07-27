@@ -31,8 +31,8 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
     * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
     * (see e.g. Proof-of-Activity paper of Bentov et al. http://eprint.iacr.org/2014/452.pdf)
  *
-    * @param block
-    * @return
+    * @param block - a block to extract producers from
+    * @return blocks' producers
     */
   def producers(block: Block[P, TData, CData]): Seq[P]
 

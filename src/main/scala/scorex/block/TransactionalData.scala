@@ -7,6 +7,5 @@ trait TransactionalData[TX <: Transaction[_, TX]] extends BytesSerializable with
   val mbTransactions: Option[Traversable[TX]]
 
   val headerOnly = mbTransactions.isDefined
-
 }
 
