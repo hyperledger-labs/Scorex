@@ -7,7 +7,8 @@ import scorex.utils.ScorexLogging
 
 import scala.util.Try
 
-trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData] extends History[P, TX, TData, CData] with ScorexLogging {
+trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
+  extends History[P, TX, TData, CData] with ScorexLogging {
   this: ConsensusModule[P, TX, TData, CData] =>
 
   def blockAt(height: Int): Option[Block[P, TData, CData]]
