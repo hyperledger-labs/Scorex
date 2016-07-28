@@ -1,5 +1,5 @@
-Scorex 2 - The modular blockchain framework
-===========================================
+Scorex 2 - The modular blockchain framework [![Build Status](http://23.94.190.226:8080/buildStatus/icon?job=scorex2/scorex-basics)](http://23.94.190.226:8080/job/scorex2/job/scorex-basics)
+====================================================================================================================================================================================
 
 [![Join the chat at https://gitter.im/input-output-hk/Scorex](https://badges.gitter.im/input-output-hk/Scorex.svg)](https://gitter.im/input-output-hk/Scorex?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
