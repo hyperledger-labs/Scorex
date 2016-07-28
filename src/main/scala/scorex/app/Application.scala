@@ -15,6 +15,7 @@ import scorex.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.runtime.universe.Type
+import scala.util.{Try, Failure}
 
 trait Application extends ScorexLogging {
   val ApplicationNameLimit = 50
@@ -103,8 +104,10 @@ trait Application extends ScorexLogging {
   def checkGenesis(): Unit = {
     if (consensusModule.isEmpty) {
       val genesisBlock: BType = Block.genesis[P, TX, TData, CData](settings.genesisTimestamp)
-      consensusModule.appendBlock(genesisBlock)
-      log.info("Genesis block has been added to the state")
+      consensusModule.appendBlock(genesisBlock) match {
+        case Failure(e) => log.error("Failed to append genesis block", e)
+        case _ => log.info("Genesis block has been added to the state")
+      }
     }
   }.ensuring(consensusModule.height() >= 1)
 }
