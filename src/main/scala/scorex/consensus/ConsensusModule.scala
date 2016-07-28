@@ -2,7 +2,7 @@ package scorex.consensus
 
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.crypto.encode.Base58
-import scorex.serialization.BytesParsable
+import scorex.serialization.BytesParseable
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.wallet.Wallet
 import scorex.transaction.{Transaction, TransactionalModule}
@@ -12,7 +12,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
-  extends History[P, TX, TData, CData] with ScorexLogging with BytesParsable[CData] {
+  extends History[P, TX, TData, CData] with ScorexLogging with BytesParseable[CData] {
 
   type BlockId = ConsensusData.BlockId
   val BlockIdLength: Int
