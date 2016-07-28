@@ -7,7 +7,7 @@ import scorex.serialization.{BytesSerializable, JsonSerializable}
   * correctness of a block generation and also history consistence.
   */
 trait ConsensusData extends BytesSerializable with JsonSerializable {
-  /
+
   val BlockIdLength: Int
 
   /**
