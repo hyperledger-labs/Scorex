@@ -3,10 +3,8 @@ package scorex.serialization
 import scala.util.Try
 
 /**
-  * Interface for objects, that can deserialize bytes to instance of T
+  * Interface for objects able to deserialize bytes to an instance of T
   */
-trait BytesParsable[T] {
-
+trait BytesParseable[T] {
   def parseBytes(bytes: Array[Byte]): Try[T]
-
 }

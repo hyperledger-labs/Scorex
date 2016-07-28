@@ -1,7 +1,7 @@
 package scorex.transaction.state
 
 import scorex.crypto.signatures.Curve25519
-import scorex.serialization.{BytesParsable, BytesSerializable}
+import scorex.serialization.{BytesParseable, BytesSerializable}
 import scorex.settings.SizedConstants
 import scorex.transaction.box._
 import scorex.transaction.box.proposition.{AddressableProposition, PublicKey25519Proposition}
@@ -49,7 +49,7 @@ object PrivateKey25519Holder {
 }
 
 
-trait SecretHolderGenerator[SH <: SecretHolder[_, _]] extends BytesParsable[SH] {
+trait SecretHolderGenerator[SH <: SecretHolder[_, _]] extends BytesParseable[SH] {
   def generateKeys(randomSeed: Array[Byte]): SH
 
 }

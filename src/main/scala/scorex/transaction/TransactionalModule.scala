@@ -1,7 +1,7 @@
 package scorex.transaction
 
 import scorex.block.TransactionalData
-import scorex.serialization.BytesParsable
+import scorex.serialization.BytesParseable
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.{AddressableProposition, Proposition}
 import scorex.transaction.proof.Proof
@@ -12,7 +12,7 @@ import scorex.transaction.wallet.Wallet
 
 trait TransactionalModule[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX]]
   extends UnconfirmedTransactionsDatabase[TX, TData] with MinimalState[P, TX] with ScorexLogging
-  with BytesParsable[TData] {
+  with BytesParseable[TData] {
 
   type SH <: SecretHolder[P with AddressableProposition, _ <: Proof[P]]
   type W <: Wallet[_ <: P, _ <: TransactionalModule[P, TX, TData]]
