@@ -20,6 +20,6 @@ trait BytesParseable[T] {
       if (restBytes.isEmpty) objBytes +: acc
       else loop(restBytes, objBytes +: acc)
     }
-    loop(bytes, Seq())
+    loop(bytes, Seq()).reverse
   }
 }
