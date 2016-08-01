@@ -33,7 +33,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
     repo, networkControllerRef, consensusModule), "HistoryReplier")
 
   lazy val blockGenerator = context.system.actorOf(Props(classOf[BlockGeneratorController[P, TX, TD, CD]],
-    settings, this, consensusModule), "blockGenerator")
+    settings, self, consensusModule), "blockGenerator")
 
   type B = Block[P, TD, CD]
 
