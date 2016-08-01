@@ -55,7 +55,7 @@ class Miner[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[
     if (!stopped) scheduleAGuess()
   }.recoverWith {
     case ex =>
-      log.error(s"Failed to generate new block: ${ex.getMessage}")
+      log.error("Failed to generate new block", ex)
       Failure(ex)
   }
 }
