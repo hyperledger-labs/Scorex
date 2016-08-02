@@ -95,7 +95,7 @@ class Wallet[P <: Proposition, TM <: TransactionalModule[P, _, _]]
     secretsPersistence.put(secretsPersistence.lastKey() + 1, secretHolder.bytes)
     database.commit()
 
-    log.info("Added account #" + nonce)
+    log.info("Added account #" + secretsCache.size)
     secretHolder
   }
 
@@ -127,7 +127,7 @@ class Wallet[P <: Proposition, TM <: TransactionalModule[P, _, _]]
   def nonce(): Int = Option(noncePersistence.get(NonceFieldName)).getOrElse(0)
 
   def getAndIncrementNonce(): Int = synchronized {
-    noncePersistence.put(NonceFieldName, nonce() + 1) - 1
+    noncePersistence.put(NonceFieldName, nonce() + 1)
   }
 
   //  def scanChanges[TX <: Transaction[P, TX]](transactions: Iterable[TX]): WalletChanges[P] = {
