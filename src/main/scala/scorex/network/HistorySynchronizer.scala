@@ -206,7 +206,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
 
   private def processNewBlock(block: B, local: Boolean): Boolean = Try {
     if (Block.isValid[P, TX, TD, CD](block)(consensusModule, transactionalModule)) {
-      log.info(s"New block(local: $local): ${block.json}")
+      log.info(s"New block(local: $local): ${block.json.noSpaces}")
 
       if (local) networkControllerRef ! SendToNetwork(Message(BlockMessageSpec, Right(block), None), Broadcast)
 
@@ -225,7 +225,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
           false
       }
     } else {
-      log.warn(s"Invalid new block(local: $local): ${block.json}")
+      log.warn(s"Invalid new block(local: $local): ${block.json.noSpaces}")
       false
     }
   }.recoverWith {

@@ -51,17 +51,20 @@ class Block[P <: Proposition, TData <: TransactionalData[_ <: Transaction[P, _]]
   lazy val bytes: Array[Byte] = (version +: Longs.toByteArray(timestamp)) ++ arrayWithSize(consensusData.bytes) ++
     arrayWithSize(transactionalData.bytes)
 
-  lazy val json: Json = ???
-
-  /*lazy val json =
-    versionField.json ++
+  lazy val json: Json = {
+    //TODO implement
+    /*    versionField.json ++
       timestampField.json ++
       consensusDataField.json ++
       transactionDataField.json ++
       Json.obj(
         "fee" -> consensusModule.totalFee(this),
         "blocksize" -> bytes.length
-      )*/
+      )
+     */
+    consensusData.json
+  }
+
 }
 
 object Block extends ScorexLogging {
