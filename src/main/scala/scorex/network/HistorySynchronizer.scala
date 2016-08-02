@@ -258,5 +258,4 @@ object HistorySynchronizer {
   case object GetStatus
 
   case object SelfCheck
-
 }

@@ -66,11 +66,7 @@ class ScoreObserver(historySynchronizer: ActorRef) extends Actor with ScorexLogg
 }
 
 object ScoreObserver {
-
-  case class UpdateScore(scoreToAdd: Option[(ConnectedPeer, BigInt)])
-
   case object GetScore
-
+  case class UpdateScore(scoreToAdd: Option[(ConnectedPeer, BigInt)])
   case class ConsideredValue(value: Option[BigInt], witnesses: Seq[ConnectedPeer])
-
 }

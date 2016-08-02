@@ -34,7 +34,7 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef, peerManager: Ac
 
   import PeerConnectionHandler._
 
-  private val selfPeer = new ConnectedPeer(remote, self)
+  private val selfPeer = ConnectedPeer(remote, self)
 
   context watch connection
 

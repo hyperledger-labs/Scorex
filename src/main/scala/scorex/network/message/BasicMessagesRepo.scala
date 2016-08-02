@@ -33,10 +33,10 @@ class BasicMessagesRepo[P <: Proposition, TX <: Transaction[P, TX], TD <: Transa
 
       assert(bytes.length == DataLength + (length * SignatureLength), "Data does not match length")
 
-      (0 to length - 1).map { i =>
+      (0 until length).map { i =>
         val position = DataLength + (i * SignatureLength)
         bytes.slice(position, position + SignatureLength)
-      }.toSeq
+      }
     }
 
     override def serializeData(signatures: Seq[SigningFunctions.Signature]): Array[Byte] = {

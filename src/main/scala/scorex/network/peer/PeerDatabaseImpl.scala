@@ -21,7 +21,7 @@ class PeerDatabaseImpl(settings: Settings, filename: Option[String]) extends Pee
   private lazy val ownNonce = settings.nodeNonce
 
   override def addOrUpdateKnownPeer(address: InetSocketAddress, peerInfo: PeerInfo): Unit = {
-    val updatedPeerInfo = Option(whitelistPersistence.get(address)).map { case dbPeerInfo =>
+    val updatedPeerInfo = Option(whitelistPersistence.get(address)).map { dbPeerInfo =>
       val nonceOpt = peerInfo.nonce.orElse(dbPeerInfo.nonce)
       val nodeNameOpt = peerInfo.nodeName.orElse(dbPeerInfo.nodeName)
       PeerInfo(peerInfo.lastSeen, nonceOpt, nodeNameOpt)
@@ -47,5 +47,4 @@ class PeerDatabaseImpl(settings: Settings, filename: Option[String]) extends Pee
     }).toMap
 
   override def blacklistedPeers(): Seq[String] = blacklist.keys.toSeq
-
 }

@@ -5,7 +5,6 @@ import java.net.InetSocketAddress
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.app.Application
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.network.message.{PeersSpec, GetPeersSpec, Message}
 import scorex.network.peer.PeerManager
