@@ -48,9 +48,8 @@ class Block[P <: Proposition, TData <: TransactionalData[_ <: Transaction[P, _]]
     */
   def fullBlock: Boolean = !headerOnly
 
-  lazy val bytes: Array[Byte] = (version +: Longs.toByteArray(timestamp)) ++
-    Ints.toByteArray(consensusData.bytes.length) ++ consensusData.bytes ++
-    Ints.toByteArray(transactionalData.bytes.length) ++ transactionalData.bytes
+  lazy val bytes: Array[Byte] = (version +: Longs.toByteArray(timestamp)) ++ arrayWithSize(consensusData.bytes) ++
+    arrayWithSize(transactionalData.bytes)
 
   lazy val json: Json = ???
 
@@ -68,16 +67,16 @@ class Block[P <: Proposition, TData <: TransactionalData[_ <: Transaction[P, _]]
 object Block extends ScorexLogging {
   val Version = 1: Byte
 
-  def parse[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
+  def parseBytes[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (bytes: Array[Byte])
   (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
    transactionalModule: TransactionalModule[P, TX, TData]): Try[Block[P, TData, CData]] = Try {
     val version = bytes.head
-    val timestamp = Ints.fromByteArray(bytes.slice(1, 5))
-    val cDataSize = Ints.fromByteArray(bytes.slice(5, 9))
-    val cData = consensusModule.parseBytes(bytes.slice(9, 9 + cDataSize)).get
-    val tDataSize = Ints.fromByteArray(bytes.slice(9 + cDataSize, 13 + cDataSize))
-    val tData = transactionalModule.parseBytes(bytes.slice(13 + cDataSize, 13 + cDataSize + tDataSize)).get
+    val timestamp = Longs.fromByteArray(bytes.slice(1, 9))
+    val cDataSize = Ints.fromByteArray(bytes.slice(9, 13))
+    val cData = consensusModule.parseBytes(bytes.slice(13, 13 + cDataSize)).get
+    val tDataSize = Ints.fromByteArray(bytes.slice(13 + cDataSize, 17 + cDataSize))
+    val tData = transactionalModule.parseBytes(bytes.slice(17 + cDataSize, 17 + cDataSize + tDataSize)).get
     new Block[P, TData, CData](version, timestamp, cData, tData)
   }
 

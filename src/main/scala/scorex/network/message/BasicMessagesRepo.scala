@@ -77,7 +77,7 @@ class BasicMessagesRepo[P <: Proposition, TX <: Transaction[P, TX], TD <: Transa
 
     override def serializeData(block: Block[P, TD, CD]): Array[Byte] = block.bytes
 
-    override def deserializeData(bytes: Array[Byte]): Try[Block[P, TD, CD]] = Block.parse[P, TX, TD, CD](bytes)(consensusModule, transactionalModule)
+    override def deserializeData(bytes: Array[Byte]): Try[Block[P, TD, CD]] = Block.parseBytes[P, TX, TD, CD](bytes)(consensusModule, transactionalModule)
   }
 
   object ScoreMessageSpec extends MessageSpec[BigInt] {

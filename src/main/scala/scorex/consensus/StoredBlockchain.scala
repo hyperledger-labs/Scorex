@@ -11,8 +11,8 @@ import scala.util.{Failure, Success, Try}
 
 
 /**
-  * If no datafolder provided, blockchain lives in RAM (useful for tests)
-  */
+ * If no datafolder provided, blockchain lives in RAM (useful for tests)
+ */
 trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transaction[P, TX], TData <: TransactionalData[TX]]
   extends BlockChain[P, TX, TData, CData] with ScorexLogging {
   this: ConsensusModule[P, TX, TData, CData] =>
@@ -43,8 +43,12 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
         .toOption
         .flatten
         .flatMap { b =>
-          val t: Try[Block[P, TData, CData]] = Block.parse[P, TX, TData, CData](b)(self, transactionalModule)
-          t.toOption
+          Block.parseBytes[P, TX, TData, CData](b)(self, transactionalModule) match {
+            case Failure(e) =>
+              log.error("Failed to parse block.", e)
+              None
+            case Success(block) => Some(block)
+          }
         }
 
     def deleteBlock(height: Int): Unit = {
