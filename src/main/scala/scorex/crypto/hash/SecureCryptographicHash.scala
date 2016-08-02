@@ -2,7 +2,6 @@ package scorex.crypto.hash
 
 import scorex.crypto._
 
-
 /**
   * The chain of two hash functions, Blake and Keccak
   */

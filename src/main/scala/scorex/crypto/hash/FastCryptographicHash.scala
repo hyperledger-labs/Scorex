@@ -1,7 +1,5 @@
 package scorex.crypto.hash
 
-import ove.crypto.digest.Blake2b
-
 /**
  * Interface for fast and secure Blake hash function
  */
