@@ -81,6 +81,8 @@ class Wallet[P <: Proposition, TM <: TransactionalModule[P, _, _]]
 
   def privateKeyAccounts(): Seq[SH] = secretsCache.values.toSeq
 
+  def privateKeyAccount(): SH = secretsCache.values.headOption.getOrElse(generateNewAccount())
+
   def generateNewAccounts(howMany: Int): Seq[SH] = (1 to howMany).map(_ => generateNewAccount())
 
   def generateNewAccount(): SH = synchronized {
@@ -128,10 +130,10 @@ class Wallet[P <: Proposition, TM <: TransactionalModule[P, _, _]]
     noncePersistence.put(NonceFieldName, nonce() + 1) - 1
   }
 
-//  def scanChanges[TX <: Transaction[P, TX]](transactions: Iterable[TX]): WalletChanges[P] = {
-//    val (r, a) = transactions.foldLeft(Set[Box[P]]() -> Set[Box[P]]()) { case ((btr, bta), tx) =>
-//      (btr ++ tx.boxesToRemove.toSet, bta ++ tx.boxesToAdd.toSet)
-//    }
-//    WalletChanges(r, a)
-//  }
+  //  def scanChanges[TX <: Transaction[P, TX]](transactions: Iterable[TX]): WalletChanges[P] = {
+  //    val (r, a) = transactions.foldLeft(Set[Box[P]]() -> Set[Box[P]]()) { case ((btr, bta), tx) =>
+  //      (btr ++ tx.boxesToRemove.toSet, bta ++ tx.boxesToAdd.toSet)
+  //    }
+  //    WalletChanges(r, a)
+  //  }
 }
