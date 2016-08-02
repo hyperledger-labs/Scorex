@@ -121,7 +121,7 @@ class NetworkController(settings: Settings, messagesHandler: MessageHandler, upn
             //todo: ban a peer
           }
         case Failure(e) =>
-          log.error("Failed to deserialize data: " + e.getMessage)
+          log.error("Failed to deserialize data: ", e)
         //todo: ban peer
       }
 
