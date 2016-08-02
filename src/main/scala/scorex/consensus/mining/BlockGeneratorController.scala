@@ -3,15 +3,13 @@ package scorex.consensus.mining
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.app.Application
 import scorex.block.{ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.BlockGeneratorController._
 import scorex.consensus.mining.Miner._
 import scorex.settings.Settings
-import scorex.transaction.{TransactionalModule, Transaction}
+import scorex.transaction.Transaction
 import scorex.transaction.box.proposition.Proposition
-import scorex.transaction.wallet.Wallet
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -92,7 +90,6 @@ with ScorexLogging {
 }
 
 object BlockGeneratorController {
-
   sealed trait Status {
     val name: String
   }
@@ -112,5 +109,4 @@ object BlockGeneratorController {
   case object StopGeneration
 
   case object CheckWorkers
-
 }

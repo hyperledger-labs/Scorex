@@ -1,13 +1,11 @@
 package scorex.consensus.mining
 
 import akka.actor.{ActorRef, Actor}
-import scorex.app.Application
 import scorex.block.{ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.Miner._
 import scorex.settings.Settings
-import scorex.transaction.wallet.Wallet
-import scorex.transaction.{Transaction, TransactionalModule}
+import scorex.transaction.Transaction
 import scorex.transaction.box.proposition.Proposition
 import scorex.utils.ScorexLogging
 
