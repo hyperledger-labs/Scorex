@@ -15,8 +15,7 @@ case class Handshake(applicationName: String,
                      nodeName: String,
                      nodeNonce: Long,
                      declaredAddress: Option[InetSocketAddress],
-                     time: Long
-                    ) extends BytesSerializable {
+                     time: Long) extends BytesSerializable {
 
   require(Option(applicationName).isDefined)
   require(Option(applicationVersion).isDefined)

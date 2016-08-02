@@ -141,7 +141,7 @@ class NetworkController(settings: Settings, messagesHandler: MessageHandler, upn
       val handler =
         context.actorOf(Props(classOf[PeerConnectionHandler], self, peerManager, messagesHandler, connection, remote))
       connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
-      val newPeer = new ConnectedPeer(remote, handler)
+      val newPeer = ConnectedPeer(remote, handler)
       newPeer.handlerRef ! handshakeTemplate.copy(time = System.currentTimeMillis() / 1000)
       peerManager ! PeerManager.Connected(newPeer)
 
