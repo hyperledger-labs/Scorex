@@ -35,9 +35,9 @@ trait Application extends ScorexLogging {
 
   //modules
   implicit val consensusModule: ConsensusModule[P, TX, TData, CData]
-  implicit val transactionModule: TransactionalModule[P, TX, TData]
+  implicit val transactionalModule: TransactionalModule[P, TX, TData]
 
-  lazy val wallet = transactionModule.wallet
+  lazy val wallet = transactionalModule.wallet
 
   type BType = Block[P, TData, CData]
 
@@ -94,7 +94,7 @@ trait Application extends ScorexLogging {
     log.info("Stopping actors (incl. block generator)")
     actorSystem.terminate().onComplete { _ =>
       log.info("Closing wallet")
-      transactionModule.stop()
+      transactionalModule.stop()
 
       log.info("Exiting from the app...")
       System.exit(0)
