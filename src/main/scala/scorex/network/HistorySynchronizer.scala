@@ -228,6 +228,10 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
       log.warn(s"Invalid new block(local: $local): ${block.json}")
       false
     }
+  }.recoverWith {
+    case e =>
+      log.error("Falied to process block", e)
+      Failure(e)
   }.getOrElse(false)
 }
 
@@ -258,4 +262,5 @@ object HistorySynchronizer {
   case object GetStatus
 
   case object SelfCheck
+
 }
