@@ -7,7 +7,7 @@ import org.apache.commons.net.ntp.NTPUDPClient
 import scala.util.Try
 
 object NTP extends ScorexLogging {
-  private val TimeTillUpdate = 1000 * 60 * 10L
+  private val TimeTillUpdate = 1000 * 60 * 10L // 10 minutes
   private val NtpServer = "pool.ntp.org"
 
   private var lastUpdate = 0L

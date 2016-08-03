@@ -21,11 +21,14 @@ import scala.language.existentials
 import scala.util.{Failure, Success, Try}
 
 /**
- * Control all network interaction
- * must be singleton
- */
-class NetworkController(settings: Settings, messagesHandler: MessageHandler, upnp: UPnP,
-                        applicationName: String, appVersion: ApplicationVersion) extends Actor with ScorexLogging {
+  * Control all network interaction
+  * must be singleton
+  */
+class NetworkController(settings: Settings,
+                        messageHandler: MessageHandler,
+                        upnp: UPnP,
+                        applicationName: String,
+                        appVersion: ApplicationVersion) extends Actor with ScorexLogging {
 
   import NetworkController._
 
@@ -139,7 +142,7 @@ class NetworkController(settings: Settings, messagesHandler: MessageHandler, upn
     case c@Connected(remote, local) =>
       val connection = sender()
       val handler =
-        context.actorOf(Props(classOf[PeerConnectionHandler], self, peerManager, messagesHandler, connection, remote))
+        context.actorOf(Props(classOf[PeerConnectionHandler], self, peerManager, messageHandler, connection, remote))
       connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
       val newPeer = ConnectedPeer(remote, handler)
       newPeer.handlerRef ! handshakeTemplate.copy(time = System.currentTimeMillis() / 1000)

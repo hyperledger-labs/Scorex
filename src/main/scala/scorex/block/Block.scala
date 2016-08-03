@@ -40,7 +40,7 @@ class Block[P <: Proposition, TData <: TransactionalData[_ <: Transaction[P, _]]
     *
     * @return true if the block contains header just
     */
-  def headerOnly: Boolean = transactionalData.headerOnly
+  lazy val headerOnly: Boolean = transactionalData.headerOnly
 
   /**
     * Whether a block contains transactions, or a header only
