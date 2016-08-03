@@ -27,7 +27,7 @@ import scala.util.{Failure, Success, Try}
 class NetworkController(settings: Settings,
                         messageHandler: MessageHandler,
                         upnp: UPnP,
-                        applicationName: String,
+                        agentName: String,
                         appVersion: ApplicationVersion) extends Actor with ScorexLogging {
 
   import NetworkController._
@@ -83,7 +83,7 @@ class NetworkController(settings: Settings,
 
   log.info(s"Declared address: $ownSocketAddress")
 
-  private lazy val handshakeTemplate = Handshake(applicationName,
+  private lazy val handshakeTemplate = Handshake(agentName,
     appVersion,
     settings.nodeName,
     settings.nodeNonce,

@@ -28,8 +28,10 @@ case object Ack extends Event
 
 
 //todo: timeout on Ack waiting
-case class PeerConnectionHandler(networkControllerRef: ActorRef, peerManager: ActorRef,
-                                 messagesHandler: MessageHandler, connection: ActorRef,
+case class PeerConnectionHandler(networkControllerRef: ActorRef,
+                                 peerManager: ActorRef,
+                                 messagesHandler: MessageHandler,
+                                 connection: ActorRef,
                                  remote: InetSocketAddress) extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler._
