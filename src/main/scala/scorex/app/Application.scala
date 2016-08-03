@@ -15,7 +15,7 @@ import scorex.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.runtime.universe.Type
-import scala.util.{Try, Failure}
+import scala.util.Failure
 
 trait Application extends ScorexLogging {
   val ApplicationNameLimit = 50
