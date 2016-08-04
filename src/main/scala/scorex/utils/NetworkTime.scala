@@ -35,7 +35,7 @@ object NetworkTime extends ScorexLogging {
 
       val info = client.getTime(InetAddress.getByName(NtpServer))
       info.computeDetails()
-      if (Option(info.getOffset).isDefined) Some(info.getOffset) else None
+      Option(info.getOffset)
     } catch {
       case t: Throwable =>
         log.warn("Problems with NTP: ", t)
