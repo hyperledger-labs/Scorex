@@ -1,6 +1,6 @@
 package scorex.consensus
 
-import scorex.block.ConsensusData
+import scorex.block.{Block, ConsensusData}
 import scorex.crypto.encode.Base58
 import scorex.serialization.BytesParseable
 import scorex.transaction.box.proposition.Proposition
@@ -16,6 +16,8 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData] extends ScorexLo
 
   def isValid(cdata: CData): Boolean
 
+  def isValid(block: Block[P, _, CData]): Boolean = isValid(block.consensusData)
+
   /**
    * Fees could go to a single miner(forger) usually, but can go to many parties, e.g. see
    * Proof-of-Activity proposal of Bentov et al. http://eprint.iacr.org/2014/452.pdf
@@ -26,20 +28,29 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData] extends ScorexLo
    * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
    * (see e.g. Proof-of-Activity paper of Bentov et al. http://eprint.iacr.org/2014/452.pdf)
    *
-   * @param block - a block to extract producers from
    * @return blocks' producers
    */
-  def producers(block: CData): Seq[P]
+  def producers(cdata: CData): Seq[P]
+
+  def producers(block: Block[P, _, CData]): Seq[P] = producers(block.consensusData)
 
   def blockScore(cdata: CData): BigInt
+
+  def blockScore(block: Block[P, _, CData]): BigInt = blockScore(block.consensusData)
 
   def generateNextCdata(wallet: Wallet[_ <: P, _]): Future[Option[CData]]
 
   def id(cdata: CData): BlockId
 
+  def id(block: Block[P, _, CData]): BlockId = id(block.consensusData)
+
   def encodedId(cdata: CData): String = Base58.encode(id(cdata))
 
+  def encodedId(block: Block[P, _, CData]): String = encodedId(block.consensusData)
+
   def parentId(cdata: CData): BlockId
+
+  def parentId(b: Block[P, _, CData]): BlockId = parentId(b.consensusData)
 
   val MaxRollback: Int
 

@@ -9,13 +9,13 @@ import scala.util.Try
 
 trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   extends History[P, TX, TData, CData] with ScorexLogging {
-  this: ConsensusModule[P, TX, TData, CData] =>
+  this: ConsensusModule[P, CData] =>
 
   def blockAt(height: Int): Option[Block[P, TData, CData]]
 
   override def parent(block: Block[P, TData, CData], back: Int = 1): Option[Block[P, TData, CData]] = {
     require(back > 0)
-    heightOf(parentId(block)).flatMap(referenceHeight => blockAt(referenceHeight - back + 1))
+    heightOf(parentId(block.consensusData)).flatMap(referenceHeight => blockAt(referenceHeight - back + 1))
   }
 
   override def discardBlock(): Try[Unit]

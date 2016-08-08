@@ -65,7 +65,7 @@ object Block extends ScorexLogging {
 
   def parseBytes[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (bytes: Array[Byte])
-  (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
+  (implicit consensusModule: ConsensusModule[P, CData],
    transactionalModule: TransactionalModule[P, TX, TData]): Try[Block[P, TData, CData]] = Try {
     val version = bytes.head
     val timestamp = Longs.fromByteArray(bytes.slice(1, 9))
@@ -86,7 +86,7 @@ object Block extends ScorexLogging {
 
   def genesis[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (genesisTimestamp: Long)
-  (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
+  (implicit consensusModule: ConsensusModule[P, CData],
    transactionalModule: TransactionalModule[P, TX, TData]): Block[P, TData, CData] = {
 
     new Block(Version, genesisTimestamp, consensusModule.genesisData, transactionalModule.genesisData)

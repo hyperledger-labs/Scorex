@@ -65,7 +65,7 @@ object GetBlockSpec extends MessageSpec[BlockId] {
 }
 
 class BlockMessageSpec[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
-(consensusModule: ConsensusModule[P, TX, TD, CD],
+(consensusModule: ConsensusModule[P, CD],
  transactionalModule: TransactionalModule[P, TX, TD]) extends MessageSpec[Block[P, TD, CD]] {
 
   override val messageCode: MessageCode = 23: Byte

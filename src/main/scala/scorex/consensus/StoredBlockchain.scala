@@ -33,7 +33,7 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
 
     def writeBlock(height: Int, block: Block[P, TData, CData]): Try[Unit] = Try {
       blocks.put(height, block.bytes)
-      scoreMap.put(height, score() + blockScore(block))
+      scoreMap.put(height, score() + blockScore(block.consensusData))
       signatures.put(height, id(block))
       database.commit()
     }
