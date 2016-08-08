@@ -9,11 +9,12 @@ import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.crypto.signatures.SigningFunctions
 import scorex.network.message.Message._
+import scorex.serialization.BytesParseable
 import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.proof.Signature25519
 
-import scala.util.Try
+import scala.util.{Success, Try}
 
 
 trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
@@ -58,14 +59,12 @@ object GetBlockSpec extends MessageSpec[BlockId] {
 
   override def serializeData(id: BlockId): Array[Byte] = id
 
-  override def deserializeData(bytes: Array[Byte]): Try[BlockId] = Try {
-    require(bytes.length == consensusModule.BlockIdLength, "Data does not match length")
-    bytes
-  }
+  override def deserializeData(bytes: Array[Byte]): Try[BlockId] = Success(bytes)
+
 }
 
 class BlockMessageSpec[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
-(consensusModule: ConsensusModule[P, CD],
+(consensusParser: BytesParseable[CD],
  transactionalModule: TransactionalModule[P, TX, TD]) extends MessageSpec[Block[P, TD, CD]] {
 
   override val messageCode: MessageCode = 23: Byte
@@ -75,7 +74,7 @@ class BlockMessageSpec[P <: Proposition, TX <: Transaction[P, TX], TD <: Transac
   override def serializeData(block: Block[P, TD, CD]): Array[Byte] = block.bytes
 
   override def deserializeData(bytes: Array[Byte]): Try[Block[P, TD, CD]] =
-    Block.parseBytes[P, TX, TD, CD](bytes)(consensusModule, transactionalModule)
+    Block.parseBytes[P, TX, TD, CD](bytes)(consensusParser, transactionalModule)
 }
 
 object ScoreMessageSpec extends MessageSpec[BigInt] {

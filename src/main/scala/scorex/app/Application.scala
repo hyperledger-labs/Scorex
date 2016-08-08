@@ -8,6 +8,7 @@ import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.network._
 import scorex.network.message._
+import scorex.serialization.BytesParseable
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.{Transaction, TransactionalModule}
@@ -37,6 +38,8 @@ trait Application extends ScorexLogging {
   implicit val consensusModule: ConsensusModule[P, CData]
   implicit val transactionalModule: TransactionalModule[P, TX, TData]
 
+  implicit val consensusParser: BytesParseable[CData]
+
   lazy val wallet = transactionalModule.wallet
 
   type BType = Block[P, TData, CData]
@@ -59,7 +62,7 @@ trait Application extends ScorexLogging {
       GetSignaturesSpec,
       SignaturesSpec,
       GetBlockSpec,
-      new BlockMessageSpec(consensusModule, transactionalModule),
+      new BlockMessageSpec(consensusParser, transactionalModule),
       ScoreMessageSpec
     )
 

@@ -5,14 +5,17 @@ import scorex.NodeStateHolder
 import scorex.block.ConsensusData.BlockId
 import scorex.block.{ConsensusData, TransactionalData}
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
-import scorex.network.message.{GetBlockSpec, GetSignaturesSpec, Message, SignaturesSpec}
+import scorex.network.message._
 import scorex.settings.Settings
 import scorex.transaction.Transaction
 import scorex.transaction.box.proposition.Proposition
 import scorex.utils.ScorexLogging
 
 class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
-(settings: Settings, stateHolder: NodeStateHolder[P, TX, TD, CD], networkControllerRef: ActorRef) extends ViewSynchronizer with ScorexLogging {
+(settings: Settings,
+ stateHolder: NodeStateHolder[P, TX, TD, CD],
+ val networkControllerRef: ActorRef,
+ blockMessageSpec: BlockMessageSpec[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
 
   override val messageSpecs = Seq(GetSignaturesSpec, GetBlockSpec)
 
@@ -42,7 +45,7 @@ class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], TD <: Transacti
       if msgId == GetBlockSpec.messageCode =>
 
       history().blockById(sig).foreach { b =>
-        val msg = Message(BlockMessageSpec, Right(b), None)
+        val msg = Message(blockMessageSpec, Right(b), None)
         val ss = SendToChosen(Seq(remote))
         networkControllerRef ! SendToNetwork(msg, ss)
       }

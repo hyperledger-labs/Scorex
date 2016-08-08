@@ -1,5 +1,6 @@
 package scorex.block
 
+import scorex.crypto.encode.Base58
 import scorex.serialization.{BytesSerializable, JsonSerializable}
 
 /**
@@ -8,12 +9,20 @@ import scorex.serialization.{BytesSerializable, JsonSerializable}
   */
 trait ConsensusData extends BytesSerializable with JsonSerializable {
 
+  val version: Byte = 0: Byte
   val BlockIdLength: Int
 
   /**
     * A block always refers to some previous block, so parent ID is to be stored into a block
     */
   val parentId: ConsensusData.BlockId
+
+  /**
+    * A block always have some id that identifies it
+    */
+  def id: ConsensusData.BlockId
+
+  lazy val encodedId: String = Base58.encode(id)
 }
 
 object ConsensusData {

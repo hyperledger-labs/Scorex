@@ -2,6 +2,7 @@ package scorex.consensus
 
 import org.h2.mvstore.{MVMap, MVStore}
 import scorex.block.{Block, ConsensusData, TransactionalData}
+import scorex.serialization.BytesParseable
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.ScorexLogging
@@ -15,13 +16,11 @@ import scala.util.{Failure, Success, Try}
  */
 trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transaction[P, TX], TData <: TransactionalData[TX]]
   extends BlockChain[P, TX, TData, CData] with ScorexLogging {
-  this: ConsensusModule[P, TX, TData, CData] =>
 
   val dataFolderOpt: Option[String]
 
   val transactionalModule: TransactionalModule[P, TX, TData]
-
-  private val self: ConsensusModule[P, TX, TData, CData] = this
+  val consensusParser: BytesParseable[CData]
 
   case class BlockchainPersistence(database: MVStore) {
     val blocks: MVMap[Int, Array[Byte]] = database.openMap("blocks")
@@ -33,8 +32,8 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
 
     def writeBlock(height: Int, block: Block[P, TData, CData]): Try[Unit] = Try {
       blocks.put(height, block.bytes)
-      scoreMap.put(height, score() + blockScore(block.consensusData))
-      signatures.put(height, id(block))
+      scoreMap.put(height, score() + consensusModule.blockScore(block))
+      signatures.put(height, block.id)
       database.commit()
     }
 
@@ -43,7 +42,7 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
         .toOption
         .flatten
         .flatMap { b =>
-          Block.parseBytes[P, TX, TData, CData](b)(self, transactionalModule) match {
+          Block.parseBytes[P, TX, TData, CData](b)(consensusParser, transactionalModule) match {
             case Failure(e) =>
               log.error("Failed to parse block.", e)
               None
@@ -74,10 +73,10 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
     new BlockchainPersistence(db)
   }
 
-  override def appendBlock(block: Block[P, TData, CData]): Try[Unit] = synchronized {
+  override def appendBlock(block: Block[P, TData, CData]): Try[History[P, TX, TData, CData]] = synchronized {
     Try {
-      val parent = parentId(block)
-      if ((height() == 0) || (id(lastBlock) sameElements parent)) {
+      val parent = consensusModule.parentId(block)
+      if ((height() == 0) || (lastBlock.id sameElements parent)) {
         val h = height() + 1
         blockStorage.writeBlock(h, block) match {
           case Success(_) => Seq(block)
@@ -86,13 +85,17 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
       } else {
         throw new Error(s"Appending block ${block.json} which parent is not last block in blockchain")
       }
+      this
     }
   }
 
-  override def discardBlock(): Try[Unit] = synchronized {
-    require(height() > 1, "Chain is empty or contains genesis block only, can't make rollback")
-    val h = height()
-    Try(blockStorage.deleteBlock(h))
+  override def discardBlock(): Try[History[P, TX, TData, CData]] = synchronized {
+    Try {
+      require(height() > 1, "Chain is empty or contains genesis block only, can't make rollback")
+      val h = height()
+      blockStorage.deleteBlock(h)
+      this
+    }
   }
 
   override def blockAt(height: Int): Option[Block[P, TData, CData]] = synchronized {
@@ -118,7 +121,7 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
   override def generatedBy(prop: P): Seq[Block[P, TData, CData]] =
     (1 to height()).flatMap { h =>
       blockAt(h).flatMap { block =>
-        if (this.producers(block).contains(prop)) Some(block) else None
+        if (consensusModule.producers(block).contains(prop)) Some(block) else None
       }: Option[Block[P, TData, CData]]
     }
 }

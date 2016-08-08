@@ -22,6 +22,11 @@ import scala.util.Try
 
 trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData] {
 
+  type BlockId = ConsensusData.BlockId
+
+  val consensusModule: ConsensusModule[P, CData]
+
+
   /**
     * Height of the a chain, or a longest chain in an explicit block-tree
     */
@@ -39,7 +44,7 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
     */
   def isEmpty: Boolean = height() == 0
 
-  def contains(block: Block[P, TData, CData]): Boolean = contains(id(block))
+  def contains(block: Block[P, TData, CData]): Boolean = contains(block.id)
 
   def contains(id: BlockId): Boolean = blockById(id).isDefined
 
@@ -54,7 +59,7 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
   /**
     * Height of a block if it's in the blocktree
     */
-  def heightOf(block: Block[P, TData, CData]): Option[Int] = heightOf(id(block))
+  def heightOf(block: Block[P, TData, CData]): Option[Int] = heightOf(block.id)
 
   def heightOf(blockId: BlockId): Option[Int]
 
@@ -71,7 +76,7 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
 
   def lastBlocks(howMany: Int): Seq[Block[P, TData, CData]]
 
-  def lastBlockIds(howMany: Int): Seq[BlockId] = lastBlocks(howMany).map(id)
+  def lastBlockIds(howMany: Int): Seq[BlockId] = lastBlocks(howMany).map(_.id)
 
   /**
     * Return howMany blocks starting from parentSignature

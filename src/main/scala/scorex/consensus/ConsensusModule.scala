@@ -2,7 +2,6 @@ package scorex.consensus
 
 import scorex.block.{Block, ConsensusData}
 import scorex.crypto.encode.Base58
-import scorex.serialization.BytesParseable
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.wallet.Wallet
 import scorex.utils.ScorexLogging
@@ -38,15 +37,7 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData] extends ScorexLo
 
   def blockScore(block: Block[P, _, CData]): BigInt = blockScore(block.consensusData)
 
-  def generateNextCdata(wallet: Wallet[_ <: P, _]): Future[Option[CData]]
-
-  def id(cdata: CData): BlockId
-
-  def id(block: Block[P, _, CData]): BlockId = id(block.consensusData)
-
-  def encodedId(cdata: CData): String = Base58.encode(id(cdata))
-
-  def encodedId(block: Block[P, _, CData]): String = encodedId(block.consensusData)
+  def generateCdata(wallet: Wallet[_ <: P, _], time: Long, txsId: Array[Byte]): Future[Option[CData]]
 
   def parentId(cdata: CData): BlockId
 

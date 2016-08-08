@@ -1,13 +1,13 @@
 package scorex.consensus.mining
 
 import akka.actor.{ActorRef, Actor}
-import scorex.block.{ConsensusData, TransactionalData}
+import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.Miner._
 import scorex.settings.Settings
-import scorex.transaction.Transaction
-import scorex.transaction.box.proposition.Proposition
-import scorex.utils.ScorexLogging
+import scorex.transaction.{TransactionalModule, Transaction}
+import scorex.transaction.box.proposition.{PublicKey25519Proposition, Proposition}
+import scorex.utils.{NetworkTime, ScorexLogging}
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,7 +15,10 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Try}
 
 class Miner[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
-(settings: Settings, historySynchronizer: ActorRef, consensusModule: ConsensusModule[P, TX, TD, CD])
+(settings: Settings,
+ historySynchronizer: ActorRef,
+ consensusModule: ConsensusModule[P, CD],
+ transactionalModule: TransactionalModule[P, TX, TD])
   extends Actor with ScorexLogging {
 
   // BlockGenerator is trying to generate a new block every $blockGenerationDelay. Should be 0 for PoW consensus model.
@@ -46,9 +49,16 @@ class Miner[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[
 
     lastTryTime = System.currentTimeMillis()
     if (blockGenerationDelay > 500.milliseconds) log.info("Trying to generate a new block")
-    val blockFuture = consensusModule.generateNextBlock(transactionalModule.wallet)
-    val blockOpt = Await.result(blockFuture, BlockGenerationTimeLimit)
-    blockOpt.foreach(b => historySynchronizer ! b)
+    val timestamp = NetworkTime.time()
+    val tData = transactionalModule.generateTdata(timestamp)
+    val cFuture = consensusModule.generateCdata(transactionalModule.wallet, timestamp, tData.id)
+    Await.result(cFuture, BlockGenerationTimeLimit) match {
+      case Some(cData) =>
+        val block = new Block[P, TD, CD](timestamp, cData, tData)
+        historySynchronizer ! block
+      case _ =>
+    }
+
     if (!stopped) scheduleAGuess()
   }.recoverWith {
     case ex =>

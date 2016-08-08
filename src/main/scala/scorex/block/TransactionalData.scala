@@ -12,7 +12,13 @@ import scorex.transaction.Transaction
   * @tparam TX - base type of transactions to be packed into a block
   */
 trait TransactionalData[TX <: Transaction[_, TX]] extends BytesSerializable with JsonSerializable {
+  val version: Byte = 0: Byte
   val mbTransactions: Option[Traversable[TX]]
   lazy val headerOnly = mbTransactions.isDefined
+
+  /**
+   * Some id that identifies all transaction data, e.g. root hash of merkle tree of transactions
+   */
+  def id: Array[Byte]
 }
 

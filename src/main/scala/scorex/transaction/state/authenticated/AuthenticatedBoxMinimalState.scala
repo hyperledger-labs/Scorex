@@ -21,6 +21,4 @@ trait AuthenticatedBoxMinimalState[P <: Proposition, TX <: Transaction[P, TX], H
   def digest: HashFunction#Digest
 
   val hashFunction: HashFunction
-
-  override def rollbackTo(height: Int): Try[Unit]
 }

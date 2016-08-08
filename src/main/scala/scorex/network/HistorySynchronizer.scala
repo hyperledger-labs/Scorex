@@ -10,19 +10,22 @@ import scorex.network.NetworkController.DataFromPeer
 import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message._
 import scorex.settings.Settings
-import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.Transaction
+import scorex.transaction.box.proposition.Proposition
 import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.util.Try
 
 //todo: write tests
 class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
-(settings: Settings, stateHolder: NodeStateHolder[P, TX, TD, CD], networkControllerRef: ActorRef)
-  extends ViewSynchronizer with ScorexLogging {
+(settings: Settings,
+ stateHolder: NodeStateHolder[P, TX, TD, CD],
+ val networkControllerRef: ActorRef,
+ blockMessageSpec: BlockMessageSpec[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
+
+  type BlockId = ConsensusData.BlockId
 
   import HistorySynchronizer._
 
@@ -39,7 +42,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
 
   private def history() = stateHolder.stableState._2
 
-  override val messageSpecs = Seq(ScoreMessageSpec, SignaturesSpec, BlockMessageSpec)
+  override val messageSpecs = Seq(ScoreMessageSpec, SignaturesSpec, blockMessageSpec)
 
   private lazy val scoreObserver = context.actorOf(Props(classOf[ScoreObserver], self))
 
@@ -96,7 +99,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
       val localScore = history().score()
       if (networkScore > localScore) {
         log.info(s"networkScore=$networkScore > localScore=$localScore")
-        val lastIds = history().lastBlocks(blocksToSend).map(consensusModule.id)
+        val lastIds = history().lastBlockIds(blocksToSend)
         val msg = Message(GetSignaturesSpec, Right(lastIds), None)
         networkControllerRef ! NetworkController.SendToNetwork(msg, SendToChosen(witnesses))
         gotoGettingExtension(networkScore, witnesses)
@@ -115,7 +118,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
 
       val toDownload = blockIds.tail.filter(b => !history().contains(b))
       if (history().contains(common) && toDownload.nonEmpty) {
-        Try(history().removeAfter(common)) //todo we don't need this call for blockTree
+        stateHolder.rollBackTo(common)
         gotoGettingBlocks(witnesses, toDownload.map(_ -> None))
         blockIds.tail.foreach { blockId =>
           val msg = Message(GetBlockSpec, Right(blockId), None)
@@ -132,12 +135,12 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
     state(HistorySynchronizer.GettingBlock, {
 
       case DataFromPeer(msgId, block: B@unchecked, connectedPeer)
-        if msgId == BlockMessageSpec.messageCode
+        if msgId == blockMessageSpec.messageCode
           && block.cast[Block[P, TD, CD]].isDefined =>
 
         lastUpdate = System.currentTimeMillis()
-        val blockId = consensusModule.id(block)
-        log.info("Got block: " + consensusModule.encodedId(block))
+        val blockId = block.id
+        log.info("Got block: " + block.consensusData.encodedId)
 
         blocks.indexWhere(_._1.sameElements(blockId)) match {
           case i: Int if i == -1 => gotoGettingBlocks(witnesses, blocks)
@@ -148,8 +151,8 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
               log.info(s"Going to process ${toProcess.size} blocks")
               toProcess.find(bp => !processNewBlock(bp, local = false)).foreach { case failedBlock =>
                 log.warn(s"Can't apply block: ${failedBlock.json}")
-                val hLastId = consensusModule.id(consensusModule.lastBlock)
-                val fpId = consensusModule.parentId(failedBlock)
+                val hLastId = history().lastBlockIds(1).head
+                val fpId = failedBlock.consensusData.parentId
                 if (hLastId sameElements fpId) {
                   connectedPeer.handlerRef ! PeerConnectionHandler.Blacklist
                 }
@@ -170,7 +173,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
       if (networkScore > history().score()) gotoGettingExtension(networkScore, witnesses)
 
     case DataFromPeer(msgId, block: B@unchecked, _)
-      if msgId == BlockMessageSpec.messageCode && block.cast[Block[P, TD, CD]].isDefined =>
+      if msgId == blockMessageSpec.messageCode && block.cast[Block[P, TD, CD]].isDefined =>
       processNewBlock(block, local = false)
   }: Receive)
 
@@ -200,6 +203,8 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
     context become synced
     synced
   }
+
+  private def processNewBlock(block: B, local: Boolean): Boolean = ???
 
   /*
   private def processNewBlock(block: B, local: Boolean): Boolean = Try {

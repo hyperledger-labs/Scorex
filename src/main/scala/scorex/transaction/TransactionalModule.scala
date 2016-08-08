@@ -31,6 +31,8 @@ trait TransactionalModule[P <: Proposition, TX <: Transaction[P, TX], TData <: T
 
   def totalFee(blockData: TData): Long = transactions(blockData).map(_.fee).sum
 
+  def generateTdata(timeOpt: Long): TData
+
   val genesisData: TData
 
   def stop(): Unit = wallet.close()
