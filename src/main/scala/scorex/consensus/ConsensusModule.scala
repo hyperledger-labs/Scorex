@@ -1,49 +1,45 @@
 package scorex.consensus
 
-import scorex.block.{Block, ConsensusData, TransactionalData}
+import scorex.block.ConsensusData
 import scorex.crypto.encode.Base58
 import scorex.serialization.BytesParseable
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.wallet.Wallet
-import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.Future
 
-//todo: make BytesParseable[TData] an instance also, not a mixin
-
-trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
-  extends ScorexLogging with BytesParseable[CData] {
+trait ConsensusModule[P <: Proposition, CData <: ConsensusData] extends ScorexLogging {
 
   type BlockId = ConsensusData.BlockId
   val BlockIdLength: Int
 
-  def isValid(block: Block[P, TData, CData]): Boolean
+  def isValid(cdata: CData): Boolean
 
   /**
-    * Fees could go to a single miner(forger) usually, but can go to many parties, e.g. see
-    * Proof-of-Activity proposal of Bentov et al. http://eprint.iacr.org/2014/452.pdf
-    */
-  def feesDistribution(block: Block[P, TData, CData]): Map[P, Long]
+   * Fees could go to a single miner(forger) usually, but can go to many parties, e.g. see
+   * Proof-of-Activity proposal of Bentov et al. http://eprint.iacr.org/2014/452.pdf
+   */
+  def feesDistribution(cdata: CData, txSumFee: Long): Map[P, Long]
 
   /**
-    * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
-    * (see e.g. Proof-of-Activity paper of Bentov et al. http://eprint.iacr.org/2014/452.pdf)
-    *
-    * @param block - a block to extract producers from
-    * @return blocks' producers
-    */
-  def producers(block: Block[P, TData, CData]): Seq[P]
+   * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
+   * (see e.g. Proof-of-Activity paper of Bentov et al. http://eprint.iacr.org/2014/452.pdf)
+   *
+   * @param block - a block to extract producers from
+   * @return blocks' producers
+   */
+  def producers(block: CData): Seq[P]
 
-  def blockScore(block: Block[P, TData, CData]): BigInt
+  def blockScore(cdata: CData): BigInt
 
-  def generateNextBlock(wallet: Wallet[_ <: P, _ <: TransactionalModule[P, TX, TData]]): Future[Option[Block[P, TData, CData]]]
+  def generateNextCdata(wallet: Wallet[_ <: P, _]): Future[Option[CData]]
 
-  def id(block: Block[P, TData, CData]): BlockId
+  def id(cdata: CData): BlockId
 
-  def encodedId(block: Block[P, TData, CData]): String = Base58.encode(id(block))
+  def encodedId(cdata: CData): String = Base58.encode(id(cdata))
 
-  def parentId(block: Block[P, TData, CData]): BlockId
+  def parentId(cdata: CData): BlockId
 
   val MaxRollback: Int
 
