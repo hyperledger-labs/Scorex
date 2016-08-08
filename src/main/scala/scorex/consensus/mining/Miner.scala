@@ -1,12 +1,12 @@
 package scorex.consensus.mining
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.{Actor, ActorRef}
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.Miner._
 import scorex.settings.Settings
-import scorex.transaction.{TransactionalModule, Transaction}
-import scorex.transaction.box.proposition.{PublicKey25519Proposition, Proposition}
+import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.{NetworkTime, ScorexLogging}
 
 import scala.concurrent.Await

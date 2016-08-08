@@ -39,6 +39,7 @@ trait Application extends ScorexLogging {
   implicit val transactionalModule: TransactionalModule[P, TX, TData]
 
   implicit val consensusParser: BytesParseable[CData]
+  implicit val transactionalParser: BytesParseable[TData]
 
   lazy val wallet = transactionalModule.wallet
 
@@ -62,7 +63,7 @@ trait Application extends ScorexLogging {
       GetSignaturesSpec,
       SignaturesSpec,
       GetBlockSpec,
-      new BlockMessageSpec(consensusParser, transactionalModule),
+      new BlockMessageSpec[P, TX, TData, CData](consensusParser, transactionalParser),
       ScoreMessageSpec
     )
 

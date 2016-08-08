@@ -20,7 +20,9 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
   val dataFolderOpt: Option[String]
 
   val transactionalModule: TransactionalModule[P, TX, TData]
+
   val consensusParser: BytesParseable[CData]
+  val transactionalParser: BytesParseable[TData]
 
   case class BlockchainPersistence(database: MVStore) {
     val blocks: MVMap[Int, Array[Byte]] = database.openMap("blocks")
@@ -42,7 +44,7 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
         .toOption
         .flatten
         .flatMap { b =>
-          Block.parseBytes[P, TX, TData, CData](b)(consensusParser, transactionalModule) match {
+          Block.parseBytes[P, TX, TData, CData](b)(consensusParser, transactionalParser) match {
             case Failure(e) =>
               log.error("Failed to parse block.", e)
               None

@@ -12,7 +12,7 @@ import scorex.transaction.wallet.Wallet
 //todo: make BytesParseable[TData] an instance also, not a mixin
 
 trait TransactionalModule[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX]]
-  extends ScorexLogging with BytesParseable[TData] {
+  extends ScorexLogging {
 
   type SH <: SecretHolder[P with AddressableProposition, _ <: Proof[P]]
   type W <: Wallet[_ <: P, _ <: TransactionalModule[P, TX, TData]]

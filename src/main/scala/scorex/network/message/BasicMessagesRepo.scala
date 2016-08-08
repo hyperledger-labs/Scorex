@@ -65,7 +65,7 @@ object GetBlockSpec extends MessageSpec[BlockId] {
 
 class BlockMessageSpec[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
 (consensusParser: BytesParseable[CD],
- transactionalModule: TransactionalModule[P, TX, TD]) extends MessageSpec[Block[P, TD, CD]] {
+ transactionalParser: BytesParseable[TD]) extends MessageSpec[Block[P, TD, CD]] {
 
   override val messageCode: MessageCode = 23: Byte
 
@@ -74,7 +74,7 @@ class BlockMessageSpec[P <: Proposition, TX <: Transaction[P, TX], TD <: Transac
   override def serializeData(block: Block[P, TD, CD]): Array[Byte] = block.bytes
 
   override def deserializeData(bytes: Array[Byte]): Try[Block[P, TD, CD]] =
-    Block.parseBytes[P, TX, TD, CD](bytes)(consensusParser, transactionalModule)
+    Block.parseBytes[P, TX, TD, CD](bytes)(consensusParser, transactionalParser)
 }
 
 object ScoreMessageSpec extends MessageSpec[BigInt] {
