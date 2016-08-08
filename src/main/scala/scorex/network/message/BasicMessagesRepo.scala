@@ -4,6 +4,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
+import scorex.block.ConsensusData.BlockId
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.crypto.signatures.SigningFunctions
@@ -15,91 +16,85 @@ import scorex.transaction.proof.Signature25519
 import scala.util.Try
 
 
-class BasicMessagesRepo[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
-()
-(implicit val transactionalModule: TransactionalModule[P, TX, TD],
- consensusModule: ConsensusModule[P, TX, TD, CD]) {
+trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
 
-  type BlockId = ConsensusData.BlockId
+  private val SignatureLength = Signature25519.SignatureSize
+  private val DataLength = 4
 
-   trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
+  override def deserializeData(bytes: Array[Byte]): Try[Seq[SigningFunctions.Signature]] = Try {
+    val lengthBytes = bytes.take(DataLength)
+    val length = Ints.fromByteArray(lengthBytes)
 
-    private val SignatureLength = Signature25519.SignatureSize
-    private val DataLength = 4
+    assert(bytes.length == DataLength + (length * SignatureLength), "Data does not match length")
 
-    override def deserializeData(bytes: Array[Byte]): Try[Seq[SigningFunctions.Signature]] = Try {
-      val lengthBytes = bytes.take(DataLength)
-      val length = Ints.fromByteArray(lengthBytes)
-
-      assert(bytes.length == DataLength + (length * SignatureLength), "Data does not match length")
-
-      (0 until length).map { i =>
-        val position = DataLength + (i * SignatureLength)
-        bytes.slice(position, position + SignatureLength)
-      }
-    }
-
-    override def serializeData(signatures: Seq[SigningFunctions.Signature]): Array[Byte] = {
-      val length = signatures.size
-      val lengthBytes = Ints.toByteArray(length)
-
-      //WRITE SIGNATURES
-      signatures.foldLeft(lengthBytes) { case (bs, header) => Bytes.concat(bs, header) }
+    (0 until length).map { i =>
+      val position = DataLength + (i * SignatureLength)
+      bytes.slice(position, position + SignatureLength)
     }
   }
 
-  object GetSignaturesSpec extends SignaturesSeqSpec {
-    override val messageCode: MessageCode = 20: Byte
-    override val messageName: String = "GetSignatures message"
+  override def serializeData(signatures: Seq[SigningFunctions.Signature]): Array[Byte] = {
+    val length = signatures.size
+    val lengthBytes = Ints.toByteArray(length)
+
+    //WRITE SIGNATURES
+    signatures.foldLeft(lengthBytes) { case (bs, header) => Bytes.concat(bs, header) }
   }
-
-  object SignaturesSpec extends SignaturesSeqSpec {
-    override val messageCode: MessageCode = 21: Byte
-    override val messageName: String = "Signatures message"
-  }
-
-  object GetBlockSpec extends MessageSpec[BlockId] {
-    override val messageCode: MessageCode = 22: Byte
-    override val messageName: String = "GetBlock message"
-
-    override def serializeData(id: BlockId): Array[Byte] = id
-
-    override def deserializeData(bytes: Array[Byte]): Try[BlockId] = Try {
-      require(bytes.length == consensusModule.BlockIdLength, "Data does not match length")
-      bytes
-    }
-  }
-
-  object BlockMessageSpec extends MessageSpec[Block[P, TD, CD]] {
-    override val messageCode: MessageCode = 23: Byte
-
-    override val messageName: String = "Block message"
-
-    override def serializeData(block: Block[P, TD, CD]): Array[Byte] = block.bytes
-
-    override def deserializeData(bytes: Array[Byte]): Try[Block[P, TD, CD]] = Block.parseBytes[P, TX, TD, CD](bytes)(consensusModule, transactionalModule)
-  }
-
-  object ScoreMessageSpec extends MessageSpec[BigInt] {
-    override val messageCode: MessageCode = 24: Byte
-
-    override val messageName: String = "Score message"
-
-    override def serializeData(score: BigInt): Array[Byte] = {
-      val scoreBytes = score.toByteArray
-      val bb = java.nio.ByteBuffer.allocate(scoreBytes.length)
-      bb.put(scoreBytes)
-      bb.array()
-    }
-
-    override def deserializeData(bytes: Array[Byte]): Try[BigInt] = Try {
-      BigInt(1, bytes)
-    }
-  }
-
-  val specs = Seq(GetPeersSpec, PeersSpec, GetSignaturesSpec, SignaturesSpec,
-    GetBlockSpec, BlockMessageSpec, ScoreMessageSpec)
 }
+
+object GetSignaturesSpec extends SignaturesSeqSpec {
+  override val messageCode: MessageCode = 20: Byte
+  override val messageName: String = "GetSignatures message"
+}
+
+object SignaturesSpec extends SignaturesSeqSpec {
+  override val messageCode: MessageCode = 21: Byte
+  override val messageName: String = "Signatures message"
+}
+
+object GetBlockSpec extends MessageSpec[BlockId] {
+  override val messageCode: MessageCode = 22: Byte
+  override val messageName: String = "GetBlock message"
+
+  override def serializeData(id: BlockId): Array[Byte] = id
+
+  override def deserializeData(bytes: Array[Byte]): Try[BlockId] = Try {
+    require(bytes.length == consensusModule.BlockIdLength, "Data does not match length")
+    bytes
+  }
+}
+
+class BlockMessageSpec[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
+(consensusModule: ConsensusModule[P, TX, TD, CD],
+ transactionalModule: TransactionalModule[P, TX, TD]) extends MessageSpec[Block[P, TD, CD]] {
+
+  override val messageCode: MessageCode = 23: Byte
+
+  override val messageName: String = "Block message"
+
+  override def serializeData(block: Block[P, TD, CD]): Array[Byte] = block.bytes
+
+  override def deserializeData(bytes: Array[Byte]): Try[Block[P, TD, CD]] =
+    Block.parseBytes[P, TX, TD, CD](bytes)(consensusModule, transactionalModule)
+}
+
+object ScoreMessageSpec extends MessageSpec[BigInt] {
+  override val messageCode: MessageCode = 24: Byte
+
+  override val messageName: String = "Score message"
+
+  override def serializeData(score: BigInt): Array[Byte] = {
+    val scoreBytes = score.toByteArray
+    val bb = java.nio.ByteBuffer.allocate(scoreBytes.length)
+    bb.put(scoreBytes)
+    bb.array()
+  }
+
+  override def deserializeData(bytes: Array[Byte]): Try[BigInt] = Try {
+    BigInt(1, bytes)
+  }
+}
+
 
 object GetPeersSpec extends MessageSpec[Unit] {
   override val messageCode: Message.MessageCode = 1: Byte

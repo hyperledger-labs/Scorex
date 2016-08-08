@@ -1,26 +1,22 @@
 package scorex.network
 
 import akka.actor.ActorRef
+import scorex.NodeStateHolder
+import scorex.block.ConsensusData.BlockId
 import scorex.block.{ConsensusData, TransactionalData}
-import scorex.consensus.ConsensusModule
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
-import scorex.network.message.{BasicMessagesRepo, Message}
+import scorex.network.message.{GetBlockSpec, GetSignaturesSpec, Message, SignaturesSpec}
 import scorex.settings.Settings
 import scorex.transaction.Transaction
 import scorex.transaction.box.proposition.Proposition
 import scorex.utils.ScorexLogging
 
 class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
-(settings: Settings,
- repo: BasicMessagesRepo[P, TX, TD, CD],
- val networkControllerRef: ActorRef,
- val consensusModule: ConsensusModule[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
-
-  import repo._
+(settings: Settings, stateHolder: NodeStateHolder[P, TX, TD, CD], networkControllerRef: ActorRef) extends ViewSynchronizer with ScorexLogging {
 
   override val messageSpecs = Seq(GetSignaturesSpec, GetBlockSpec)
 
-  private type BlockId = consensusModule.BlockId
+  private def history() = stateHolder.stableState._2
 
   override def receive: Receive = {
 
@@ -31,7 +27,7 @@ class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], TD <: Transacti
       log.info(s"Got GetSignaturesMessage with ${otherSigs.length} sigs within")
 
       otherSigs.exists { parent =>
-        val headers = consensusModule.lookForward(parent, settings.MaxBlocksChunks)
+        val headers = history().lookForward(parent, settings.MaxBlocksChunks)
 
         if (headers.nonEmpty) {
           val msg = Message(SignaturesSpec, Right(Seq(parent) ++ headers), None)
@@ -45,7 +41,7 @@ class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], TD <: Transacti
     case DataFromPeer(msgId, sig: BlockId@unchecked, remote)
       if msgId == GetBlockSpec.messageCode =>
 
-      consensusModule.blockById(sig).foreach { b =>
+      history().blockById(sig).foreach { b =>
         val msg = Message(BlockMessageSpec, Right(b), None)
         val ss = SendToChosen(Seq(remote))
         networkControllerRef ! SendToNetwork(msg, ss)

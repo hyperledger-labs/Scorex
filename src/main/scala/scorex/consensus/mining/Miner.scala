@@ -18,7 +18,6 @@ class Miner[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[
 (settings: Settings, historySynchronizer: ActorRef, consensusModule: ConsensusModule[P, TX, TD, CD])
   extends Actor with ScorexLogging {
 
-  implicit val tm = consensusModule.transactionalModule
   // BlockGenerator is trying to generate a new block every $blockGenerationDelay. Should be 0 for PoW consensus model.
   val blockGenerationDelay = settings.blockGenerationDelay
   val BlockGenerationTimeLimit = 5.seconds
@@ -47,7 +46,7 @@ class Miner[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[
 
     lastTryTime = System.currentTimeMillis()
     if (blockGenerationDelay > 500.milliseconds) log.info("Trying to generate a new block")
-    val blockFuture = consensusModule.generateNextBlock(tm.wallet)
+    val blockFuture = consensusModule.generateNextBlock(transactionalModule.wallet)
     val blockOpt = Await.result(blockFuture, BlockGenerationTimeLimit)
     blockOpt.foreach(b => historySynchronizer ! b)
     if (!stopped) scheduleAGuess()

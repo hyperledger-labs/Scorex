@@ -50,7 +50,6 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef,
       log.warn(s"Write failed :$w " + remote + s" in state $stateName")
       //      peerManager ! AddToBlacklist(remote)
       connection ! Close
-
       connection ! ResumeReading
       connection ! ResumeWriting
 

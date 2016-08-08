@@ -9,15 +9,14 @@ import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+
+//todo: make BytesParseable[TData] an instance also, not a mixin
 
 trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
-  extends History[P, TX, TData, CData] with ScorexLogging with BytesParseable[CData] {
+  extends ScorexLogging with BytesParseable[CData] {
 
   type BlockId = ConsensusData.BlockId
   val BlockIdLength: Int
-
-  val transactionalModule: TransactionalModule[P, TX, TData]
 
   def isValid(block: Block[P, TData, CData]): Boolean
 
@@ -30,7 +29,7 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
   /**
     * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
     * (see e.g. Proof-of-Activity paper of Bentov et al. http://eprint.iacr.org/2014/452.pdf)
- *
+    *
     * @param block - a block to extract producers from
     * @return blocks' producers
     */
@@ -47,36 +46,6 @@ trait ConsensusModule[P <: Proposition, TX <: Transaction[P, TX], TData <: Trans
   def parentId(block: Block[P, TData, CData]): BlockId
 
   val MaxRollback: Int
-
-
-  //Append block to current state
-  //todo: check possible conflicts
-  def processBlock(block: Block[P, TData, CData]): Try[Unit] = synchronized {
-    appendBlock(block).map { _ =>
-      transactionalModule.processBlock(block, feesDistribution(block)) match {
-        case Failure(e) =>
-          log.error("Failed to apply block to state", e)
-          discardBlock()
-          //TODO ???
-          System.exit(1)
-        case Success(m) =>
-      }
-    }
-  }
-
-  //Should be used for linear blockchain only
-  //todo: check possible conflicts
-  def removeAfter(blockId: BlockId): Unit = synchronized {
-    heightOf(blockId) match {
-      case Some(height) =>
-        while (id(lastBlock).sameElements(blockId)) {
-          discardBlock()
-        }
-        transactionalModule.rollbackTo(height)
-      case None =>
-        log.warn(s"RemoveAfter non-existing block ${Base58.encode(blockId)}")
-    }
-  }
 
   val genesisData: CData
 }

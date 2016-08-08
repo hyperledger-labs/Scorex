@@ -92,6 +92,7 @@ object Block extends ScorexLogging {
     new Block(Version, genesisTimestamp, consensusModule.genesisData, transactionalModule.genesisData)
   }
 
+  /*
   def isValid[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   (block: Block[P, TData, CData])
   (implicit consensusModule: ConsensusModule[P, TX, TData, CData],
@@ -107,5 +108,5 @@ object Block extends ScorexLogging {
 
       consensus && transaction
     }
-  }
+  }*/
 }

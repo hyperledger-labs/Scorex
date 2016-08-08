@@ -4,8 +4,7 @@ import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.block.{ConsensusData, TransactionalData}
-import scorex.consensus.ConsensusModule
-import scorex.consensus.mining.BlockGeneratorController._
+import scorex.consensus.mining.MiningController._
 import scorex.consensus.mining.Miner._
 import scorex.settings.Settings
 import scorex.transaction.Transaction
@@ -16,8 +15,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Success
 
-class BlockGeneratorController[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
-(settings: Settings, historySynchronizer: ActorRef, consensusModule: ConsensusModule[P, TX, TD, CD]) extends Actor
+class MiningController[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
+(settings: Settings, historySynchronizer: ActorRef) extends Actor
 with ScorexLogging {
 
   val threads = settings.mininigThreads
@@ -84,12 +83,12 @@ with ScorexLogging {
   }
 
   def newWorkers(count: Int): Seq[ActorRef] = (1 to count).map { i =>
-    context.watch(context.actorOf(Props(classOf[Miner[P, TX, TD, CD]], settings, historySynchronizer, consensusModule),
+    context.watch(context.actorOf(Props(classOf[Miner[P, TX, TD, CD]], settings, historySynchronizer),
       s"Worker-${System.currentTimeMillis()}-$i"))
   }
 }
 
-object BlockGeneratorController {
+object MiningController {
   sealed trait Status {
     val name: String
   }

@@ -7,7 +7,7 @@ import scorex.api.http.{ApiRoute, CompositeHttpService}
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.network._
-import scorex.network.message.{BasicMessagesRepo, MessageHandler, MessageSpec}
+import scorex.network.message._
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.{Transaction, TransactionalModule}
@@ -49,19 +49,28 @@ trait Application extends ScorexLogging {
 
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
-  lazy val basicMessagesSpecsRepo = new BasicMessagesRepo[P, TX, TData, CData]()
-
   //p2p
   lazy val upnp = new UPnP(settings)
 
-  lazy val messagesHandler: MessageHandler = MessageHandler(basicMessagesSpecsRepo.specs ++ additionalMessageSpecs)
+  private lazy val basicSpecs =
+    Seq(
+      GetPeersSpec,
+      PeersSpec,
+      GetSignaturesSpec,
+      SignaturesSpec,
+      GetBlockSpec,
+      new BlockMessageSpec(consensusModule, transactionalModule),
+      ScoreMessageSpec
+    )
+
+  lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs)
 
 
   lazy val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
     applicationName, appVersion), "networkController")
 
   lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer[P, TX, TData, CData]], settings,
-    consensusModule, networkController, basicMessagesSpecsRepo), "HistorySynchronizer")
+    consensusModule, networkController), "HistorySynchronizer")
 
   implicit val materializer = ActorMaterializer()
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
@@ -71,7 +80,8 @@ trait Application extends ScorexLogging {
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
 
-    checkGenesis()
+    // todo: fix
+    // checkGenesis()
 
     Http().bindAndHandle(combinedRoute, "0.0.0.0", settings.rpcPort)
 
@@ -101,6 +111,8 @@ trait Application extends ScorexLogging {
     }
   }
 
+  /*
+  TODO: fix genesis application
   def checkGenesis(): Unit = {
     if (consensusModule.isEmpty) {
       val genesisBlock: BType = Block.genesis[P, TX, TData, CData](settings.genesisTimestamp)
@@ -109,5 +121,5 @@ trait Application extends ScorexLogging {
         case _ => log.info("Genesis block has been added to the state")
       }
     }
-  }.ensuring(consensusModule.height() >= 1)
+  }.ensuring(consensusModule.height() >= 1) */
 }

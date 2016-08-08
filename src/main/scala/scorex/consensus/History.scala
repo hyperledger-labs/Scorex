@@ -1,5 +1,6 @@
 package scorex.consensus
 
+import scorex.block.ConsensusData.BlockId
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.crypto.encode.Base58
 import scorex.transaction.Transaction
@@ -20,10 +21,9 @@ import scala.util.Try
   */
 
 trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData] {
-  this: ConsensusModule[P, TX, TData, CData] =>
 
   /**
-    * Height of the a chain, or a longest chain in the explicit block-tree
+    * Height of the a chain, or a longest chain in an explicit block-tree
     */
   def height(): Int
 
@@ -85,9 +85,9 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
   }
 
-  def appendBlock(block: Block[P, TData, CData]): Try[Unit]
+  def appendBlock(block: Block[P, TData, CData]): Try[History[P, TX, TData, CData]]
 
-  def discardBlock(): Try[Unit]
+  def discardBlock(): Try[History[P, TX, TData, CData]]
 
   val genesisBlock: Block[P, TData, CData]
 }

@@ -9,15 +9,16 @@ import scorex.transaction.state.{MinimalState, SecretHolder, SecretHolderGenerat
 import scorex.utils.ScorexLogging
 import scorex.transaction.wallet.Wallet
 
+//todo: make BytesParseable[TData] an instance also, not a mixin
 
 trait TransactionalModule[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX]]
-  extends UnconfirmedTransactionsDatabase[TX, TData]
-    with MinimalState[P, TX]
-    with ScorexLogging
-    with BytesParseable[TData] {
+  extends ScorexLogging with BytesParseable[TData] {
 
   type SH <: SecretHolder[P with AddressableProposition, _ <: Proof[P]]
   type W <: Wallet[_ <: P, _ <: TransactionalModule[P, TX, TData]]
+
+  val mempool: MemoryPool[TX]
+  val state: MinimalState[P, TX]
 
   val settings: Settings
 
