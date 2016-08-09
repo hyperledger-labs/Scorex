@@ -2,7 +2,8 @@ package scorex.network
 
 import akka.actor.{ActorRef, Props}
 import scorex.NodeStateHolder
-import scorex.block.{Block, ConsensusData, TransactionalData}
+import scorex.block.{BlockValidator, Block, ConsensusData, TransactionalData}
+import scorex.consensus.History
 import scorex.consensus.mining.MiningController
 import scorex.consensus.mining.MiningController._
 import scorex.crypto.encode.Base58
@@ -10,20 +11,23 @@ import scorex.network.NetworkController.DataFromPeer
 import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message._
 import scorex.settings.Settings
-import scorex.transaction.Transaction
+import scorex.transaction.{MemoryPool, Transaction}
 import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.state.MinimalState
 import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.Try
 
 //todo: write tests
 class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
 (settings: Settings,
  stateHolder: NodeStateHolder[P, TX, TD, CD],
  val networkControllerRef: ActorRef,
- blockMessageSpec: BlockMessageSpec[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
+ blockMessageSpec: BlockMessageSpec[P, TX, TD, CD],
+ blockValidator: BlockValidator[P, TD, CD]) extends ViewSynchronizer with ScorexLogging {
 
   type BlockId = ConsensusData.BlockId
 
@@ -204,40 +208,10 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
     synced
   }
 
-  private def processNewBlock(block: B, local: Boolean): Boolean = ???
-
-  /*
-  private def processNewBlock(block: B, local: Boolean): Boolean = Try {
-    if (Block.isValid[P, TX, TD, CD](block)(consensusModule, transactionalModule)) {
-      log.info(s"New block(local: $local): ${block.json.noSpaces}")
-
-      if (local) networkControllerRef ! SendToNetwork(Message(BlockMessageSpec, Right(block), None), Broadcast)
-
-      val oldHeight = consensusModule.height()
-      val oldScore = consensusModule.score()
-      consensusModule.appendBlock(block) match {
-        case Success(_) =>
-          transactionalModule.clearFromUnconfirmed(block.transactionalData)
-          log.info(
-            s"""Block ${consensusModule.encodedId(block)} appended:
-            (height, score) = ($oldHeight, $oldScore) vs (${consensusModule.height()}, ${consensusModule.score()})""")
-          true
-        case Failure(e) =>
-          e.printStackTrace()
-          log.warn(s"failed to append block: $e")
-          false
-      }
-    } else {
-      log.warn(s"Invalid new block(local: $local): ${block.json.noSpaces}")
-      false
-    }
-  }.recoverWith {
-    case e =>
-      log.error("Failed to process block", e)
-      Failure(e)
-  }.getOrElse(false)
-  */
-
+  private def processNewBlock(block: B, local: Boolean): Boolean = if (blockValidator.isValid(block)) {
+    stateHolder.appendBlock(block)
+    true
+  } else false
 }
 
 object HistorySynchronizer {
