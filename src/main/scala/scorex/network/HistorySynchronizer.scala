@@ -10,7 +10,7 @@ import scorex.network.NetworkController.DataFromPeer
 import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message._
 import scorex.settings.Settings
-import scorex.transaction.{StateChanges, Transaction}
+import scorex.transaction.Transaction
 import scorex.transaction.box.proposition.Proposition
 import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._

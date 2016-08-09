@@ -1,10 +1,7 @@
 package scorex.block
 
-import scorex.NodeStateHolder
-import scorex.consensus.History
-import scorex.transaction.{StateChanges, Transaction}
 import scorex.transaction.box.proposition.Proposition
-import scorex.transaction.state.MinimalState
+import scorex.transaction.{StateChanges, Transaction}
 
 /**
  * Calculates

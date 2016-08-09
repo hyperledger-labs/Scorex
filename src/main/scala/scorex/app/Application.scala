@@ -3,8 +3,9 @@ package scorex.app
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
+import scorex.NodeStateHolder
 import scorex.api.http.{ApiRoute, CompositeHttpService}
-import scorex.block.{Block, ConsensusData, TransactionalData}
+import scorex.block._
 import scorex.consensus.ConsensusModule
 import scorex.network._
 import scorex.network.message._
@@ -16,7 +17,6 @@ import scorex.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.runtime.universe.Type
-import scala.util.Failure
 
 trait Application extends ScorexLogging {
   val ApplicationNameLimit = 50
@@ -28,22 +28,28 @@ trait Application extends ScorexLogging {
 
   type P <: Proposition
   type TX <: Transaction[P, TX]
-  type CData <: ConsensusData
-  type TData <: TransactionalData[TX]
+  type CD <: ConsensusData
+  type TD <: TransactionalData[TX]
 
   //settings
   implicit val settings: Settings
 
   //modules
-  implicit val consensusModule: ConsensusModule[P, CData]
-  implicit val transactionalModule: TransactionalModule[P, TX, TData]
+  implicit val consensusModule: ConsensusModule[P, CD]
+  implicit val transactionalModule: TransactionalModule[P, TX, TD]
 
-  implicit val consensusParser: BytesParseable[CData]
-  implicit val transactionalParser: BytesParseable[TData]
+  val consensusParser: BytesParseable[CD]
+  val transactionalParser: BytesParseable[TD]
+
+  val blockValidator: BlockValidator[P, TX, TD, CD]
+
+  val stateHolder: NodeStateHolder[P, TX, TD, CD]
+
+  val rewardCalculator: RewardCalculator[P, TX, TD, CD]
 
   lazy val wallet = transactionalModule.wallet
 
-  type BType = Block[P, TData, CData]
+  type BType = Block[P, TD, CD]
 
   //api
   val apiRoutes: Seq[ApiRoute]
@@ -56,6 +62,8 @@ trait Application extends ScorexLogging {
   //p2p
   lazy val upnp = new UPnP(settings)
 
+  val blockMessageSpec = new BlockMessageSpec[P, TX, TD, CD](consensusParser, transactionalParser)
+
   private lazy val basicSpecs =
     Seq(
       GetPeersSpec,
@@ -63,7 +71,7 @@ trait Application extends ScorexLogging {
       GetSignaturesSpec,
       SignaturesSpec,
       GetBlockSpec,
-      new BlockMessageSpec[P, TX, TData, CData](consensusParser, transactionalParser),
+      blockMessageSpec,
       ScoreMessageSpec
     )
 
@@ -73,8 +81,8 @@ trait Application extends ScorexLogging {
   lazy val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
     applicationName, appVersion), "networkController")
 
-  lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer[P, TX, TData, CData]], settings,
-    consensusModule, networkController), "HistorySynchronizer")
+  lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer[P, TX, TD, CD]], settings,
+    stateHolder, networkController, blockMessageSpec, blockValidator, rewardCalculator), "HistorySynchronizer")
 
   implicit val materializer = ActorMaterializer()
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
