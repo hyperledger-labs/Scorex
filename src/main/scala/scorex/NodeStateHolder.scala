@@ -2,7 +2,7 @@ package scorex
 
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.consensus.History
-import scorex.transaction.{MemoryPool, Transaction}
+import scorex.transaction.{StateChanges, MemoryPool, Transaction}
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.state.MinimalState
 
@@ -25,17 +25,15 @@ CData <: ConsensusData
 
   def addOffchainTransaction(tx: TX): Try[MemoryPool[TX]] = ???
 
-  def appendBlock(block: Block[P, TData, CData]): Try[GlobalState] = {
+  def appendBlock(block: Block[P, TData, CData], changes: StateChanges[P]): Try[GlobalState] = {
     val curMinState = globalState._1
     val curChain = globalState._2
     val curMempool = globalState._3
 
     require(curMinState.version == curChain.height())
 
-    val feeDistribution = ??? //todo: fix
-
     (curChain.appendBlock(block) flatMap { newChain =>
-      curMinState.processBlock(block, feeDistribution) map { newMinState =>
+      curMinState.applyChanges(changes) map { newMinState =>
         val newMemPool = curMempool.filter(block.transactionalData.mbTransactions.getOrElse(Seq()))
         (newMinState, newChain, newMemPool)
       }

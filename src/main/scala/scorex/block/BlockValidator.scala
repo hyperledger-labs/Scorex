@@ -10,7 +10,8 @@ class BlockValidator[P <: Proposition, TX <: Transaction[P, TX], TData <: Transa
 (txValidator: TransactionalValidator[P, TX, TData], cValidator: ConsensusValidator[CData]) {
 
   def isValid(block: Block[P, TData, CData], state: NodeStateHolder[P, TX, TData, CData]): Boolean =
-    cValidator.isValid(block.consensusData, state.stableState._2) && txValidator.isValid(block.transactionalData, state.stableState._1)
+    cValidator.isValid(block.consensusData, state.stableState._2) &&
+      txValidator.isValid(block.transactionalData, state.stableState._1)
 
 }
 

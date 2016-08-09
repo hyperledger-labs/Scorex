@@ -2,8 +2,7 @@ package scorex.network
 
 import akka.actor.{ActorRef, Props}
 import scorex.NodeStateHolder
-import scorex.block.{BlockValidator, Block, ConsensusData, TransactionalData}
-import scorex.consensus.History
+import scorex.block._
 import scorex.consensus.mining.MiningController
 import scorex.consensus.mining.MiningController._
 import scorex.crypto.encode.Base58
@@ -11,15 +10,13 @@ import scorex.network.NetworkController.DataFromPeer
 import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message._
 import scorex.settings.Settings
-import scorex.transaction.{MemoryPool, Transaction}
+import scorex.transaction.{StateChanges, Transaction}
 import scorex.transaction.box.proposition.Proposition
-import scorex.transaction.state.MinimalState
 import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.util.Try
 
 //todo: write tests
 class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
@@ -27,7 +24,8 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
  stateHolder: NodeStateHolder[P, TX, TD, CD],
  val networkControllerRef: ActorRef,
  blockMessageSpec: BlockMessageSpec[P, TX, TD, CD],
- blockValidator: BlockValidator[P, TD, CD]) extends ViewSynchronizer with ScorexLogging {
+ blockValidator: BlockValidator[P, TX, TD, CD],
+ rewardCalculator: RewardCalculator[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
 
   type BlockId = ConsensusData.BlockId
 
@@ -209,9 +207,11 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
   }
 
   private def processNewBlock(block: B, local: Boolean): Boolean = if (blockValidator.isValid(block, stateHolder)) {
-    stateHolder.appendBlock(block)
-    true
-  } else false
+    stateHolder.appendBlock(block, rewardCalculator.reward(block)).isSuccess
+  } else {
+    log.warn("Incorrect nerw block: " + block.json.noSpaces)
+    false
+  }
 }
 
 object HistorySynchronizer {
