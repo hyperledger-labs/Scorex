@@ -208,7 +208,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
     synced
   }
 
-  private def processNewBlock(block: B, local: Boolean): Boolean = if (blockValidator.isValid(block)) {
+  private def processNewBlock(block: B, local: Boolean): Boolean = if (blockValidator.isValid(block, stateHolder)) {
     stateHolder.appendBlock(block)
     true
   } else false
