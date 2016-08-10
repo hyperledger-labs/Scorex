@@ -19,6 +19,8 @@ trait MemoryPool[TX <: Transaction[_, TX]] {
    */
   def drain(limit: Int): (Traversable[TX], MemoryPool[TX])
 
+  def take(limit: Int): (Traversable[TX], MemoryPool[TX])
+
   def filter(id: Array[Byte]): MemoryPool[TX]
 
   def filter(tx: TX): MemoryPool[TX]
