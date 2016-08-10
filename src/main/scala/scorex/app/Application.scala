@@ -45,7 +45,7 @@ trait Application extends ScorexLogging {
 
   val stateHolder: NodeStateHolder[P, TX, TD, CD]
 
-  val rewardCalculator: RewardCalculator[P, TX, TD, CD]
+  val rewardCalculator: RewardsCalculator[P, TX, TD, CD]
 
   lazy val wallet = transactionalModule.wallet
 
