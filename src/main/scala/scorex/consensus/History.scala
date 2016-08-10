@@ -50,11 +50,7 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
 
   def blockById(blockId: BlockId): Option[Block[P, TData, CData]]
 
-  def blockById(blockId: String): Option[Block[P, TData, CData]] =
-    Base58
-      .decode(blockId)
-      .toOption
-      .flatMap(blockById)
+  def blockById(blockId: String): Option[Block[P, TData, CData]] = Base58.decode(blockId).toOption.flatMap(blockById)
 
   /**
     * Height of a block if it's in the blocktree
@@ -86,7 +82,8 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
   /**
     * Average delay in milliseconds between last blockNum blocks starting from block
     */
-  def averageDelay(block: Block[P, TData, CData], blockNum: Int): Try[Long] = Try {
+  def averageDelay(blockId: BlockId, blockNum: Int): Try[Long] = Try {
+    val block = blockById(blockId).get
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
   }
 
