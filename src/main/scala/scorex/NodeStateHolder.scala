@@ -23,6 +23,10 @@ CData <: ConsensusData
 
   def stableState: GlobalState
 
+  def mempool: MemoryPool[TX] = stableState._3
+  def history: History[P, TX, TData, CData] = stableState._2
+  def state: MinimalState[P, TX] = stableState._1
+
   def addOffchainTransaction(tx: TX): Try[MemoryPool[TX]] = ???
 
   def appendBlock(block: Block[P, TData, CData], changes: StateChanges[P]): Try[GlobalState] = {
