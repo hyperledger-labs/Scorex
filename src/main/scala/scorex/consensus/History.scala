@@ -1,6 +1,5 @@
 package scorex.consensus
 
-import scorex.block.ConsensusData.BlockId
 import scorex.block.{Block, ConsensusData, TransactionalData}
 import scorex.crypto.encode.Base58
 import scorex.transaction.Transaction

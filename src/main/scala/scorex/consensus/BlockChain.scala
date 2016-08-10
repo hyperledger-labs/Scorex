@@ -5,8 +5,6 @@ import scorex.transaction.Transaction
 import scorex.transaction.box.proposition.Proposition
 import scorex.utils.ScorexLogging
 
-import scala.util.Try
-
 trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
   extends History[P, TX, TData, CData] with ScorexLogging {
 
