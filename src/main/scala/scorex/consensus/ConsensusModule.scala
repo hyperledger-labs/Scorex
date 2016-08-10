@@ -18,12 +18,6 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData] extends ScorexLo
   def isValid(block: Block[P, _, CData]): Boolean = isValid(block.consensusData)
 
   /**
-   * Fees could go to a single miner(forger) usually, but can go to many parties, e.g. see
-   * Proof-of-Activity proposal of Bentov et al. http://eprint.iacr.org/2014/452.pdf
-   */
-  def feesDistribution(cdata: CData, txSumFee: Long): Map[P, Long]
-
-  /**
    * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
    * (see e.g. Proof-of-Activity paper of Bentov et al. http://eprint.iacr.org/2014/452.pdf)
    *
