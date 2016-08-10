@@ -1,7 +1,7 @@
 package scorex.crypto.hash
 
 /**
- * Interface for fast and secure Blake hash function
+ * Interface for fast and secure Blake2b hash function
  */
 
 object FastCryptographicHash extends CryptographicHash32 {
