@@ -77,7 +77,7 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
 
   override def appendBlock(block: Block[P, TData, CData]): Try[History[P, TX, TData, CData]] = synchronized {
     Try {
-      val parent = consensusModule.parentId(block)
+      val parent = block.consensusData.parentId
       if ((height() == 0) || (lastBlock.id sameElements parent)) {
         val h = height() + 1
         blockStorage.writeBlock(h, block) match {

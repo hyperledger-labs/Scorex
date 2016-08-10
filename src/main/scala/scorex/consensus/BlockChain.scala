@@ -14,7 +14,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactio
 
   override def parent(block: Block[P, TData, CData], back: Int = 1): Option[Block[P, TData, CData]] = {
     require(back > 0)
-    heightOf(consensusModule.parentId(block.consensusData)).flatMap(referenceHeight => blockAt(referenceHeight - back + 1))
+    heightOf(block.consensusData.parentId).flatMap(referenceHeight => blockAt(referenceHeight - back + 1))
   }
 
   override def lastBlocks(howMany: Int): Seq[Block[P, TData, CData]] =

@@ -33,10 +33,6 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData] extends ScorexLo
 
   def generateCdata(wallet: Wallet[_ <: P, _], time: Long, txsId: Array[Byte]): Future[Option[CData]]
 
-  def parentId(cdata: CData): BlockId
-
-  def parentId(b: Block[P, _, CData]): BlockId = parentId(b.consensusData)
-
   val MaxRollback: Int
 
   val genesisData: CData
