@@ -10,13 +10,14 @@ trait MemoryPool[TX <: Transaction[_, TX]] {
 
   def put(txs: Traversable[TX]): MemoryPool[TX]
 
-  //def all(): Seq[TX]
-
   def getById(id: Array[Byte]): Option[TX]
 
   def remove(tx: TX)
 
-  def drain(): (Traversable[TX], MemoryPool[TX])
+  /**
+   * Get sequence of transactions and remove them from pool
+   */
+  def drain(limit: Int): (Traversable[TX], MemoryPool[TX])
 
   def filter(id: Array[Byte]): MemoryPool[TX]
 
@@ -24,5 +25,5 @@ trait MemoryPool[TX <: Transaction[_, TX]] {
 
   def filter(txs: Traversable[TX]): MemoryPool[TX]
 
-  //def onNewOffchainTransaction(transaction: TX): Unit
+
 }
