@@ -1,7 +1,6 @@
 package scorex.consensus
 
 import scorex.block.{Block, ConsensusData}
-import scorex.crypto.encode.Base58
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.wallet.Wallet
 import scorex.utils.ScorexLogging

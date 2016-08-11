@@ -72,7 +72,7 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
       case Some(dataFolder) => new MVStore.Builder().fileName(dataFolder + s"/blocks.mvstore").compress().open()
       case None => new MVStore.Builder().open()
     }
-    new BlockchainPersistence(db)
+    BlockchainPersistence(db)
   }
 
   override def appendBlock(block: Block[P, TData, CData]): Try[History[P, TX, TData, CData]] = synchronized {
