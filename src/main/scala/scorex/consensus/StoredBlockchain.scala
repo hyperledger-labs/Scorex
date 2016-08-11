@@ -19,8 +19,6 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
 
   val dataFolderOpt: Option[String]
 
-  val transactionalModule: TransactionalModule[P, TX, TData]
-
   val consensusParser: BytesParseable[CData]
   val transactionalParser: BytesParseable[TData]
 
@@ -119,11 +117,4 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
 
   override def children(blockId: BlockId): Seq[Block[P, TData, CData]] =
     heightOf(blockId).flatMap(h => blockAt(h + 1)).toSeq
-
-  override def generatedBy(prop: P): Seq[Block[P, TData, CData]] =
-    (1 to height()).flatMap { h =>
-      blockAt(h).flatMap { block =>
-        if (consensusModule.producers(block).contains(prop)) Some(block) else None
-      }: Option[Block[P, TData, CData]]
-    }
 }
