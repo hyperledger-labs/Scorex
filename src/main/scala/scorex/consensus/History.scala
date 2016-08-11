@@ -23,9 +23,6 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
 
   type BlockId = ConsensusData.BlockId
 
-  val consensusModule: ConsensusModule[P, CData]
-
-
   /**
     * Height of the a chain, or a longest chain in an explicit block-tree
     */

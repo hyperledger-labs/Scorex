@@ -12,6 +12,8 @@ trait ConsensusData extends BytesSerializable with JsonSerializable {
   val version: Byte = 0: Byte
   val BlockIdLength: Int
 
+  //TODO is it ok to have it here?
+  def score(): BigInt
 
   /**
    * A block have some reference to transactional data to fix it
