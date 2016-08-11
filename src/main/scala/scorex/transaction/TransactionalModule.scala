@@ -1,11 +1,10 @@
 package scorex.transaction
 
-import scorex.NodeStateHolder
 import scorex.block.TransactionalData
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.{AddressableProposition, Proposition}
 import scorex.transaction.proof.Proof
-import scorex.transaction.state.{SecretHolder, SecretHolderGenerator}
+import scorex.transaction.state.{MinimalState, SecretHolder, SecretHolderGenerator}
 import scorex.transaction.wallet.Wallet
 import scorex.utils.ScorexLogging
 
@@ -16,7 +15,8 @@ trait TransactionalModule[P <: Proposition, TX <: Transaction[P, TX], TData <: T
   type SH <: SecretHolder[P with AddressableProposition, _ <: Proof[P]]
   type W <: Wallet[_ <: P, _ <: TransactionalModule[P, TX, TData]]
 
-  val stateHolder: NodeStateHolder[P, TX, TData, _]
+  val mempool: MemoryPool[TX]
+  val state: MinimalState[P, TX]
 
   val settings: Settings
 
