@@ -59,8 +59,6 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], TData <: Transactional
 
   def confirmations(block: Block[P, TData, CData]): Option[Int] = heightOf(block).map(height() - _)
 
-  def generatedBy(id: P): Seq[Block[P, TData, CData]]
-
   /**
     * Block with maximum blockchain score
     */

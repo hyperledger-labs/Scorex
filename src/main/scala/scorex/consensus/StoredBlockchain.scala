@@ -117,4 +117,5 @@ trait StoredBlockchain[P <: Proposition, CData <: ConsensusData, TX <: Transacti
 
   override def children(blockId: BlockId): Seq[Block[P, TData, CData]] =
     heightOf(blockId).flatMap(h => blockAt(h + 1)).toSeq
+
 }
