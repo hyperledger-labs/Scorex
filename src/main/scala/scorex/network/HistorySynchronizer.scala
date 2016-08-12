@@ -31,7 +31,8 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
 
   import HistorySynchronizer._
 
-  lazy val historyReplier = context.system.actorOf(Props(classOf[HistoryReplier[P, TX, TD, CD]], settings, networkControllerRef), "HistoryReplier")
+  lazy val historyReplier = context.system.actorOf(Props(classOf[HistoryReplier[P, TX, TD, CD]], settings, stateHolder,
+    networkControllerRef, blockMessageSpec), "HistoryReplier")
 
   lazy val blockGenerator = context.system.actorOf(Props(classOf[MiningController[P, TX, TD, CD]],
     settings, self), "blockGenerator")
