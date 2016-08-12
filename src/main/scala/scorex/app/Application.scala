@@ -17,6 +17,7 @@ import scorex.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.runtime.universe.Type
+import scala.util.Failure
 
 trait Application extends ScorexLogging {
   val ApplicationNameLimit = 50
@@ -123,15 +124,14 @@ trait Application extends ScorexLogging {
     }
   }
 
-  /*
-  TODO: fix genesis application
   def checkGenesis(): Unit = {
-    if (consensusModule.isEmpty) {
-      val genesisBlock: BType = Block.genesis[P, TX, TData, CData](settings.genesisTimestamp)
-      consensusModule.appendBlock(genesisBlock) match {
+    if (stateHolder.history.isEmpty) {
+      val genesisBlock: BType = Block.genesis[P, TX, TD, CD](settings.genesisTimestamp)
+      val changes = rewardCalculator.rewards(genesisBlock)
+      stateHolder.appendBlock(genesisBlock, changes) match {
         case Failure(e) => log.error("Failed to append genesis block", e)
         case _ => log.info("Genesis block has been added to the state")
       }
     }
-  }.ensuring(consensusModule.height() >= 1) */
+  }.ensuring(stateHolder.history.height() >= 1)
 }
