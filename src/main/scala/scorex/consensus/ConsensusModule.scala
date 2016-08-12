@@ -26,10 +26,6 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData] extends ScorexLo
 
   def producers(block: Block[P, _, CData]): Seq[P] = producers(block.consensusData)
 
-  def blockScore(cdata: CData): BigInt
-
-  def blockScore(block: Block[P, _, CData]): BigInt = blockScore(block.consensusData)
-
   def generateCdata(wallet: Wallet[_ <: P, _], time: Long, txsId: Array[Byte]): Future[Option[CData]]
 
   val MaxRollback: Int
