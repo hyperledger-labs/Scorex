@@ -12,7 +12,7 @@ import scala.util.{Failure, Success, Try}
 import scorex.utils.toTry
 
 
-case class StateChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]], minerReward: Long)
+case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]], minerReward: Long)
 
 
 /**
@@ -34,7 +34,7 @@ abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]] extends B
   /**
    * A Transaction opens existing boxes and creates new ones
    */
-  def changes(state: MinimalState[P, TX]): Try[StateChanges[P]]
+  def changes(state: MinimalState[P, TX]): Try[TransactionChanges[P]]
 }
 
 abstract class BoxTransaction[P <: Proposition] extends Transaction[P, BoxTransaction[P]] {

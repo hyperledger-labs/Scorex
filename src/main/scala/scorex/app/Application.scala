@@ -46,7 +46,7 @@ trait Application extends ScorexLogging {
 
   val stateHolder: NodeStateHolder[P, TX, TD, CD]
 
-  val rewardCalculator: RewardsCalculator[P, TX, TD, CD]
+  val rewardCalculator: StateChangesCalculator[P, TX, TD, CD]
 
   lazy val wallet = transactionalModule.wallet
 
@@ -124,10 +124,11 @@ trait Application extends ScorexLogging {
     }
   }
 
+  //TODO remove
   def checkGenesis(): Unit = {
     if (stateHolder.history.isEmpty) {
       val genesisBlock: BType = Block.genesis[P, TX, TD, CD](settings.genesisTimestamp)
-      val changes = rewardCalculator.rewards(genesisBlock)
+      val changes = rewardCalculator.changes(genesisBlock, stateHolder)
       stateHolder.appendBlock(genesisBlock, changes) match {
         case Failure(e) => log.error("Failed to append genesis block", e)
         case _ => log.info("Genesis block has been added to the state")

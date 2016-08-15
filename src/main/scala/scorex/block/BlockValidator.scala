@@ -21,6 +21,6 @@ trait TransactionalValidator[P <: Proposition, TX <: Transaction[P, TX], TData <
 }
 
 trait ConsensusValidator[CData <: ConsensusData] {
-  def isValid(cData: CData, history: History[_, _, _, CData]): Boolean
+  def isValid(cData: CData, history: History[_ <: Proposition, _, _, CData]): Boolean
 
 }

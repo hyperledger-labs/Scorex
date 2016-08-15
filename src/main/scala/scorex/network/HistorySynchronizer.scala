@@ -25,7 +25,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
  val networkControllerRef: ActorRef,
  blockMessageSpec: BlockMessageSpec[P, TX, TD, CD],
  blockValidator: BlockValidator[P, TX, TD, CD],
- rewardCalculator: RewardsCalculator[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
+ rewardCalculator: StateChangesCalculator[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
 
   type BlockId = ConsensusData.BlockId
 
@@ -208,9 +208,9 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
   }
 
   private def processNewBlock(block: B, local: Boolean): Boolean = if (blockValidator.isValid(block, stateHolder)) {
-    stateHolder.appendBlock(block, rewardCalculator.rewards(block)).isSuccess
+    stateHolder.appendBlock(block, rewardCalculator.changes(block, stateHolder)).isSuccess
   } else {
-    log.warn("Incorrect nerw block: " + block.json.noSpaces)
+    log.warn("Incorrect new block: " + block.json.noSpaces)
     false
   }
 }
