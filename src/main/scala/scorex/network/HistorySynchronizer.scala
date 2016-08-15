@@ -3,6 +3,7 @@ package scorex.network
 import akka.actor.{ActorRef, Props}
 import scorex.NodeStateHolder
 import scorex.block._
+import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.MiningController
 import scorex.consensus.mining.MiningController._
 import scorex.crypto.encode.Base58
@@ -10,7 +11,7 @@ import scorex.network.NetworkController.DataFromPeer
 import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message._
 import scorex.settings.Settings
-import scorex.transaction.Transaction
+import scorex.transaction.{TransactionalModule, Transaction}
 import scorex.transaction.box.proposition.Proposition
 import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
@@ -25,7 +26,9 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
  val networkControllerRef: ActorRef,
  blockMessageSpec: BlockMessageSpec[P, TX, TD, CD],
  blockValidator: BlockValidator[P, TX, TD, CD],
- rewardCalculator: StateChangesCalculator[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
+ rewardCalculator: StateChangesCalculator[P, TX, TD, CD],
+ consensusModule: ConsensusModule[P, CD],
+ transacionalModule: TransactionalModule[P, TX, TD]) extends ViewSynchronizer with ScorexLogging {
 
   type BlockId = ConsensusData.BlockId
 
@@ -35,7 +38,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
     networkControllerRef, blockMessageSpec), "HistoryReplier")
 
   lazy val blockGenerator = context.system.actorOf(Props(classOf[MiningController[P, TX, TD, CD]],
-    settings, self), "blockGenerator")
+    settings, self, consensusModule, transacionalModule), "blockGenerator")
 
   type B = Block[P, TD, CD]
 

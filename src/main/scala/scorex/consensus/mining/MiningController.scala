@@ -4,10 +4,11 @@ import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.block.{ConsensusData, TransactionalData}
+import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.MiningController._
 import scorex.consensus.mining.Miner._
 import scorex.settings.Settings
-import scorex.transaction.Transaction
+import scorex.transaction.{TransactionalModule, Transaction}
 import scorex.transaction.box.proposition.Proposition
 import scorex.utils.ScorexLogging
 
@@ -16,7 +17,10 @@ import scala.concurrent.duration._
 import scala.util.Success
 
 class MiningController[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
-(settings: Settings, historySynchronizer: ActorRef) extends Actor
+(settings: Settings,
+ historySynchronizer: ActorRef,
+ consensusModule: ConsensusModule[P, CD],
+ transacionalModule: TransactionalModule[P, TX, TD]) extends Actor
 with ScorexLogging {
 
   val threads = settings.mininigThreads
@@ -83,8 +87,8 @@ with ScorexLogging {
   }
 
   def newWorkers(count: Int): Seq[ActorRef] = (1 to count).map { i =>
-    context.watch(context.actorOf(Props(classOf[Miner[P, TX, TD, CD]], settings, historySynchronizer),
-      s"Worker-${System.currentTimeMillis()}-$i"))
+    context.watch(context.actorOf(Props(classOf[Miner[P, TX, TD, CD]], settings, historySynchronizer, consensusModule,
+    transacionalModule), s"Worker-${System.currentTimeMillis()}-$i"))
   }
 }
 

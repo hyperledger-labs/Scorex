@@ -83,7 +83,8 @@ trait Application extends ScorexLogging {
     applicationName, appVersion), "networkController")
 
   lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer[P, TX, TD, CD]], settings,
-    stateHolder, networkController, blockMessageSpec, blockValidator, rewardCalculator), "HistorySynchronizer")
+    stateHolder, networkController, blockMessageSpec, blockValidator, rewardCalculator, consensusModule,
+    transactionalModule), "HistorySynchronizer")
 
   implicit val materializer = ActorMaterializer()
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
