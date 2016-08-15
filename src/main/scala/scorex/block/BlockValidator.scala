@@ -9,10 +9,11 @@ import scorex.transaction.state.MinimalState
 class BlockValidator[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX], CData <: ConsensusData]
 (txValidator: TransactionalValidator[P, TX, TData], cValidator: ConsensusValidator[CData]) {
 
-  def isValid(block: Block[P, TData, CData], state: NodeStateHolder[P, TX, TData, CData]): Boolean =
-    cValidator.isValid(block.consensusData, state.stableState._2) &&
+  def isValid(block: Block[P, TData, CData], state: NodeStateHolder[P, TX, TData, CData]): Boolean = {
+    if (state.history.isEmpty) true
+    else cValidator.isValid(block.consensusData, state.stableState._2) &&
       txValidator.isValid(block.transactionalData, state.stableState._1)
-
+  }
 }
 
 trait TransactionalValidator[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX]] {

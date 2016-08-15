@@ -93,12 +93,9 @@ trait Application extends ScorexLogging {
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
 
-    // todo: fix
-    // checkGenesis()
-
     Http().bindAndHandle(combinedRoute, "0.0.0.0", settings.rpcPort)
 
-    historySynchronizer ! Unit
+    historySynchronizer ! scorex.block.Block.genesis[P, TX, TD, CD](settings.genesisTimestamp)
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {
