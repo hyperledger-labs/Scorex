@@ -208,7 +208,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
   }
 
   private def processNewBlock(block: B, local: Boolean): Boolean = if (blockValidator.isValid(block, stateHolder)) {
-    stateHolder.appendBlock(block, rewardCalculator.changes(block, stateHolder)).isSuccess
+    stateHolder.appendBlock(block, rewardCalculator.changes(block, stateHolder.state)).isSuccess
   } else {
     log.warn("Incorrect new block: " + block.json.noSpaces)
     false
