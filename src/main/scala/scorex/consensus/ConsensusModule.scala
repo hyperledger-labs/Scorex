@@ -12,10 +12,6 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData] extends ScorexLo
   type BlockId = ConsensusData.BlockId
   val BlockIdLength: Int
 
-  def isValid(cdata: CData): Boolean
-
-  def isValid(block: Block[P, _, CData]): Boolean = isValid(block.consensusData)
-
   /**
    * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not
    * (see e.g. Proof-of-Activity paper of Bentov et al. http://eprint.iacr.org/2014/452.pdf)

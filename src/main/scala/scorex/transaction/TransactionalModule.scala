@@ -23,8 +23,6 @@ trait TransactionalModule[P <: Proposition, TX <: Transaction[P, TX], TData <: T
   val generator: SecretHolderGenerator[SH]
   val wallet: W
 
-  def isValid(blockData: TData): Boolean
-
   def transactions(blockData: TData): Seq[TX]
 
   def totalFee(blockData: TData): Long = transactions(blockData).map(_.fee).sum
