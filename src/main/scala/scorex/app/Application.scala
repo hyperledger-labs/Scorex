@@ -17,7 +17,6 @@ import scorex.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.runtime.universe.Type
-import scala.util.Failure
 
 trait Application extends ScorexLogging {
   val ApplicationNameLimit = 50
@@ -124,16 +123,4 @@ trait Application extends ScorexLogging {
       System.exit(0)
     }
   }
-
-  //TODO remove
-  def checkGenesis(): Unit = {
-    if (stateHolder.history.isEmpty) {
-      val genesisBlock: BType = Block.genesis[P, TX, TD, CD](settings.genesisTimestamp)
-      val changes = rewardCalculator.changes(genesisBlock, stateHolder.state)
-      stateHolder.appendBlock(genesisBlock, changes) match {
-        case Failure(e) => log.error("Failed to append genesis block", e)
-        case _ => log.info("Genesis block has been added to the state")
-      }
-    }
-  }.ensuring(stateHolder.history.height() >= 1)
 }
