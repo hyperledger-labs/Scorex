@@ -11,8 +11,8 @@ import scorex.network.NetworkController.DataFromPeer
 import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message._
 import scorex.settings.Settings
-import scorex.transaction.{TransactionalModule, Transaction}
 import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
 
@@ -211,6 +211,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
   }
 
   private def processNewBlock(block: B, local: Boolean): Boolean = if (blockValidator.isValid(block, stateHolder)) {
+    log.debug(s"New $local block: ${block.json.noSpaces}")
     stateHolder.appendBlock(block, rewardCalculator.changes(block, stateHolder.state)).isSuccess
   } else {
     log.warn("Incorrect new block: " + block.json.noSpaces)
