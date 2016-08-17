@@ -11,12 +11,5 @@ import scorex.transaction.box.proposition.Proposition
   */
 
 trait Proof[P <: Proposition] extends BytesSerializable {
-
-  def proofId: Byte
-
-  def proofBytes: Array[Byte]
-
   def isValid(proposition: P, message: Array[Byte]): Boolean
-
-  override lazy val bytes = Array(proofId) ++ proofBytes
 }
