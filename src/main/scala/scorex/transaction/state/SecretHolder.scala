@@ -1,68 +1,89 @@
 package scorex.transaction.state
 
+import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
-import scorex.serialization.{BytesParseable, BytesSerializable}
+import scorex.serialization.BytesSerializable
 import scorex.settings.SizedConstants
 import scorex.transaction.box._
-import scorex.transaction.box.proposition.{AddressableProposition, PublicKey25519Proposition}
-import scorex.transaction.proof.{Proof, Signature25519}
-import scorex.transaction.state.PrivateKey25519Holder.PrivateKey25519
+import scorex.transaction.box.proposition.{ProofOfKnowledgeProposition, PublicImage, PublicKey25519Proposition}
+import scorex.transaction.proof.{ProofOfKnowledge, Signature25519}
 import shapeless.Sized
 
 import scala.util.Try
 
-trait SecretHolder[P <: AddressableProposition, PR <: Proof[P]] extends BytesSerializable {
-  type Secret
+trait Secret extends BytesSerializable {
+  self =>
+  type S >: self.type <: Secret
+  type PK <: PublicImage[S]
 
-  val publicCommitment: P
+  def companion: SecretCompanion[S]
 
-  lazy val publicAddress = publicCommitment.address
+  def instance: S = self
 
-  val secret: Secret
-
-  def owns(box: Box[P]): Boolean
-
-  def sign(message: Array[Byte]): PR
-
-  def verify(message: Array[Byte], signature: PR): Boolean
+  def publicImage: PK
 }
 
-case class PrivateKey25519Holder(secret: PrivateKey25519, publicCommitment: PublicKey25519Proposition)
-  extends SecretHolder[PublicKey25519Proposition, Signature25519] with BytesSerializable {
-  override type Secret = PrivateKey25519
+trait SecretCompanion[S <: Secret] {
+  type PK = S#PK
 
-  lazy val address = publicCommitment.address
+  type PR <: ProofOfKnowledge[S, _ <: ProofOfKnowledgeProposition[S]]
 
-  override def sign(message: Array[Byte]): Signature25519 =
-    Signature25519(Curve25519.sign(secret.unsized, message))
+  def owns(secret: S, box: Box[_]): Boolean
 
-  override def owns(box: Box[PublicKey25519Proposition]): Boolean = box.proposition.publicKey.unsized sameElements publicCommitment.publicKey.unsized
+  def sign(secret: S, message: Array[Byte]): PR
 
-  override def verify(message: Array[Byte], signature: Signature25519): Boolean =
-    Curve25519.verify(signature.signature, message, publicCommitment.publicKey.unsized)
+  def verify(message: Array[Byte], publicImage: PK, proof: PR): Boolean
 
-  override lazy val bytes: Array[Byte] = secret.unsized ++ publicCommitment.publicKey.unsized
+  def generateKeys(randomSeed: Array[Byte]): (S, PK)
 }
 
-object PrivateKey25519Holder {
-  type PrivateKey25519 = Sized[Array[Byte], SizedConstants.PrivKey25519]
+case class PrivateKey25519(privKeyBytes: Array[Byte], publicKeyBytes: Array[Byte]) extends Secret {
+  override type S = PrivateKey25519
+  override type PK = PublicKey25519
+
+  override lazy val companion: SecretCompanion[PrivateKey25519] = PrivateKey25519Companion
+
+  override lazy val bytes: Array[Byte] = privKeyBytes
+
+  override lazy val publicImage: PublicKey25519 = PublicKey25519(publicKeyBytes)
 }
 
+case class PublicKey25519(publicKeyBytes: Array[Byte]) extends PublicImage[PrivateKey25519] {
+  override def id: Array[Byte] = publicKeyBytes
 
-trait SecretHolderGenerator[SH <: SecretHolder[_, _]] extends BytesParseable[SH] {
-  def generateKeys(randomSeed: Array[Byte]): SH
+  override def address: String = Base58.encode(publicKeyBytes)
 
+  override def bytes: Array[Byte] = publicKeyBytes
 }
 
-object SecretGenerator25519 extends SecretHolderGenerator[PrivateKey25519Holder] {
-  override def generateKeys(randomSeed: Array[Byte]): PrivateKey25519Holder = {
+object PrivateKey25519Companion extends SecretCompanion[PrivateKey25519] {
+
+  override type PR = Signature25519
+
+  //todo: implement
+  override def owns(secret: PrivateKey25519, box: Box[_]): Boolean = {
+    box.proposition match {
+      case _ => ???
+    }
+  }
+
+  override def sign(secret: PrivateKey25519, message: Array[Byte]): Signature25519 =
+    Signature25519(Curve25519.sign(secret.bytes, message))
+
+  override def verify(message: Array[Byte], publicImage: PublicKey25519, proof: Signature25519): Boolean =
+    Curve25519.verify(proof.signature, message, publicImage.bytes)
+
+  override def generateKeys(randomSeed: Array[Byte]): (PrivateKey25519, PublicKey25519) = {
     val pair = Curve25519.createKeyPair(randomSeed)
-    val secret: PrivateKey25519 = Sized.wrap(pair._1)
-    val pubk: PublicKey25519Proposition = PublicKey25519Proposition(Sized.wrap(pair._2))
-    PrivateKey25519Holder(secret, pubk)
+    val secret: PrivateKey25519 = PrivateKey25519(pair._1, pair._2)
+    secret -> secret.publicImage
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[PrivateKey25519Holder] = Try {
-    PrivateKey25519Holder(Sized.wrap(bytes.slice(0, 32)), PublicKey25519Proposition(Sized.wrap(bytes.slice(32, 64))))
+  def parseBytes(bytes: Array[Byte]): Try[(PrivateKey25519, PublicKey25519)] = Try {
+    val privKey = PrivateKey25519(bytes.slice(0, 32), bytes.slice(32, 64))
+    privKey -> privKey.publicImage
   }
+
+  def keyPairBytes(priv: PrivateKey25519): Array[Byte] =
+    priv.bytes ++ priv.publicImage.bytes
 }

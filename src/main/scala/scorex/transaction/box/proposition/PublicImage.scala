@@ -1,6 +1,9 @@
 package scorex.transaction.box.proposition
 
-trait AddressableProposition extends Proposition {
-  val id: Array[Byte]
-  val address: String
+import scorex.transaction.state.Secret
+
+trait PublicImage[S <: Secret] extends Proposition {
+  def id: Array[Byte]
+
+  def address: String
 }

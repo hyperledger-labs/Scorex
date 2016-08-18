@@ -1,7 +1,8 @@
 package scorex.transaction.proof
 
 import scorex.serialization.BytesSerializable
-import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition, PublicImage}
+import scorex.transaction.state.Secret
 
 /**
   * The most general abstraction of fact a prover can provide a non-interactive proof
@@ -13,3 +14,5 @@ import scorex.transaction.box.proposition.Proposition
 trait Proof[P <: Proposition] extends BytesSerializable {
   def isValid(proposition: P, message: Array[Byte]): Boolean
 }
+
+trait ProofOfKnowledge[S <: Secret, P <: ProofOfKnowledgeProposition[S]] extends Proof[P]

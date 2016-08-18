@@ -1,10 +1,14 @@
 package scorex.transaction.box.proposition
 
+import scorex.crypto.encode.Base58
 import scorex.transaction.proof.Proof
+
 import scala.util.{Failure, Success, Try}
 
 
 //Bitcoin
+
+/*
 
 case class StackElement(bytes: Array[Byte]) {
   def isZero: Boolean = bytes.forall(_ == StackElement.Zero)
@@ -30,22 +34,27 @@ object State {
 }
 
 
-trait PublicImage[S <: Secret] {
-  val bytes: Array[Byte]
+case class PubKey(override val bytes: Array[Byte]) extends PublicImage[PrivateKey] {
+  override val id = bytes
+  override val address = Base58.encode(bytes)
 }
 
-case class PubKey(override val bytes: Array[Byte]) extends PublicImage[PrivateKey]
+case class PubKeyHash(override val bytes: Array[Byte]) extends PublicImage[PrivateKey] {
+  override val id = bytes
+  override val address = Base58.encode(bytes)
+}
 
-case class PubKeyHash(override val bytes: Array[Byte]) extends PublicImage[PrivateKey]
+case class Hash(override val bytes: Array[Byte]) extends PublicImage[HashPreimage] {
+  override val id = bytes
+  override val address = Base58.encode(bytes)
+}
 
-case class Hash(override val bytes: Array[Byte]) extends PublicImage[HashPreimage]
 
+trait BitcoinSecret
 
-trait Secret
+trait PrivateKey extends BitcoinSecret
 
-trait PrivateKey extends Secret
-
-trait HashPreimage extends Secret
+trait HashPreimage extends BitcoinSecret
 
 
 sealed trait BitcoinProposition extends Proposition {
@@ -91,26 +100,22 @@ case class RequirePrivateKeyOfHashedRequire(pubKeyHash: PubKeyHash) extends Requ
 }
 
 
-trait BitcoinProof[S <: Secret] extends Proof[BitcoinProposition] with BitcoinProposition
+trait BitcoinProof[S <: BitcoinSecret] extends Proof[BitcoinProposition]
 
 case class Signature(signature: Array[Byte]) extends BitcoinProof[PrivateKey] {
   override def bytes: Array[Byte] = ???
 
   override def isValid(proposition: BitcoinProposition, message: Array[Byte]): Boolean = ???
-
-  override def run(state: State): Try[State] = ???
 }
 
 case class HashPreimageReveal(hashPreimage: HashPreimage) extends BitcoinProof[HashPreimage] {
   override def bytes: Array[Byte] = ???
 
   override def isValid(proposition: BitcoinProposition, message: Array[Byte]): Boolean = ???
-
-  override def run(state: State): Try[State] = ???
 }
 
 
-trait Evaluator {
+object BitcoinEvaluator extends App {
   private val InitState: State = State.empty
 
   def evaluate(proposition: BitcoinProposition): Boolean =
@@ -119,3 +124,5 @@ trait Evaluator {
   def step(proposition: BitcoinProposition): Try[State] =
     proposition.run(InitState)
 }
+
+*/
