@@ -1,48 +1,20 @@
 package scorex.transaction.box.proposition
 
-import scorex.crypto.encode.Base58
-import scorex.crypto.hash.FastCryptographicHash._
+import scorex.crypto.signatures.Curve25519
 import scorex.settings.SizedConstants
-import shapeless.Sized
+import shapeless.{Sized, Nat}
 
-import scala.util.{Success, Failure, Try}
+trait PublicKeyProposition extends {
+  type PublicKeySize <: Nat
 
-trait PublicKey25519Proposition extends PublicKeyProposition {
+  val publicKey: Sized[Array[Byte], PublicKeySize]
 
-  import PublicKey25519Proposition._
+  override lazy val bytes = publicKey.unsized
 
-  override type PublicKeySize = SizedConstants.Nat32
+  override def toString: String = address
 
-  override lazy val address: String = Base58.encode((AddressVersion +: id) ++ calcCheckSum(id))
-}
+  override lazy val id: Array[Byte] = publicKey.unsized
 
-object PublicKey25519Proposition {
-  val AddressVersion: Byte = 1
-  val ChecksumLength = 4
-  val PubKeyLength = 32
-  val AddressLength = 1 + PubKeyLength + ChecksumLength
-
-  def apply(pubKey: Sized[Array[Byte], SizedConstants.PubKey25519]): PublicKey25519Proposition =
-    new PublicKey25519Proposition {
-      override val publicKey = pubKey
-      override lazy val bytes: Array[Byte] = publicKey
-    }
-
-  //todo: unsized
-  def calcCheckSum(bytes: Array[Byte]): Array[Byte] = hash(bytes).take(ChecksumLength)
-
-  def validPubKey(address: String): Try[PublicKey25519Proposition] =
-    Base58.decode(address).flatMap { addressBytes =>
-      if (addressBytes.length != AddressLength)
-        Failure(new Exception("Wrong address length"))
-      else {
-        val checkSum = addressBytes.takeRight(ChecksumLength)
-
-        val checkSumGenerated = calcCheckSum(addressBytes.dropRight(ChecksumLength))
-
-        if (checkSum.sameElements(checkSumGenerated))
-          Success(PublicKey25519Proposition(Sized.wrap(addressBytes.dropRight(ChecksumLength).tail)))
-        else Failure(new Exception("Wrong checksum"))
-      }
-    }
+  def verify(message: Array[Byte], signature: Sized[Array[Byte], SizedConstants.Signature25519]): Boolean =
+    Curve25519.verify(signature, message, publicKey)
 }
