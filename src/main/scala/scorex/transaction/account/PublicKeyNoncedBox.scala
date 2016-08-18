@@ -2,12 +2,12 @@ package scorex.transaction.account
 
 import com.google.common.primitives.Ints
 import scorex.transaction.box.Box
-import scorex.transaction.box.proposition.PublicKeyProposition
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 
-trait PublicKeyNoncedBox[PKP <: PublicKeyProposition] extends Box[PKP] {
+trait PublicKeyNoncedBox[PKP <: PublicKey25519Proposition] extends Box[PKP] {
   val nonce: Int
 
-  lazy val id = proposition.id ++ Ints.toByteArray(nonce)
+  lazy val id = proposition.publicKey.publicKeyBytes ++ Ints.toByteArray(nonce)
 
   lazy val publicKey = proposition.publicKey
 
