@@ -8,30 +8,42 @@ resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositori
 
 val circeVersion = "0.4.1"
 
-libraryDependencies ++= Seq(
+val networkDependencies = Seq(
+  "com.typesafe.akka" %% "akka-actor" % "2.+",
+  "org.bitlet" % "weupnp" % "0.1.+",
+  "commons-net" % "commons-net" % "3.+"
+)
+
+val apiDependencies = Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
-  "com.typesafe.akka" %% "akka-actor" % "2.+",
-  "org.bitlet" % "weupnp" % "0.1.+",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.+",
-  "com.chuusai" %% "shapeless" % "2.+",
   "io.swagger" %% "swagger-scala-module" % "1.+",
   "io.swagger" % "swagger-core" % "1.+",
   "io.swagger" % "swagger-annotations" % "1.+",
   "io.swagger" % "swagger-models" % "1.+",
   "io.swagger" % "swagger-jaxrs" % "1.+",
-  "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.+",
+  "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.+"
+)
+
+val loggingDependencies = Seq(
   "ch.qos.logback" % "logback-classic" % "1.+",
-  "ch.qos.logback" % "logback-core" % "1.+",
-  "org.consensusresearch" %% "scrypto" % "1.2.0-RC2",
-  "commons-net" % "commons-net" % "3.+",
+  "ch.qos.logback" % "logback-core" % "1.+"
+)
+
+val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-testkit" % "2.+" % "test",
   "org.scalatest" %% "scalatest" % "2.+" % "test",
   "org.scalactic" %% "scalactic" % "2.+" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.+" % "test",
   "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"
 )
+
+libraryDependencies ++= Seq(
+  "com.chuusai" %% "shapeless" % "2.+",
+  "org.consensusresearch" %% "scrypto" % "1.2.0-RC2"
+) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 scalacOptions ++= Seq("-feature", "-deprecation")
 

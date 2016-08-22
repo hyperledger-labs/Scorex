@@ -9,8 +9,8 @@ import scorex.crypto.hash.SecureCryptographicHash
 import scorex.settings.Settings
 import scorex.transaction.Transaction
 import scorex.transaction.box.Box
-import scorex.transaction.box.proposition.{Proposition, PublicImage}
-import scorex.transaction.state.Secret
+import scorex.transaction.box.proposition.{Proposition, PublicImage, PublicKey25519Proposition}
+import scorex.transaction.state.{PrivateKey25519, PublicKey25519, Secret}
 import scorex.utils.{ScorexLogging, randomBytes}
 
 import scala.collection.concurrent.TrieMap
@@ -42,6 +42,26 @@ trait Wallet[P <: Proposition, TX <: Transaction[P, TX], S <: Secret, PI <: Publ
   def secrets: Seq[S]
 
   def secretByPublicImage(publicImage: PI): S
+}
+
+
+class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX] ]
+  extends Wallet[PublicKey25519Proposition, TX, PrivateKey25519, PublicKey25519] {
+
+  override def generateNewSecret(): Wallet[PublicKey25519Proposition, TX, PrivateKey25519, PublicKey25519] = ???
+
+  override def scan(tx: Transaction[PublicKey25519Proposition, _ <: Transaction[PublicKey25519Proposition, _]]): Wallet[PublicKey25519Proposition, TX, PrivateKey25519, PublicKey25519] = ???
+
+  override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, TX]] = ???
+
+  override def historyBoxes: Seq[WalletBox[PublicKey25519Proposition]] = ???
+
+  override def publicKeys: Seq[PublicKey25519] = ???
+
+  //todo: protection?
+  override def secrets: Seq[PrivateKey25519] = ???
+
+  override def secretByPublicImage(publicImage: PublicKey25519): PrivateKey25519 = ???
 }
 
 
