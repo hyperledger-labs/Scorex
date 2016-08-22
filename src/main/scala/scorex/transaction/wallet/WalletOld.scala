@@ -7,19 +7,52 @@ import org.h2.mvstore.{MVMap, MVStore}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.SecureCryptographicHash
 import scorex.settings.Settings
+import scorex.transaction.Transaction
 import scorex.transaction.box.Box
-import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.box.proposition.{Proposition, PublicImage}
 import scorex.transaction.state.Secret
 import scorex.utils.{ScorexLogging, randomBytes}
 
-import scala.collection.JavaConversions._
 import scala.collection.concurrent.TrieMap
 
-case class WalletChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]])
+case class WalletBox[P <: Proposition](box: Box[P], transactionId: Array[Byte], createdAt: Int, destroyedAt: Option[Int])
+
+case class WalletTransaction[P <: Proposition, TX <: Transaction[P, TX]](tx: TX, createdAt: Int)
+
+
+/**
+  * Abstract interface for a wallet
+  *
+  * @tparam P
+  * @tparam S
+  */
+trait Wallet[P <: Proposition, TX <: Transaction[P, TX], S <: Secret, PI <: PublicImage[S]] {
+
+  def generateNewSecret(): Wallet[P, TX, S, PI]
+
+  def scan(tx: Transaction[P, _ <: Transaction[P, _]]): Wallet[P, TX, S, PI]
+
+  def historyTransactions: Seq[WalletTransaction[P, TX]]
+
+  def historyBoxes: Seq[WalletBox[P]]
+
+  def publicKeys: Seq[PI]
+
+  //todo: protection?
+  def secrets: Seq[S]
+
+  def secretByPublicImage(publicImage: PI): S
+}
+
+
+
+
+
+
 
 //todo: add txs watching
 //todo: implement/fix missed
-class Wallet[P <: Proposition, S <: Secret](settings: Settings)
+class WalletOld[P <: Proposition, S <: Secret](settings: Settings)
   extends ScorexLogging {
 
   private val NonceFieldName = "nonce"
@@ -67,14 +100,15 @@ class Wallet[P <: Proposition, S <: Secret](settings: Settings)
 
   private lazy val seed: Array[Byte] = seedPersistence.get("seed")
 
-  private val secretsCache: TrieMap[String, S] = ??? /*{
-    val shs = secretsPersistence
-      .keys
-      .map(k => secretsPersistence.get(k))
-      .map(seed => generator.generateKeys(seed))
+  private val secretsCache: TrieMap[String, S] = ???
+  /*{
+     val shs = secretsPersistence
+       .keys
+       .map(k => secretsPersistence.get(k))
+       .map(seed => generator.generateKeys(seed))
 
-    TrieMap(shs.map(sh => sh.publicAddress -> sh).toSeq: _*)
-  }*/
+     TrieMap(shs.map(sh => sh.publicAddress -> sh).toSeq: _*)
+   }*/
 
   def privateKeyAccounts(): Seq[S] = secretsCache.values.toSeq
 

@@ -2,7 +2,7 @@ package scorex.consensus
 
 import scorex.block.{Block, ConsensusData}
 import scorex.transaction.box.proposition.Proposition
-import scorex.transaction.wallet.Wallet
+import scorex.transaction.wallet.WalletOld
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.Future
@@ -22,7 +22,7 @@ trait ConsensusModule[P <: Proposition, CData <: ConsensusData] extends ScorexLo
 
   def producers(block: Block[P, _, CData]): Seq[P] = producers(block.consensusData)
 
-  def generateCdata(wallet: Wallet[_ <: P, _], time: Long, txsId: Array[Byte]): Future[Option[CData]]
+  def generateCdata(wallet: WalletOld[_ <: P, _], time: Long, txsId: Array[Byte]): Future[Option[CData]]
 
   val MaxRollback: Int
 

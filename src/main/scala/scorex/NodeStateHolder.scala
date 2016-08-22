@@ -1,8 +1,8 @@
 package scorex
 
-import scorex.block.{StateChanges, Block, ConsensusData, TransactionalData}
+import scorex.block.{Block, ConsensusData, StateChanges, TransactionalData}
 import scorex.consensus.History
-import scorex.transaction.{TransactionChanges, MemoryPool, Transaction}
+import scorex.transaction.{MemoryPool, Transaction}
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.state.MinimalState
 

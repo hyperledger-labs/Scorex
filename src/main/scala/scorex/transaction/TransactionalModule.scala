@@ -4,7 +4,7 @@ import scorex.block.TransactionalData
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.state.MinimalState
-import scorex.transaction.wallet.Wallet
+import scorex.transaction.wallet.WalletOld
 import scorex.utils.ScorexLogging
 
 //todo: make BytesParseable[TData] an instance also, not a mixin
@@ -12,7 +12,7 @@ trait TransactionalModule[P <: Proposition, TX <: Transaction[P, TX], TData <: T
   extends ScorexLogging {
 
   //type SH <: SecretHolder[P with AddressableProposition, _ <: Proof[P]]
-  type W <: Wallet[_ <: P, _ <: TransactionalModule[P, TX, TData]]
+  type W <: WalletOld[_ <: P, _ <: TransactionalModule[P, TX, TData]]
 
   val mempool: MemoryPool[TX]
   val state: MinimalState[P, TX]
