@@ -41,6 +41,7 @@ val testingDependencies = Seq(
 )
 
 libraryDependencies ++= Seq(
+  "org.mapdb" % "mapdb" % "3.+",
   "com.chuusai" %% "shapeless" % "2.+",
   "org.consensusresearch" %% "scrypto" % "1.2.0-RC2"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies

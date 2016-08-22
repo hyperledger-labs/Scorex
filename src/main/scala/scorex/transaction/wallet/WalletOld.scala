@@ -24,7 +24,9 @@ case class WalletTransaction[P <: Proposition, TX <: Transaction[P, TX]](tx: TX,
   * Abstract interface for a wallet
   *
   * @tparam P
+  * @tparam TX
   * @tparam S
+  * @tparam PI
   */
 trait Wallet[P <: Proposition, TX <: Transaction[P, TX], S <: Secret, PI <: PublicImage[S]] {
 
@@ -45,6 +47,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P, TX], S <: Secret, PI <: Publ
 }
 
 
+//todo: HKDF
 class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX] ]
   extends Wallet[PublicKey25519Proposition, TX, PrivateKey25519, PublicKey25519] {
 
