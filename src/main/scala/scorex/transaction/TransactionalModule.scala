@@ -3,7 +3,6 @@ package scorex.transaction
 import scorex.block.TransactionalData
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.Proposition
-import scorex.transaction.state.MinimalState
 import scorex.utils.ScorexLogging
 
 //todo: make BytesParseable[TData] an instance also, not a mixin
