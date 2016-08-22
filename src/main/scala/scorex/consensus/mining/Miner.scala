@@ -6,6 +6,7 @@ import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.Miner._
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.wallet.Wallet
 import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.{NetworkTime, ScorexLogging}
 
@@ -18,7 +19,9 @@ class Miner[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[
 (settings: Settings,
  historySynchronizer: ActorRef,
  consensusModule: ConsensusModule[P, CD],
- transactionalModule: TransactionalModule[P, TX, TD])
+ transactionalModule: TransactionalModule[P, TX, TD],
+ wallet: Wallet[P, TX, _, _]
+)
   extends Actor with ScorexLogging {
 
   // BlockGenerator is trying to generate a new block every $blockGenerationDelay. Should be 0 for PoW consensus model.
@@ -51,7 +54,7 @@ class Miner[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[
     if (blockGenerationDelay > 500.milliseconds) log.info("Trying to generate a new block")
     val timestamp = NetworkTime.time()
     val tData = transactionalModule.generateTdata(timestamp)
-    val cFuture = consensusModule.generateCdata(transactionalModule.wallet, timestamp, tData.id)
+    val cFuture = consensusModule.generateCdata(wallet, timestamp, tData.id)
     Await.result(cFuture, BlockGenerationTimeLimit) match {
       case Some(cData) =>
         val block = new Block[P, TD, CD](timestamp, cData, tData)

@@ -12,6 +12,7 @@ import scorex.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}
 import scorex.network.message._
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.wallet.Wallet
 import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
@@ -28,7 +29,8 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
  blockValidator: BlockValidator[P, TX, TD, CD],
  rewardCalculator: StateChangesCalculator[P, TX, TD, CD],
  consensusModule: ConsensusModule[P, CD],
- transacionalModule: TransactionalModule[P, TX, TD]) extends ViewSynchronizer with ScorexLogging {
+ transacionalModule: TransactionalModule[P, TX, TD],
+ wallet: Wallet[P, TX, _, _]) extends ViewSynchronizer with ScorexLogging {
 
   type BlockId = ConsensusData.BlockId
 
@@ -38,7 +40,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
     networkControllerRef, blockMessageSpec), "HistoryReplier")
 
   lazy val blockGenerator = context.system.actorOf(Props(classOf[MiningController[P, TX, TD, CD]],
-    settings, self, consensusModule, transacionalModule), "blockGenerator")
+    settings, self, consensusModule, transacionalModule, wallet), "blockGenerator")
 
   type B = Block[P, TD, CD]
 

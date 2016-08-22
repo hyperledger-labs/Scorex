@@ -12,6 +12,7 @@ import scorex.network.message._
 import scorex.serialization.BytesParseable
 import scorex.settings.Settings
 import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.wallet.Wallet
 import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.utils.ScorexLogging
 
@@ -47,7 +48,7 @@ trait Application extends ScorexLogging {
 
   val rewardCalculator: StateChangesCalculator[P, TX, TD, CD]
 
-  lazy val wallet = transactionalModule.wallet
+  val wallet: Wallet[P, TX, _, _]
 
   type BType = Block[P, TD, CD]
 
@@ -83,7 +84,7 @@ trait Application extends ScorexLogging {
 
   lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer[P, TX, TD, CD]], settings,
     stateHolder, networkController, blockMessageSpec, blockValidator, rewardCalculator, consensusModule,
-    transactionalModule), "HistorySynchronizer")
+    transactionalModule, wallet), "HistorySynchronizer")
 
   implicit val materializer = ActorMaterializer()
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
@@ -113,8 +114,6 @@ trait Application extends ScorexLogging {
 
     log.info("Stopping actors (incl. block generator)")
     actorSystem.terminate().onComplete { _ =>
-      log.info("Closing wallet")
-      transactionalModule.stop()
 
       log.info("Exiting from the app...")
       System.exit(0)

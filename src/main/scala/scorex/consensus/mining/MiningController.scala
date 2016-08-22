@@ -8,8 +8,9 @@ import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.MiningController._
 import scorex.consensus.mining.Miner._
 import scorex.settings.Settings
-import scorex.transaction.{TransactionalModule, Transaction}
+import scorex.transaction.{Transaction, TransactionalModule}
 import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.wallet.Wallet
 import scorex.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,7 +21,9 @@ class MiningController[P <: Proposition, TX <: Transaction[P, TX], TD <: Transac
 (settings: Settings,
  historySynchronizer: ActorRef,
  consensusModule: ConsensusModule[P, CD],
- transacionalModule: TransactionalModule[P, TX, TD]) extends Actor
+ transacionalModule: TransactionalModule[P, TX, TD],
+ wallet: Wallet[P, TX, _, _]
+) extends Actor
 with ScorexLogging {
 
   val threads = settings.mininigThreads
@@ -88,7 +91,7 @@ with ScorexLogging {
 
   def newWorkers(count: Int): Seq[ActorRef] = (1 to count).map { i =>
     context.watch(context.actorOf(Props(classOf[Miner[P, TX, TD, CD]], settings, historySynchronizer, consensusModule,
-    transacionalModule), s"Worker-${System.currentTimeMillis()}-$i"))
+    transacionalModule, wallet), s"Worker-${System.currentTimeMillis()}-$i"))
   }
 }
 
