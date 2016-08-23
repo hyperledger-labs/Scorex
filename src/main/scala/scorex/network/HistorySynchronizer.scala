@@ -1,7 +1,7 @@
 package scorex.network
 
 import akka.actor.{ActorRef, Props}
-import scorex.NodeStateHolder
+import scorex.{DefaultNodeStateHandler, NodeStateHolder}
 import scorex.block._
 import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.MiningController
@@ -23,10 +23,9 @@ import scala.concurrent.duration._
 //todo: write tests
 class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
 (settings: Settings,
- stateHolder: NodeStateHolder[P, TX, TD, CD],
+ stateHolder: DefaultNodeStateHandler[P, TX, TD, CD],
  val networkControllerRef: ActorRef,
  blockMessageSpec: BlockMessageSpec[P, TX, TD, CD],
- blockValidator: BlockValidator[P, TX, TD, CD],
  rewardCalculator: StateChangesCalculator[P, TX, TD, CD],
  consensusModule: ConsensusModule[P, CD],
  transacionalModule: TransactionalModule[P, TX, TD],
@@ -212,13 +211,16 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
     synced
   }
 
-  private def processNewBlock(block: B, local: Boolean): Boolean = if (blockValidator.isValid(block, stateHolder)) {
+  private def processNewBlock(block: B, local: Boolean): Boolean = ???
+  /* todo: uncomment/finish
+    if (blockValidator.isValid(block, stateHolder)) {
     log.debug(s"New $local block: ${block.json.noSpaces}")
     stateHolder.appendBlock(block, rewardCalculator.changes(block, stateHolder.state)).isSuccess
   } else {
     log.warn("Incorrect new block: " + block.json.noSpaces)
     false
   }
+  */
 }
 
 object HistorySynchronizer {

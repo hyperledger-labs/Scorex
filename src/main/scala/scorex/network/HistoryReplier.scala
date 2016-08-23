@@ -1,7 +1,7 @@
 package scorex.network
 
 import akka.actor.ActorRef
-import scorex.NodeStateHolder
+import scorex.{DefaultNodeStateHandler, NodeStateHolder}
 import scorex.block.ConsensusData.BlockId
 import scorex.block.{ConsensusData, TransactionalData}
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
@@ -13,13 +13,13 @@ import scorex.utils.ScorexLogging
 
 class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
 (settings: Settings,
- stateHolder: NodeStateHolder[P, TX, TD, CD],
+ stateHolder: DefaultNodeStateHandler[P, TX, TD, CD],
  val networkControllerRef: ActorRef,
  blockMessageSpec: BlockMessageSpec[P, TX, TD, CD]) extends ViewSynchronizer with ScorexLogging {
 
   override val messageSpecs = Seq(GetSignaturesSpec, GetBlockSpec)
 
-  private def history() = stateHolder.stableState._2
+  private def history() = stateHolder.history
 
   override def receive: Receive = {
 
