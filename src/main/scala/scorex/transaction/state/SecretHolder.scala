@@ -3,12 +3,9 @@ package scorex.transaction.state
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 import scorex.serialization.BytesSerializable
-import scorex.settings.SizedConstants
 import scorex.transaction.box._
 import scorex.transaction.box.proposition.{ProofOfKnowledgeProposition, PublicImage, PublicKey25519Proposition}
 import scorex.transaction.proof.{ProofOfKnowledge, Signature25519}
-import shapeless.Sized
-
 import scala.util.Try
 
 trait Secret extends BytesSerializable {

@@ -3,7 +3,7 @@ package scorex.app
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import scorex.{DefaultNodeStateHandler, NodeStateHolder}
+import scorex.NodeStateHolder
 import scorex.api.http.{ApiRoute, CompositeHttpService}
 import scorex.block._
 import scorex.consensus.ConsensusModule
@@ -44,7 +44,7 @@ trait Application extends ScorexLogging {
 
   //val blockValidator: BlockValidator[P, TX, TD, CD]
 
-  val stateHolder: DefaultNodeStateHandler[P, TX, TD, CD]
+  val stateHolder: NodeStateHolder[P, TX, TD, CD]
 
   val rewardCalculator: StateChangesCalculator[P, TX, TD, CD]
 
@@ -83,7 +83,7 @@ trait Application extends ScorexLogging {
     applicationName, appVersion), "networkController")
 
   lazy val historySynchronizer = actorSystem.actorOf(Props(classOf[HistorySynchronizer[P, TX, TD, CD]], settings,
-    stateHolder, networkController, blockMessageSpec, rewardCalculator, consensusModule,
+    stateHolder, networkController, blockMessageSpec, consensusModule,
     transactionalModule, wallet), "HistorySynchronizer")
 
   implicit val materializer = ActorMaterializer()

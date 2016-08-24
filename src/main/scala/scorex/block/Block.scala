@@ -3,7 +3,6 @@ package scorex.block
 import com.google.common.primitives.{Ints, Longs}
 import io.circe.Json
 import scorex.consensus.ConsensusModule
-import scorex.crypto.hash.Sha256
 import scorex.serialization.{BytesParseable, BytesSerializable, JsonSerializable}
 import scorex.transaction.box.proposition.Proposition
 import scorex.transaction.{Transaction, TransactionalModule}
@@ -27,29 +26,12 @@ import io.circe.syntax._
  * - additional data: block structure version no, timestamp etc
  */
 
-class Block[P <: Proposition, TData <: TransactionalData[_ <: Transaction[P, _]], CData <: ConsensusData]
-(val timestamp: Long,
- val consensusData: CData,
- val transactionalData: TData) extends BytesSerializable with JsonSerializable {
+case class Block[P <: Proposition, TData <: TransactionalData[_ <: Transaction[P, _]], CData <: ConsensusData]
+(timestamp: Long, consensusData: CData, transactionalData: TData) extends BytesSerializable with JsonSerializable {
 
-  type TDataExposed = TData
   type BlockId = ConsensusData.BlockId
   val version: Byte = (consensusData.version + transactionalData.version).toByte
   lazy val id: Array[Byte] = consensusData.id
-
-  /**
-   * Whether a block contains transactions, or a header only
-   *
-   * @return true if the block contains header just
-   */
-  lazy val headerOnly: Boolean = transactionalData.headerOnly
-
-  /**
-   * Whether a block contains transactions, or a header only
-   *
-   * @return true if the block contains transactions, so a full block
-   */
-  def fullBlock: Boolean = !headerOnly
 
   lazy val bytes: Array[Byte] = (version +: Longs.toByteArray(timestamp)) ++ arrayWithSize(consensusData.bytes) ++
     arrayWithSize(transactionalData.bytes)
@@ -112,3 +94,5 @@ object Block extends ScorexLogging {
     }
   }*/
 }
+
+

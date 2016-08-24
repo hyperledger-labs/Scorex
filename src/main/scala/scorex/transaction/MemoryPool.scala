@@ -26,6 +26,4 @@ trait MemoryPool[TX <: Transaction[_, TX]] {
   def filter(tx: TX): MemoryPool[TX]
 
   def filter(txs: Traversable[TX]): MemoryPool[TX]
-
-
 }

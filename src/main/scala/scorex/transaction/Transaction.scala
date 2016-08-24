@@ -11,6 +11,7 @@ import scala.util.{Failure, Success, Try}
 
 import scorex.utils.toTry
 
+trait Modifier
 
 case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]], minerReward: Long)
 

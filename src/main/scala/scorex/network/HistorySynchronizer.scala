@@ -1,7 +1,7 @@
 package scorex.network
 
 import akka.actor.{ActorRef, Props}
-import scorex.{DefaultNodeStateHandler, NodeStateHolder}
+import scorex.NodeStateHolder
 import scorex.block._
 import scorex.consensus.ConsensusModule
 import scorex.consensus.mining.MiningController
@@ -23,10 +23,9 @@ import scala.concurrent.duration._
 //todo: write tests
 class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[TX], CD <: ConsensusData]
 (settings: Settings,
- stateHolder: DefaultNodeStateHandler[P, TX, TD, CD],
+ stateHolder: NodeStateHolder[P, TX, TD, CD],
  val networkControllerRef: ActorRef,
  blockMessageSpec: BlockMessageSpec[P, TX, TD, CD],
- rewardCalculator: StateChangesCalculator[P, TX, TD, CD],
  consensusModule: ConsensusModule[P, CD],
  transacionalModule: TransactionalModule[P, TX, TD],
  wallet: Wallet[P, TX, _, _]) extends ViewSynchronizer with ScorexLogging {
