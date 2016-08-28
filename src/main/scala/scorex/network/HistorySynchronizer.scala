@@ -28,7 +28,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], TD <: Tran
  blockMessageSpec: BlockMessageSpec[P, TX, TD, CD],
  consensusModule: ConsensusModule[P, CD],
  transacionalModule: TransactionalModule[P, TX, TD],
- wallet: Wallet[P, TX, _, _]) extends ViewSynchronizer with ScorexLogging {
+ wallet: Wallet[P, TX]) extends ViewSynchronizer with ScorexLogging {
 
   type BlockId = ConsensusData.BlockId
 

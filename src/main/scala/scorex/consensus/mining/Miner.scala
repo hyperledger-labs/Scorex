@@ -20,7 +20,7 @@ class Miner[P <: Proposition, TX <: Transaction[P, TX], TD <: TransactionalData[
  historySynchronizer: ActorRef,
  consensusModule: ConsensusModule[P, CD],
  transactionalModule: TransactionalModule[P, TX, TD],
- wallet: Wallet[P, TX, _, _]
+ wallet: Wallet[P, TX]
 )
   extends Actor with ScorexLogging {
 

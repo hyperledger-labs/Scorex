@@ -27,7 +27,7 @@ TX <: Transaction[P, TX],
 TData <: TransactionalData[TX],
 CData <: ConsensusData] extends Actor {
 
-  type GlobalState = (MinimalState[P, TX], History[P, TX, TData, CData], MemoryPool[TX], Wallet[P, TX, _, _])
+  type GlobalState = (MinimalState[P, TX], History[P, TX, TData, CData], MemoryPool[TX], Wallet[P, TX])
 
   protected val globalState: GlobalState
 
@@ -39,7 +39,7 @@ CData <: ConsensusData] extends Actor {
 
   def mempool: MemoryPool[TX] = stableState._3
 
-  def wallet: Wallet[P, TX, _, _] = stableState._4
+  def wallet: Wallet[P, TX] = stableState._4
 
   def appendBlock(block: Block[P, TData, CData], changes: StateChanges[P]): Try[GlobalState] =
     ???

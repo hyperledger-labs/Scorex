@@ -48,7 +48,7 @@ trait Application extends ScorexLogging {
 
   val rewardCalculator: StateChangesCalculator[P, TX, TD, CD]
 
-  val wallet: Wallet[P, TX, _, _]
+  val wallet: Wallet[P, TX]
 
   type BType = Block[P, TD, CD]
 

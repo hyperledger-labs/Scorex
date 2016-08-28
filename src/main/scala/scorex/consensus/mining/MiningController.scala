@@ -22,7 +22,7 @@ class MiningController[P <: Proposition, TX <: Transaction[P, TX], TD <: Transac
  historySynchronizer: ActorRef,
  consensusModule: ConsensusModule[P, CD],
  transacionalModule: TransactionalModule[P, TX, TD],
- wallet: Wallet[P, TX, _, _]
+ wallet: Wallet[P, TX]
 ) extends Actor
 with ScorexLogging {
 

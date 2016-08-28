@@ -12,7 +12,7 @@ trait MemoryPool[TX <: Transaction[_, TX]] {
 
   def getById(id: Array[Byte]): Option[TX]
 
-  def remove(tx: TX)
+  def remove(tx: TX): MemoryPool[TX]
 
   /**
    * Get sequence of transactions and remove them from pool
