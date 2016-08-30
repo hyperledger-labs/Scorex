@@ -31,7 +31,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], B <: Block
 
   import HistorySynchronizer._
 
-  lazy val historyReplier = context.system.actorOf(Props(classOf[HistoryReplier[P, TX]], settings, stateHolder,
+  lazy val historyReplier = context.system.actorOf(Props(classOf[HistoryReplier[P, TX, B]], settings, stateHolder,
     networkControllerRef, blockMessageSpec), "HistoryReplier")
 
   lazy val blockGenerator = context.system.actorOf(Props(classOf[MiningController[P, TX]],
@@ -39,11 +39,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], B <: Block
 
   type B = Block[P, TX]
 
-  //private implicit val transactionalModule: TransactionalModule[P, TX, TD] = consensusModule.transactionalModule
-
   private implicit val blockTypeable = new BlockTypeable[P, TX]
-
-  private def history() = stateHolder.stableState._2
 
   override val messageSpecs = Seq(ScoreMessageSpec, SignaturesSpec, blockMessageSpec)
 

@@ -8,8 +8,7 @@ import scorex.core.transaction.box.{Box, BoxUnlocker}
 import scorex.core.transaction.state.MinimalState
 
 import scala.util.{Failure, Success, Try}
-
-import scorex.core.utils.toTry
+import scorex.utils.toTry
 
 trait NodeStateModifier
 

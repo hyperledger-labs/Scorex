@@ -1,7 +1,7 @@
 package scorex.core.transaction.state
 
-import scorex.core.crypto.encode.Base58
-import scorex.core.crypto.signatures.Curve25519
+import scorex.crypto.encode.Base58
+import scorex.crypto.signatures.Curve25519
 import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.box._
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, PublicImage, PublicKey25519Proposition}

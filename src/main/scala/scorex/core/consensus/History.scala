@@ -21,6 +21,10 @@ import scala.util.Try
   */
 
 trait History[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewComponent {
+  self =>
+
+  type H >: self.type <: History[P, TX]
+
   type BlockId = ConsensusData.BlockId
 
   /**

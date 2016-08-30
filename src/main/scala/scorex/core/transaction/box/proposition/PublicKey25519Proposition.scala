@@ -1,8 +1,8 @@
 package scorex.core.transaction.box.proposition
 
-import scorex.core.crypto.encode.Base58
+import scorex.crypto.encode.Base58
 import scorex.core.crypto.hash.FastCryptographicHash._
-import scorex.core.crypto.signatures.Curve25519
+import scorex.crypto.signatures.Curve25519
 import scorex.core.settings.SizedConstants
 import scorex.core.transaction.state.{PrivateKey25519, PublicKey25519}
 import shapeless.Sized

@@ -1,8 +1,8 @@
 package scorex.core.transaction.state.authenticated
 
-import scorex.core.crypto.authds.storage.StorageType
-import scorex.core.crypto.authds.{AuthenticatedDictionary, DataProof}
-import scorex.core.crypto.hash.CryptographicHash
+import scorex.crypto.authds.storage.StorageType
+import scorex.crypto.authds.{AuthenticatedDictionary, DataProof}
+import scorex.crypto.hash.CryptographicHash
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState

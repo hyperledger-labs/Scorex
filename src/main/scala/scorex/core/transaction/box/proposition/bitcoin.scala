@@ -1,6 +1,6 @@
 package scorex.core.transaction.box.proposition
 
-import scorex.core.crypto.encode.Base58
+import scorex.crypto.encode.Base58
 import scorex.core.transaction.proof.Proof
 
 import scala.util.{Failure, Success, Try}

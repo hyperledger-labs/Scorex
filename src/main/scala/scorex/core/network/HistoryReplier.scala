@@ -19,8 +19,6 @@ class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, T
 
   override val messageSpecs = Seq(GetSignaturesSpec, GetBlockSpec)
 
-  private def history() = stateHolder.history
-
   override def receive: Receive = {
 
     //todo: check sender and otherSigs type

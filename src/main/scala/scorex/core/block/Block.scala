@@ -68,6 +68,9 @@ trait Block[P <: Proposition, TX <: Transaction[P, TX]]
 trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]] {
   self =>
 
+  type Score = BigInt
+  type BlockId = ConsensusData.BlockId
+
   def parse(bytes: Array[Byte]): Try[B]
 
   def isValid(block: B): Boolean
@@ -82,7 +85,8 @@ trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, T
     */
   def producers(block: B, history: History[P, TX]): Seq[P]
 
-  type BlockId = ConsensusData.BlockId
+  def score(block: B, history: History[P, TX]): Score
+
   val BlockIdLength: Int
 
   val MaxRollback: Int

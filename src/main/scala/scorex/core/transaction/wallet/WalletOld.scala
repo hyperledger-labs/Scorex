@@ -7,14 +7,14 @@ import org.h2.mvstore.{MVMap, MVStore}
 import org.mapdb.{DBMaker, HTreeMap}
 import org.mapdb.serializer.SerializerByteArray
 import scorex.core.NodeViewComponent
-import scorex.core.crypto.encode.Base58
+import scorex.crypto.encode.Base58
 import scorex.core.crypto.hash.SecureCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{Proposition, PublicImage, PublicKey25519Proposition}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PublicKey25519, Secret}
-import scorex.core.utils.{ScorexLogging, randomBytes}
+import scorex.utils.randomBytes
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.JavaConversions._

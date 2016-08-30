@@ -30,14 +30,14 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     //if there are some uncommited changes from last run, discard'em
     if (signatures.size() > 0) database.rollback()
 
-    def writeBlock(height: Int, block: Block[P, TX]): Try[Unit] = Try {
+    def writeBlock(height: Int, block: B): Try[Unit] = Try {
       blocks.put(height, block.bytes)
-      scoreMap.put(height, score() + block.consensusData.score())
+      scoreMap.put(height, score() + block.companion.score(block, this))
       signatures.put(height, block.id)
       database.commit()
     }
 
-    def readBlock(height: Int): Option[Block[P, TX]] =
+    def readBlock(height: Int): Option[B] =
       Try(Option(blocks.get(height)))
         .toOption
         .flatten
@@ -73,7 +73,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     BlockchainPersistence(db)
   }
 
-  override def appendBlock(block: Block[P, TX]): Try[History[P, TX]] = synchronized {
+  override def appendBlock(block: B): Try[History[P, TX]] = synchronized {
     Try {
       val parent = block.parentId
       if ((height() == 0) || (lastBlock.id sameElements parent)) {
@@ -117,5 +117,4 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
 
   override def children(blockId: BlockId): Seq[Block[P, TX]] =
     heightOf(blockId).flatMap(h => blockAt(h + 1)).toSeq
-
 }

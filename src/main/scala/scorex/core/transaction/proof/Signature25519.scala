@@ -1,8 +1,8 @@
 package scorex.core.transaction.proof
 
-import scorex.core.crypto.signatures.Curve25519
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
+import scorex.crypto.signatures.Curve25519
 
 /**
   * @param signature 25519 signature
