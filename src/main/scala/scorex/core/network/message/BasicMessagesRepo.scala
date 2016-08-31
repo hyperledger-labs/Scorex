@@ -5,10 +5,9 @@ import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.block.ConsensusData.BlockId
-import scorex.core.block.{Block, ConsensusData}
+import scorex.core.block.{Block, BlockCompanion, ConsensusData}
 import scorex.crypto.signatures.SigningFunctions
 import scorex.core.network.message.Message._
-import scorex.core.newstate.BlockCompanion
 import scorex.core.serialization.BytesParseable
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition

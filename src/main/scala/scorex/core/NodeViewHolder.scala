@@ -1,6 +1,5 @@
 package scorex.core
 
-import diode.Circuit
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.transaction.{MemoryPool, NodeStateModifier, Transaction}
@@ -8,10 +7,11 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Wallet
 
-trait NodeViewComponent{
+
+trait NodeViewComponent {
   self =>
 
-  type NS >: self.type <: NodeViewComponent
+  type NVCT >: self.type <: NodeViewComponent
 
   def companion: NodeViewComponentCompanion
 }
@@ -42,26 +42,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], M <: NodeStateM
 
   protected def genesisState: NodeState
 
-  val circuit = new Circuit[NodeState] {
 
-    override lazy val initialModel = genesisState
-
-    override val actionHandler: HandlerFunction =
-      (model, action) => action match {
-        case _ => None
-      }
-  }
-
-  protected def componentsSeq: Seq[NodeViewComponent] = Seq(
+  def apis: Seq[ApiRoute] = Seq(
     genesisState._1,
     genesisState._2,
     genesisState._3,
     genesisState._4
-  )
-
-  def apis: Seq[ApiRoute] = componentsSeq.map(_.companion.api)
-
-  import shapeless.syntax.typeable._
-
-  def synchronizeables: Seq[Synchronizable] = componentsSeq.flatMap(_.cast[Synchronizable])
+  ).map(_.companion.api)
 }

@@ -24,8 +24,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], B <: Block
 (settings: Settings,
  stateHolder: NodeViewHolder[P, TX, B],
  val networkControllerRef: ActorRef,
- blockMessageSpec: BlockMessageSpec[P, TX, B],
- wallet: Wallet[P, TX]) extends ViewSynchronizer with ScorexLogging {
+ blockMessageSpec: BlockMessageSpec[P, TX, B]) extends ViewSynchronizer with ScorexLogging {
 
   type BlockId = ConsensusData.BlockId
 

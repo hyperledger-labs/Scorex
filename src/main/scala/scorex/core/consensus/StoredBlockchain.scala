@@ -1,8 +1,7 @@
 package scorex.core.consensus
 
 import org.h2.mvstore.{MVMap, MVStore}
-import scorex.core.block.{Block, ConsensusData}
-import scorex.core.newstate.BlockCompanion
+import scorex.core.block.{Block, BlockCompanion, ConsensusData}
 import scorex.core.serialization.BytesParseable
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
