@@ -10,9 +10,23 @@ import scorex.core.transaction.state.MinimalState
 import scala.util.{Failure, Success, Try}
 import scorex.utils.toTry
 
-trait NodeStateModifier
+trait NodeStateModifier extends BytesSerializable {
+  import NodeStateModifier.{ModifierId, ModifierTypeId}
 
-trait PersistentNodeStateModifier
+  val modifierTypeId: ModifierTypeId
+
+  //todo: check statically or dynamically output size
+  def id(): ModifierId
+}
+
+object NodeStateModifier {
+  type ModifierTypeId = Byte
+  type ModifierId = Array[Byte]
+
+  val ModifierIdSize: Int = 32 //todo: make configurable
+}
+
+trait PersistentNodeStateModifier extends NodeStateModifier
 
 case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]], minerReward: Long)
 
@@ -22,7 +36,9 @@ case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend:
   */
 
 abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]]
-  extends NodeStateModifier with BytesSerializable with JsonSerializable {
+  extends NodeStateModifier with JsonSerializable {
+
+  override val modifierTypeId: Byte = 2
 
   val fee: Long
 
@@ -35,8 +51,8 @@ abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]]
   val messageToSign: Array[Byte]
 
   /**
-   * A Transaction opens existing boxes and creates new ones
-   */
+    * A Transaction opens existing boxes and creates new ones
+    */
   def changes(state: MinimalState[P, TX]): Try[TransactionChanges[P]]
 }
 

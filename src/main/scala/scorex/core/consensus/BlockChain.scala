@@ -7,8 +7,12 @@ import scorex.core.utils.ScorexLogging
 
 import scala.util.Try
 
-trait BlockChain[P <: Proposition, TX <: Transaction[P, TX]]
-  extends History[P, TX] with ScorexLogging {
+trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
+  extends History[P, TX, B] with ScorexLogging {
+
+  type Score = BigInt
+
+  def score(block: B): Score
 
   /**
     * Height of the a chain, or a longest chain in an explicit block-tree
@@ -32,11 +36,11 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P, TX]]
   /**
     * Height of a block if it's in the blocktree
     */
-  def heightOf(block: Block[P, TX]): Option[Int] = heightOf(block.id)
+  def heightOf(block: B): Option[Int] = heightOf(block.id)
 
   def heightOf(blockId: BlockId): Option[Int]
 
-  def confirmations(block: Block[P, TX]): Option[Int] = heightOf(block).map(height() - _)
+  def confirmations(block: B): Option[Int] = heightOf(block).map(height() - _)
 
   /**
     * Block with maximum blockchain score
@@ -44,6 +48,11 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P, TX]]
   def lastBlock: Block[P, TX] = lastBlocks(1).head
 
   def lastBlockIds(howMany: Int): Seq[BlockId] = lastBlocks(howMany).map(_.id)
+
+  //just last block id
+  override def openSurface(): scala.Seq[BlockId] = lastBlockIds(1)
+
+  override def continuationIds(openSurface: Seq[BlockId], size: Int): Seq[BlockId] = lastBlockIds(size)
 
   /**
     * Average delay in milliseconds between last blockNum blocks starting from block
@@ -53,17 +62,19 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P, TX]]
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
   }
 
-  def discardBlock(): Try[History[P, TX]]
+  def discardBlock(): Try[BlockChain[P, TX, B]]
 
-  def blockAt(height: Int): Option[Block[P, TX]]
+  def blockAt(height: Int): Option[B]
 
-  def parent(block: Block[P, TX], back: Int = 1): Option[Block[P, TX]] = {
+  def parent(block: B, back: Int = 1): Option[B] = {
     require(back > 0)
     heightOf(block.parentId).flatMap(referenceHeight => blockAt(referenceHeight - back + 1))
   }
 
-  def lastBlocks(howMany: Int): Seq[Block[P, TX]] =
+  def lastBlocks(howMany: Int): Seq[B] =
     (Math.max(1, height() - howMany + 1) to height()).flatMap(blockAt).reverse
+
+  override def continuation(openSurface: Seq[BlockId], size: Int): Seq[B] = lastBlocks(size)
 
   /**
     * Return howMany blocks starting from parentSignature
@@ -73,7 +84,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P, TX]]
       (h + 1).to(Math.min(height(), h + howMany: Int)).flatMap(blockAt).map(_.id)
     }.getOrElse(Seq())
 
-  def children(blockId: BlockId): Seq[Block[P, TX]]
+  def children(blockId: BlockId): Seq[B]
 
-  lazy val genesisBlock: Block[P, TX] = blockAt(1).get
+  lazy val genesisBlock: B = blockAt(1).get
 }

@@ -8,7 +8,6 @@ import scorex.core.api.http.{ApiRoute, CompositeHttpService}
 import scorex.core.block._
 import scorex.core.network._
 import scorex.core.network.message._
-import scorex.core.serialization.BytesParseable
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.wallet.Wallet
@@ -33,7 +32,7 @@ trait Application extends ScorexLogging {
   //settings
   implicit val settings: Settings
 
-  val stateHolder: NodeViewHolder[P, TX, _]
+  val stateHolder: NodeViewHolder[P, TX]
 
   val rewardCalculator: StateChangesCalculator[P, TX]
 
@@ -52,17 +51,11 @@ trait Application extends ScorexLogging {
   //p2p
   lazy val upnp = new UPnP(settings)
 
-  val blockMessageSpec = new BlockMessageSpec[P, TX, B]()
-
+  //todo: add specs for inv. reqmodifier, replymodifier
   private lazy val basicSpecs =
     Seq(
       GetPeersSpec,
-      PeersSpec,
-      GetSignaturesSpec,
-      SignaturesSpec,
-      GetBlockSpec,
-      blockMessageSpec,
-      ScoreMessageSpec
+      PeersSpec
     )
 
   lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs)

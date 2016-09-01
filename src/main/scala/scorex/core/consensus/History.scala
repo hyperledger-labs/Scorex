@@ -1,8 +1,8 @@
 package scorex.core.consensus
 
 import scorex.core.NodeViewComponent
-import scorex.core.block.{Block, ConsensusData}
-import scorex.core.transaction.Transaction
+import scorex.core.block.ConsensusData
+import scorex.core.transaction.{NodeStateModifier, PersistentNodeStateModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58
 
@@ -20,12 +20,12 @@ import scala.util.Try
   * function has been used instead, even in PoW systems.
   */
 
-trait History[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewComponent {
+trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeStateModifier] extends NodeViewComponent {
   self =>
 
-  type H >: self.type <: History[P, TX]
+  type H >: self.type <: History[P, TX, M]
 
-  type BlockId = ConsensusData.BlockId
+  type BlockId = NodeStateModifier.ModifierId
 
   /**
     * Is there's no history, even genesis block
@@ -34,13 +34,22 @@ trait History[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewCompon
     */
   def isEmpty: Boolean
 
-  def contains(block: Block[P, TX]): Boolean = contains(block.id)
+  def contains(block: M): Boolean = contains(block.id())
 
   def contains(id: BlockId): Boolean = blockById(id).isDefined
 
-  def blockById(blockId: BlockId): Option[Block[P, TX]]
+  def blockById(blockId: BlockId): Option[M]
 
-  def blockById(blockId: String): Option[Block[P, TX]] = Base58.decode(blockId).toOption.flatMap(blockById)
+  def blockById(blockId: String): Option[M] = Base58.decode(blockId).toOption.flatMap(blockById)
 
-  def appendBlock(block: Block[P, TX]): Try[History[P, TX]]
+  def append(block: M): Try[History[P, TX, M]]
+
+  //todo: should be ID | Seq[ID]
+  def openSurface(): Seq[BlockId]
+
+  //todo: arg should be ID | Seq[ID]
+  def continuation(openSurface: Seq[BlockId], size: Int): Seq[M]
+
+  //todo: arg should be ID | Seq[ID]
+  def continuationIds(openSurface: Seq[BlockId], size: Int): Seq[BlockId]
 }

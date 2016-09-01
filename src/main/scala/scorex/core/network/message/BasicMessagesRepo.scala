@@ -4,16 +4,67 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
-import scorex.core.block.ConsensusData.BlockId
-import scorex.core.block.{Block, BlockCompanion, ConsensusData}
 import scorex.crypto.signatures.SigningFunctions
 import scorex.core.network.message.Message._
-import scorex.core.serialization.BytesParseable
-import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.transaction.NodeStateModifier
 import scorex.core.transaction.proof.Signature25519
 
-import scala.util.{Success, Try}
+import scala.util.Try
+
+class InvSpec[M <: NodeStateModifier] extends MessageSpec[Seq[M]] {
+  override val messageCode: MessageCode = 55: Byte
+  override val messageName: String = "Inv message"
+
+  //todo: implement
+  override def deserializeData(bytes: Array[MessageCode]): Try[Seq[M]] = ???
+
+  override def serializeData(data: Seq[M]): Array[Byte] = {
+    require(data.nonEmpty)
+    Array(data.head.modifierTypeId) ++
+      Ints.toByteArray(data.size) ++
+      data.map(_.bytes).reduce(_ ++ _)
+  }
+}
+
+object InvSpec {
+  val MaxObjects = 500
+}
+
+import NodeStateModifier.{ModifierTypeId, ModifierId}
+
+class RequestModifierSpec
+  extends MessageSpec[(ModifierTypeId, ModifierId)] {
+
+  override val messageCode: MessageCode = 22: Byte
+  override val messageName: String = "GetBlock message"
+
+  override def serializeData(typeAndId: (ModifierTypeId, ModifierId)): Array[Byte] =
+    Array(typeAndId._1) ++ typeAndId._2
+
+  override def deserializeData(bytes: Array[Byte]): Try[(ModifierTypeId, ModifierId)] =
+    Try(bytes.head -> bytes.tail)
+}
+
+class ModifierSpec[M <: NodeStateModifier]
+  extends MessageSpec[M] {
+
+  override val messageCode: MessageCode = 33: Byte
+  override val messageName: String = "Modifier"
+
+  //todo: implement
+  override def deserializeData(bytes: Array[Byte]): Try[M] = ???
+
+  //todo: implement
+  override def serializeData(data: M): Array[Byte] = ???
+
+  /*
+  companion: BlockCompanion[P, TX, B]
+
+  override def serializeData(block: B): Array[Byte] = block.bytes
+
+  override def deserializeData(bytes: Array[Byte]): Try[Block[P, TX]] =
+    companion.parse(bytes) */
+}
 
 
 trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
@@ -41,57 +92,6 @@ trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
     signatures.foldLeft(lengthBytes) { case (bs, header) => Bytes.concat(bs, header) }
   }
 }
-
-object GetSignaturesSpec extends SignaturesSeqSpec {
-  override val messageCode: MessageCode = 20: Byte
-  override val messageName: String = "GetSignatures message"
-}
-
-object SignaturesSpec extends SignaturesSeqSpec {
-  override val messageCode: MessageCode = 21: Byte
-  override val messageName: String = "Signatures message"
-}
-
-object GetBlockSpec extends MessageSpec[BlockId] {
-  override val messageCode: MessageCode = 22: Byte
-  override val messageName: String = "GetBlock message"
-
-  override def serializeData(id: BlockId): Array[Byte] = id
-
-  override def deserializeData(bytes: Array[Byte]): Try[BlockId] = Success(bytes)
-
-}
-
-class BlockMessageSpec[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
-(companion: BlockCompanion[P, TX, B]) extends MessageSpec[B] {
-
-  override val messageCode: MessageCode = 23: Byte
-
-  override val messageName: String = "Block message"
-
-  override def serializeData(block: B): Array[Byte] = block.bytes
-
-  override def deserializeData(bytes: Array[Byte]): Try[Block[P, TX]] =
-    companion.parse(bytes)
-}
-
-object ScoreMessageSpec extends MessageSpec[BigInt] {
-  override val messageCode: MessageCode = 24: Byte
-
-  override val messageName: String = "Score message"
-
-  override def serializeData(score: BigInt): Array[Byte] = {
-    val scoreBytes = score.toByteArray
-    val bb = java.nio.ByteBuffer.allocate(scoreBytes.length)
-    bb.put(scoreBytes)
-    bb.array()
-  }
-
-  override def deserializeData(bytes: Array[Byte]): Try[BigInt] = Try {
-    BigInt(1, bytes)
-  }
-}
-
 
 object GetPeersSpec extends MessageSpec[Unit] {
   override val messageCode: Message.MessageCode = 1: Byte

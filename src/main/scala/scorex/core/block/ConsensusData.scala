@@ -14,12 +14,6 @@ trait ConsensusData extends BytesSerializable with JsonSerializable {
 
   //TODO is it ok to have it here?
   def score(): BigInt
-
-  /**
-   * A block have some reference to transactional data to fix it
-   */
-  val transactionalId: ConsensusData.BlockId
-
   /**
     * A block always refers to some previous block, so parent ID is to be stored into a block
     */
@@ -31,8 +25,4 @@ trait ConsensusData extends BytesSerializable with JsonSerializable {
   val id: ConsensusData.BlockId
 
   lazy val encodedId: String = Base58.encode(id)
-}
-
-object ConsensusData {
-  type BlockId = Array[Byte]
 }

@@ -1,8 +1,7 @@
 package scorex.core.consensus
 
 import org.h2.mvstore.{MVMap, MVStore}
-import scorex.core.block.{Block, BlockCompanion, ConsensusData}
-import scorex.core.serialization.BytesParseable
+import scorex.core.block.{Block, BlockCompanion}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
@@ -15,7 +14,7 @@ import scala.util.{Failure, Success, Try}
  * If no datafolder provided, blockchain lives in RAM (useful for tests)
  */
 trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
-  extends BlockChain[P, TX] with ScorexLogging {
+  extends BlockChain[P, TX, B] with ScorexLogging {
 
   val dataFolderOpt: Option[String]
 
@@ -31,7 +30,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
 
     def writeBlock(height: Int, block: B): Try[Unit] = Try {
       blocks.put(height, block.bytes)
-      scoreMap.put(height, score() + block.companion.score(block, this))
+      scoreMap.put(height, score() + score(block))
       signatures.put(height, block.id)
       database.commit()
     }
@@ -61,7 +60,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
 
     def heightOf(id: BlockId): Option[Int] = signatures.find(_._2.sameElements(id)).map(_._1)
 
-    def score(): BigInt = if (height() > 0) scoreMap.get(height()) else 0
+    def dbScore(): BigInt = if (height() > 0) scoreMap.get(height()) else 0
   }
 
   private lazy val blockStorage: BlockchainPersistence = {
@@ -72,7 +71,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     BlockchainPersistence(db)
   }
 
-  override def appendBlock(block: B): Try[History[P, TX]] = synchronized {
+  override def append(block: B): Try[StoredBlockchain[P, TX, B]] = synchronized {
     Try {
       val parent = block.parentId
       if ((height() == 0) || (lastBlock.id sameElements parent)) {
@@ -88,7 +87,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     }
   }
 
-  override def discardBlock(): Try[History[P, TX]] = synchronized {
+  override def discardBlock(): Try[StoredBlockchain[P, TX, B]] = synchronized {
     Try {
       require(height() > 1, "Chain is empty or contains genesis block only, can't make rollback")
       val h = height()
@@ -97,7 +96,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     }
   }
 
-  override def blockAt(height: Int): Option[Block[P, TX]] = synchronized {
+  override def blockAt(height: Int): Option[B] = synchronized {
     blockStorage.readBlock(height)
   }
 
@@ -108,12 +107,12 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
 
   override def height(): Int = blockStorage.height()
 
-  override def score(): BigInt = blockStorage.score()
+  override def score(): BigInt = blockStorage.dbScore()
 
   override def heightOf(blockSignature: BlockId): Option[Int] = blockStorage.heightOf(blockSignature)
 
-  override def blockById(blockId: BlockId): Option[Block[P, TX]] = heightOf(blockId).flatMap(blockAt)
+  override def blockById(blockId: BlockId): Option[B] = heightOf(blockId).flatMap(blockAt)
 
-  override def children(blockId: BlockId): Seq[Block[P, TX]] =
+  override def children(blockId: BlockId): Seq[B] =
     heightOf(blockId).flatMap(h => blockAt(h + 1)).toSeq
 }

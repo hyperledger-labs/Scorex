@@ -5,7 +5,7 @@ import scorex.core.consensus.History
 import scorex.crypto.encode.Base58
 import scorex.core.serialization.{BytesSerializable, JsonSerializable}
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{PersistentNodeStateModifier, Transaction}
+import scorex.core.transaction.{NodeStateModifier, PersistentNodeStateModifier, Transaction}
 
 import scala.util.Try
 import shapeless.HList
@@ -27,10 +27,11 @@ import shapeless.HList
   */
 
 trait Block[P <: Proposition, TX <: Transaction[P, TX]]
-  extends PersistentNodeStateModifier with BytesSerializable with JsonSerializable {
+  extends PersistentNodeStateModifier with JsonSerializable {
   self =>
 
-  type BlockId = ConsensusData.BlockId
+  override val modifierTypeId: Byte = 1
+
 
   type B >: self.type <: Block[P, TX]
 
@@ -38,9 +39,9 @@ trait Block[P <: Proposition, TX <: Transaction[P, TX]]
 
   def version: Byte
 
-  def id: BlockId
+  def id: NodeStateModifier.ModifierId
 
-  def parentId: BlockId
+  def parentId: NodeStateModifier.ModifierId
 
   def encodedId: String = Base58.encode(id)
 
@@ -68,8 +69,7 @@ trait Block[P <: Proposition, TX <: Transaction[P, TX]]
 trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]] {
   self =>
 
-  type Score = BigInt
-  type BlockId = ConsensusData.BlockId
+  type BlockId = NodeStateModifier.ModifierId
 
   def parse(bytes: Array[Byte]): Try[B]
 
@@ -83,9 +83,7 @@ trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, T
     *
     * @return blocks' producers
     */
-  def producers(block: B, history: History[P, TX]): Seq[P]
-
-  def score(block: B, history: History[P, TX]): Score
+  def producers(block: B, history: History[P, TX, B]): Seq[P]
 
   val BlockIdLength: Int
 

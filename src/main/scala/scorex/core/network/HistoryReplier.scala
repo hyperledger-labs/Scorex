@@ -13,7 +13,7 @@ import scorex.core.utils.ScorexLogging
 
 class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
 (settings: Settings,
- stateHolder: NodeViewHolder[P, TX, B],
+ stateHolder: NodeViewHolder[P, TX],
  val networkControllerRef: ActorRef,
  blockMessageSpec: BlockMessageSpec[P, TX, B]) extends ViewSynchronizer with ScorexLogging {
 

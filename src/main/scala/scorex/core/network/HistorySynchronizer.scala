@@ -12,7 +12,7 @@ import scorex.core.network.message._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.wallet.Wallet
-import scorex.core.transaction.Transaction
+import scorex.core.transaction.{NodeStateModifier, Transaction}
 import scorex.core.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
 
@@ -22,19 +22,18 @@ import scala.concurrent.duration._
 //todo: write tests
 class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
 (settings: Settings,
- stateHolder: NodeViewHolder[P, TX, B],
- val networkControllerRef: ActorRef,
- blockMessageSpec: BlockMessageSpec[P, TX, B]) extends ViewSynchronizer with ScorexLogging {
+ viewHolder: NodeViewHolder[P, TX],
+ val networkControllerRef: ActorRef) extends ViewSynchronizer with ScorexLogging {
 
-  type BlockId = ConsensusData.BlockId
+  type Id = NodeStateModifier.ModifierId
 
   import HistorySynchronizer._
 
-  lazy val historyReplier = context.system.actorOf(Props(classOf[HistoryReplier[P, TX, B]], settings, stateHolder,
-    networkControllerRef, blockMessageSpec), "HistoryReplier")
+  lazy val historyReplier = context.system.actorOf(Props(classOf[HistoryReplier[P, TX, B]], settings, viewHolder,
+    networkControllerRef), "HistoryReplier")
 
   lazy val blockGenerator = context.system.actorOf(Props(classOf[MiningController[P, TX]],
-    settings, self, wallet), "blockGenerator")
+    settings, self, viewHolder), "blockGenerator")
 
   type B = Block[P, TX]
 
@@ -45,10 +44,13 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], B <: Block
   private lazy val scoreObserver = context.actorOf(Props(classOf[ScoreObserver], self))
 
   private val GettingBlockTimeout = settings.historySynchronizerTimeout
+
   //TODO increase from small number up to maxRollback
   private val blocksToSend = 100
 
   var lastUpdate = System.currentTimeMillis()
+
+  private def history() = viewHolder.history()
 
   override def preStart: Unit = {
     super.preStart()
@@ -116,7 +118,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], B <: Block
 
       val toDownload = blockIds.tail.filter(b => !history().contains(b))
       if (history().contains(common) && toDownload.nonEmpty) {
-        stateHolder.rollBackTo(common)
+        viewHolder.rollBackTo(common)
         gotoGettingBlocks(witnesses, toDownload.map(_ -> None))
         blockIds.tail.foreach { blockId =>
           val msg = Message(GetBlockSpec, Right(blockId), None)
@@ -203,6 +205,7 @@ class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], B <: Block
   }
 
   private def processNewBlock(block: B, local: Boolean): Boolean = ???
+
   /* todo: uncomment/finish
     if (blockValidator.isValid(block, stateHolder)) {
     log.debug(s"New $local block: ${block.json.noSpaces}")

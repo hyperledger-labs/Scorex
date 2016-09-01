@@ -3,6 +3,7 @@ package scorex.core.consensus.mining
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
+import scorex.core.NodeViewHolder
 import scorex.core.consensus.mining.MiningController._
 import scorex.core.consensus.mining.Miner._
 import scorex.core.settings.Settings
@@ -18,7 +19,7 @@ import scala.util.Success
 class MiningController[P <: Proposition, TX <: Transaction[P, TX]]
 (settings: Settings,
  historySynchronizer: ActorRef,
- wallet: Wallet[P, TX]
+ viewHolder: NodeViewHolder[P, TX]
 ) extends Actor
   with ScorexLogging {
 
