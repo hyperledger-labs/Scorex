@@ -1,49 +1,53 @@
 package scorex.core.network.message
 
+
+import com.google.common.primitives.{Bytes, Ints}
+import scorex.core.network.message.Message._
+import scorex.core.transaction.NodeStateModifier
+import scala.util.Try
 import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
-import com.google.common.primitives.{Bytes, Ints}
-import scorex.crypto.signatures.SigningFunctions
-import scorex.core.network.message.Message._
-import scorex.core.transaction.NodeStateModifier
-import scorex.core.transaction.proof.Signature25519
+import NodeStateModifier.{ModifierTypeId, ModifierId}
 
-import scala.util.Try
+object BasicMsgDataTypes {
+  type InvData = (ModifierTypeId, Seq[ModifierId])
+}
 
-class InvSpec[M <: NodeStateModifier] extends MessageSpec[Seq[M]] {
+import BasicMsgDataTypes._
+
+object InvSpec extends MessageSpec[InvData] {
+  //todo: check no more ids in inventory message than MaxObject
+  val MaxObjects = 500
+
   override val messageCode: MessageCode = 55: Byte
   override val messageName: String = "Inv message"
 
   //todo: implement
-  override def deserializeData(bytes: Array[MessageCode]): Try[Seq[M]] = ???
+  override def deserializeData(bytes: Array[MessageCode]): Try[InvData] = ???
 
-  override def serializeData(data: Seq[M]): Array[Byte] = {
-    require(data.nonEmpty)
-    Array(data.head.modifierTypeId) ++
-      Ints.toByteArray(data.size) ++
-      data.map(_.bytes).reduce(_ ++ _)
+  override def serializeData(data: InvData): Array[Byte] = {
+    require(data._2.nonEmpty)
+    Array(data._1) ++
+      Ints.toByteArray(data._2.size) ++
+      data._2.reduce(_ ++ _)
   }
 }
 
-object InvSpec {
-  val MaxObjects = 500
-}
 
-import NodeStateModifier.{ModifierTypeId, ModifierId}
-
-class RequestModifierSpec
-  extends MessageSpec[(ModifierTypeId, ModifierId)] {
+object RequestModifierSpec
+  extends MessageSpec[InvData] {
 
   override val messageCode: MessageCode = 22: Byte
-  override val messageName: String = "GetBlock message"
+  override val messageName: String = "RequestModifier"
 
-  override def serializeData(typeAndId: (ModifierTypeId, ModifierId)): Array[Byte] =
-    Array(typeAndId._1) ++ typeAndId._2
+  override def serializeData(typeAndId: InvData): Array[Byte] =
+    ???
 
-  override def deserializeData(bytes: Array[Byte]): Try[(ModifierTypeId, ModifierId)] =
-    Try(bytes.head -> bytes.tail)
+  override def deserializeData(bytes: Array[Byte]): Try[InvData] =
+    ???
 }
+
 
 class ModifierSpec[M <: NodeStateModifier]
   extends MessageSpec[M] {
@@ -66,7 +70,7 @@ class ModifierSpec[M <: NodeStateModifier]
     companion.parse(bytes) */
 }
 
-
+/*
 trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
 
   private val SignatureLength = Signature25519.SignatureSize
@@ -91,7 +95,7 @@ trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
     //WRITE SIGNATURES
     signatures.foldLeft(lengthBytes) { case (bs, header) => Bytes.concat(bs, header) }
   }
-}
+}*/
 
 object GetPeersSpec extends MessageSpec[Unit] {
   override val messageCode: Message.MessageCode = 1: Byte

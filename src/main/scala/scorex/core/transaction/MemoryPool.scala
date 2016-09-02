@@ -8,12 +8,19 @@ import scorex.core.NodeViewComponent
   * @tparam TX -type of transaction the pool contains
   */
 trait MemoryPool[TX <: Transaction[_, TX]] extends NodeViewComponent {
+  import NodeStateModifier.ModifierId
 
+  //getters
+  def getById(id: ModifierId): Option[TX]
+
+  def notIn(ids: Seq[ModifierId]): Seq[ModifierId]
+
+  def getAll(ids: Seq[ModifierId]): Seq[TX]
+
+  //modifiers
   def put(tx: TX): MemoryPool[TX]
 
   def put(txs: Traversable[TX]): MemoryPool[TX]
-
-  def getById(id: Array[Byte]): Option[TX]
 
   def remove(tx: TX): MemoryPool[TX]
 

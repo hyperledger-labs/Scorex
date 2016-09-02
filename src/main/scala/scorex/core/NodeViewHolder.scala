@@ -1,7 +1,10 @@
 package scorex.core
 
+import akka.actor.Actor
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
+import scorex.core.network.NodeViewSynchronizer
+import scorex.core.network.NodeViewSynchronizer.{GetContinuation, PartialOpenSurface}
 import scorex.core.transaction.NodeStateModifier.ModifierId
 import scorex.core.transaction.{MemoryPool, NodeStateModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
@@ -94,10 +97,7 @@ case class FailedModification[M <: NodeStateModifier, VC <: NodeViewComponent]
 
  - HxM -> Outcome[H]
  */
-trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] {
-  self =>
-
-  type NVH >: self.type <: NodeViewHolder[P, TX]
+trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   type HIS <: History[P, TX, _]
   type MS <: MinimalState[P, TX]
@@ -136,4 +136,19 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] {
     genesisState._3,
     genesisState._4
   ).map(_.companion.api)
+
+  override def receive: Receive = {
+    case PartialOpenSurface(sid, modifierTypeId, modifierIds) =>
+      modifierTypeId match {
+        case typeId: Byte if typeId == Transaction.TransactionModifierId =>
+          sender() ! NodeViewSynchronizer.RequestFromLocal(sid, typeId, memoryPool().notIn(modifierIds)
+      }
+
+    case GetContinuation(sid, modifierTypeId, modifierIds) =>
+      modifierTypeId match {
+        case typeId: Byte if typeId == Transaction.TransactionModifierId =>
+          sender() ! NodeViewSynchronizer.RequestFromLocal(sid, typeId, memoryPool().notIn(modifierIds)
+      }
+
+  }
 }

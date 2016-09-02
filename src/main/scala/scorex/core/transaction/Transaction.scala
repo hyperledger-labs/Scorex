@@ -11,6 +11,7 @@ import scala.util.{Failure, Success, Try}
 import scorex.utils.toTry
 
 trait NodeStateModifier extends BytesSerializable {
+
   import NodeStateModifier.{ModifierId, ModifierTypeId}
 
   val modifierTypeId: ModifierTypeId
@@ -38,7 +39,7 @@ case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend:
 abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]]
   extends NodeStateModifier with JsonSerializable {
 
-  override val modifierTypeId: Byte = 2
+  override val modifierTypeId: Byte = Transaction.TransactionModifierId
 
   val fee: Long
 
@@ -54,6 +55,10 @@ abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]]
     * A Transaction opens existing boxes and creates new ones
     */
   def changes(state: MinimalState[P, TX]): Try[TransactionChanges[P]]
+}
+
+object Transaction {
+  val TransactionModifierId = 2: Byte
 }
 
 abstract class BoxTransaction[P <: Proposition] extends Transaction[P, BoxTransaction[P]] {
