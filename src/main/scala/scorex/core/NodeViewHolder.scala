@@ -142,12 +142,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
       modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
           sender() ! NodeViewSynchronizer.RequestFromLocal(sid, typeId, memoryPool().notIn(modifierIds)
+        case typeId: Byte =>
       }
 
     case GetContinuation(sid, modifierTypeId, modifierIds) =>
       modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
-          sender() ! NodeViewSynchronizer.RequestFromLocal(sid, typeId, memoryPool().notIn(modifierIds)
+          sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, typeId, memoryPool().getAll(modifierIds))
       }
 
   }

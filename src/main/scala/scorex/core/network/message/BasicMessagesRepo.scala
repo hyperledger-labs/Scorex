@@ -12,6 +12,7 @@ import NodeStateModifier.{ModifierTypeId, ModifierId}
 
 object BasicMsgDataTypes {
   type InvData = (ModifierTypeId, Seq[ModifierId])
+
 }
 
 import BasicMsgDataTypes._
@@ -49,17 +50,17 @@ object RequestModifierSpec
 }
 
 
-class ModifierSpec[M <: NodeStateModifier]
-  extends MessageSpec[M] {
+class ModifiersSpec[M <: NodeStateModifier]
+  extends MessageSpec[(ModifierTypeId, Seq[M])] {
 
   override val messageCode: MessageCode = 33: Byte
   override val messageName: String = "Modifier"
 
   //todo: implement
-  override def deserializeData(bytes: Array[Byte]): Try[M] = ???
+  override def deserializeData(bytes: Array[Byte]): Try[(ModifierTypeId, Seq[M])] = ???
 
   //todo: implement
-  override def serializeData(data: M): Array[Byte] = ???
+  override def serializeData(data: (ModifierTypeId, Seq[M])): Array[Byte] = ???
 
   /*
   companion: BlockCompanion[P, TX, B]
