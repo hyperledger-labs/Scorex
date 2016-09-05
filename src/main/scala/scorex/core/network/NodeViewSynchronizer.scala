@@ -38,13 +38,15 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]](networkCo
       requestFromLocal orElse
       responseFromLocal
 
+  //object ids coming from other node
   def processInv: Receive = {
     case DataFromPeer(msgId, invData: InvData@unchecked, remote) if msgId == InvSpec.messageCode =>
-      viewHolderRef ! PartialOpenSurface(sessionId, invData._1, invData._2)
+      viewHolderRef ! CompareViews(sessionId, invData._1, invData._2)
       sessionId = sessionId + 1
       sessionPeerOpt = Some(remote)
   }
 
+  //other node asking for objects by their ids
   def processModifiersReq: Receive = {
     case DataFromPeer(msgId, invData: InvData@unchecked, remote) if msgId == RequestModifierSpec.messageCode =>
       viewHolderRef ! GetContinuation(sessionId, invData._1, invData._2)
@@ -75,7 +77,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]](networkCo
 
 object NodeViewSynchronizer {
 
-  case class PartialOpenSurface(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
+  case class CompareViews(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
   case class GetContinuation(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 

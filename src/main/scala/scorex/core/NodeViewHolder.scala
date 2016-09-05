@@ -4,7 +4,7 @@ import akka.actor.Actor
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer
-import scorex.core.network.NodeViewSynchronizer.{GetContinuation, PartialOpenSurface}
+import scorex.core.network.NodeViewSynchronizer.{GetContinuation, CompareViews}
 import scorex.core.transaction.NodeStateModifier.ModifierId
 import scorex.core.transaction.{MemoryPool, NodeStateModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
@@ -137,19 +137,22 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
     genesisState._4
   ).map(_.companion.api)
 
-  override def receive: Receive = {
-    case PartialOpenSurface(sid, modifierTypeId, modifierIds) =>
+  override def receive: Receive = partialOpenSurface orElse getContinuation
+
+  def partialOpenSurface: Receive = {
+    case CompareViews(sid, modifierTypeId, modifierIds) =>
       modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
-          sender() ! NodeViewSynchronizer.RequestFromLocal(sid, typeId, memoryPool().notIn(modifierIds)
+          sender() ! NodeViewSynchronizer.RequestFromLocal(sid, typeId, memoryPool().notIn(modifierIds))
         case typeId: Byte =>
       }
+  }
 
+  def getContinuation: Receive = {
     case GetContinuation(sid, modifierTypeId, modifierIds) =>
       modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
           sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, typeId, memoryPool().getAll(modifierIds))
       }
-
   }
 }
