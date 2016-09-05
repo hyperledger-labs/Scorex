@@ -49,9 +49,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]](networkCo
   //other node asking for objects by their ids
   def processModifiersReq: Receive = {
     case DataFromPeer(msgId, invData: InvData@unchecked, remote) if msgId == RequestModifierSpec.messageCode =>
-      viewHolderRef ! GetContinuation(sessionId, invData._1, invData._2)
+      viewHolderRef ! GetLocalObjects(sessionId, invData._1, invData._2)
   }
 
+  //local node sending object ids to remote
   def requestFromLocal: Receive = {
     case RequestFromLocal(sid, modifierTypeId, modifierIds) =>
       if (sid == sessionId && modifierIds.nonEmpty) {
@@ -63,6 +64,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]](networkCo
       sessionPeerOpt = None
   }
 
+  //local node sending out objects requested to remote
   def responseFromLocal: Receive = {
     case ResponseFromLocal(sid, typeId, modifiers) =>
       if (sid == sessionId && modifiers.nonEmpty) {
@@ -79,10 +81,9 @@ object NodeViewSynchronizer {
 
   case class CompareViews(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
-  case class GetContinuation(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
+  case class GetLocalObjects(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
   case class RequestFromLocal(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
   case class ResponseFromLocal[M <: NodeStateModifier](sid: Long, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
-
 }

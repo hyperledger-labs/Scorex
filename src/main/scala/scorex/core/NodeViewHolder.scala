@@ -4,7 +4,7 @@ import akka.actor.Actor
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer
-import scorex.core.network.NodeViewSynchronizer.{GetContinuation, CompareViews}
+import scorex.core.network.NodeViewSynchronizer.{GetLocalObjects, CompareViews}
 import scorex.core.transaction.NodeStateModifier.ModifierId
 import scorex.core.transaction.{MemoryPool, NodeStateModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
@@ -106,6 +106,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   type NodeState = (HIS, MS, WL, MP)
 
+  val networkChunkSize = 100 //todo: fix
+
   def restoreState(): Option[NodeState]
 
   private var nodeState: NodeState = restoreState().getOrElse(genesisState)
@@ -137,22 +139,28 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
     genesisState._4
   ).map(_.companion.api)
 
-  override def receive: Receive = partialOpenSurface orElse getContinuation
+  override def receive: Receive = compareViews orElse readLocalObjects
 
-  def partialOpenSurface: Receive = {
+  def compareViews: Receive = {
     case CompareViews(sid, modifierTypeId, modifierIds) =>
-      modifierTypeId match {
+      val ids = modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
-          sender() ! NodeViewSynchronizer.RequestFromLocal(sid, typeId, memoryPool().notIn(modifierIds))
+          memoryPool().notIn(modifierIds)
         case typeId: Byte =>
+          history().continuationIds(modifierIds, networkChunkSize)
       }
+
+      sender() ! NodeViewSynchronizer.RequestFromLocal(sid, modifierTypeId, ids)
   }
 
-  def getContinuation: Receive = {
-    case GetContinuation(sid, modifierTypeId, modifierIds) =>
-      modifierTypeId match {
+  def readLocalObjects: Receive = {
+    case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
+      val objs = modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
-          sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, typeId, memoryPool().getAll(modifierIds))
+          memoryPool().getAll(modifierIds)
+        case typeId: Byte =>
+          modifierIds.flatMap(id => history().blockById(id))
       }
+      sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
 }
