@@ -1,10 +1,8 @@
 package scorex.core.network
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.NodeViewHolder
 import scorex.core.network.NetworkController.DataFromPeer
-import scorex.core.network.NodeViewSynchronizer.RequestFromLocal
-import scorex.core.network.message._
+import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.NodeStateModifier._
 import scorex.core.transaction.{NodeStateModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
@@ -18,7 +16,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]](networkCo
   import NodeViewSynchronizer._
   import scorex.core.transaction.NodeStateModifier._
 
-  val messageSpecs: Seq[MessageSpec[_]]
+  val viewHolderRef: ActorRef
 
   //asked from other nodes
   val asked: Map[ModifierTypeId, mutable.Buffer[ModifierId]]
@@ -26,17 +24,16 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]](networkCo
   private var sessionId = 0L
   private var sessionPeerOpt: Option[ConnectedPeer] = None
 
-  val viewHolderRef: ActorRef
-
-  override def preStart: Unit = {
-    networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
-  }
-
   override def receive: Receive =
     processInv orElse
       processModifiersReq orElse
       requestFromLocal orElse
-      responseFromLocal
+      responseFromLocal orElse {
+      case HistoryModifiersSpecs(modifiersSpecs) =>
+
+        val messageSpecs = Seq(InvSpec, RequestModifierSpec) ++ modifiersSpecs
+        networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
+    }
 
   //object ids coming from other node
   def processInv: Receive = {
@@ -79,6 +76,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]](networkCo
 
 object NodeViewSynchronizer {
 
+  case object Init
+
+  case class HistoryModifiersSpecs(specs: Seq[ModifiersSpec[_]])
+
   case class CompareViews(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
   case class GetLocalObjects(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
@@ -86,4 +87,5 @@ object NodeViewSynchronizer {
   case class RequestFromLocal(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
   case class ResponseFromLocal[M <: NodeStateModifier](sid: Long, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
+
 }

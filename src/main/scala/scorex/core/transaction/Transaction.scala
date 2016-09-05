@@ -2,6 +2,7 @@ package scorex.core.transaction
 
 import com.google.common.primitives.Longs
 import io.circe.Json
+import scorex.core.network.message.ModifiersSpec
 import scorex.core.serialization.{BytesSerializable, JsonSerializable}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.box.{Box, BoxUnlocker}
@@ -10,15 +11,28 @@ import scorex.core.transaction.state.MinimalState
 import scala.util.{Failure, Success, Try}
 import scorex.utils.toTry
 
-trait NodeStateModifier extends BytesSerializable {
+trait NodeStateModifier {
+  self =>
 
   import NodeStateModifier.{ModifierId, ModifierTypeId}
+
+  type M >: self.type <: NodeStateModifier
 
   val modifierTypeId: ModifierTypeId
 
   //todo: check statically or dynamically output size
   def id(): ModifierId
+
+  def companion: NodeStateModifierCompanion[M]
 }
+
+trait NodeStateModifierCompanion[M <: NodeStateModifier] {
+  def bytes(modifier: M): Array[Byte]
+  def parse(bytes: Array[Byte]): Try[M]
+
+  def messageSpec: ModifiersSpec[M]
+}
+
 
 object NodeStateModifier {
   type ModifierTypeId = Byte

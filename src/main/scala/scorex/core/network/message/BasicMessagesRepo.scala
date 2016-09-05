@@ -12,7 +12,6 @@ import NodeStateModifier.{ModifierTypeId, ModifierId}
 
 object BasicMsgDataTypes {
   type InvData = (ModifierTypeId, Seq[ModifierId])
-
 }
 
 import BasicMsgDataTypes._

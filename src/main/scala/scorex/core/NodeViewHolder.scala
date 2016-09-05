@@ -4,13 +4,12 @@ import akka.actor.Actor
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer
-import scorex.core.network.NodeViewSynchronizer.{GetLocalObjects, CompareViews}
+import scorex.core.network.NodeViewSynchronizer.{CompareViews, GetLocalObjects, HistoryModifiersSpecs, Init}
 import scorex.core.transaction.NodeStateModifier.ModifierId
 import scorex.core.transaction.{MemoryPool, NodeStateModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Wallet
-
 
 trait NodeViewComponent {
   self =>
@@ -27,10 +26,6 @@ trait NodeViewComponentCompanion {
   def produceModification[M <: NodeStateModifier, CompType <: NodeViewComponent](component: CompType, m: M): UndoneModification[M, CompType]
 
   //network functions to call
-}
-
-trait Synchronizable {
-  val invId: Byte
 }
 
 sealed trait Modification[M <: NodeStateModifier, VC <: NodeViewComponent] {
@@ -139,7 +134,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
     genesisState._4
   ).map(_.companion.api)
 
-  override def receive: Receive = compareViews orElse readLocalObjects
+  override def receive: Receive =
+    compareViews orElse
+      readLocalObjects orElse {
+      case Init =>
+        HistoryModifiersSpecs(history().companions.map(_.messageSpec))
+    }
 
   def compareViews: Receive = {
     case CompareViews(sid, modifierTypeId, modifierIds) =>

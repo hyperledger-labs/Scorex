@@ -3,7 +3,7 @@ package scorex.core.block
 import io.circe.Json
 import scorex.core.consensus.History
 import scorex.crypto.encode.Base58
-import scorex.core.serialization.{BytesSerializable, JsonSerializable}
+import scorex.core.serialization.JsonSerializable
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{NodeStateModifier, PersistentNodeStateModifier, Transaction}
 
@@ -70,8 +70,6 @@ trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, T
   self =>
 
   type BlockId = NodeStateModifier.ModifierId
-
-  def parse(bytes: Array[Byte]): Try[B]
 
   def isValid(block: B): Boolean
 

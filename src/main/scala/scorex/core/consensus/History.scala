@@ -2,7 +2,7 @@ package scorex.core.consensus
 
 import scorex.core.NodeViewComponent
 import scorex.core.block.ConsensusData
-import scorex.core.transaction.{NodeStateModifier, PersistentNodeStateModifier, Transaction}
+import scorex.core.transaction.{NodeStateModifier, NodeStateModifierCompanion, PersistentNodeStateModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58
 
@@ -26,6 +26,8 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeSta
   type H >: self.type <: History[P, TX, M]
 
   type BlockId = NodeStateModifier.ModifierId
+
+  def companions: Seq[NodeStateModifierCompanion[M]]
 
   /**
     * Is there's no history, even genesis block
