@@ -2,7 +2,6 @@ package scorex.core.network
 
 import akka.actor.ActorRef
 import scorex.core.NodeViewHolder
-import scorex.core.block.ConsensusData.BlockId
 import scorex.core.block.{Block, ConsensusData}
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message._
@@ -11,6 +10,7 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
 
+/*
 class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
 (settings: Settings,
  stateHolder: NodeViewHolder[P, TX],
@@ -51,4 +51,4 @@ class HistoryReplier[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, T
     //the signal to initialize
     case Unit =>
   }
-}
+}*/

@@ -19,6 +19,7 @@ import shapeless.syntax.typeable._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
+/*
 //todo: write tests
 class HistorySynchronizer[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
 (settings: Settings,
@@ -245,4 +246,4 @@ object HistorySynchronizer {
 
   case object SelfCheck
 
-}
+}*/

@@ -6,7 +6,7 @@ import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.NodeViewSynchronizer.{CompareViews, GetLocalObjects, HistoryModifiersSpecs, Init}
 import scorex.core.transaction.NodeStateModifier.ModifierId
-import scorex.core.transaction.{MemoryPool, NodeStateModifier, Transaction}
+import scorex.core.transaction.{MemoryPool, NodeStateModifier, PersistentNodeStateModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Wallet
@@ -94,7 +94,7 @@ case class FailedModification[M <: NodeStateModifier, VC <: NodeViewComponent]
  */
 trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
-  type HIS <: History[P, TX, _]
+  type HIS <: History[P, TX, _ <: PersistentNodeStateModifier]
   type MS <: MinimalState[P, TX]
   type WL <: Wallet[P, TX]
   type MP <: MemoryPool[TX]
@@ -155,7 +155,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
-      val objs = modifierTypeId match {
+      val objs:Seq[NodeStateModifier] = modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
           memoryPool().getAll(modifierIds)
         case typeId: Byte =>

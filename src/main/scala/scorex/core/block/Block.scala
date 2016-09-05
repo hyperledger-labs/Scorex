@@ -7,7 +7,6 @@ import scorex.core.serialization.JsonSerializable
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{NodeStateModifier, PersistentNodeStateModifier, Transaction}
 
-import scala.util.Try
 import shapeless.HList
 
 /**
@@ -39,11 +38,9 @@ trait Block[P <: Proposition, TX <: Transaction[P, TX]]
 
   def version: Byte
 
-  def id: NodeStateModifier.ModifierId
-
   def parentId: NodeStateModifier.ModifierId
 
-  def encodedId: String = Base58.encode(id)
+  def encodedId: String = Base58.encode(id())
 
   def bytes: Array[Byte]
 
