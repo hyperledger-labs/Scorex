@@ -43,8 +43,6 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeSta
 
   def append(block: M): Try[History[P, TX, M]]
 
-  def append(blocks: Seq[M]): Try[History[P, TX, M]]
-
   //todo: should be ID | Seq[ID]
   def openSurface(): Seq[BlockId]
 
