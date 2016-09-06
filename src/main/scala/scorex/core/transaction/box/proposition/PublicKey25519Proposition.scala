@@ -3,9 +3,7 @@ package scorex.core.transaction.box.proposition
 import scorex.crypto.encode.Base58
 import scorex.core.crypto.hash.FastCryptographicHash._
 import scorex.crypto.signatures.Curve25519
-import scorex.core.settings.SizedConstants
 import scorex.core.transaction.state.{PrivateKey25519, PublicKey25519}
-import shapeless.Sized
 
 import scala.util.{Failure, Success, Try}
 
@@ -20,7 +18,7 @@ case class PublicKey25519Proposition(publicKey: PublicKey25519) extends ProofOfK
 
   override def toString: String = address
 
-  def verify(message: Array[Byte], signature: Sized[Array[Byte], SizedConstants.Signature25519]): Boolean =
+  def verify(message: Array[Byte], signature: Array[Byte]): Boolean =
     Curve25519.verify(signature, message, pubKeyBytes)
 }
 
