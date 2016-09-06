@@ -5,7 +5,7 @@ import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.NodeViewSynchronizer._
-import scorex.core.transaction.NodeStateModifier.{ModifierId, ModifierTypeId}
+import scorex.core.transaction.NodeStateModifier.ModifierTypeId
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -27,54 +27,6 @@ trait NodeViewComponentCompanion {
 
   //network functions to call
 }
-
-sealed trait Modification[M <: NodeStateModifier, VC <: NodeViewComponent] {
-  val reason: M
-  val component: VC
-}
-
-trait UndoneModification[M <: NodeStateModifier, VC <: NodeViewComponent]
-  extends Modification[M, VC] {
-
-  def process(): DoneModification[M, VC]
-}
-
-trait DoneModification[M <: NodeStateModifier, VC <: NodeViewComponent]
-  extends Modification[M, VC] {
-
-  def flatMap[VC2 <: NodeViewComponent](component: VC2): DoneModification[M, VC2] = {
-    this match {
-      case sm: SuccessfulModification[M, VC] =>
-        val modification = component.companion.produceModification(component, sm.reason)
-        modification.process()
-      case FailedModification(_, r: M, e) =>
-        FailedModification(component, r, e)
-    }
-  }
-}
-
-
-trait SuccessfulModification[M <: NodeStateModifier, VC <: NodeViewComponent]
-  extends Modification[M, VC] {
-
-  val result: VC
-}
-
-trait SuccessWithRebranch[M <: NodeStateModifier, VC <: NodeViewComponent]
-  extends SuccessfulModification[M, VC] {
-
-  val rollbackTo: ModifierId
-  val result: VC
-}
-
-trait Error {
-  val message: String
-}
-
-case class FailedModification[M <: NodeStateModifier, VC <: NodeViewComponent]
-(override val component: VC,
- override val reason: M,
- error: Error) extends DoneModification[M, VC]
 
 
 //todo: listeners
@@ -103,7 +55,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   type NodeState = (HIS, MS, WL, MP)
 
-  val companions: Map[ModifierTypeId,  NodeStateModifierCompanion[_ <: NodeStateModifier]]
+  val companions: Map[ModifierTypeId, NodeStateModifierCompanion[_ <: NodeStateModifier]]
 
   val networkChunkSize = 100 //todo: fix
 
