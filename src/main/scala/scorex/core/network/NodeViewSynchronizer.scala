@@ -22,7 +22,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   //asked from other nodes
   private val asked = TrieMap[ModifierTypeId, mutable.Buffer[ModifierId]]()
 
-  private var modifiersSpecs = Map[ModifierTypeId, ModifiersSpec[_ <: NodeStateModifier]]()
+  private var modifiersSpecs = Map[ModifierTypeId, ModifiersSpec[_ <:NodeStateModifier]]()
 
   private var sessionId = 0L
   private var sessionPeerOpt: Option[ConnectedPeer] = None
@@ -40,7 +40,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
   //object ids coming from other node
   def processInv: Receive = {
-    case DataFromPeer(msgId, invData: InvData@unchecked, remote) if msgId == InvSpec.messageCode =>
+    case DataFromPeer(spec, invData: InvData@unchecked, remote)
+      if spec.messageCode == InvSpec.messageCode =>
+
       viewHolderRef ! CompareViews(sessionId, invData._1, invData._2)
       sessionId = sessionId + 1
       sessionPeerOpt = Some(remote)
@@ -48,13 +50,18 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
   //other node asking for objects by their ids
   def processModifiersReq: Receive = {
-    case DataFromPeer(msgId, invData: InvData@unchecked, remote) if msgId == RequestModifierSpec.messageCode =>
+    case DataFromPeer(spec, invData: InvData@unchecked, remote)
+      if spec.messageCode == RequestModifierSpec.messageCode =>
+
       viewHolderRef ! GetLocalObjects(sessionId, invData._1, invData._2)
   }
 
   //other node is sending objects
   def processModifiers: Receive = {
-    case DataFromPeer(msgId, mod, _) if msgId == ModifiersSpec.messageCode =>
+    case DataFromPeer(spec, data, _) if spec.messageCode == ModifiersSpec.messageCode =>
+
+      //todo: asInstanceOf
+      viewHolderRef ! ModifiersFromRemote(sessionId, data.asInstanceOf[Seq[NodeStateModifier]])
       ???
   }
 
@@ -77,7 +84,11 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
     case ResponseFromLocal(sid, typeId, modifiers) =>
       if (sid == sessionId && modifiers.nonEmpty) {
         sessionPeerOpt.foreach { sessionPeer =>
-          val msg = Message(modifiersSpecs(typeId), Right(modifiers), None)
+
+          //todo: asInstanceOf
+          val spec = modifiersSpecs(typeId).asInstanceOf[ModifiersSpec[NodeStateModifier]]
+          val msg = Message(spec, Right(modifiers), None)
+
           sessionPeer.handlerRef ! msg
         }
       }
@@ -99,4 +110,5 @@ object NodeViewSynchronizer {
 
   case class ResponseFromLocal[M <: NodeStateModifier](sid: Long, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
+  case class ModifiersFromRemote[M <: NodeStateModifier](sid: Long, remoteObjects: Seq[M])
 }

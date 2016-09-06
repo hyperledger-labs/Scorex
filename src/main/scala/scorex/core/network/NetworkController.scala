@@ -19,6 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.existentials
 import scala.util.{Failure, Success, Try}
+import scala.reflect.runtime.universe.TypeTag
 
 /**
   * Control all network interaction
@@ -117,7 +118,7 @@ class NetworkController(settings: Settings,
         case Success(content) =>
           messageHandlers.find(_._1.contains(msgId)).map(_._2) match {
             case Some(handler) =>
-              handler ! DataFromPeer(msgId, content, remote)
+              handler ! DataFromPeer(spec, content, remote)
 
             case None =>
               log.error("No handlers found for message: " + msgId)
@@ -180,13 +181,11 @@ object NetworkController {
 
   case class RegisterMessagesHandler(specs: Seq[MessageSpec[_]], handler: ActorRef)
 
-  //todo: more stricter solution for messageType than number?
-  case class DataFromPeer[V](messageType: Message.MessageCode, data: V, source: ConnectedPeer)
-
   case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
 
   case object ShutdownNetwork
 
   case class ConnectTo(address: InetSocketAddress)
 
+  case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
 }

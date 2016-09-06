@@ -10,6 +10,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
 import scorex.core.transaction.NodeStateModifier._
+import scala.reflect.runtime.universe.TypeTag
 
 object BasicMsgDataTypes {
   type InvData = (ModifierTypeId, Seq[ModifierId])
@@ -48,7 +49,6 @@ object RequestModifierSpec
   override def deserializeData(bytes: Array[Byte]): Try[InvData] =
     ???
 }
-
 
 class ModifiersSpec[M <: NodeStateModifier](val modTypeId: ModifierTypeId)
   extends MessageSpec[Seq[M]] {
