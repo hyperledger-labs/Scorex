@@ -29,7 +29,6 @@ object PublicKey25519Proposition {
   val PubKeyLength = 32
   val AddressLength = 1 + PubKeyLength + ChecksumLength
 
-  //todo: unsized
   def calcCheckSum(bytes: Array[Byte]): Array[Byte] = hash(bytes).take(ChecksumLength)
 
   def validPubKey(address: String): Try[PublicKey25519Proposition] =
