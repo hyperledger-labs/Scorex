@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core.network.NetworkController.DataFromPeer
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.NodeStateModifier._
-import scorex.core.transaction.{NodeStateModifier, Transaction}
+import scorex.core.transaction.{NodeStateModifier, NodeStateModifierCompanion, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 
 import scala.collection.mutable
@@ -21,22 +21,19 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
   //asked from other nodes
   private val asked = TrieMap[ModifierTypeId, mutable.Buffer[ModifierId]]()
-
-  private var modifiersSpecs = Map[ModifierTypeId, ModifiersSpec[_ <:NodeStateModifier]]()
-
   private var sessionId = 0L
   private var sessionPeerOpt: Option[ConnectedPeer] = None
+
+  override def preStart(): Unit = {
+    val messageSpecs = Seq(InvSpec, RequestModifierSpec, ModifiersSpec)
+    networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
+  }
 
   override def receive: Receive =
     processInv orElse
       processModifiersReq orElse
       requestFromLocal orElse
-      responseFromLocal orElse {
-      case HistoryModifiersSpecs(mSpecs) =>
-        val messageSpecs = Seq(InvSpec, RequestModifierSpec) ++ mSpecs
-        networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
-        modifiersSpecs = mSpecs.map(ms => ms.modTypeId -> ms).toMap
-    }
+      responseFromLocal
 
   //object ids coming from other node
   def processInv: Receive = {
@@ -58,10 +55,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
   //other node is sending objects
   def processModifiers: Receive = {
-    case DataFromPeer(spec, data, _) if spec.messageCode == ModifiersSpec.messageCode =>
+    case DataFromPeer(spec, data: (ModifierTypeId, Seq[Array[Byte]])@unchecked, _) if spec.messageCode == ModifiersSpec.messageCode =>
 
-      //todo: asInstanceOf
-      viewHolderRef ! ModifiersFromRemote(sessionId, data.asInstanceOf[Seq[NodeStateModifier]])
+      viewHolderRef ! ModifiersFromRemote(sessionId, data._1, data._2)
       ???
   }
 
@@ -81,14 +77,16 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
   //local node sending out objects requested to remote
   def responseFromLocal: Receive = {
-    case ResponseFromLocal(sid, typeId, modifiers) =>
+    case ResponseFromLocal(sid, typeId, modifiers: Seq[NodeStateModifier]) =>
       if (sid == sessionId && modifiers.nonEmpty) {
         sessionPeerOpt.foreach { sessionPeer =>
 
-          //todo: asInstanceOf
-          val spec = modifiersSpecs(typeId).asInstanceOf[ModifiersSpec[NodeStateModifier]]
-          val msg = Message(spec, Right(modifiers), None)
+          //todo: asInstanceOf, convert to bytes in NodeViewHolder?
+          val c = modifiers.head.companion.asInstanceOf[NodeStateModifierCompanion[NodeStateModifier]]
+          val modType = modifiers.head.modifierTypeId
 
+          val m = modType -> c.bytes(modifiers)
+          val msg = Message(ModifiersSpec, Right(m), None)
           sessionPeer.handlerRef ! msg
         }
       }
@@ -98,10 +96,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
 object NodeViewSynchronizer {
 
-  case object Init
-
-  case class HistoryModifiersSpecs(specs: Seq[ModifiersSpec[_ <: NodeStateModifier]])
-
   case class CompareViews(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
   case class GetLocalObjects(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
@@ -110,5 +104,6 @@ object NodeViewSynchronizer {
 
   case class ResponseFromLocal[M <: NodeStateModifier](sid: Long, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
-  case class ModifiersFromRemote[M <: NodeStateModifier](sid: Long, remoteObjects: Seq[M])
+  case class ModifiersFromRemote(sid: Long, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
+
 }

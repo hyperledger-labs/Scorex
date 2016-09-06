@@ -1,7 +1,7 @@
 package scorex.core.consensus
 
 import scorex.core.NodeViewComponent
-import scorex.core.transaction.{NodeStateModifier, NodeStateModifierCompanion, PersistentNodeStateModifier, Transaction}
+import scorex.core.transaction.{NodeStateModifier, PersistentNodeStateModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58
 
@@ -26,8 +26,6 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeSta
 
   type BlockId = NodeStateModifier.ModifierId
 
-  def companions: Seq[NodeStateModifierCompanion[M]]
-
   /**
     * Is there's no history, even genesis block
     *
@@ -45,6 +43,8 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeSta
 
   def append(block: M): Try[History[P, TX, M]]
 
+  def append(blocks: Seq[M]): Try[History[P, TX, M]]
+
   //todo: should be ID | Seq[ID]
   def openSurface(): Seq[BlockId]
 
@@ -53,4 +53,6 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeSta
 
   //todo: arg should be ID | Seq[ID]
   def continuationIds(openSurface: Seq[BlockId], size: Int): Seq[BlockId]
+
+  def maxSize(): Int
 }

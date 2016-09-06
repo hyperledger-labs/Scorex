@@ -6,7 +6,7 @@ import com.google.common.primitives.{Bytes, Ints}
 import org.h2.mvstore.{MVMap, MVStore}
 import org.mapdb.{DBMaker, HTreeMap}
 import org.mapdb.serializer.SerializerByteArray
-import scorex.core.NodeViewComponent
+import scorex.core.{NodeViewComponent, NodeViewComponentCompanion}
 import scorex.crypto.encode.Base58
 import scorex.core.crypto.hash.SecureCryptographicHash
 import scorex.core.settings.Settings
@@ -130,4 +130,8 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX]]
   override def secretByPublicImage(publicImage: PublicKey25519): Option[PrivateKey25519] =
     Option(dbSecrets.get(publicImage))
       .map(privBytes => PrivateKey25519(privBytes, publicImage.publicKeyBytes))
+
+  override type NVCT = DefaultWallet25519[TX]
+
+  override def companion: NodeViewComponentCompanion = ???  //todo: fix
 }

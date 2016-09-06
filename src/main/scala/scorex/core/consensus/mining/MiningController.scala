@@ -90,7 +90,8 @@ class MiningController[P <: Proposition, TX <: Transaction[P, TX]]
     context.watch(context.actorOf(Props(classOf[Miner[P, TX]],
       settings,
       historySynchronizer,
-      wallet), s"Worker-${System.currentTimeMillis()}-$i"))
+      viewHolder
+    ), s"Worker-${System.currentTimeMillis()}-$i"))
   }
 }
 

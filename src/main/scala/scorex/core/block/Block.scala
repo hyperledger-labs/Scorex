@@ -5,8 +5,7 @@ import scorex.core.consensus.History
 import scorex.crypto.encode.Base58
 import scorex.core.serialization.JsonSerializable
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{NodeStateModifier, PersistentNodeStateModifier, Transaction}
-
+import scorex.core.transaction.{NodeStateModifier, NodeStateModifierCompanion, PersistentNodeStateModifier, Transaction}
 import shapeless.HList
 
 /**
@@ -56,14 +55,13 @@ trait Block[P <: Proposition, TX <: Transaction[P, TX]]
      "transactionalData" -> transactionalData.json
    ).asJson */
 
-  def companion: BlockCompanion[P, TX, B]
-
   def transactions(block: B): Seq[TX]
 
   def timestamp: Long
 }
 
-trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]] {
+trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
+  extends NodeStateModifierCompanion[B] {
   self =>
 
   type BlockId = NodeStateModifier.ModifierId

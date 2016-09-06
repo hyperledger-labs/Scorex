@@ -4,9 +4,9 @@ import akka.actor.Actor
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer
-import scorex.core.network.NodeViewSynchronizer.{CompareViews, GetLocalObjects, HistoryModifiersSpecs, Init}
-import scorex.core.transaction.NodeStateModifier.ModifierId
-import scorex.core.transaction.{MemoryPool, NodeStateModifier, PersistentNodeStateModifier, Transaction}
+import scorex.core.network.NodeViewSynchronizer._
+import scorex.core.transaction.NodeStateModifier.{ModifierId, ModifierTypeId}
+import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Wallet
@@ -94,12 +94,16 @@ case class FailedModification[M <: NodeStateModifier, VC <: NodeViewComponent]
  */
 trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
-  type HIS <: History[P, TX, _ <: PersistentNodeStateModifier]
+  type PMOD <: PersistentNodeStateModifier
+
+  type HIS <: History[P, TX, PMOD]
   type MS <: MinimalState[P, TX]
   type WL <: Wallet[P, TX]
   type MP <: MemoryPool[TX]
 
   type NodeState = (HIS, MS, WL, MP)
+
+  val companions: Map[ModifierTypeId,  NodeStateModifierCompanion[_ <: NodeStateModifier]]
 
   val networkChunkSize = 100 //todo: fix
 
@@ -136,10 +140,17 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   override def receive: Receive =
     compareViews orElse
-      readLocalObjects orElse {
-      case Init =>
-        HistoryModifiersSpecs(history().companions.map(_.messageSpec))
-    }
+      readLocalObjects orElse
+      processRemoteObjects
+
+  def processRemoteObjects: Receive = {
+    case ModifiersFromRemote(sid, modifierTypeId, remoteObjects) =>
+      val companion = companions(modifierTypeId)
+
+      val parsed = remoteObjects.map(companion.parse).map(_.get)
+
+      parsed foreach modify
+  }
 
   def compareViews: Receive = {
     case CompareViews(sid, modifierTypeId, modifierIds) =>
@@ -155,7 +166,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
-      val objs:Seq[NodeStateModifier] = modifierTypeId match {
+      val objs: Seq[NodeStateModifier] = modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
           memoryPool().getAll(modifierIds)
         case typeId: Byte =>

@@ -3,14 +3,11 @@ package scorex.core.network.message
 
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.network.message.Message._
-import scorex.core.transaction.NodeStateModifier
-
 import scala.util.Try
 import java.net.{InetAddress, InetSocketAddress}
 import java.util
-
 import scorex.core.transaction.NodeStateModifier._
-import scala.reflect.runtime.universe.TypeTag
+
 
 object BasicMsgDataTypes {
   type InvData = (ModifierTypeId, Seq[ModifierId])
@@ -50,17 +47,17 @@ object RequestModifierSpec
     ???
 }
 
-class ModifiersSpec[M <: NodeStateModifier](val modTypeId: ModifierTypeId)
-  extends MessageSpec[Seq[M]] {
 
-  override val messageCode: MessageCode = ModifiersSpec.messageCode
+object ModifiersSpec extends MessageSpec[(ModifierTypeId, Seq[Array[Byte]])] {
+
+  override val messageCode: MessageCode = 33: Byte
   override val messageName: String = "Modifier"
 
   //todo: implement
-  override def deserializeData(bytes: Array[Byte]): Try[Seq[M]] = ???
+  override def deserializeData(bytes: Array[Byte]): Try[(ModifierTypeId, Seq[Array[Byte]])] = ???
 
   //todo: implement
-  override def serializeData(data: Seq[M]): Array[Byte] = ???
+  override def serializeData(data: (ModifierTypeId, Seq[Array[Byte]])): Array[Byte] = ???
 
   /*
   companion: BlockCompanion[P, TX, B]
@@ -69,10 +66,6 @@ class ModifiersSpec[M <: NodeStateModifier](val modTypeId: ModifierTypeId)
 
   override def deserializeData(bytes: Array[Byte]): Try[Block[P, TX]] =
     companion.parse(bytes) */
-}
-
-object ModifiersSpec {
-  val messageCode: MessageCode = 33: Byte
 }
 
 /*

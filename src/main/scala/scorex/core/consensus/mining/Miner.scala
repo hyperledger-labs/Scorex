@@ -18,16 +18,16 @@ import scala.util.{Failure, Try}
 class Miner[P <: Proposition, TX <: Transaction[P, TX]]
 (settings: Settings,
  historySynchronizer: ActorRef,
- viewHolder: NodeViewHolder[P, TX]
-)
+ viewHolder: NodeViewHolder[P, TX])
   extends Actor with ScorexLogging {
 
-  // BlockGenerator is trying to generate a new block every $blockGenerationDelay. Should be 0 for PoW consensus model.
+  // BlockGenerator is trying to generate a new block every $blockGenerationDelay.
+  // Should be 0 for PoW consensus model.
   val blockGenerationDelay = settings.blockGenerationDelay
   val BlockGenerationTimeLimit = 5.seconds
 
-  var lastTryTime = 0L
-  var stopped = false
+  private var lastTryTime = 0L
+  private var stopped = false
 
   private def scheduleAGuess(delay: Option[FiniteDuration] = None): Unit =
     context.system.scheduler.scheduleOnce(delay.getOrElse(blockGenerationDelay), self, GuessABlock)
@@ -51,6 +51,8 @@ class Miner[P <: Proposition, TX <: Transaction[P, TX]]
     lastTryTime = System.currentTimeMillis()
     if (blockGenerationDelay > 500.milliseconds) log.info("Trying to generate a new block")
     val timestamp = NetworkTime.time()
+
+    /*
     val tData = transactionalModule.generateTdata(timestamp)
     val cFuture = consensusModule.generateCdata(wallet, timestamp, tData.id)
     Await.result(cFuture, BlockGenerationTimeLimit) match {
@@ -58,7 +60,7 @@ class Miner[P <: Proposition, TX <: Transaction[P, TX]]
         val block = Block(timestamp, cData, tData)
         historySynchronizer ! block
       case _ =>
-    }
+    }*/
 
     if (!stopped) scheduleAGuess()
   }.recoverWith {

@@ -2,8 +2,7 @@ package scorex.core.transaction
 
 import com.google.common.primitives.Longs
 import io.circe.Json
-import scorex.core.network.message.ModifiersSpec
-import scorex.core.serialization.{BytesSerializable, JsonSerializable}
+import scorex.core.serialization.JsonSerializable
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.box.{Box, BoxUnlocker}
 import scorex.core.transaction.state.MinimalState
@@ -30,9 +29,8 @@ trait NodeStateModifierCompanion[M <: NodeStateModifier] {
   def bytes(modifier: M): Array[Byte]
   def parse(bytes: Array[Byte]): Try[M]
 
-  def messageSpec: ModifiersSpec[M]
+  def bytes(modifiers: Seq[M]): Seq[Array[Byte]] = modifiers.map(bytes)
 }
-
 
 object NodeStateModifier {
   type ModifierTypeId = Byte
