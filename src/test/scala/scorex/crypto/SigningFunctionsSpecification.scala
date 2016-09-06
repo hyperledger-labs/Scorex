@@ -2,8 +2,9 @@ package scorex.crypto
 
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.transaction.box.proposition.PublicKey25519Proposition
-import scorex.transaction.state.PrivateKey25519Companion
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.state.PrivateKey25519Companion
+
 
 
 class SigningFunctionsSpecification extends PropSpec

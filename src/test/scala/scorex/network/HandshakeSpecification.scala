@@ -1,11 +1,11 @@
-package scorex.network
+package scorex.core.network
 
 import java.net.{InetAddress, InetSocketAddress}
 
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.app.ApplicationVersion
+import scorex.core.app.ApplicationVersion
 
 
 class HandshakeSpecification extends PropSpec
