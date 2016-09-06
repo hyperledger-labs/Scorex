@@ -1,8 +1,8 @@
-package scorex
+package scorex.core
 
 import org.scalatest.Suites
+import scorex.core.network.HandshakeSpecification
 import scorex.crypto.SigningFunctionsSpecification
-import scorex.network.HandshakeSpecification
 
 class ScorexTestSuite extends Suites(
   new SigningFunctionsSpecification,
