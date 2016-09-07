@@ -1,6 +1,6 @@
 package scorex.core
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer
@@ -10,6 +10,8 @@ import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Wallet
+
+import scala.collection.mutable
 
 trait NodeViewComponent {
   self =>
@@ -55,7 +57,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   type NodeState = (HIS, MS, WL, MP)
 
-  val companions: Map[ModifierTypeId, NodeStateModifierCompanion[_ <: NodeStateModifier]]
+  val modifierCompanions: Map[ModifierTypeId, NodeStateModifierCompanion[_ <: NodeStateModifier]]
 
   val networkChunkSize = 100 //todo: fix
 
@@ -63,15 +65,17 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   private var nodeState: NodeState = restoreState().getOrElse(genesisState)
 
-  def history(): HIS = nodeState._1
+  private def history(): HIS = nodeState._1
 
-  def minimalState(): MS = nodeState._2
+  private def minimalState(): MS = nodeState._2
 
-  def wallet(): WL = nodeState._3
+  private def wallet(): WL = nodeState._3
 
-  def memoryPool(): MP = nodeState._4
+  private def memoryPool(): MP = nodeState._4
 
   lazy val historyCompanion = history().companion
+
+  private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, ActorRef]()
 
   def modify[MOD <: NodeStateModifier](m: MOD) = {
     val modification = historyCompanion.produceModification(history(), m)
@@ -91,16 +95,20 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
   ).map(_.companion.api)
 
   override def receive: Receive =
-    compareViews orElse
+    subscribe orElse
+      compareViews orElse
       readLocalObjects orElse
       processRemoteObjects
 
+  def subscribe: Receive = {
+    case NodeViewHolder.Subscribe(events) =>
+
+  }
+
   def processRemoteObjects: Receive = {
     case ModifiersFromRemote(sid, modifierTypeId, remoteObjects) =>
-      val companion = companions(modifierTypeId)
-
+      val companion = modifierCompanions(modifierTypeId)
       val parsed = remoteObjects.map(companion.parse).map(_.get)
-
       parsed foreach modify
   }
 
@@ -126,4 +134,18 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
       }
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
+}
+
+
+object NodeViewHolder {
+
+  object EventType extends Enumeration {
+    val FailedTransaction = Value(1)
+    val FailedPersistentModifier = Value(2)
+    val SuccessfulTransaction = Value(3)
+    val SuccessfulPersistentModifier = Value(4)
+  }
+
+  case class Subscribe(events: Seq[EventType.Value])
+
 }

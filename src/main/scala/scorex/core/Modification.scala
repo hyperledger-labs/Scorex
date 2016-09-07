@@ -29,7 +29,6 @@ trait DoneModification[M <: NodeStateModifier, VC <: NodeViewComponent]
   }
 }
 
-
 trait SuccessfulModification[M <: NodeStateModifier, VC <: NodeViewComponent]
   extends Modification[M, VC] {
 
