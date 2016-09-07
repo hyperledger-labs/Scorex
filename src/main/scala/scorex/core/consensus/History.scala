@@ -47,6 +47,6 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeSta
   def openSurface(): Seq[BlockId]
 
   def continuation(from: Seq[BlockId], size: Int): Seq[M]
-  
+
   def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
 }

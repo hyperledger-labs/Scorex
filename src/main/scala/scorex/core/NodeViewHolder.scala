@@ -10,6 +10,7 @@ import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Wallet
+import scorex.core.utils.ScorexLogging
 
 import scala.collection.mutable
 
@@ -46,7 +47,8 @@ trait NodeViewComponentCompanion {
 
  - HxM -> Outcome[H]
  */
-trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
+trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
+  extends Actor with ScorexLogging {
 
   type PMOD <: PersistentNodeStateModifier
 
