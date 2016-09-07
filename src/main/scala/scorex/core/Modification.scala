@@ -30,7 +30,7 @@ trait DoneModification[M <: NodeStateModifier, VC <: NodeViewComponent]
 }
 
 trait SuccessfulModification[M <: NodeStateModifier, VC <: NodeViewComponent]
-  extends Modification[M, VC] {
+  extends DoneModification[M, VC] {
 
   val result: VC
 }
@@ -39,7 +39,6 @@ trait SuccessWithRebranch[M <: NodeStateModifier, VC <: NodeViewComponent]
   extends SuccessfulModification[M, VC] {
 
   val rollbackTo: ModifierId
-  val result: VC
 }
 
 trait Error {

@@ -77,12 +77,17 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, ActorRef]()
 
+  //todo: ???
+  def fixDb()
+
   def modify[MOD <: NodeStateModifier](m: MOD) = {
     val modification = historyCompanion.produceModification(history(), m)
-    val hd = modification.process()
-    val md = hd.join[MS](minimalState())
+    val hisModDone = modification.process()
+    val md = hisModDone.join[MS](minimalState())
     val wld = md.join[WL](wallet())
     val mpd = wld.join[MP](memoryPool())
+
+    fixDb()
   }
 
   protected def genesisState: NodeState
