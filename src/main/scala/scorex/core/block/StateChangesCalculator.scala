@@ -8,8 +8,9 @@ import scorex.core.transaction.state.MinimalState
 /**
   * Calculate fees.
   */
+/*
 trait StateChangesCalculator[P <: Proposition, TX <: Transaction[P, TX]] {
   def changes(block: Block[P, TX], state: MinimalState[P, TX]): StateChanges[P]
-}
+}*/
 
 case class StateChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]])

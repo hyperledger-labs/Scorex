@@ -59,14 +59,14 @@ abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]]
 
   def json: Json
 
-  def validate(state: MinimalState[P, TX]): Try[Unit]
+  def validate(state: MinimalState[P, TX, _]): Try[Unit]
 
   val messageToSign: Array[Byte]
 
   /**
     * A Transaction opens existing boxes and creates new ones
     */
-  def changes(state: MinimalState[P, TX]): Try[TransactionChanges[P]]
+  def changes(state: MinimalState[P, TX, _]): Try[TransactionChanges[P]]
 }
 
 object Transaction {
@@ -97,7 +97,7 @@ abstract class BoxTransaction[P <: Proposition] extends Transaction[P, BoxTransa
     * @param state - state to check a transaction against
     * @return
     */
-  override def validate(state: MinimalState[P, BoxTransaction[P]]): Try[Unit] = {
+  override def validate(state: MinimalState[P, BoxTransaction[P], _]): Try[Unit] = {
     lazy val statelessValid = toTry(fee >= 0, "Negative fee")
 
     lazy val statefulValid = {

@@ -4,6 +4,7 @@ import scorex.core.transaction.NodeStateModifier
 import scorex.core.transaction.NodeStateModifier._
 
 
+/*
 sealed trait Modification[M <: NodeStateModifier, VC <: NodeViewComponent] {
   val reason: M
   val component: VC
@@ -48,4 +49,4 @@ trait Error {
 case class FailedModification[M <: NodeStateModifier, VC <: NodeViewComponent]
 (override val component: VC,
  override val reason: M,
- error: Error) extends DoneModification[M, VC]
+ error: Error) extends DoneModification[M, VC]*/

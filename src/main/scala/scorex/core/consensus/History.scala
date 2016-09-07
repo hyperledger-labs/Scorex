@@ -22,9 +22,11 @@ import scala.util.Try
 trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeStateModifier] extends NodeViewComponent {
   self =>
 
-  type H >: self.type <: History[P, TX, M]
+  import History._
 
-  type BlockId = NodeStateModifier.ModifierId
+  type ApplicationResult = Try[(History[P, TX, M], Option[RollbackTo])]
+
+  type H >: self.type <: History[P, TX, M]
 
   /**
     * Is there's no history, even genesis block
@@ -41,7 +43,7 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeSta
 
   def blockById(blockId: String): Option[M] = Base58.decode(blockId).toOption.flatMap(blockById)
 
-  def append(block: M): Try[History[P, TX, M]]
+  def append(block: M): ApplicationResult
 
   //todo: should be ID | Seq[ID]
   def openSurface(): Seq[BlockId]
@@ -49,4 +51,10 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeSta
   def continuation(from: Seq[BlockId], size: Int): Seq[M]
 
   def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
+}
+
+object History {
+  type BlockId = NodeStateModifier.ModifierId
+
+  case class RollbackTo(to: BlockId)
 }

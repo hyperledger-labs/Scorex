@@ -13,6 +13,7 @@ import scorex.core.transaction.wallet.Wallet
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.mutable
+import scala.util.{Failure, Success}
 
 trait NodeViewComponent {
   self =>
@@ -26,7 +27,7 @@ trait NodeViewComponentCompanion {
 
   def api: ApiRoute
 
-  def produceModification[M <: NodeStateModifier, CompType <: NodeViewComponent](component: CompType, m: M): UndoneModification[M, CompType]
+  //def produceModification[M <: NodeStateModifier, CompType <: NodeViewComponent](component: CompType, m: M): UndoneModification[M, CompType]
 
   //network functions to call
 }
@@ -53,7 +54,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
   type PMOD <: PersistentNodeStateModifier
 
   type HIS <: History[P, TX, PMOD]
-  type MS <: MinimalState[P, TX]
+  type MS <: MinimalState[P, TX, PMOD]
   type WL <: Wallet[P, TX]
   type MP <: MemoryPool[TX]
 
@@ -83,13 +84,34 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
   def fixDb()
 
   def modify[MOD <: NodeStateModifier](m: MOD) = {
+
+    /*
     val modification = historyCompanion.produceModification(history(), m)
     val hisModDone = modification.process()
     val md = hisModDone.join[MS](minimalState())
     val wld = md.join[WL](wallet())
-    val mpd = wld.join[MP](memoryPool())
+    val mpd = wld.join[MP](memoryPool())*/
 
     fixDb()
+
+    m match {
+      case tx: TX =>
+        wallet().scan(tx)
+        memoryPool().put(tx)
+
+      case pmod: PMOD =>
+        history().append(pmod) match {
+          case Success((newHis, maybeRb)) =>
+            val a = maybeRb.map(rb => minimalState().rollbackTo(rb.to))
+              .getOrElse(Success(minimalState()))
+              .flatMap(minState => minState.applyChanges(pmod))
+            a
+          case Failure(e) =>
+        }
+
+
+      case a: Any => log.error(s"Wrong kind of modifier: $a")
+    }
   }
 
   protected def genesisState: NodeState

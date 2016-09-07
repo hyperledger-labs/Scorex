@@ -34,7 +34,7 @@ trait Application extends ScorexLogging {
 
   val stateHolder: NodeViewHolder[P, TX]
 
-  val rewardCalculator: StateChangesCalculator[P, TX]
+  //val rewardCalculator: StateChangesCalculator[P, TX]
 
   val wallet: Wallet[P, TX]
 

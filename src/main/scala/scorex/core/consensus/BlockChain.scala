@@ -1,6 +1,7 @@
 package scorex.core.consensus
 
 import scorex.core.block.Block
+import scorex.core.consensus.History.BlockId
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging

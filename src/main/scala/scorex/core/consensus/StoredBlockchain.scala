@@ -2,6 +2,7 @@ package scorex.core.consensus
 
 import org.h2.mvstore.{MVMap, MVStore}
 import scorex.core.block.{Block, BlockCompanion}
+import scorex.core.consensus.History.{BlockId, RollbackTo}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
@@ -71,7 +72,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     BlockchainPersistence(db)
   }
 
-  override def append(block: B): Try[StoredBlockchain[P, TX, B]] = synchronized {
+  override def append(block: B): Try[(StoredBlockchain[P, TX, B], Option[RollbackTo]) ] = synchronized {
     Try {
       val parent = block.parentId
       if ((height() == 0) || (lastBlock.id sameElements parent)) {
@@ -83,7 +84,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
       } else {
         throw new Error(s"Appending block ${block.json} which parent is not last block in blockchain")
       }
-      this
+      (this, None) //todo: fix
     }
   }
 
