@@ -102,7 +102,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
 
   def subscribe: Receive = {
     case NodeViewHolder.Subscribe(events) =>
-
+      events.foreach(evt => subscribers.put(evt, sender()))
   }
 
   def processRemoteObjects: Receive = {
