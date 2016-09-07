@@ -80,9 +80,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]] extends Actor {
   def modify[MOD <: NodeStateModifier](m: MOD) = {
     val modification = historyCompanion.produceModification(history(), m)
     val hd = modification.process()
-    val md = hd.flatMap[MS](minimalState())
-    val wld = md.flatMap[WL](wallet())
-    val mpd = wld.flatMap[MP](memoryPool())
+    val md = hd.join[MS](minimalState())
+    val wld = md.join[WL](wallet())
+    val mpd = wld.join[MP](memoryPool())
   }
 
   protected def genesisState: NodeState

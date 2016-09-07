@@ -18,7 +18,7 @@ trait UndoneModification[M <: NodeStateModifier, VC <: NodeViewComponent]
 trait DoneModification[M <: NodeStateModifier, VC <: NodeViewComponent]
   extends Modification[M, VC] {
 
-  def flatMap[VC2 <: NodeViewComponent](component: VC2): DoneModification[M, VC2] = {
+  def join[VC2 <: NodeViewComponent](component: VC2): DoneModification[M, VC2] = {
     this match {
       case sm: SuccessfulModification[M, VC] =>
         val modification = component.companion.produceModification(component, sm.reason)
