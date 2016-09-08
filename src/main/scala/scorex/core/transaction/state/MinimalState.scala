@@ -5,7 +5,7 @@ import scorex.core.NodeViewComponent
 import scorex.core.block.StateChanges
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{NodeViewModifier$, PersistentNodeViewModifier, Transaction, TransactionChanges}
+import scorex.core.transaction._
 
 import scala.util.Try
 

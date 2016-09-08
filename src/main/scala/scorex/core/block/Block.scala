@@ -5,7 +5,7 @@ import scorex.core.consensus.History
 import scorex.crypto.encode.Base58
 import scorex.core.serialization.JsonSerializable
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{NodeViewModifier$, NodeViewModifierCompanion, PersistentNodeViewModifier, Transaction}
+import scorex.core.transaction._
 import shapeless.HList
 
 /**
