@@ -22,18 +22,20 @@ trait MemoryPool[TX <: Transaction[_, TX]] extends NodeViewComponent {
   //modifiers
   def put(tx: TX): Try[MemoryPool[TX]]
 
-  def put(txs: Traversable[TX]): Try[MemoryPool[TX]]
+  def put(txs: Iterable[TX]): Try[MemoryPool[TX]]
+
+  def putWithoutCheck(txs: Iterable[TX]): MemoryPool[TX]
 
   def remove(tx: TX): MemoryPool[TX]
 
   /**
    * Get sequence of transactions and remove them from pool
    */
-  def drain(limit: Int): (Traversable[TX], MemoryPool[TX])
+  def drain(limit: Int): (Iterable[TX], MemoryPool[TX])
 
   def filter(id: Array[Byte]): MemoryPool[TX]
 
   def filter(tx: TX): MemoryPool[TX]
 
-  def filter(txs: Traversable[TX]): MemoryPool[TX]
+  def filter(txs: Iterable[TX]): MemoryPool[TX]
 }

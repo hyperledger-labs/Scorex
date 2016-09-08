@@ -112,6 +112,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
               .flatMap(minState => minState.applyChanges(pmod)) match {
 
               case Success(newMinState) =>
+                val txsToAdd = maybeRb.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
+                val txsToRemove = pmod.transactions.getOrElse(Seq())
+
+                val newMemPool = memoryPool().putWithoutCheck(txsToAdd).filter(txsToRemove)
+
+                  
 
               case Failure(e) =>
 
