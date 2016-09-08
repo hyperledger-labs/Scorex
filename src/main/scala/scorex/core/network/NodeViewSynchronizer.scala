@@ -3,8 +3,8 @@ package scorex.core.network
 import akka.actor.{Actor, ActorRef}
 import scorex.core.network.NetworkController.DataFromPeer
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
-import scorex.core.transaction.NodeStateModifier._
-import scorex.core.transaction.{NodeStateModifier, NodeStateModifierCompanion, Transaction}
+import scorex.core.transaction.NodeViewModifier._
+import scorex.core.transaction.{NodeViewModifier$, NodeViewModifierCompanion, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 
 import scala.collection.mutable
@@ -17,7 +17,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 (networkControllerRef: ActorRef, viewHolderRef: ActorRef) extends Actor {
 
   import NodeViewSynchronizer._
-  import scorex.core.transaction.NodeStateModifier._
+  import scorex.core.transaction.NodeViewModifier._
 
   //asked from other nodes
   private val asked = TrieMap[ModifierTypeId, mutable.Buffer[ModifierId]]()
@@ -77,12 +77,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
   //local node sending out objects requested to remote
   def responseFromLocal: Receive = {
-    case ResponseFromLocal(sid, typeId, modifiers: Seq[NodeStateModifier]) =>
+    case ResponseFromLocal(sid, typeId, modifiers: Seq[NodeViewModifier]) =>
       if (sid == sessionId && modifiers.nonEmpty) {
         sessionPeerOpt.foreach { sessionPeer =>
 
           //todo: asInstanceOf, convert to bytes in NodeViewHolder?
-          val c = modifiers.head.companion.asInstanceOf[NodeStateModifierCompanion[NodeStateModifier]]
+          val c = modifiers.head.companion.asInstanceOf[NodeViewModifierCompanion[NodeViewModifier]]
           val modType = modifiers.head.modifierTypeId
 
           val m = modType -> c.bytes(modifiers)
@@ -102,7 +102,7 @@ object NodeViewSynchronizer {
 
   case class RequestFromLocal(sid: Long, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
-  case class ResponseFromLocal[M <: NodeStateModifier](sid: Long, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
+  case class ResponseFromLocal[M <: NodeViewModifier](sid: Long, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
   case class ModifiersFromRemote(sid: Long, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 

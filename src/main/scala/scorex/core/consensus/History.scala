@@ -1,7 +1,7 @@
 package scorex.core.consensus
 
 import scorex.core.NodeViewComponent
-import scorex.core.transaction.{NodeStateModifier, PersistentNodeStateModifier, Transaction}
+import scorex.core.transaction.{NodeViewModifier$, PersistentNodeViewModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58
 
@@ -19,7 +19,7 @@ import scala.util.Try
   * function has been used instead, even in PoW systems.
   */
 
-trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeStateModifier] extends NodeViewComponent {
+trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeViewModifier] extends NodeViewComponent {
   self =>
 
   import History._
@@ -54,7 +54,7 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeSta
 }
 
 object History {
-  type BlockId = NodeStateModifier.ModifierId
+  type BlockId = NodeViewModifier.ModifierId
 
   case class RollbackTo(to: BlockId)
 }

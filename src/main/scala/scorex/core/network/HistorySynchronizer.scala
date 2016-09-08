@@ -12,7 +12,7 @@ import scorex.core.network.message._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.wallet.Wallet
-import scorex.core.transaction.{NodeStateModifier, Transaction}
+import scorex.core.transaction.{NodeViewModifier$, Transaction}
 import scorex.core.utils.{BlockTypeable, ScorexLogging}
 import shapeless.syntax.typeable._
 

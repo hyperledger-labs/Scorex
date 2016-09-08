@@ -6,7 +6,7 @@ import scorex.core.network.message.Message._
 import scala.util.Try
 import java.net.{InetAddress, InetSocketAddress}
 import java.util
-import scorex.core.transaction.NodeStateModifier._
+import scorex.core.transaction.NodeViewModifier._
 
 
 object BasicMsgDataTypes {

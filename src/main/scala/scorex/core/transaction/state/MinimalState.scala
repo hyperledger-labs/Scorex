@@ -5,15 +5,15 @@ import scorex.core.NodeViewComponent
 import scorex.core.block.StateChanges
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{NodeStateModifier, PersistentNodeStateModifier, Transaction, TransactionChanges}
+import scorex.core.transaction.{NodeViewModifier$, PersistentNodeViewModifier, Transaction, TransactionChanges}
 
 import scala.util.Try
 
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
-trait MinimalState[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeStateModifier] extends NodeViewComponent {
-  type VersionTag = NodeStateModifier.ModifierId
+trait MinimalState[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeViewModifier] extends NodeViewComponent {
+  type VersionTag = NodeViewModifier.ModifierId
 
   def version: VersionTag
 

@@ -1,7 +1,7 @@
 package scorex.core
 
-import scorex.core.transaction.NodeStateModifier
-import scorex.core.transaction.NodeStateModifier._
+import scorex.core.transaction.NodeViewModifier$
+import scorex.core.transaction.NodeViewModifier._
 
 
 /*

@@ -10,7 +10,7 @@ import scala.util.Try
   * @tparam TX -type of transaction the pool contains
   */
 trait MemoryPool[TX <: Transaction[_, TX]] extends NodeViewComponent {
-  import NodeStateModifier.ModifierId
+  import NodeViewModifier.ModifierId
 
   //getters
   def getById(id: ModifierId): Option[TX]

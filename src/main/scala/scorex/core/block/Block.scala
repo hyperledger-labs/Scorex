@@ -5,7 +5,7 @@ import scorex.core.consensus.History
 import scorex.crypto.encode.Base58
 import scorex.core.serialization.JsonSerializable
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{NodeStateModifier, NodeStateModifierCompanion, PersistentNodeStateModifier, Transaction}
+import scorex.core.transaction.{NodeViewModifier$, NodeViewModifierCompanion, PersistentNodeViewModifier, Transaction}
 import shapeless.HList
 
 /**
@@ -25,7 +25,7 @@ import shapeless.HList
   */
 
 trait Block[P <: Proposition, TX <: Transaction[P, TX]]
-  extends PersistentNodeStateModifier with JsonSerializable {
+  extends PersistentNodeViewModifier with JsonSerializable {
   self =>
 
   override val modifierTypeId: Byte = 1
@@ -37,7 +37,7 @@ trait Block[P <: Proposition, TX <: Transaction[P, TX]]
 
   def version: Byte
 
-  def parentId: NodeStateModifier.ModifierId
+  def parentId: NodeViewModifier.ModifierId
 
   def encodedId: String = Base58.encode(id())
 
@@ -61,10 +61,10 @@ trait Block[P <: Proposition, TX <: Transaction[P, TX]]
 }
 
 trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
-  extends NodeStateModifierCompanion[B] {
+  extends NodeViewModifierCompanion[B] {
   self =>
 
-  type BlockId = NodeStateModifier.ModifierId
+  type BlockId = NodeViewModifier.ModifierId
 
   def isValid(block: B): Boolean
 

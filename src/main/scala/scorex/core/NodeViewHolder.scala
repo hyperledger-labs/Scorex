@@ -5,7 +5,7 @@ import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.NodeViewSynchronizer._
-import scorex.core.transaction.NodeStateModifier.ModifierTypeId
+import scorex.core.transaction.NodeViewModifier.ModifierTypeId
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -51,7 +51,7 @@ trait NodeViewComponentCompanion {
 trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
   extends Actor with ScorexLogging {
 
-  type PMOD <: PersistentNodeStateModifier
+  type PMOD <: PersistentNodeViewModifier
 
   type HIS <: History[P, TX, PMOD]
   type MS <: MinimalState[P, TX, PMOD]
@@ -60,7 +60,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
 
   type NodeState = (HIS, MS, WL, MP)
 
-  val modifierCompanions: Map[ModifierTypeId, NodeStateModifierCompanion[_ <: NodeStateModifier]]
+  val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]]
 
   val networkChunkSize = 100 //todo: fix
 
@@ -83,7 +83,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
   //todo: ???
   def fixDb()
 
-  def modify[MOD <: NodeStateModifier](m: MOD) = {
+  def modify[MOD <: NodeViewModifier](m: MOD) = {
 
     /*
     val modification = historyCompanion.produceModification(history(), m)
@@ -155,7 +155,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
 
   def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
-      val objs: Seq[NodeStateModifier] = modifierTypeId match {
+      val objs: Seq[NodeViewModifier] = modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
           memoryPool().getAll(modifierIds)
         case typeId: Byte =>

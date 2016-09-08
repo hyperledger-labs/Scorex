@@ -10,36 +10,36 @@ import scorex.core.transaction.state.MinimalState
 import scala.util.{Failure, Success, Try}
 import scorex.utils.toTry
 
-trait NodeStateModifier {
+trait NodeViewModifier {
   self =>
 
-  import NodeStateModifier.{ModifierId, ModifierTypeId}
+  import NodeViewModifier.{ModifierId, ModifierTypeId}
 
-  type M >: self.type <: NodeStateModifier
+  type M >: self.type <: NodeViewModifier
 
   val modifierTypeId: ModifierTypeId
 
   //todo: check statically or dynamically output size
   def id(): ModifierId
 
-  def companion: NodeStateModifierCompanion[M]
+  def companion: NodeViewModifierCompanion[M]
 }
 
-trait NodeStateModifierCompanion[M <: NodeStateModifier] {
+trait NodeViewModifierCompanion[M <: NodeViewModifier] {
   def bytes(modifier: M): Array[Byte]
   def parse(bytes: Array[Byte]): Try[M]
 
   def bytes(modifiers: Seq[M]): Seq[Array[Byte]] = modifiers.map(bytes)
 }
 
-object NodeStateModifier {
+object NodeViewModifier {
   type ModifierTypeId = Byte
   type ModifierId = Array[Byte]
 
   val ModifierIdSize: Int = 32 //todo: make configurable
 }
 
-trait PersistentNodeStateModifier extends NodeStateModifier
+trait PersistentNodeViewModifier extends NodeViewModifier
 
 case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]], minerReward: Long)
 
@@ -49,7 +49,7 @@ case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend:
   */
 
 abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]]
-  extends NodeStateModifier with JsonSerializable {
+  extends NodeViewModifier with JsonSerializable {
 
   override val modifierTypeId: Byte = Transaction.TransactionModifierId
 
