@@ -11,7 +11,7 @@ import scorex.core.network.message._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.wallet.Wallet
-import scorex.core.transaction.Transaction
+import scorex.core.transaction.{PersistentNodeViewModifier, Transaction}
 import scorex.core.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -27,12 +27,13 @@ trait Application extends ScorexLogging {
 
   type P <: Proposition
   type TX <: Transaction[P, TX]
+  type PMOD <: PersistentNodeViewModifier
   type CD <: ConsensusData
 
   //settings
   implicit val settings: Settings
 
-  val stateHolder: NodeViewHolder[P, TX]
+  val stateHolder: NodeViewHolder[P, TX, PMOD]
 
   //val rewardCalculator: StateChangesCalculator[P, TX]
 

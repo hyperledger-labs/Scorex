@@ -7,7 +7,7 @@ import scorex.core.consensus.mining.Miner._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.wallet.Wallet
-import scorex.core.transaction.Transaction
+import scorex.core.transaction.{PersistentNodeViewModifier, Transaction}
 import scorex.core.utils.{NetworkTime, ScorexLogging}
 
 import scala.concurrent.Await
@@ -18,7 +18,7 @@ import scala.util.{Failure, Try}
 class Miner[P <: Proposition, TX <: Transaction[P, TX]]
 (settings: Settings,
  historySynchronizer: ActorRef,
- viewHolder: NodeViewHolder[P, TX])
+ viewHolder: NodeViewHolder[P, TX, _])
   extends Actor with ScorexLogging {
 
   // BlockGenerator is trying to generate a new block every $blockGenerationDelay.

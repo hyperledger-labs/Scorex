@@ -19,7 +19,7 @@ import scala.util.Success
 class MiningController[P <: Proposition, TX <: Transaction[P, TX]]
 (settings: Settings,
  historySynchronizer: ActorRef,
- viewHolder: NodeViewHolder[P, TX]
+ viewHolder: NodeViewHolder[P, TX, _]
 ) extends Actor
   with ScorexLogging {
 

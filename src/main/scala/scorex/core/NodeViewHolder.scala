@@ -48,25 +48,25 @@ trait NodeViewComponentCompanion {
 
  - HxM -> Outcome[H]
  */
-trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
+trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
-
-  type PMOD <: PersistentNodeViewModifier
 
   type HIS <: History[P, TX, PMOD]
   type MS <: MinimalState[P, TX, PMOD]
   type WL <: Wallet[P, TX]
   type MP <: MemoryPool[TX]
 
-  type NodeState = (HIS, MS, WL, MP)
+
+
+  type NodeView = (HIS, MS, WL, MP)
 
   val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]]
 
   val networkChunkSize = 100 //todo: fix
 
-  def restoreState(): Option[NodeState]
+  def restoreState(): Option[NodeView]
 
-  private var nodeState: NodeState = restoreState().getOrElse(genesisState)
+  private var nodeState: NodeView = restoreState().getOrElse(genesisState)
 
   private def history(): HIS = nodeState._1
 
@@ -96,8 +96,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
 
     m match {
       case tx: TX =>
-        wallet().scan(tx)
-        memoryPool().put(tx)
+        val updWallet  = wallet().scan(tx)
+        memoryPool().put(tx) match {
+          case Success(updPool) =>
+
+          case Failure(e) =>
+
+        }
 
       case pmod: PMOD =>
         history().append(pmod) match {
@@ -114,7 +119,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
     }
   }
 
-  protected def genesisState: NodeState
+  protected def genesisState: NodeView
 
   def apis: Seq[ApiRoute] = Seq(
     genesisState._1,
@@ -175,6 +180,7 @@ object NodeViewHolder {
     val SuccessfulPersistentModifier = Value(4)
   }
 
-  case class Subscribe(events: Seq[EventType.Value])
+  //case class UpdateOutcome[M <: NodeViewModifier](eventType: EventType.Value, modifier: M)
 
+  case class Subscribe(events: Seq[EventType.Value])
 }
