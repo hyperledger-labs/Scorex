@@ -136,9 +136,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX]]
 
   def processRemoteObjects: Receive = {
     case ModifiersFromRemote(sid, modifierTypeId, remoteObjects) =>
-      val companion = modifierCompanions(modifierTypeId)
-      val parsed = remoteObjects.map(companion.parse).map(_.get)
-      parsed foreach modify
+      modifierCompanions.get(modifierTypeId) foreach { companion =>
+        remoteObjects.flatMap(r => companion.parse(r).toOption) foreach modify
+      }
   }
 
   def compareViews: Receive = {
