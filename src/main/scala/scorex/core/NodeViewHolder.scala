@@ -98,7 +98,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
           case Success(updPool) =>
             notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
 
-            //todo: uncomment & fix types nodeView = (history(), minimalState(), updWallet, updPool)
+            //todo: uncomment & fix types  |||  nodeView = (history(), minimalState(), updWallet, updPool)
 
           case Failure(e) =>
             notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
@@ -117,7 +117,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
 
                 val newMemPool = memoryPool().putWithoutCheck(txsToAdd).filter(txsToRemove)
 
-                  
+
 
               case Failure(e) =>
 

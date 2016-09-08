@@ -10,7 +10,7 @@ import scorex.core.{NodeViewComponent, NodeViewComponentCompanion}
 import scorex.crypto.encode.Base58
 import scorex.core.crypto.hash.SecureCryptographicHash
 import scorex.core.settings.Settings
-import scorex.core.transaction.Transaction
+import scorex.core.transaction.{NodeViewModifier, Transaction}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{Proposition, PublicImage, PublicKey25519Proposition}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PublicKey25519, Secret}
@@ -31,6 +31,8 @@ case class WalletTransaction[P <: Proposition, TX <: Transaction[P, TX]](tx: TX,
   * @tparam TX
   */
 trait Wallet[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewComponent {
+  type VersionTag = NodeViewModifier.ModifierId
+
   type S <: Secret
   type PI <: PublicImage[S]
 
@@ -48,6 +50,8 @@ trait Wallet[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewCompone
   def secrets: Set[S]
 
   def secretByPublicImage(publicImage: PI): Option[S]
+
+  def rollback(to: VersionTag): Wallet[P, TX]
 }
 
 
@@ -134,4 +138,6 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX]]
   override type NVCT = DefaultWallet25519[TX]
 
   override def companion: NodeViewComponentCompanion = ???  //todo: fix
+
+  def rollback(to: VersionTag): DefaultWallet25519[TX] = ???  //todo: fix
 }
