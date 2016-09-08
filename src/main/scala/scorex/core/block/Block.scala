@@ -25,7 +25,7 @@ import shapeless.HList
   */
 
 trait Block[P <: Proposition, TX <: Transaction[P, TX]]
-  extends PersistentNodeViewModifier with JsonSerializable {
+  extends PersistentNodeViewModifier[P, TX] with JsonSerializable {
   self =>
 
   override val modifierTypeId: Byte = 1
@@ -54,8 +54,6 @@ trait Block[P <: Proposition, TX <: Transaction[P, TX]]
      "consensusData" -> consensusData.json,
      "transactionalData" -> transactionalData.json
    ).asJson */
-
-  def transactions(block: B): Seq[TX]
 
   def timestamp: Long
 }

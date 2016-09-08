@@ -1,7 +1,7 @@
 package scorex.core.consensus
 
 import scorex.core.NodeViewComponent
-import scorex.core.transaction.{NodeViewModifier, NodeViewModifier$, PersistentNodeViewModifier, Transaction}
+import scorex.core.transaction.{NodeViewModifier, PersistentNodeViewModifier, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58
 
@@ -19,14 +19,14 @@ import scala.util.Try
   * function has been used instead, even in PoW systems.
   */
 
-trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeViewModifier] extends NodeViewComponent {
+trait History[P <: Proposition, TX <: Transaction[P, TX], PM <: PersistentNodeViewModifier[P, TX]] extends NodeViewComponent {
   self =>
 
   import History._
 
-  type ApplicationResult = Try[(History[P, TX, M], Option[RollbackTo])]
+  type ApplicationResult = Try[(History[P, TX, PM], Option[RollbackTo[PM]])]
 
-  type H >: self.type <: History[P, TX, M]
+  type H >: self.type <: History[P, TX, PM]
 
   /**
     * Is there's no history, even genesis block
@@ -35,20 +35,20 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeVie
     */
   def isEmpty: Boolean
 
-  def contains(block: M): Boolean = contains(block.id())
+  def contains(block: PM): Boolean = contains(block.id())
 
   def contains(id: BlockId): Boolean = blockById(id).isDefined
 
-  def blockById(blockId: BlockId): Option[M]
+  def blockById(blockId: BlockId): Option[PM]
 
-  def blockById(blockId: String): Option[M] = Base58.decode(blockId).toOption.flatMap(blockById)
+  def blockById(blockId: String): Option[PM] = Base58.decode(blockId).toOption.flatMap(blockById)
 
-  def append(block: M): ApplicationResult
+  def append(block: PM): ApplicationResult
 
   //todo: should be ID | Seq[ID]
   def openSurface(): Seq[BlockId]
 
-  def continuation(from: Seq[BlockId], size: Int): Seq[M]
+  def continuation(from: Seq[BlockId], size: Int): Seq[PM]
 
   def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
 }
@@ -56,5 +56,5 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeVie
 object History {
   type BlockId = NodeViewModifier.ModifierId
 
-  case class RollbackTo(to: BlockId)
+  case class RollbackTo[PM <: PersistentNodeViewModifier[_, _]](to: BlockId, thrown: Seq[PM])
 }

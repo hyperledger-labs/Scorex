@@ -27,7 +27,7 @@ trait Application extends ScorexLogging {
 
   type P <: Proposition
   type TX <: Transaction[P, TX]
-  type PMOD <: PersistentNodeViewModifier
+  type PMOD <: PersistentNodeViewModifier[P, TX]
   type CD <: ConsensusData
 
   //settings
@@ -35,11 +35,7 @@ trait Application extends ScorexLogging {
 
   val stateHolder: NodeViewHolder[P, TX, PMOD]
 
-  //val rewardCalculator: StateChangesCalculator[P, TX]
-
   val wallet: Wallet[P, TX]
-
-  type B = Block[P, TX]
 
   //api
   val apiRoutes: Seq[ApiRoute]

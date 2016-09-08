@@ -8,7 +8,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 
 
-trait AuthenticatedBoxMinimalState[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeViewModifier, HashFunction <: CryptographicHash]
+trait AuthenticatedBoxMinimalState[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeViewModifier[P, TX], HashFunction <: CryptographicHash]
   extends MinimalState[P, TX, M] {
 
   type ElementProof <: DataProof

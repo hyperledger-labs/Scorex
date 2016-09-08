@@ -72,7 +72,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     BlockchainPersistence(db)
   }
 
-  override def append(block: B): Try[(StoredBlockchain[P, TX, B], Option[RollbackTo]) ] = synchronized {
+  override def append(block: B): Try[(StoredBlockchain[P, TX, B], Option[RollbackTo[B]]) ] = synchronized {
     Try {
       val parent = block.parentId
       if ((height() == 0) || (lastBlock.id sameElements parent)) {

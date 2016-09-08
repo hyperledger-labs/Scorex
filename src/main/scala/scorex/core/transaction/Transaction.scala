@@ -39,7 +39,11 @@ object NodeViewModifier {
   val ModifierIdSize: Int = 32 //todo: make configurable
 }
 
-trait PersistentNodeViewModifier extends NodeViewModifier
+trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewModifier{
+
+  // with Dotty is would be Seq[TX] | Nothing
+  def transactions: Option[Seq[TX]]
+}
 
 case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]], minerReward: Long)
 

@@ -48,14 +48,15 @@ trait NodeViewComponentCompanion {
 
  - HxM -> Outcome[H]
  */
-trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: PersistentNodeViewModifier]
+trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: PersistentNodeViewModifier[P, TX]]
   extends Actor with ScorexLogging {
+
+  import NodeViewHolder._
 
   type HIS <: History[P, TX, PMOD]
   type MS <: MinimalState[P, TX, PMOD]
   type WL <: Wallet[P, TX]
   type MP <: MemoryPool[TX]
-
 
 
   type NodeView = (HIS, MS, WL, MP)
@@ -66,15 +67,15 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
 
   def restoreState(): Option[NodeView]
 
-  private var nodeState: NodeView = restoreState().getOrElse(genesisState)
+  private var nodeView: NodeView = restoreState().getOrElse(genesisState)
 
-  private def history(): HIS = nodeState._1
+  private def history(): HIS = nodeView._1
 
-  private def minimalState(): MS = nodeState._2
+  private def minimalState(): MS = nodeView._2
 
-  private def wallet(): WL = nodeState._3
+  private def wallet(): WL = nodeView._3
 
-  private def memoryPool(): MP = nodeState._4
+  private def memoryPool(): MP = nodeView._4
 
   lazy val historyCompanion = history().companion
 
@@ -83,34 +84,39 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
   //todo: ???
   def fixDb()
 
-  def modify[MOD <: NodeViewModifier](m: MOD) = {
+  //todo: fix Any
+  def notifySubscribers(eventType: EventType.Value, signal: Any) = subscribers.get(eventType).foreach(_ ! signal)
 
-    /*
-    val modification = historyCompanion.produceModification(history(), m)
-    val hisModDone = modification.process()
-    val md = hisModDone.join[MS](minimalState())
-    val wld = md.join[WL](wallet())
-    val mpd = wld.join[MP](memoryPool())*/
+  def modify[MOD <: NodeViewModifier](m: MOD) = {
 
     fixDb()
 
     m match {
       case tx: TX =>
-        val updWallet  = wallet().scan(tx)
+        val updWallet = wallet().scan(tx)
         memoryPool().put(tx) match {
           case Success(updPool) =>
+            notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
+
+            //todo: uncomment & fix types nodeView = (history(), minimalState(), updWallet, updPool)
 
           case Failure(e) =>
-
+            notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
         }
 
       case pmod: PMOD =>
         history().append(pmod) match {
           case Success((newHis, maybeRb)) =>
-            val a = maybeRb.map(rb => minimalState().rollbackTo(rb.to))
+            maybeRb.map(rb => minimalState().rollbackTo(rb.to))
               .getOrElse(Success(minimalState()))
-              .flatMap(minState => minState.applyChanges(pmod))
-            a
+              .flatMap(minState => minState.applyChanges(pmod)) match {
+
+              case Success(newMinState) =>
+
+              case Failure(e) =>
+
+            }
+
           case Failure(e) =>
         }
 
@@ -180,7 +186,10 @@ object NodeViewHolder {
     val SuccessfulPersistentModifier = Value(4)
   }
 
-  //case class UpdateOutcome[M <: NodeViewModifier](eventType: EventType.Value, modifier: M)
+  case class FailedTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX, error: Throwable)
+
+  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX)
 
   case class Subscribe(events: Seq[EventType.Value])
+
 }
