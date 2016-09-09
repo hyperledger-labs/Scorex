@@ -3,7 +3,6 @@ package scorex.core.transaction.wallet
 import java.io.File
 
 import com.google.common.primitives.{Bytes, Ints}
-import org.h2.mvstore.{MVMap, MVStore}
 import org.mapdb.{DBMaker, HTreeMap}
 import org.mapdb.serializer.SerializerByteArray
 import scorex.core.{NodeViewComponent, NodeViewComponentCompanion}
@@ -16,8 +15,8 @@ import scorex.core.transaction.box.proposition.{Proposition, PublicImage, Public
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PublicKey25519, Secret}
 import scorex.utils.randomBytes
 
-import scala.collection.concurrent.TrieMap
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 case class WalletBox[P <: Proposition](box: Box[P], transactionId: Array[Byte], createdAt: Int, destroyedAt: Option[Int])
 
@@ -38,7 +37,10 @@ trait Wallet[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewCompone
 
   def generateNewSecret(): Wallet[P, TX]
 
-  def scan(tx: Transaction[P, TX]): Wallet[P, TX]
+  //todo: or Try[Wallet[P, TX]] ?
+  def scan(tx: TX): Wallet[P, TX]
+
+  def bulkScan(txs: Seq[TX]): Wallet[P, TX]
 
   def historyTransactions: Seq[WalletTransaction[P, TX]]
 
@@ -51,7 +53,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewCompone
 
   def secretByPublicImage(publicImage: PI): Option[S]
 
-  def rollback(to: VersionTag): Wallet[P, TX]
+  def rollback(to: VersionTag): Try[Wallet[P, TX]]
 }
 
 
@@ -118,7 +120,9 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX]]
     new DefaultWallet25519[TX](settings)
   }
 
-  override def scan(tx: Transaction[PublicKey25519Proposition, TX]): Wallet[PublicKey25519Proposition, TX] = ???
+  override def scan(tx: TX): Wallet[PublicKey25519Proposition, TX] = ???
+
+  override def bulkScan(txs: Seq[TX]):  Wallet[PublicKey25519Proposition, TX] = ???
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, TX]] = ???
 
@@ -139,5 +143,5 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX]]
 
   override def companion: NodeViewComponentCompanion = ???  //todo: fix
 
-  def rollback(to: VersionTag): DefaultWallet25519[TX] = ???  //todo: fix
+  def rollback(to: VersionTag) = ???  //todo: fix
 }
