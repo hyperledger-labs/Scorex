@@ -126,16 +126,16 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
                   //todo: uncomment & fix types  ||| nodeView = (newHis, newMinState, newWallet, newMemPool)
 
                   case Failure(e) =>
-
+                    FailedModification[P, TX, PMOD](pmod, e)
                 }
 
               case Failure(e) =>
-
+                FailedModification[P, TX, PMOD](pmod, e)
             }
 
           case Failure(e) =>
+            FailedModification[P, TX, PMOD](pmod, e)
         }
-
 
       case a: Any => log.error(s"Wrong kind of modifier: $a")
     }
@@ -203,6 +203,8 @@ object NodeViewHolder {
   }
 
   case class FailedTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX, error: Throwable)
+
+  case class FailedModification[P <: Proposition, TX <: Transaction[P, TX], PMOD <: PersistentNodeViewModifier[P, TX]](modifier: PMOD, error: Throwable)
 
   case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX)
 
