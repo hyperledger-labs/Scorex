@@ -125,7 +125,7 @@ abstract class BoxTransaction[P <: Proposition] extends Transaction[P, BoxTransa
         }
       }
     }
-    statefulValid orElse statelessValid orElse semanticValidity
+    statefulValid.flatMap(_ => statelessValid).flatMap(_ => semanticValidity)
   }
 
   def semanticValidity: Try[Unit]
