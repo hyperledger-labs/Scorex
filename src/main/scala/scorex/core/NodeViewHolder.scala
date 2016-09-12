@@ -87,47 +87,39 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
   //todo: fix Any
   def notifySubscribers(eventType: EventType.Value, signal: Any) = subscribers.get(eventType).foreach(_ ! signal)
 
-  def modify[MOD <: NodeViewModifier](m: MOD) = {
+  private def txModify(tx: TX) = {
+    val updWallet = wallet().scan(tx)
+    memoryPool().put(tx) match {
+      case Success(updPool) =>
+        notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
 
-    fixDb()
+      //todo: uncomment & fix types  |||  nodeView = (history(), minimalState(), updWallet, updPool)
 
-    m match {
-      case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
-        val updWallet = wallet().scan(tx)
-        memoryPool().put(tx) match {
-          case Success(updPool) =>
-            notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
+      case Failure(e) =>
+        notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
+    }
+  }
 
-          //todo: uncomment & fix types  |||  nodeView = (history(), minimalState(), updWallet, updPool)
+  private def pmodModify(pmod: PMOD) = {
+    history().append(pmod) match {
+      case Success((newHis, maybeRb)) =>
+        maybeRb.map(rb => minimalState().rollbackTo(rb.to))
+          .getOrElse(Success(minimalState()))
+          .flatMap(minState => minState.applyChanges(pmod)) match {
 
-          case Failure(e) =>
-            notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
-        }
+          case Success(newMinState) =>
+            val txsToAdd = maybeRb.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
+            val txsToRemove = pmod.transactions.getOrElse(Seq())
 
-      case pmod: PMOD@unchecked =>
-        history().append(pmod) match {
-          case Success((newHis, maybeRb)) =>
-            maybeRb.map(rb => minimalState().rollbackTo(rb.to))
-              .getOrElse(Success(minimalState()))
-              .flatMap(minState => minState.applyChanges(pmod)) match {
+            val newMemPool = memoryPool().putWithoutCheck(txsToAdd).filter(txsToRemove)
 
-              case Success(newMinState) =>
-                val txsToAdd = maybeRb.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
-                val txsToRemove = pmod.transactions.getOrElse(Seq())
+            //todo: continue from here
+            maybeRb.map(rb => wallet().rollback(rb.to))
+              .getOrElse(Success(wallet()))
+              .map(w => w.bulkScan(txsToAdd)) match {
 
-                val newMemPool = memoryPool().putWithoutCheck(txsToAdd).filter(txsToRemove)
-
-                //todo: continue from here
-                maybeRb.map(rb => wallet().rollback(rb.to))
-                  .getOrElse(Success(wallet()))
-                  .map(w => w.bulkScan(txsToAdd)) match {
-
-                  case Success(newWallet) =>
-                  //todo: uncomment & fix types  ||| nodeView = (newHis, newMinState, newWallet, newMemPool)
-
-                  case Failure(e) =>
-                    notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
-                }
+              case Success(newWallet) =>
+              //todo: uncomment & fix types  ||| nodeView = (newHis, newMinState, newWallet, newMemPool)
 
               case Failure(e) =>
                 notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
@@ -136,7 +128,21 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
           case Failure(e) =>
             notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
         }
+
+      case Failure(e) =>
+        notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
     }
+  }
+
+  def modify[MOD <: NodeViewModifier](m: MOD): Unit = {
+    m match {
+      case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
+        txModify(tx)
+
+      case pmod: PMOD@unchecked =>
+        pmodModify(pmod)
+    }
+    fixDb()
   }
 
   protected def genesisState: NodeView
@@ -207,4 +213,5 @@ object NodeViewHolder {
   case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX)
 
   case class Subscribe(events: Seq[EventType.Value])
+
 }
