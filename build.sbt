@@ -103,3 +103,25 @@ pomExtra := (
     </developers>)
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
+
+import sbt.Keys._
+
+lazy val commonSettings = Seq(
+  organization := "org.consensusresearch",
+  version := version.value,
+  scalaVersion := "2.11.8"
+)
+
+lazy val examples = Project(id = "examples", base = file(s"examples"))
+  .dependsOn(basics)
+  .settings(commonSettings: _*)
+  .settings(
+    testOptions in Test := Seq(Tests.Filter(_.matches(".*TestSuite$")))
+  )
+
+lazy val basics = Project(id = "scorex", base = file("."))
+  .settings(commonSettings: _*)
+  .settings(
+    testOptions in Test := Seq(Tests.Filter(_.matches(".*TestSuite$")))
+  )
