@@ -48,11 +48,13 @@ trait Application extends ScorexLogging {
   //p2p
   lazy val upnp = new UPnP(settings)
 
-  //todo: add specs for inv. reqmodifier, replymodifier
   private lazy val basicSpecs =
     Seq(
       GetPeersSpec,
-      PeersSpec
+      PeersSpec,
+      InvSpec,
+      RequestModifierSpec,
+      ModifiersSpec
     )
 
   lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs)
