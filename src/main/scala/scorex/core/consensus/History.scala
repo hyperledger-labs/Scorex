@@ -19,14 +19,10 @@ import scala.util.Try
   * function has been used instead, even in PoW systems.
   */
 
-trait History[P <: Proposition, TX <: Transaction[P, TX], PM <: PersistentNodeViewModifier[P, TX]] extends NodeViewComponent {
+trait History[P <: Proposition, TX <: Transaction[P, TX], PM <: PersistentNodeViewModifier[P, TX], HT <: History[P, TX, PM, HT]] extends NodeViewComponent {
   self =>
 
   import History._
-
-  type ApplicationResult = Try[(History[P, TX, PM], Option[RollbackTo[PM]])]
-
-  type H >: self.type <: History[P, TX, PM]
 
   /**
     * Is there's no history, even genesis block
@@ -43,7 +39,7 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], PM <: PersistentNodeVi
 
   def blockById(blockId: String): Option[PM] = Base58.decode(blockId).toOption.flatMap(blockById)
 
-  def append(block: PM): ApplicationResult
+  def append(block: PM): Try[(HT, Option[RollbackTo[PM]])]
 
   //todo: should be ID | Seq[ID]
   def openSurface(): Seq[BlockId]

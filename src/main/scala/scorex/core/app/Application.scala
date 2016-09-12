@@ -35,7 +35,7 @@ trait Application extends ScorexLogging {
 
   val stateHolder: NodeViewHolder[P, TX, PMOD]
 
-  val wallet: Wallet[P, TX]
+  val wallet: Wallet[P, TX, _]
 
   //api
   val apiRoutes: Seq[ApiRoute]

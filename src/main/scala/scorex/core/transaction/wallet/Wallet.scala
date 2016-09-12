@@ -29,18 +29,18 @@ case class WalletTransaction[P <: Proposition, TX <: Transaction[P, TX]](tx: TX,
   * @tparam P
   * @tparam TX
   */
-trait Wallet[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewComponent {
+trait Wallet[P <: Proposition, TX <: Transaction[P, TX], W <: Wallet[P, TX, W]] extends NodeViewComponent {
   type VersionTag = NodeViewModifier.ModifierId
 
   type S <: Secret
   type PI <: PublicImage[S]
 
-  def generateNewSecret(): Wallet[P, TX]
+  def generateNewSecret(): W
 
   //todo: or Try[Wallet[P, TX]] ?
-  def scan(tx: TX): Wallet[P, TX]
+  def scan(tx: TX): W
 
-  def bulkScan(txs: Seq[TX]): Wallet[P, TX]
+  def bulkScan(txs: Seq[TX]): W
 
   def historyTransactions: Seq[WalletTransaction[P, TX]]
 
@@ -53,7 +53,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewCompone
 
   def secretByPublicImage(publicImage: PI): Option[S]
 
-  def rollback(to: VersionTag): Try[Wallet[P, TX]]
+  def rollback(to: VersionTag): Try[W]
 }
 
 
@@ -61,7 +61,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewCompone
 // todo: encryption
 case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX]]
 (settings: Settings)
-  extends Wallet[PublicKey25519Proposition, TX] {
+  extends Wallet[PublicKey25519Proposition, TX, DefaultWallet25519[TX]] {
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519
@@ -109,7 +109,7 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX]]
   private lazy val dbSecrets: HTreeMap[Array[Byte], Array[Byte]] =
     db.hashMap("secrets", new SerializerByteArray, new SerializerByteArray).createOrOpen()
 
-  override def generateNewSecret(): Wallet[PublicKey25519Proposition, TX] = {
+  override def generateNewSecret(): DefaultWallet25519[TX] = {
     val nonce = lastNonce.incrementAndGet()
     val randomSeed = SecureCryptographicHash(Bytes.concat(Ints.toByteArray(nonce), seed))
     val (priv, pub) = PrivateKey25519Companion.generateKeys(randomSeed)
@@ -120,9 +120,9 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX]]
     new DefaultWallet25519[TX](settings)
   }
 
-  override def scan(tx: TX): Wallet[PublicKey25519Proposition, TX] = ???
+  override def scan(tx: TX): DefaultWallet25519[TX] = ???
 
-  override def bulkScan(txs: Seq[TX]):  Wallet[PublicKey25519Proposition, TX] = ???
+  override def bulkScan(txs: Seq[TX]):  DefaultWallet25519[TX] = ???
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, TX]] = ???
 

@@ -74,7 +74,7 @@ trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, T
     *
     * @return blocks' producers
     */
-  def producers(block: B, history: History[P, TX, B]): Seq[P]
+  def producers(block: B, history: History[P, TX, B, _]): Seq[P]
 
   val BlockIdLength: Int
 

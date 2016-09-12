@@ -53,10 +53,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
 
   import NodeViewHolder._
 
-  type HIS <: History[P, TX, PMOD]
-  type MS <: MinimalState[P, TX, PMOD]
-  type WL <: Wallet[P, TX]
-  type MP <: MemoryPool[TX]
+  type HIS <: History[P, TX, PMOD, HIS]
+  type MS <: MinimalState[P, TX, PMOD, MS]
+  type WL <: Wallet[P, TX, WL]
+  type MP <: MemoryPool[TX, MP]
 
 
   type NodeView = (HIS, MS, WL, MP)
@@ -93,7 +93,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
       case Success(updPool) =>
         notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
 
-      //todo: uncomment & fix types  |||  nodeView = (history(), minimalState(), updWallet, updPool)
+      nodeView = (history(), minimalState(), updWallet, updPool)
 
       case Failure(e) =>
         notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
@@ -119,7 +119,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
               .map(w => w.bulkScan(txsToAdd)) match {
 
               case Success(newWallet) =>
-              //todo: uncomment & fix types  ||| nodeView = (newHis, newMinState, newWallet, newMemPool)
+              nodeView = (newHis, newMinState, newWallet, newMemPool)
 
               case Failure(e) =>
                 notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))

@@ -9,7 +9,7 @@ import scala.util.Try
  *
   * @tparam TX -type of transaction the pool contains
   */
-trait MemoryPool[TX <: Transaction[_, TX]] extends NodeViewComponent {
+trait MemoryPool[TX <: Transaction[_, TX], M <: MemoryPool[TX, M]] extends NodeViewComponent {
   import NodeViewModifier.ModifierId
 
   //getters
@@ -20,22 +20,22 @@ trait MemoryPool[TX <: Transaction[_, TX]] extends NodeViewComponent {
   def getAll(ids: Seq[ModifierId]): Seq[TX]
 
   //modifiers
-  def put(tx: TX): Try[MemoryPool[TX]]
+  def put(tx: TX): Try[M]
 
-  def put(txs: Iterable[TX]): Try[MemoryPool[TX]]
+  def put(txs: Iterable[TX]): Try[M]
 
-  def putWithoutCheck(txs: Iterable[TX]): MemoryPool[TX]
+  def putWithoutCheck(txs: Iterable[TX]): M
 
-  def remove(tx: TX): MemoryPool[TX]
+  def remove(tx: TX): M
 
   /**
    * Get sequence of transactions and remove them from pool
    */
-  def drain(limit: Int): (Iterable[TX], MemoryPool[TX])
+  def drain(limit: Int): (Iterable[TX], M)
 
-  def filter(id: Array[Byte]): MemoryPool[TX]
+  def filter(id: Array[Byte]): M
 
-  def filter(tx: TX): MemoryPool[TX]
+  def filter(tx: TX): M
 
-  def filter(txs: Iterable[TX]): MemoryPool[TX]
+  def filter(txs: Iterable[TX]): M
 }

@@ -12,7 +12,7 @@ import scala.util.Try
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
-trait MinimalState[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeViewModifier[P, TX]] extends NodeViewComponent {
+trait MinimalState[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, TX, M, MS]] extends NodeViewComponent {
   type VersionTag = NodeViewModifier.ModifierId
 
   def version: VersionTag
@@ -27,9 +27,9 @@ trait MinimalState[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNo
 
   def accountBox(p: P): Option[Box[P]]
 
-  def applyChanges(change: StateChanges[P]): Try[MinimalState[P, TX, M]]
+  def applyChanges(change: StateChanges[P]): Try[MS]
 
-  def applyChanges(mod: M): Try[MinimalState[P, TX, M]]
+  def applyChanges(mod: M): Try[MS]
 
-  def rollbackTo(version: VersionTag): Try[MinimalState[P, TX, M]]
+  def rollbackTo(version: VersionTag): Try[MS]
 }

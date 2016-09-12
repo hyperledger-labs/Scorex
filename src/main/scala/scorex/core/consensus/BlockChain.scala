@@ -8,8 +8,8 @@ import scorex.core.utils.ScorexLogging
 
 import scala.util.Try
 
-trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
-  extends History[P, TX, B] with ScorexLogging {
+trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX], BT <: BlockChain[P, TX, B, BT]]
+  extends History[P, TX, B, BT] with ScorexLogging {
 
   type Score = BigInt
 
@@ -63,7 +63,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
   }
 
-  def discardBlock(): Try[BlockChain[P, TX, B]]
+  def discardBlock(): Try[BT]
 
   def blockAt(height: Int): Option[B]
 
