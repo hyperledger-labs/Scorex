@@ -85,15 +85,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
   def fixDb()
 
   //todo: fix Any
-  def notifySubscribers(eventType: EventType.Value, signal: Any) = subscribers.get(eventType).foreach(_ ! signal)
+  private def notifySubscribers(eventType: EventType.Value, signal: Any) = subscribers.get(eventType).foreach(_ ! signal)
 
   private def txModify(tx: TX) = {
     val updWallet = wallet().scan(tx)
     memoryPool().put(tx) match {
       case Success(updPool) =>
+        nodeView = (history(), minimalState(), updWallet, updPool)
         notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
-
-      nodeView = (history(), minimalState(), updWallet, updPool)
 
       case Failure(e) =>
         notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
@@ -102,24 +101,24 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
 
   private def pmodModify(pmod: PMOD) = {
     history().append(pmod) match {
-      case Success((newHis, maybeRb)) =>
-        maybeRb.map(rb => minimalState().rollbackTo(rb.to))
+      case Success((newHistory, maybeRollback)) =>
+        maybeRollback.map(rb => minimalState().rollbackTo(rb.to))
           .getOrElse(Success(minimalState()))
           .flatMap(minState => minState.applyChanges(pmod)) match {
 
           case Success(newMinState) =>
-            val txsToAdd = maybeRb.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
+            val txsToAdd = maybeRollback.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
             val txsToRemove = pmod.transactions.getOrElse(Seq())
 
             val newMemPool = memoryPool().putWithoutCheck(txsToAdd).filter(txsToRemove)
 
             //todo: continue from here
-            maybeRb.map(rb => wallet().rollback(rb.to))
+            maybeRollback.map(rb => wallet().rollback(rb.to))
               .getOrElse(Success(wallet()))
               .map(w => w.bulkScan(txsToAdd)) match {
 
               case Success(newWallet) =>
-              nodeView = (newHis, newMinState, newWallet, newMemPool)
+              nodeView = (newHistory, newMinState, newWallet, newMemPool)
 
               case Failure(e) =>
                 notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
