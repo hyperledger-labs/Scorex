@@ -160,7 +160,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
     subscribe orElse
       compareViews orElse
       readLocalObjects orElse
-      processRemoteObjects
+      processRemoteObjects orElse ({
+      case m: NodeViewModifier => modify(m)
+    }: Receive)
 
   def subscribe: Receive = {
     case NodeViewHolder.Subscribe(events) =>
@@ -215,5 +217,4 @@ object NodeViewHolder {
   case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX)
 
   case class Subscribe(events: Seq[EventType.Value])
-
 }
