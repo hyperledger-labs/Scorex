@@ -12,7 +12,7 @@ class BlockTypeable[P <: Proposition, TX <: Transaction[P, TX]]
     case _ => None
   }
 
-  def describe: String = "Block[P, TData, CData]"
+  def describe: String = "Block[P <: Proposition, TX <: Transaction[P, TX]]"
 
   override def toString: String = s"Typeable[$describe]"
 }
