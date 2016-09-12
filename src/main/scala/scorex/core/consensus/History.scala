@@ -52,5 +52,5 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], PM <: PersistentNodeVi
 object History {
   type BlockId = NodeViewModifier.ModifierId
 
-  case class RollbackTo[PM <: PersistentNodeViewModifier[_, _]](to: BlockId, thrown: Seq[PM])
+  case class RollbackTo[PM <: PersistentNodeViewModifier[_, _]](to: BlockId, thrown: Seq[PM], applied: Seq[PM])
 }
