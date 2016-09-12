@@ -12,7 +12,9 @@ import scala.util.Try
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
-trait MinimalState[P <: Proposition, TX <: Transaction[P, TX], M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, TX, M, MS]] extends NodeViewComponent {
+trait MinimalState[P <: Proposition, TX <: Transaction[P, TX],
+M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, TX, M, MS]] extends NodeViewComponent {
+
   type VersionTag = NodeViewModifier.ModifierId
 
   def version: VersionTag
