@@ -92,7 +92,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
     fixDb()
 
     m match {
-      case tx: TX =>
+      case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
         val updWallet = wallet().scan(tx)
         memoryPool().put(tx) match {
           case Success(updPool) =>
@@ -104,7 +104,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
             notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
         }
 
-      case pmod: PMOD =>
+      case pmod: PMOD@unchecked =>
         history().append(pmod) match {
           case Success((newHis, maybeRb)) =>
             maybeRb.map(rb => minimalState().rollbackTo(rb.to))
@@ -136,8 +136,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
           case Failure(e) =>
             notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
         }
-
-      case a: Any => log.error(s"Wrong kind of modifier: $a")
     }
   }
 
@@ -209,5 +207,4 @@ object NodeViewHolder {
   case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX)
 
   case class Subscribe(events: Seq[EventType.Value])
-
 }
