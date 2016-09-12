@@ -7,13 +7,14 @@ import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction._
 
-import scala.util.Try
+import scala.util.{Success, Try}
 
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
 trait MinimalState[P <: Proposition, TX <: Transaction[P, TX],
 M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, TX, M, MS]] extends NodeViewComponent {
+  self: MS =>
 
   type VersionTag = NodeViewModifier.ModifierId
 
@@ -30,6 +31,11 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, TX, M, MS]] extend
   def accountBox(p: P): Option[Box[P]]
 
   def applyChanges(change: StateChanges[P]): Try[MS]
+
+  def applyChanges(mods: Seq[M]): Try[MS] =
+    mods.foldLeft(Try(this)){case (curTry, mod) =>
+        curTry flatMap (_.applyChanges(mod))
+    }
 
   def applyChanges(mod: M): Try[MS]
 

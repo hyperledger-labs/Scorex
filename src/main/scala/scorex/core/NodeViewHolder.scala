@@ -102,23 +102,26 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
   private def pmodModify(pmod: PMOD) = {
     history().append(pmod) match {
       case Success((newHistory, maybeRollback)) =>
-        maybeRollback.map(rb => minimalState().rollbackTo(rb.to))
+        maybeRollback.map(rb => minimalState().rollbackTo(rb.to).flatMap(_.applyChanges(rb.applied)))
           .getOrElse(Success(minimalState()))
           .flatMap(minState => minState.applyChanges(pmod)) match {
 
           case Success(newMinState) =>
-            val txsToAdd = maybeRollback.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
-            val txsToRemove = pmod.transactions.getOrElse(Seq())
+            val rolledBackTxs = maybeRollback.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
 
-            val newMemPool = memoryPool().putWithoutCheck(txsToAdd).filter(txsToRemove)
+            val appliedTxs = maybeRollback.map(rb =>
+              rb.applied.flatMap(_.transactions).flatten).getOrElse(Seq()
+            ) ++ pmod.transactions.getOrElse(Seq())
+
+            val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter(appliedTxs)
 
             //todo: continue from here
             maybeRollback.map(rb => wallet().rollback(rb.to))
               .getOrElse(Success(wallet()))
-              .map(w => w.bulkScan(txsToAdd)) match {
+              .map(w => w.bulkScan(appliedTxs)) match {
 
               case Success(newWallet) =>
-              nodeView = (newHistory, newMinState, newWallet, newMemPool)
+                nodeView = (newHistory, newMinState, newWallet, newMemPool)
 
               case Failure(e) =>
                 notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
