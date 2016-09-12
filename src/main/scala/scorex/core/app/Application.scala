@@ -33,7 +33,7 @@ trait Application extends ScorexLogging {
   //settings
   implicit val settings: Settings
 
-  val stateHolder: NodeViewHolder[P, TX, PMOD]
+  val nodeViewHolder: NodeViewHolder[P, TX, PMOD]
 
   val wallet: Wallet[P, TX, _]
 
