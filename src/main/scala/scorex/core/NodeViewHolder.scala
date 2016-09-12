@@ -85,7 +85,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
   def fixDb()
 
   //todo: fix Any
-  def notifySubscribers(eventType: EventType.Value, signal: Any) = subscribers.get(eventType).foreach(_ ! signal)
+  private def notifySubscribers(eventType: EventType.Value, signal: Any) = subscribers.get(eventType).foreach(_ ! signal)
 
   private def txModify(tx: TX) = {
     val updWallet = wallet().scan(tx)
