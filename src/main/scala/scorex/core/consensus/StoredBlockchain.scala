@@ -3,23 +3,18 @@ package scorex.core.consensus
 import org.h2.mvstore.{MVMap, MVStore}
 import scorex.core.block.{Block, BlockCompanion}
 import scorex.core.consensus.History.{BlockId, RollbackTo}
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
+import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
-/*
-
-
- todo: uncomment / fix
-
 /**
- * If no datafolder provided, blockchain lives in RAM (useful for tests)
- */
+  * If no datafolder provided, blockchain lives in RAM (useful for tests)
+  */
 trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX], SBT <: BlockChain[P, TX, B, SBT]]
-  extends BlockChain[P, TX, B, SBT] with ScorexLogging {
+  extends BlockChain[P, TX, B, StoredBlockchain[P, TX, B, SBT]] with ScorexLogging {
 
   val dataFolderOpt: Option[String]
 
@@ -76,7 +71,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     BlockchainPersistence(db)
   }
 
-  override def append(block: B): Try[(SBT, Option[RollbackTo[B]]) ] = synchronized {
+  override def append(block: B): Try[(StoredBlockchain[P, TX, B, SBT], Option[RollbackTo[B]])] = synchronized {
     Try {
       val parent = block.parentId
       if ((height() == 0) || (lastBlock.id sameElements parent)) {
@@ -92,7 +87,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     }
   }
 
-  override def discardBlock(): Try[SBT] = synchronized {
+  override def discardBlock(): Try[StoredBlockchain[P, TX, B, SBT]] = synchronized {
     Try {
       require(height() > 1, "Chain is empty or contains genesis block only, can't make rollback")
       val h = height()
@@ -122,4 +117,3 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P,
     heightOf(blockId).flatMap(h => blockAt(h + 1)).toSeq
 }
 
-*/
