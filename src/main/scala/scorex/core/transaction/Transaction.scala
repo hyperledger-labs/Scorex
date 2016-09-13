@@ -41,7 +41,7 @@ object NodeViewModifier {
   type ModifierTypeId = Byte
   type ModifierId = Array[Byte]
 
-  val ModifierIdSize: Int = 32 //todo: make configurable
+  val ModifierIdSize: Int = 32 //todo: make configurable via application.conf
 }
 
 trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewModifier {
