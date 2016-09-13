@@ -3,7 +3,7 @@ package scorex.core
 import akka.actor.{Actor, ActorRef}
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
-import scorex.core.network.NodeViewSynchronizer
+import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
 import scorex.core.network.NodeViewSynchronizer._
 import scorex.core.transaction.NodeViewModifier.ModifierTypeId
 import scorex.core.transaction._
@@ -84,22 +84,21 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
   //todo: ???
   def fixDb()
 
-  //todo: fix Any
-  private def notifySubscribers(eventType: EventType.Value, signal: Any) = subscribers.get(eventType).foreach(_ ! signal)
+  private def notifySubscribers[O <: ModificationOutcome](eventType: EventType.Value, signal: O) = subscribers.get(eventType).foreach(_ ! signal)
 
-  private def txModify(tx: TX) = {
+  private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
     val updWallet = wallet().scan(tx)
     memoryPool().put(tx) match {
       case Success(updPool) =>
         nodeView = (history(), minimalState(), updWallet, updPool)
-        notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
+        notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx, source))
 
       case Failure(e) =>
-        notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
+        notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e, source))
     }
   }
 
-  private def pmodModify(pmod: PMOD) = {
+  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]) = {
     history().append(pmod) match {
       case Success((newHistory, maybeRollback)) =>
         maybeRollback.map(rb => minimalState().rollbackTo(rb.to).flatMap(_.applyChanges(rb.applied)))
@@ -124,25 +123,25 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
                 nodeView = (newHistory, newMinState, newWallet, newMemPool)
 
               case Failure(e) =>
-                notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
+                notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
             }
 
           case Failure(e) =>
-            notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
+            notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
         }
 
       case Failure(e) =>
-        notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e))
+        notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
     }
   }
 
-  private def modify[MOD <: NodeViewModifier](m: MOD): Unit = {
+  private def modify[MOD <: NodeViewModifier](m: MOD, source: Option[ConnectedPeer]): Unit = {
     m match {
       case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
-        txModify(tx)
+        txModify(tx, source)
 
       case pmod: PMOD@unchecked =>
-        pmodModify(pmod)
+        pmodModify(pmod, source)
     }
     fixDb()
   }
@@ -161,10 +160,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
       events.foreach(evt => subscribers.put(evt, sender()))
   }
 
-  private def processRemoteObjects: Receive = {
-    case ModifiersFromRemote(sid, modifierTypeId, remoteObjects) =>
+  private def processRemoteModifiers: Receive = {
+    case ModifiersFromRemote(sid, modifierTypeId, remoteObjects, remote) =>
       modifierCompanions.get(modifierTypeId) foreach { companion =>
-        remoteObjects.flatMap(r => companion.parse(r).toOption) foreach modify
+        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach(m =>
+          modify(m, Some(remote))
+        )
       }
   }
 
@@ -195,9 +196,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
     handleSubscribe orElse
       compareViews orElse
       readLocalObjects orElse
-      processRemoteObjects orElse ({
-      case m: NodeViewModifier => modify(m)
-    }: Receive)
+      processRemoteModifiers
 }
 
 
@@ -210,11 +209,19 @@ object NodeViewHolder {
     val SuccessfulPersistentModifier = Value(4)
   }
 
-  case class FailedTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX, error: Throwable)
+  trait ModificationOutcome {
+    val source: Option[ConnectedPeer]
+  }
 
-  case class FailedModification[P <: Proposition, TX <: Transaction[P, TX], PMOD <: PersistentNodeViewModifier[P, TX]](modifier: PMOD, error: Throwable)
+  case class FailedTransaction[P <: Proposition, TX <: Transaction[P, TX]]
+  (transaction: TX, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX)
+  case class FailedModification[P <: Proposition, TX <: Transaction[P, TX], PMOD <: PersistentNodeViewModifier[P, TX]](modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+
+  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+
+  //todo: successful modification
 
   case class Subscribe(events: Seq[EventType.Value])
+
 }

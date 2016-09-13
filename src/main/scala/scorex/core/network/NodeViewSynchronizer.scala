@@ -12,8 +12,6 @@ import scorex.core.transaction.box.proposition.Proposition
 import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
 
-import scala.collection.concurrent.TrieMap
-
 
 class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 (networkControllerRef: ActorRef, viewHolderRef: ActorRef) extends Actor {
@@ -22,7 +20,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   import scorex.core.transaction.NodeViewModifier._
 
   //asked from other nodes
-  private val asked = TrieMap[ModifierTypeId, mutable.Buffer[ModifierId]]()
+  private val asked = mutable.Map[ModifierTypeId, mutable.Buffer[ModifierId]]()
   private var sessionId = 0L
   private var sessionPeerOpt: Option[ConnectedPeer] = None
 
@@ -34,8 +32,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   }
 
   private def viewHolderEvents: Receive = {
-    case FailedTransaction(tx, throwable) =>
-    case FailedModification(mod, throwable) =>
+    case FailedTransaction(tx, throwable, source) =>
+      //todo: ban source peer?
+    case FailedModification(mod, throwable, source) =>
+      //todo: ban source peer?
   }
 
   //object ids coming from other node
@@ -58,8 +58,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
   //other node is sending objects
   private def processModifiers: Receive = {
-    case DataFromPeer(spec, data: (ModifierTypeId, Seq[Array[Byte]])@unchecked, _) if spec.messageCode == ModifiersSpec.messageCode =>
-      viewHolderRef ! ModifiersFromRemote(sessionId, data._1, data._2)
+    case DataFromPeer(spec, data: (ModifierTypeId, Seq[Array[Byte]])@unchecked, remote)
+      if spec.messageCode == ModifiersSpec.messageCode =>
+      viewHolderRef ! ModifiersFromRemote(sessionId, data._1, data._2, remote)
   }
 
   //local node sending object ids to remote
@@ -99,6 +100,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
       processModifiersReq orElse
       requestFromLocal orElse
       responseFromLocal orElse
+      processModifiers orElse
       viewHolderEvents
 }
 
@@ -112,6 +114,5 @@ object NodeViewSynchronizer {
 
   case class ResponseFromLocal[M <: NodeViewModifier](sid: Long, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
-  case class ModifiersFromRemote(sid: Long, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
-
+  case class ModifiersFromRemote(sid: Long, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]], remote: ConnectedPeer)
 }
