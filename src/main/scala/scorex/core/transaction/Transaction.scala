@@ -27,11 +27,16 @@ trait NodeViewModifier {
 
 trait NodeViewModifierCompanion[M <: NodeViewModifier] {
   def bytes(modifier: M): Array[Byte]
+
   def parse(bytes: Array[Byte]): Try[M]
 
   def bytes(modifiers: Seq[M]): Seq[Array[Byte]] = modifiers.map(bytes)
 }
 
+/**
+  * It is supposed that all the modifiers (offchain transactions, blocks, blockheaders etc)
+  * are of the some length fixed with the ModifierIdSize constant
+  */
 object NodeViewModifier {
   type ModifierTypeId = Byte
   type ModifierId = Array[Byte]
@@ -39,7 +44,7 @@ object NodeViewModifier {
   val ModifierIdSize: Int = 32 //todo: make configurable
 }
 
-trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewModifier{
+trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewModifier {
 
   // with Dotty is would be Seq[TX] | Nothing
   def transactions: Option[Seq[TX]]
