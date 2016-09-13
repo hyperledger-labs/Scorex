@@ -16,15 +16,14 @@ class SimpleApp extends Application {
 
   override lazy val appVersion: ApplicationVersion = ApplicationVersion(0, 1, 0)
 
-  override type CD = _
   override type P = PublicKey25519Proposition
-  override type TX = _
-  override type PMOD = _
+  override type TX = Nothing
+  override type PMOD = Nothing
 
-  override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = _
-  override val apiTypes = _
-  override val wallet: Wallet[P, TX, _] = _
-  override val apiRoutes: Seq[ApiRoute] = _
-  override val nodeViewHolder: NodeViewHolder[P, TX, PMOD] = _
-  override implicit val settings: Settings = _
+  override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = null
+  override val apiTypes = null
+  override val wallet: Wallet[P, TX, _] = null
+  override val apiRoutes: Seq[ApiRoute] = null
+  override val nodeViewHolder: NodeViewHolder[P, TX, PMOD] = null
+  override implicit val settings: Settings = null
 }

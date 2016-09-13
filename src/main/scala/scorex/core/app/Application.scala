@@ -5,7 +5,6 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import scorex.core.NodeViewHolder
 import scorex.core.api.http.{ApiRoute, CompositeHttpService}
-import scorex.core.block._
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.settings.Settings
