@@ -2,7 +2,6 @@ package scorex.core.consensus.mining
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.NodeViewHolder
-import scorex.core.block.{Block, ConsensusData}
 import scorex.core.consensus.mining.Miner._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition

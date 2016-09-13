@@ -2,7 +2,6 @@ package scorex.core.network
 
 import akka.actor.ActorRef
 import scorex.core.NodeViewHolder
-import scorex.core.block.{Block, ConsensusData}
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message._
 import scorex.core.settings.Settings

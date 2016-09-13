@@ -173,7 +173,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
       val ids = modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
           memoryPool().notIn(modifierIds)
-        case typeId: Byte =>
+        case _ =>
           history().continuationIds(modifierIds, networkChunkSize)
       }
 

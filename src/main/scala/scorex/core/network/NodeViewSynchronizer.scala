@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core.network.NetworkController.DataFromPeer
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.NodeViewModifier._
-import scorex.core.transaction.{NodeViewModifier, NodeViewModifier$, NodeViewModifierCompanion, Transaction}
+import scorex.core.transaction.{NodeViewModifier, NodeViewModifierCompanion, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 
 import scala.collection.mutable

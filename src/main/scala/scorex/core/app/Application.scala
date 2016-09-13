@@ -28,7 +28,6 @@ trait Application extends ScorexLogging {
   type P <: Proposition
   type TX <: Transaction[P, TX]
   type PMOD <: PersistentNodeViewModifier[P, TX]
-  type CD <: ConsensusData
 
   //settings
   implicit val settings: Settings
