@@ -29,14 +29,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
   }
 
-  override def receive: Receive =
-    processInv orElse
-      processModifiersReq orElse
-      requestFromLocal orElse
-      responseFromLocal
-
   //object ids coming from other node
-  def processInv: Receive = {
+  private def processInv: Receive = {
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == InvSpec.messageCode =>
 
@@ -46,7 +40,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   }
 
   //other node asking for objects by their ids
-  def processModifiersReq: Receive = {
+  private def processModifiersReq: Receive = {
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == RequestModifierSpec.messageCode =>
 
@@ -54,15 +48,13 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   }
 
   //other node is sending objects
-  def processModifiers: Receive = {
+  private def processModifiers: Receive = {
     case DataFromPeer(spec, data: (ModifierTypeId, Seq[Array[Byte]])@unchecked, _) if spec.messageCode == ModifiersSpec.messageCode =>
-
       viewHolderRef ! ModifiersFromRemote(sessionId, data._1, data._2)
-      ???
   }
 
   //local node sending object ids to remote
-  def requestFromLocal: Receive = {
+  private def requestFromLocal: Receive = {
     case RequestFromLocal(sid, modifierTypeId, modifierIds) =>
       if (sid == sessionId && modifierIds.nonEmpty) {
         sessionPeerOpt.foreach { sessionPeer =>
@@ -76,7 +68,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   }
 
   //local node sending out objects requested to remote
-  def responseFromLocal: Receive = {
+  private def responseFromLocal: Receive = {
     case ResponseFromLocal(sid, typeId, modifiers: Seq[NodeViewModifier]) =>
       if (sid == sessionId && modifiers.nonEmpty) {
         sessionPeerOpt.foreach { sessionPeer =>
@@ -92,6 +84,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
       }
       sessionPeerOpt = None
   }
+
+  override def receive: Receive =
+    processInv orElse
+      processModifiersReq orElse
+      requestFromLocal orElse
+      responseFromLocal
 }
 
 object NodeViewSynchronizer {
