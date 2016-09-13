@@ -25,8 +25,11 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   private var sessionPeerOpt: Option[ConnectedPeer] = None
 
   override def preStart(): Unit = {
+    //register as a handler for some types of messages
     val messageSpecs = Seq(InvSpec, RequestModifierSpec, ModifiersSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
+
+    //subscribe for failed transaction,
     val events = Seq(NodeViewHolder.EventType.FailedTransaction, NodeViewHolder.EventType.FailedPersistentModifier)
     viewHolderRef ! Subscribe(events)
   }
@@ -57,6 +60,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   }
 
   //other node is sending objects
+  //todo: filter asked, so add modifier аids
   private def processModifiers: Receive = {
     case DataFromPeer(spec, data: (ModifierTypeId, Seq[Array[Byte]])@unchecked, remote)
       if spec.messageCode == ModifiersSpec.messageCode =>
