@@ -47,6 +47,13 @@ trait History[P <: Proposition, TX <: Transaction[P, TX], PM <: PersistentNodeVi
   def continuation(from: Seq[BlockId], size: Int): Seq[PM]
 
   def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
+
+  /**
+    * Quality score of a best chain, e.g. cumulative difficulty in case of Bitcoin / Nxt
+    *
+    * @return
+    */
+  def score(): BigInt
 }
 
 object History {

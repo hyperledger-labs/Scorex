@@ -21,13 +21,6 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX], 
   def height(): Int
 
   /**
-    * Quality score of a best chain, e.g. cumulative difficulty in case of Bitcoin / Nxt
-    *
-    * @return
-    */
-  def score(): BigInt
-
-  /**
     * Is there's no history, even genesis block
     *
     * @return
