@@ -77,7 +77,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
 
   private def memoryPool(): MP = nodeView._4
 
-  lazy val historyCompanion = history().companion
+  private lazy val historyCompanion = history().companion
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, ActorRef]()
 
@@ -136,7 +136,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
     }
   }
 
-  def modify[MOD <: NodeViewModifier](m: MOD): Unit = {
+  private def modify[MOD <: NodeViewModifier](m: MOD): Unit = {
     m match {
       case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
         txModify(tx)
@@ -156,27 +156,19 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
     genesisState._4
   ).map(_.companion.api)
 
-  override def receive: Receive =
-    subscribe orElse
-      compareViews orElse
-      readLocalObjects orElse
-      processRemoteObjects orElse ({
-      case m: NodeViewModifier => modify(m)
-    }: Receive)
-
-  def subscribe: Receive = {
+  private def handleSubscribe: Receive = {
     case NodeViewHolder.Subscribe(events) =>
       events.foreach(evt => subscribers.put(evt, sender()))
   }
 
-  def processRemoteObjects: Receive = {
+  private def processRemoteObjects: Receive = {
     case ModifiersFromRemote(sid, modifierTypeId, remoteObjects) =>
       modifierCompanions.get(modifierTypeId) foreach { companion =>
         remoteObjects.flatMap(r => companion.parse(r).toOption) foreach modify
       }
   }
 
-  def compareViews: Receive = {
+  private def compareViews: Receive = {
     case CompareViews(sid, modifierTypeId, modifierIds) =>
       val ids = modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
@@ -188,7 +180,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
       sender() ! NodeViewSynchronizer.RequestFromLocal(sid, modifierTypeId, ids)
   }
 
-  def readLocalObjects: Receive = {
+  private def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
       val objs: Seq[NodeViewModifier] = modifierTypeId match {
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
@@ -198,6 +190,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
       }
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
+
+  override def receive: Receive =
+    handleSubscribe orElse
+      compareViews orElse
+      readLocalObjects orElse
+      processRemoteObjects orElse ({
+      case m: NodeViewModifier => modify(m)
+    }: Receive)
 }
 
 
