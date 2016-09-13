@@ -1,6 +1,8 @@
 package scorex.core.network
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.NodeViewHolder
+import scorex.core.NodeViewHolder.{FailedModification, FailedTransaction, Subscribe}
 import scorex.core.network.NetworkController.DataFromPeer
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.NodeViewModifier._
@@ -27,6 +29,13 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   override def preStart(): Unit = {
     val messageSpecs = Seq(InvSpec, RequestModifierSpec, ModifiersSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
+    val events = Seq(NodeViewHolder.EventType.FailedTransaction, NodeViewHolder.EventType.FailedPersistentModifier)
+    viewHolderRef ! Subscribe(events)
+  }
+
+  private def viewHolderEvents: Receive = {
+    case FailedTransaction(tx, throwable) =>
+    case FailedModification(mod, throwable) =>
   }
 
   //object ids coming from other node
@@ -89,7 +98,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
     processInv orElse
       processModifiersReq orElse
       requestFromLocal orElse
-      responseFromLocal
+      responseFromLocal orElse
+      viewHolderEvents
 }
 
 object NodeViewSynchronizer {
