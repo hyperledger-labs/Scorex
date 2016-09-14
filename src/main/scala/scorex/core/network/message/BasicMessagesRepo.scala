@@ -24,10 +24,17 @@ object InvSpec extends MessageSpec[InvData] {
   val MaxObjects = 500
 
   override val messageCode: MessageCode = 55: Byte
-  override val messageName: String = "Inv message"
+  override val messageName: String = "Inv"
 
-  //todo: implement
-  override def deserializeData(bytes: Array[MessageCode]): Try[InvData] = ???
+  override def deserializeData(bytes: Array[MessageCode]): Try[InvData] = Try {
+    val typeId = bytes.head
+    val count = Ints.fromByteArray(bytes.slice(1, 5))
+    val elems = (0 until count).map { c =>
+      bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize + 1)
+    }
+
+    typeId -> elems
+  }
 
   override def serializeData(data: InvData): Array[Byte] = {
     require(data._2.nonEmpty)
