@@ -52,10 +52,10 @@ object RequestModifierSpec
   override val messageName: String = "RequestModifier"
 
   override def serializeData(typeAndId: InvData): Array[Byte] =
-    ???
+    InvSpec.serializeData(typeAndId)
 
   override def deserializeData(bytes: Array[Byte]): Try[InvData] =
-    ???
+    InvSpec.deserializeData(bytes)
 }
 
 
