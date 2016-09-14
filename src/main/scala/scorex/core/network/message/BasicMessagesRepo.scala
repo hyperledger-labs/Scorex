@@ -3,14 +3,18 @@ package scorex.core.network.message
 
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.network.message.Message._
+
 import scala.util.Try
 import java.net.{InetAddress, InetSocketAddress}
 import java.util
+
+import scorex.core.transaction.NodeViewModifier
 import scorex.core.transaction.NodeViewModifier._
 
 
 object BasicMsgDataTypes {
   type InvData = (ModifierTypeId, Seq[ModifierId])
+  type ModifiersData = (NodeViewModifier.ModifierTypeId, Map[ModifierId, Array[Byte]])
 }
 
 import BasicMsgDataTypes._
@@ -48,16 +52,16 @@ object RequestModifierSpec
 }
 
 
-object ModifiersSpec extends MessageSpec[(ModifierTypeId, Seq[Array[Byte]])] {
+object ModifiersSpec extends MessageSpec[ModifiersData] {
 
   override val messageCode: MessageCode = 33: Byte
   override val messageName: String = "Modifier"
 
   //todo: implement
-  override def deserializeData(bytes: Array[Byte]): Try[(ModifierTypeId, Seq[Array[Byte]])] = ???
+  override def deserializeData(bytes: Array[Byte]): Try[ModifiersData] = ???
 
   //todo: implement
-  override def serializeData(data: (ModifierTypeId, Seq[Array[Byte]])): Array[Byte] = ???
+  override def serializeData(data: ModifiersData): Array[Byte] = ???
 
   /*
   companion: BlockCompanion[P, TX, B]

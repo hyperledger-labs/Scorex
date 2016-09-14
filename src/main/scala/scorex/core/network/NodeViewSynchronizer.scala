@@ -20,7 +20,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   import scorex.core.transaction.NodeViewModifier._
 
   //asked from other nodes
-  private val asked = mutable.Map[ModifierTypeId, mutable.Buffer[ModifierId]]()
+  private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
   private var sessionId = 0L
   private var sessionPeerOpt: Option[ConnectedPeer] = None
 
@@ -52,7 +52,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   }
 
   //other node asking for objects by their ids
-  private def processModifiersReq: Receive = {
+  private def modifiersReq: Receive = {
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == RequestModifierSpec.messageCode =>
 
@@ -60,11 +60,26 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   }
 
   //other node is sending objects
-  //todo: filter asked, so add modifier аids
-  private def processModifiers: Receive = {
-    case DataFromPeer(spec, data: (ModifierTypeId, Seq[Array[Byte]])@unchecked, remote)
+  private def modifiersFromRemote: Receive = {
+    case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
       if spec.messageCode == ModifiersSpec.messageCode =>
-      viewHolderRef ! ModifiersFromRemote(sessionId, data._1, data._2, remote)
+
+      val typeId = data._1
+      val modifiers = data._2
+
+      val modIds = modifiers.keySet
+
+      val askedIds = asked.getOrElse(typeId, mutable.Set())
+      val filteredIds = askedIds.diff(modIds)
+
+      if(askedIds.size - modIds.size == filteredIds.size) {
+        val msg = ModifiersFromRemote(sessionId, data._1, modifiers.valuesIterator.toSeq, remote)
+        viewHolderRef ! msg
+        asked.put(typeId, filteredIds)
+      } else {
+        //peer has sent some object not requested -> ban!
+        //todo: ban a peer
+      }
   }
 
   //local node sending object ids to remote
@@ -101,10 +116,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
   override def receive: Receive =
     processInv orElse
-      processModifiersReq orElse
+      modifiersReq orElse
       requestFromLocal orElse
       responseFromLocal orElse
-      processModifiers orElse
+      modifiersFromRemote orElse
       viewHolderEvents
 }
 
