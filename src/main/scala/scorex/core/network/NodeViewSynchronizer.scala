@@ -20,7 +20,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
   import scorex.core.transaction.NodeViewModifier._
 
   //asked from other nodes
+  //todo: clean old entries in asked
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
+
   private var sessionId = 0L
   private var sessionPeerOpt: Option[ConnectedPeer] = None
 
@@ -36,9 +38,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
 
   private def viewHolderEvents: Receive = {
     case FailedTransaction(tx, throwable, source) =>
-      //todo: ban source peer?
+    //todo: ban source peer?
     case FailedModification(mod, throwable, source) =>
-      //todo: ban source peer?
+    //todo: ban source peer?
   }
 
   //object ids coming from other node
@@ -72,7 +74,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
       val askedIds = asked.getOrElse(typeId, mutable.Set())
       val filteredIds = askedIds.diff(modIds)
 
-      if(askedIds.size - modIds.size == filteredIds.size) {
+      if (askedIds.size - modIds.size == filteredIds.size) {
         val msg = ModifiersFromRemote(sessionId, data._1, modifiers.valuesIterator.toSeq, remote)
         viewHolderRef ! msg
         asked.put(typeId, filteredIds)
@@ -92,7 +94,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
         }
       }
       sessionPeerOpt = None
-      val newids = asked.getOrElse(modifierTypeId, mutable.Buffer()) ++ modifierIds
+      val newids = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds
       asked.put(modifierTypeId, newids)
   }
 
@@ -106,7 +108,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
           val c = modifiers.head.companion.asInstanceOf[NodeViewModifierCompanion[NodeViewModifier]]
           val modType = modifiers.head.modifierTypeId
 
-          val m = modType -> c.bytes(modifiers)
+          val m = modType -> modifiers.map(m => m.id() -> c.bytes(m)).toMap
           val msg = Message(ModifiersSpec, Right(m), None)
           sessionPeer.handlerRef ! msg
         }
@@ -134,4 +136,5 @@ object NodeViewSynchronizer {
   case class ResponseFromLocal[M <: NodeViewModifier](sid: Long, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
   case class ModifiersFromRemote(sid: Long, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]], remote: ConnectedPeer)
+
 }
