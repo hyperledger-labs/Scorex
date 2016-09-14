@@ -20,7 +20,7 @@ object BasicMsgDataTypes {
 import BasicMsgDataTypes._
 
 object InvSpec extends MessageSpec[InvData] {
-  //todo: check no more ids in inventory message than MaxObject
+  //todo: fetch from settings file?
   val MaxObjects = 500
 
   override val messageCode: MessageCode = 55: Byte
@@ -29,6 +29,10 @@ object InvSpec extends MessageSpec[InvData] {
   override def deserializeData(bytes: Array[MessageCode]): Try[InvData] = Try {
     val typeId = bytes.head
     val count = Ints.fromByteArray(bytes.slice(1, 5))
+
+    assert(count > 0, "empty inv list")
+    assert(count <=  MaxObjects, s"more invs than $MaxObjects in a message")
+
     val elems = (0 until count).map { c =>
       bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize + 1)
     }
@@ -37,7 +41,9 @@ object InvSpec extends MessageSpec[InvData] {
   }
 
   override def serializeData(data: InvData): Array[Byte] = {
-    require(data._2.nonEmpty)
+    require(data._2.nonEmpty, "empty inv list")
+    require(data._2.size <=  MaxObjects, s"more invs than $MaxObjects in a message")
+
     Array(data._1) ++
       Ints.toByteArray(data._2.size) ++
       data._2.reduce(_ ++ _)
