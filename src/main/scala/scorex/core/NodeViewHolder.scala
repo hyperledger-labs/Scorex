@@ -15,23 +15,6 @@ import scorex.core.utils.ScorexLogging
 import scala.collection.mutable
 import scala.util.{Failure, Success}
 
-trait NodeViewComponent {
-  self =>
-
-  type NVCT >: self.type <: NodeViewComponent
-
-  def companion: NodeViewComponentCompanion
-}
-
-trait NodeViewComponentCompanion {
-
-  def api: ApiRoute
-
-  //def produceModification[M <: NodeStateModifier, CompType <: NodeViewComponent](component: CompType, m: M): UndoneModification[M, CompType]
-
-  //network functions to call
-}
-
 
 //todo: listeners
 //todo: async update?
@@ -42,12 +25,6 @@ trait NodeViewComponentCompanion {
   * @tparam P
   * @tparam TX
   */
-/*
- (S, H, MP, W)
- - process state modifier M in following order (H -> S -> MP -> W)
-
- - HxM -> Outcome[H]
- */
 trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: PersistentNodeViewModifier[P, TX]]
   extends Actor with ScorexLogging {
 
@@ -76,8 +53,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
   private def wallet(): WL = nodeView._3
 
   private def memoryPool(): MP = nodeView._4
-
-  private lazy val historyCompanion = history().companion
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, ActorRef]()
 
