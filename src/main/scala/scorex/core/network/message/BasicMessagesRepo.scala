@@ -1,15 +1,15 @@
 package scorex.core.network.message
 
 
-import com.google.common.primitives.{Bytes, Ints}
-import scorex.core.network.message.Message._
-
-import scala.util.Try
 import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
+import com.google.common.primitives.{Bytes, Ints}
+import scorex.core.network.message.Message._
 import scorex.core.transaction.NodeViewModifier
 import scorex.core.transaction.NodeViewModifier._
+
+import scala.util.Try
 
 
 object BasicMsgDataTypes {
@@ -17,7 +17,7 @@ object BasicMsgDataTypes {
   type ModifiersData = (NodeViewModifier.ModifierTypeId, Map[ModifierId, Array[Byte]])
 }
 
-import BasicMsgDataTypes._
+import scorex.core.network.message.BasicMsgDataTypes._
 
 object InvSpec extends MessageSpec[InvData] {
   //todo: fetch from settings file?
@@ -31,10 +31,10 @@ object InvSpec extends MessageSpec[InvData] {
     val count = Ints.fromByteArray(bytes.slice(1, 5))
 
     assert(count > 0, "empty inv list")
-    assert(count <=  MaxObjects, s"more invs than $MaxObjects in a message")
+    assert(count <= MaxObjects, s"more invs than $MaxObjects in a message")
 
     val elems = (0 until count).map { c =>
-      bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize + 1)
+      bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize)
     }
 
     typeId -> elems
@@ -42,11 +42,10 @@ object InvSpec extends MessageSpec[InvData] {
 
   override def serializeData(data: InvData): Array[Byte] = {
     require(data._2.nonEmpty, "empty inv list")
-    require(data._2.size <=  MaxObjects, s"more invs than $MaxObjects in a message")
+    require(data._2.size <= MaxObjects, s"more invs than $MaxObjects in a message")
+    data._2.foreach(e => require(e.length == NodeViewModifier.ModifierIdSize))
 
-    Array(data._1) ++
-      Ints.toByteArray(data._2.size) ++
-      data._2.reduce(_ ++ _)
+    Array(data._1) ++ Ints.toByteArray(data._2.size) ++ data._2.reduce(_ ++ _)
   }
 }
 
