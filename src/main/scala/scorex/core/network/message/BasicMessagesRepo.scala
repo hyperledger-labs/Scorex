@@ -85,33 +85,6 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
     companion.parse(bytes) */
 }
 
-/*
-trait SignaturesSeqSpec extends MessageSpec[Seq[SigningFunctions.Signature]] {
-
-  private val SignatureLength = Signature25519.SignatureSize
-  private val DataLength = 4
-
-  override def deserializeData(bytes: Array[Byte]): Try[Seq[SigningFunctions.Signature]] = Try {
-    val lengthBytes = bytes.take(DataLength)
-    val length = Ints.fromByteArray(lengthBytes)
-
-    assert(bytes.length == DataLength + (length * SignatureLength), "Data does not match length")
-
-    (0 until length).map { i =>
-      val position = DataLength + (i * SignatureLength)
-      bytes.slice(position, position + SignatureLength)
-    }
-  }
-
-  override def serializeData(signatures: Seq[SigningFunctions.Signature]): Array[Byte] = {
-    val length = signatures.size
-    val lengthBytes = Ints.toByteArray(length)
-
-    //WRITE SIGNATURES
-    signatures.foldLeft(lengthBytes) { case (bs, header) => Bytes.concat(bs, header) }
-  }
-}*/
-
 object GetPeersSpec extends MessageSpec[Unit] {
   override val messageCode: Message.MessageCode = 1: Byte
 
