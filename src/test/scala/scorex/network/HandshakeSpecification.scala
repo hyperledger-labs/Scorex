@@ -5,37 +5,21 @@ import java.net.{InetAddress, InetSocketAddress}
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
+import scorex.ObjectGenerators
 import scorex.core.app.ApplicationVersion
 
 
 class HandshakeSpecification extends PropSpec
 with PropertyChecks
 with GeneratorDrivenPropertyChecks
-with Matchers {
-
-  val MaxVersion = 999
-  val MaxIp = 255
-  val MaxPort = 65535
-
-  val appVersionGen = for {
-    fd <- Gen.choose(0, MaxVersion)
-    sd <- Gen.choose(0, MaxVersion)
-    td <- Gen.choose(0, MaxVersion)
-  } yield ApplicationVersion(fd, sd, td)
-
-  val isGen = for {
-    ip1 <- Gen.choose(0, MaxIp)
-    ip2 <- Gen.choose(0, MaxIp)
-    ip3 <- Gen.choose(0, MaxIp)
-    ip4 <- Gen.choose(0, MaxIp)
-    port <- Gen.choose(0, MaxPort)
-  } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
+with Matchers
+with ObjectGenerators {
 
   val validNumbers =
     for (n <- Gen.choose(Integer.MIN_VALUE + 1, Integer.MAX_VALUE)) yield n
 
   property("handshake should remain the same after serialization/deserialization") {
-    forAll(Gen.alphaStr, appVersionGen, Gen.alphaStr, isGen, Gen.posNum[Long], Gen.posNum[Long]) {
+    forAll(Gen.alphaStr, appVersionGen, Gen.alphaStr, inetSocketAddressGen, Gen.posNum[Long], Gen.posNum[Long]) {
       (appName: String,
        av: ApplicationVersion,
        nodeName: String,
