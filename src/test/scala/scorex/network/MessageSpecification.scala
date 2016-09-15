@@ -4,17 +4,18 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
-import scorex.core.network.message.BasicMsgDataTypes.InvData
-import scorex.core.network.message.{RequestModifierSpec, InvSpec}
+import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.network.message.{InvSpec, ModifiersSpec, RequestModifierSpec}
+import scorex.core.transaction.NodeViewModifier
 import scorex.core.transaction.NodeViewModifier._
 
 import scala.util.Try
 
 class MessageSpecification extends PropSpec
-with PropertyChecks
-with GeneratorDrivenPropertyChecks
-with Matchers
-with ObjectGenerators {
+  with PropertyChecks
+  with GeneratorDrivenPropertyChecks
+  with Matchers
+  with ObjectGenerators {
 
   property("InvData should remain the same after serialization/deserialization") {
     forAll(invDataGen) { data: InvData =>
@@ -38,7 +39,8 @@ with ObjectGenerators {
     forAll(invDataGen) { data: InvData =>
       whenever(data._2.length < InvSpec.MaxObjects) {
         val bytes = RequestModifierSpec.serializeData(data)
-        val recovered = InvSpec.deserializeData(bytes).get
+        val recovered = RequestModifierSpec.deserializeData(bytes).get
+        recovered._2.length shouldEqual data._2.length
         val bytes2 = RequestModifierSpec.serializeData(recovered)
         bytes shouldEqual bytes2
       }
@@ -52,5 +54,31 @@ with ObjectGenerators {
     }
   }
 
+  property("ModifiersSpec serialization/deserialization") {
+    forAll(modifiersGen) { data: (NodeViewModifier.ModifierTypeId, Map[ModifierId, Array[Byte]]) =>
+      whenever(data._2.nonEmpty && data._2.forall { case (id, m) => id.length == NodeViewModifier.ModifierIdSize && m.length > 0 }) {
+        val bytes = ModifiersSpec.serializeData(data)
+        val recovered = ModifiersSpec.deserializeData(bytes).get
 
+        recovered._1 shouldEqual data._1
+        recovered._2.keys.size shouldEqual data._2.keys.size
+
+        recovered._2.keys.foreach { id =>
+          data._2.keys.exists(_.sameElements(id)) shouldEqual true
+        }
+
+        recovered._2.values.toSet.foreach { v: Array[Byte] =>
+          data._2.values.toSet.exists(_.sameElements(v)) shouldEqual true
+        }
+
+        ModifiersSpec.serializeData(data) shouldEqual bytes
+
+        println("data: " + data._2.map { case (k, v) => k.length + " " + v.length + ";" })
+        println("recovered: " + data._2.map { case (k, v) => k.length + " " + v.length + ";" })
+
+        //val bytes2 = ModifiersSpec.serializeData(recovered)
+        //bytes shouldEqual bytes2
+      }
+    }
+  }
 }

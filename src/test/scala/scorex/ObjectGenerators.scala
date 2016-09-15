@@ -9,15 +9,26 @@ import scorex.core.transaction.NodeViewModifier
 import scorex.core.transaction.NodeViewModifier.ModifierId
 
 trait ObjectGenerators {
-  lazy val nonEmptyBytesGen: Gen[Array[Byte]] = Gen.nonEmptyListOf(Arbitrary.arbitrary[Byte]).map(_.toArray)
+  lazy val nonEmptyBytesGen: Gen[Array[Byte]] = Gen.nonEmptyListOf(Arbitrary.arbitrary[Byte])
+    .map(_.toArray).suchThat(_.length > 0)
 
   lazy val modifierIdGen: Gen[ModifierId] =
-    Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte]).map(_.toArray)
+    Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte]).map(_.toArray).suchThat(_.length == NodeViewModifier.ModifierIdSize)
 
   lazy val invDataGen: Gen[InvData] = for {
     modifierTypeId: Byte <- Arbitrary.arbitrary[Byte]
     modifierIds: Seq[Array[Byte]] <- Gen.nonEmptyListOf(modifierIdGen) if modifierIds.nonEmpty
-  } yield (modifierTypeId, modifierIds)
+  } yield modifierTypeId -> modifierIds
+
+  lazy val modifierWithIdGen: Gen[(ModifierId, Array[Byte])] = for {
+    id <- modifierIdGen
+    mod <- nonEmptyBytesGen
+  } yield id -> mod
+
+  lazy val modifiersGen: Gen[ModifiersData] = for {
+    modifierTypeId: Byte <- Arbitrary.arbitrary[Byte]
+    modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
+  } yield modifierTypeId -> modifiers
 
   val MaxVersion = 999
   val MaxIp = 255

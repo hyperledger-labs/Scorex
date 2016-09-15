@@ -76,9 +76,9 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
     val (_, seq) = (0 until count).foldLeft(0 -> Seq[(ModifierId, Array[Byte])]()) {
       case ((pos, collected), _) =>
 
-        val id = bytes.slice(pos, pos + NodeViewModifier.ModifierIdSize)
-        val objBytesCnt = Ints.fromByteArray(bytes.slice(pos + NodeViewModifier.ModifierIdSize, pos + NodeViewModifier.ModifierIdSize + 4))
-        val obj = bytes.slice(pos + NodeViewModifier.ModifierIdSize + 4, pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt)
+        val id = objBytes.slice(pos, pos + NodeViewModifier.ModifierIdSize)
+        val objBytesCnt = Ints.fromByteArray(objBytes.slice(pos + NodeViewModifier.ModifierIdSize, pos + NodeViewModifier.ModifierIdSize + 4))
+        val obj = objBytes.slice(pos + NodeViewModifier.ModifierIdSize + 4, pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt)
 
         (pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt) -> (collected :+ (id -> obj))
     }
@@ -88,7 +88,8 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
   override def serializeData(data: ModifiersData): Array[Byte] = {
     require(data._2.nonEmpty, "empty modifiers list")
     val typeId = data._1
-    Array(typeId) ++ Ints.toByteArray(data._2.size) ++ data._2.map { case (id, modifier) =>
+    val modifiers = data._2
+    Array(typeId) ++ Ints.toByteArray(modifiers.size) ++ modifiers.map { case (id, modifier) =>
       id ++ Ints.toByteArray(modifier.length) ++ modifier
     }.reduce(_ ++ _)
   }
