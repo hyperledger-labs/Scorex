@@ -69,19 +69,29 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
   override val messageCode: MessageCode = 33: Byte
   override val messageName: String = "Modifier"
 
-  //todo: implement
-  override def deserializeData(bytes: Array[Byte]): Try[ModifiersData] = ???
+  override def deserializeData(bytes: Array[Byte]): Try[ModifiersData] = Try {
+    val typeId = bytes.head
+    val count = Ints.fromByteArray(bytes.slice(1, 5))
+    val objBytes = bytes.slice(5, bytes.length)
+    val (_, seq) = (0 until count).foldLeft(0 -> Seq[(ModifierId, Array[Byte])]()) {
+      case ((pos, collected), _) =>
 
-  //todo: implement
-  override def serializeData(data: ModifiersData): Array[Byte] = ???
+        val id = bytes.slice(pos, pos + NodeViewModifier.ModifierIdSize)
+        val objBytesCnt = Ints.fromByteArray(bytes.slice(pos + NodeViewModifier.ModifierIdSize, pos + NodeViewModifier.ModifierIdSize + 4))
+        val obj = bytes.slice(pos + NodeViewModifier.ModifierIdSize + 4, pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt)
 
-  /*
-  companion: BlockCompanion[P, TX, B]
+        (pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt) -> (collected :+ (id -> obj))
+    }
+    typeId -> seq.toMap
+  }
 
-  override def serializeData(block: B): Array[Byte] = block.bytes
-
-  override def deserializeData(bytes: Array[Byte]): Try[Block[P, TX]] =
-    companion.parse(bytes) */
+  override def serializeData(data: ModifiersData): Array[Byte] = {
+    require(data._2.nonEmpty, "empty modifiers list")
+    val typeId = data._1
+    Array(typeId) ++ Ints.toByteArray(data._2.size) ++ data._2.map { case (id, modifier) =>
+      id ++ Ints.toByteArray(modifier.length) ++ modifier
+    }.reduce(_ ++ _)
+  }
 }
 
 object GetPeersSpec extends MessageSpec[Unit] {
