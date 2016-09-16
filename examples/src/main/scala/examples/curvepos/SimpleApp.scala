@@ -1,5 +1,7 @@
 package examples.curvepos
 
+import examples.curvepos.transaction.{SimpleWallet, SimpleNodeViewModifier, FeeTransaction}
+import io.circe.Json
 import scorex.core.NodeViewHolder
 import scorex.core.api.http.ApiRoute
 import scorex.core.app.{Application, ApplicationVersion}
@@ -7,23 +9,32 @@ import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.wallet.Wallet
+import scorex.utils.Random
 
 /**
   * Curve25519 accounts + ??? Consensus
   */
 class SimpleApp extends Application {
+  override implicit val settings: Settings = new Settings {
+    override def settingsJSON: Map[String, Json] = Map()
+  }
+
   override val applicationName: String = "SimpleApp"
 
   override lazy val appVersion: ApplicationVersion = ApplicationVersion(0, 1, 0)
 
   override type P = PublicKey25519Proposition
-  override type TX = Nothing
-  override type PMOD = Nothing
+  override type TX = FeeTransaction
+  override type PMOD = SimpleNodeViewModifier
 
-  override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = null
-  override val apiTypes = null
-  override val wallet: Wallet[P, TX, _] = null
-  override val apiRoutes: Seq[ApiRoute] = null
+  override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
+  override val apiTypes = Seq()
+  override val apiRoutes: Seq[ApiRoute] = Seq()
+  override val wallet: Wallet[P, TX, _] = new SimpleWallet(Random.randomBytes(32))
   override val nodeViewHolder: NodeViewHolder[P, TX, PMOD] = null
-  override implicit val settings: Settings = null
+}
+
+object SimpleApp extends App {
+  val app = new SimpleApp
+  app.run()
 }

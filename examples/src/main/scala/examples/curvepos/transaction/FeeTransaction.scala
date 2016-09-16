@@ -22,7 +22,7 @@ case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
 
   override def changes(state: MinimalState[PublicKey25519Proposition, FeeTransaction, _, _]): Try[TransactionChanges[PublicKey25519Proposition]] = Try {
     //TODO saInstanceOf
-    if (state.asInstanceOf[MinimalStateImpl].isEmpty()) genesisChanges()
+    if (state.asInstanceOf[MinimalStateImpl].isEmpty) genesisChanges()
     else {
       state.closedBox(boxId) match {
         case Some(oldSender: PublicKey25519NoncedBox) =>

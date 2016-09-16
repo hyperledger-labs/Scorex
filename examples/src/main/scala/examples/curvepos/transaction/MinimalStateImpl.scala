@@ -14,7 +14,7 @@ import scala.collection.concurrent.TrieMap
 import scala.util.Try
 
 class MinimalStateImpl extends ScorexLogging
-with MinimalState[PublicKey25519Proposition, FeeTransaction, NodeViewModifier, MinimalStateImpl] {
+with MinimalState[PublicKey25519Proposition, FeeTransaction, SimpleNodeViewModifier, MinimalStateImpl] {
 
   private val EmptyVersion: Int = 0
   private var v: Int = EmptyVersion
@@ -49,8 +49,8 @@ with MinimalState[PublicKey25519Proposition, FeeTransaction, NodeViewModifier, M
     this
   }
 
-  override def applyChanges(mod: NodeViewModifier): Try[MinimalStateImpl] = Try {
-    val generatorReward = mod.transactions.flatMap(_.map(_.fee)).sum
+  override def applyChanges(mod: SimpleNodeViewModifier): Try[MinimalStateImpl] = Try {
+    val generatorReward = mod.txs.map(_.fee).sum
     val generatorBox: PublicKey25519NoncedBox = accountBox(mod.generator) match {
       case Some(oldBox) => oldBox.copy(nonce = oldBox.nonce + 1, value = oldBox.value + generatorReward)
       case None => PublicKey25519NoncedBox(mod.generator, 1, generatorReward)
