@@ -12,10 +12,10 @@ import scorex.core.transaction.NodeViewModifier._
 import scala.util.Try
 
 class MessageSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
-  with Matchers
-  with ObjectGenerators {
+with PropertyChecks
+with GeneratorDrivenPropertyChecks
+with Matchers
+with ObjectGenerators {
 
   property("InvData should remain the same after serialization/deserialization") {
     forAll(invDataGen) { data: InvData =>
@@ -56,29 +56,21 @@ class MessageSpecification extends PropSpec
 
   property("ModifiersSpec serialization/deserialization") {
     forAll(modifiersGen) { data: (NodeViewModifier.ModifierTypeId, Map[ModifierId, Array[Byte]]) =>
-      whenever(data._2.nonEmpty && data._2.forall { case (id, m) => id.length == NodeViewModifier.ModifierIdSize && m.length > 0 }) {
-        val bytes = ModifiersSpec.serializeData(data)
-        val recovered = ModifiersSpec.deserializeData(bytes).get
+      val bytes = ModifiersSpec.serializeData(data)
+      val recovered = ModifiersSpec.deserializeData(bytes).get
 
-        recovered._1 shouldEqual data._1
-        recovered._2.keys.size shouldEqual data._2.keys.size
+      recovered._1 shouldEqual data._1
+      recovered._2.keys.size shouldEqual data._2.keys.size
 
-        recovered._2.keys.foreach { id =>
-          data._2.keys.exists(_.sameElements(id)) shouldEqual true
-        }
-
-        recovered._2.values.toSet.foreach { v: Array[Byte] =>
-          data._2.values.toSet.exists(_.sameElements(v)) shouldEqual true
-        }
-
-        ModifiersSpec.serializeData(data) shouldEqual bytes
-
-        println("data: " + data._2.map { case (k, v) => k.length + " " + v.length + ";" })
-        println("recovered: " + data._2.map { case (k, v) => k.length + " " + v.length + ";" })
-
-        //val bytes2 = ModifiersSpec.serializeData(recovered)
-        //bytes shouldEqual bytes2
+      recovered._2.keys.foreach { id =>
+        data._2.keys.exists(_.sameElements(id)) shouldEqual true
       }
+
+      recovered._2.values.toSet.foreach { v: Array[Byte] =>
+        data._2.values.toSet.exists(_.sameElements(v)) shouldEqual true
+      }
+
+      ModifiersSpec.serializeData(data) shouldEqual bytes
     }
   }
 }

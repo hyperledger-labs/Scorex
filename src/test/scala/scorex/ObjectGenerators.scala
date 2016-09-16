@@ -13,7 +13,7 @@ trait ObjectGenerators {
     .map(_.toArray).suchThat(_.length > 0)
 
   lazy val modifierIdGen: Gen[ModifierId] =
-    Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte]).map(_.toArray).suchThat(_.length == NodeViewModifier.ModifierIdSize)
+    Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte]).map(_.toArray)
 
   lazy val invDataGen: Gen[InvData] = for {
     modifierTypeId: Byte <- Arbitrary.arbitrary[Byte]
