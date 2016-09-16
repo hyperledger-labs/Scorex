@@ -56,7 +56,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: Persist
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, ActorRef]()
 
-  //todo: ???
+  //todo: "some check and fix database" function
   def fixDb()
 
   private def notifySubscribers[O <: ModificationOutcome](eventType: EventType.Value, signal: O) = subscribers.get(eventType).foreach(_ ! signal)
