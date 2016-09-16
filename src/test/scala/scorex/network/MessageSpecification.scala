@@ -72,12 +72,6 @@ class MessageSpecification extends PropSpec
         }
 
         ModifiersSpec.serializeData(data) shouldEqual bytes
-
-        println("data: " + data._2.map { case (k, v) => k.length + " " + v.length + ";" })
-        println("recovered: " + data._2.map { case (k, v) => k.length + " " + v.length + ";" })
-
-        //val bytes2 = ModifiersSpec.serializeData(recovered)
-        //bytes shouldEqual bytes2
       }
     }
   }
