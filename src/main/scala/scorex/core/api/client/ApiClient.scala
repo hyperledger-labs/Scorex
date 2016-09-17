@@ -3,6 +3,7 @@ package scorex.core.api.client
 import java.io.{BufferedReader, InputStreamReader}
 import java.net.{HttpURLConnection, URL}
 
+import io.circe
 import play.libs.Json
 import scorex.core.settings.Settings
 
@@ -60,7 +61,7 @@ object ApiClient {
   def main(args: Array[String]): Unit = {
     val settingsFilename = args.headOption.getOrElse("settings.json")
     val settings = new Settings {
-      override val filename = settingsFilename
+      override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
     }
     val apiClient = new ApiClient(settings)
 

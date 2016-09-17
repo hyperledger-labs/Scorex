@@ -3,23 +3,20 @@ package scorex.core.settings
 import java.io.File
 import java.net.InetSocketAddress
 
-import io.circe.parser.parse
 import io.circe.Json
-import scorex.crypto.encode.Base58
+import io.circe.parser.parse
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.encode.Base58
 
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
 
 /**
- * Settings
- */
-
+  * Settings
+  */
 trait Settings extends ScorexLogging {
 
-  val filename: String
-
-  lazy val settingsJSON: Map[String, Json] = Try {
+  def settingsFromFile(filename: String): Map[String, Json] = Try {
     val jsonString = scala.io.Source.fromFile(filename).mkString
     parse(jsonString)
   }.recoverWith { case t =>
@@ -33,6 +30,8 @@ trait Settings extends ScorexLogging {
     System.exit(10)
     Map()
   }
+
+  def settingsJSON: Map[String, Json]
 
   private def directoryEnsuring(dirPath: String): Boolean = {
     val f = new java.io.File(dirPath)
@@ -78,10 +77,6 @@ trait Settings extends ScorexLogging {
   lazy val port = p2pSettings.get("port").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultPort)
   lazy val declaredAddress = p2pSettings.get("myAddress").flatMap(_.asString)
 
-  //p2p settings assertions
-  assert(!(localOnly && upnpEnabled), "Both localOnly and upnp enabled")
-  //todo: localOnly & declaredAddress
-
   lazy val rpcPort = settingsJSON.get("rpcPort").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultRpcPort)
   lazy val rpcAllowed: Seq[String] = settingsJSON.get("rpcAllowed").flatMap(_.asArray.map(_.flatMap(_.asString))).getOrElse(DefaultRpcAllowed.split(""))
 
@@ -98,7 +93,6 @@ trait Settings extends ScorexLogging {
     .ensuring(pathOpt => pathOpt.forall(directoryEnsuring))
 
   lazy val walletPassword = settingsJSON.get("walletPassword").flatMap(_.asString).getOrElse {
-    println("Please type your wallet password")
     scala.io.StdIn.readLine()
   }
 
