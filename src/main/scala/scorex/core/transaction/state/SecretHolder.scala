@@ -57,10 +57,10 @@ object PrivateKey25519Companion extends SecretCompanion[PrivateKey25519] {
 
   override type PR = Signature25519
 
-  //todo: implement
   override def owns(secret: PrivateKey25519, box: Box[_]): Boolean = {
     box.proposition match {
-      case _ => ???
+      case p: PublicKey25519Proposition => p.pubKeyBytes sameElements secret.publicKeyBytes
+      case _ => false
     }
   }
 
