@@ -25,7 +25,7 @@ import scala.util.{Failure, Success}
   * @tparam P
   * @tparam TX
   */
-trait NodeViewHolder[P <: Proposition, TX <: Transaction[P, TX], PMOD <: PersistentNodeViewModifier[P, TX]]
+trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
   extends Actor with ScorexLogging {
 
   import NodeViewHolder._
@@ -188,12 +188,12 @@ object NodeViewHolder {
     val source: Option[ConnectedPeer]
   }
 
-  case class FailedTransaction[P <: Proposition, TX <: Transaction[P, TX]]
+  case class FailedTransaction[P <: Proposition, TX <: Transaction[P]]
   (transaction: TX, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  case class FailedModification[P <: Proposition, TX <: Transaction[P, TX], PMOD <: PersistentNodeViewModifier[P, TX]](modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class FailedModification[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]](modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P, TX]](transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
   //todo: successful modification
 

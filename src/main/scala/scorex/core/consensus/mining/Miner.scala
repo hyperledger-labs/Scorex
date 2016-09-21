@@ -5,16 +5,14 @@ import scorex.core.NodeViewHolder
 import scorex.core.consensus.mining.Miner._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.wallet.Wallet
-import scorex.core.transaction.{PersistentNodeViewModifier, Transaction}
+import scorex.core.transaction.Transaction
 import scorex.core.utils.{NetworkTime, ScorexLogging}
 
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.{Failure, Try}
 
-class Miner[P <: Proposition, TX <: Transaction[P, TX]]
+class Miner[P <: Proposition, TX <: Transaction[P]]
 (settings: Settings,
  historySynchronizer: ActorRef,
  viewHolder: NodeViewHolder[P, TX, _])

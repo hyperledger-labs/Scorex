@@ -13,7 +13,7 @@ import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
 
 
-class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P, TX]]
+class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
 (networkControllerRef: ActorRef, viewHolderRef: ActorRef) extends Actor {
 
   import NodeViewSynchronizer._

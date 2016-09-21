@@ -25,7 +25,7 @@ trait Application extends ScorexLogging {
   def appVersion: ApplicationVersion
 
   type P <: Proposition
-  type TX <: Transaction[P, TX]
+  type TX <: Transaction[P]
   type PMOD <: PersistentNodeViewModifier[P, TX]
 
   //settings

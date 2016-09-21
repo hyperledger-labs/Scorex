@@ -24,7 +24,7 @@ import shapeless.HList
   * - additional data: block structure version no, timestamp etc
   */
 
-trait Block[P <: Proposition, TX <: Transaction[P, TX]]
+trait Block[P <: Proposition, TX <: Transaction[P]]
   extends PersistentNodeViewModifier[P, TX] with JsonSerializable {
   self =>
 
@@ -58,7 +58,7 @@ trait Block[P <: Proposition, TX <: Transaction[P, TX]]
   def timestamp: Long
 }
 
-trait BlockCompanion[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX]]
+trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
   extends NodeViewModifierCompanion[B] {
   self =>
 

@@ -16,7 +16,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Success
 
-class MiningController[P <: Proposition, TX <: Transaction[P, TX]]
+class MiningController[P <: Proposition, TX <: Transaction[P]]
 (settings: Settings,
  historySynchronizer: ActorRef,
  viewHolder: NodeViewHolder[P, TX, _]

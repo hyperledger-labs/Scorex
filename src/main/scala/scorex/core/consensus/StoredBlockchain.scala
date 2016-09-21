@@ -13,7 +13,7 @@ import scala.util.{Failure, Success, Try}
 /**
   * If no datafolder provided, blockchain lives in RAM (useful for tests)
   */
-trait StoredBlockchain[P <: Proposition, TX <: Transaction[P, TX], B <: Block[P, TX], SBT <: BlockChain[P, TX, B, SBT]]
+trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SBT <: BlockChain[P, TX, B, SBT]]
   extends BlockChain[P, TX, B, StoredBlockchain[P, TX, B, SBT]] with ScorexLogging {
 
   val dataFolderOpt: Option[String]

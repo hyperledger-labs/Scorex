@@ -20,7 +20,7 @@ import scala.util.Try
 
 case class WalletBox[P <: Proposition](box: Box[P], transactionId: Array[Byte], createdAt: Int, destroyedAt: Option[Int])
 
-case class WalletTransaction[P <: Proposition, TX <: Transaction[P, TX]](tx: TX, createdAt: Int)
+case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX, createdAt: Int)
 
 
 /**
@@ -29,7 +29,7 @@ case class WalletTransaction[P <: Proposition, TX <: Transaction[P, TX]](tx: TX,
   * @tparam P
   * @tparam TX
   */
-trait Wallet[P <: Proposition, TX <: Transaction[P, TX], W <: Wallet[P, TX, W]] extends NodeViewComponent {
+trait Wallet[P <: Proposition, TX <: Transaction[P], W <: Wallet[P, TX, W]] extends NodeViewComponent {
   type VersionTag = NodeViewModifier.ModifierId
 
   type S <: Secret
@@ -59,7 +59,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P, TX], W <: Wallet[P, TX, W]] 
 
 //todo: HKDF
 // todo: encryption
-case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition, TX]]
+case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
 (settings: Settings)
   extends Wallet[PublicKey25519Proposition, TX, DefaultWallet25519[TX]] {
 

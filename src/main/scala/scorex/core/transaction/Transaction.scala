@@ -44,7 +44,7 @@ object NodeViewModifier {
   val ModifierIdSize: Int = 32 //todo: make configurable via application.conf
 }
 
-trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P, TX]] extends NodeViewModifier {
+trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]] extends NodeViewModifier {
 
   // with Dotty is would be Seq[TX] | Nothing
   def transactions: Option[Seq[TX]]
@@ -57,7 +57,7 @@ case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend:
   * A transaction is an atomic state modifier
   */
 
-abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]]
+abstract class Transaction[P <: Proposition]
   extends NodeViewModifier with JsonSerializable {
 
   override val modifierTypeId: Byte = Transaction.TransactionModifierId
@@ -68,21 +68,14 @@ abstract class Transaction[P <: Proposition, TX <: Transaction[P, TX]]
 
   def json: Json
 
-  def validate(state: MinimalState[P, TX, _, _]): Try[Unit]
-
   val messageToSign: Array[Byte]
-
-  /**
-    * A Transaction opens existing boxes and creates new ones
-    */
-  def changes(state: MinimalState[P, TX, _, _]): Try[TransactionChanges[P]]
 }
 
 object Transaction {
   val TransactionModifierId = 2: Byte
 }
 
-abstract class BoxTransaction[P <: Proposition] extends Transaction[P, BoxTransaction[P]] {
+abstract class BoxTransaction[P <: Proposition] extends Transaction[P] {
 
   val unlockers: Traversable[BoxUnlocker[P]]
   val newBoxes: Traversable[Box[P]]
@@ -92,46 +85,4 @@ abstract class BoxTransaction[P <: Proposition] extends Transaction[P, BoxTransa
       unlockers.map(_.closedBoxId).reduce(_ ++ _) ++
       Longs.toByteArray(timestamp) ++
       Longs.toByteArray(fee)
-
-  /**
-    * A transaction is valid against a state if:
-    * - boxes a transaction is opening are stored in the state as closed
-    * - sum of values of closed boxes = sum of values of open boxes - fee
-    * - all the signatures for open boxes are valid(against all the txs bytes except of sigs)
-    *
-    * - fee >= 0
-    *
-    * specific semantic rules are applied
-    *
-    * @param state - state to check a transaction against
-    * @return
-    */
-  override def validate(state: MinimalState[P, BoxTransaction[P], _, _]): Try[Unit] = {
-    lazy val statelessValid = toTry(fee >= 0, "Negative fee")
-
-    lazy val statefulValid = {
-      val boxesSumTry = unlockers.foldLeft[Try[Long]](Success(0L)) { case (partialRes, unlocker) =>
-        partialRes.flatMap { partialSum =>
-          state.closedBox(unlocker.closedBoxId) match {
-            case Some(box) =>
-              unlocker.boxKey.isValid(box.proposition, messageToSign) match {
-                case true => Success(partialSum + box.value)
-                case false => Failure(new Exception(""))
-              }
-            case None => Failure(new Exception(""))
-          }
-        }
-      }
-
-      boxesSumTry flatMap { openSum =>
-        newBoxes.map(_.value).sum == openSum - fee match {
-          case true => Success[Unit](Unit)
-          case false => Failure(new Exception(""))
-        }
-      }
-    }
-    statefulValid.flatMap(_ => statelessValid).flatMap(_ => semanticValidity)
-  }
-
-  def semanticValidity: Try[Unit]
 }
