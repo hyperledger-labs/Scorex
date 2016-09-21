@@ -8,19 +8,19 @@ import scorex.crypto.signatures.Curve25519
 
 import scala.util.{Success, Try}
 
-class SimpleWallet(seed: Array[Byte]) extends Wallet[PublicKey25519Proposition, SimplestTransaction, SimpleWallet] {
+class SimpleWallet(seed: Array[Byte]) extends Wallet[PublicKey25519Proposition, SimpleTransaction, SimpleWallet] {
   override type S = PrivateKey25519
   override type PI = PublicKey25519
   override type NVCT = this.type
 
 
-  private val secret:S = {
+  private val secret: S = {
     val pair = Curve25519.createKeyPair(seed)
     PrivateKey25519(pair._1, pair._2)
   }
 
   override def secretByPublicImage(publicImage: PI): Option[S] = {
-    if(publicImage.address == secret.publicImage.address) Some(secret) else None
+    if (publicImage.address == secret.publicImage.address) Some(secret) else None
   }
 
   override def generateNewSecret(): SimpleWallet = this
@@ -31,15 +31,15 @@ class SimpleWallet(seed: Array[Byte]) extends Wallet[PublicKey25519Proposition, 
 
   override def publicKeys: Set[PI] = Set(secret.publicImage)
 
-  override def scan(tx: SimplestTransaction): SimpleWallet = this
+  override def scan(tx: SimpleTransaction): SimpleWallet = this
 
-  override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimplestTransaction]] = ???
+  override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleTransaction]] = ???
 
   override def historyBoxes: Seq[WalletBox[PublicKey25519Proposition]] = {
     Seq()
   }
 
-  override def bulkScan(txs: Seq[SimplestTransaction]): SimpleWallet = ???
+  override def bulkScan(txs: Seq[SimpleTransaction]): SimpleWallet = ???
 
   override def companion: NodeViewComponentCompanion = ???
 

@@ -7,12 +7,12 @@ import scorex.core.transaction.{NodeViewModifierCompanion, PersistentNodeViewMod
 
 import scala.util.Try
 
-case class SimpleBlock(txs: Seq[SimplestTransaction], generator: PublicKey25519Proposition)
-  extends PersistentNodeViewModifier[PublicKey25519Proposition, SimplestTransaction] {
+case class SimpleBlock(txs: Seq[SimpleTransaction], generator: PublicKey25519Proposition)
+  extends PersistentNodeViewModifier[PublicKey25519Proposition, SimpleTransaction] {
 
   override type M = SimpleBlock
 
-  override def transactions: Option[Seq[SimplestTransaction]] = Some(txs)
+  override def transactions: Option[Seq[SimpleTransaction]] = Some(txs)
 
   override def companion: NodeViewModifierCompanion[SimpleBlock] = SimpleNodeViewModifierCompanion
 

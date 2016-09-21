@@ -11,8 +11,8 @@ import scorex.core.transaction.state.MinimalState
 
 import scala.util.Try
 
-sealed trait SimplestTransaction
-  extends Transaction[PublicKey25519Proposition, SimplestTransaction]
+sealed trait SimpleTransaction
+  extends Transaction[PublicKey25519Proposition, SimpleTransaction]
 
 
 
@@ -20,12 +20,12 @@ sealed trait SimplestTransaction
   * Transaction that sends fee to a miner
   */
 case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
-  extends SimplestTransaction {
+  extends SimpleTransaction {
 
   def genesisChanges(): TransactionChanges[PublicKey25519Proposition] =
     TransactionChanges(Set(), Set(), fee)
 
-  override def changes(state: MinimalState[PublicKey25519Proposition, SimplestTransaction, _, _]): Try[TransactionChanges[PublicKey25519Proposition]] = Try {
+  override def changes(state: MinimalState[PublicKey25519Proposition, SimpleTransaction, _, _]): Try[TransactionChanges[PublicKey25519Proposition]] = Try {
     //TODO saInstanceOf
     if (state.asInstanceOf[MinimalStateImpl].isEmpty) genesisChanges()
     else {
@@ -41,7 +41,7 @@ case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
 
   }
 
-  override def validate(state: MinimalState[PublicKey25519Proposition, SimplestTransaction, _, _]): Try[Unit] = Try {
+  override def validate(state: MinimalState[PublicKey25519Proposition, SimpleTransaction, _, _]): Try[Unit] = Try {
     state.closedBox(boxId).get
   }
 
@@ -49,9 +49,9 @@ case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
 
   override val messageToSign: Array[Byte] = Longs.toByteArray(fee) ++ Longs.toByteArray(timestamp)
 
-  override def companion: NodeViewModifierCompanion[FeeTransaction.this.type] = ???
+  override def companion: NodeViewModifierCompanion[FeeTransaction] = ???
 
   override def id(): ModifierId = FastCryptographicHash(messageToSign)
 
-  override type M = this.type
+  override type M = FeeTransaction
 }

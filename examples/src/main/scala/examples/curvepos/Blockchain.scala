@@ -1,6 +1,6 @@
 package examples.curvepos
 
-import examples.curvepos.transaction.{SimpleBlock, SimplestTransaction}
+import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{BlockId, RollbackTo}
@@ -9,7 +9,7 @@ import scala.util.Try
 
 
 class Blockchain
-  extends History[PublicKey25519Proposition, SimplestTransaction, SimpleBlock, Blockchain] {
+  extends History[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, Blockchain] {
   /**
     * Is there's no history, even genesis block
     *

@@ -14,7 +14,7 @@ import scala.collection.concurrent.TrieMap
 import scala.util.Try
 
 class MinimalStateImpl extends ScorexLogging
-with MinimalState[PublicKey25519Proposition, SimplestTransaction, SimpleBlock, MinimalStateImpl] {
+with MinimalState[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, MinimalStateImpl] {
 
   private val EmptyVersion: Int = 0
   private var v: Int = EmptyVersion
