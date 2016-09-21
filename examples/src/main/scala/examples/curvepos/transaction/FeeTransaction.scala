@@ -12,7 +12,7 @@ import scorex.core.transaction.{NodeViewModifierCompanion, Transaction, Transact
 import scala.util.Try
 
 /**
-  * Transaction that send fee to miner
+  * Transaction that sends fee to a miner
   */
 case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
   extends Transaction[PublicKey25519Proposition, FeeTransaction] {
