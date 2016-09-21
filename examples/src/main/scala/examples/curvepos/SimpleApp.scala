@@ -31,7 +31,7 @@ class SimpleApp extends Application {
   override val apiTypes = Seq()
   override val apiRoutes: Seq[ApiRoute] = Seq()
   override val wallet: Wallet[P, TX, _] = new SimpleWallet(Random.randomBytes(32))
-  override val nodeViewHolder: NodeViewHolder[P, TX, PMOD] = null
+  override val nodeViewHolder: NodeViewHolder[P, TX, PMOD] = new SimpleNodeViewHolder
 }
 
 object SimpleApp extends App {
