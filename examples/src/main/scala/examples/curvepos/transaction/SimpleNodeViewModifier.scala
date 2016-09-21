@@ -7,14 +7,14 @@ import scorex.core.transaction.{NodeViewModifierCompanion, PersistentNodeViewMod
 
 import scala.util.Try
 
-case class SimpleNodeViewModifier(txs: Seq[FeeTransaction], generator: PublicKey25519Proposition)
-  extends PersistentNodeViewModifier[PublicKey25519Proposition, FeeTransaction] {
+case class SimpleBlock(txs: Seq[SimplestTransaction], generator: PublicKey25519Proposition)
+  extends PersistentNodeViewModifier[PublicKey25519Proposition, SimplestTransaction] {
 
-  override type M = SimpleNodeViewModifier
+  override type M = SimpleBlock
 
-  override def transactions: Option[Seq[FeeTransaction]] = Some(txs)
+  override def transactions: Option[Seq[SimplestTransaction]] = Some(txs)
 
-  override def companion: NodeViewModifierCompanion[SimpleNodeViewModifier] = SimpleNodeViewModifierCompanion
+  override def companion: NodeViewModifierCompanion[SimpleBlock] = SimpleNodeViewModifierCompanion
 
   override def id(): ModifierId =
     FastCryptographicHash(txs.map(_.messageToSign).reduce(_ ++ _) ++ generator.pubKeyBytes)
@@ -22,8 +22,8 @@ case class SimpleNodeViewModifier(txs: Seq[FeeTransaction], generator: PublicKey
   override val modifierTypeId: ModifierTypeId = -1: Byte
 }
 
-object SimpleNodeViewModifierCompanion extends NodeViewModifierCompanion[SimpleNodeViewModifier] {
-  override def bytes(modifier: SimpleNodeViewModifier): Array[ModifierTypeId] = ???
+object SimpleNodeViewModifierCompanion extends NodeViewModifierCompanion[SimpleBlock] {
+  override def bytes(modifier: SimpleBlock): Array[ModifierTypeId] = ???
 
-  override def parse(bytes: Array[ModifierTypeId]): Try[SimpleNodeViewModifier] = ???
+  override def parse(bytes: Array[ModifierTypeId]): Try[SimpleBlock] = ???
 }

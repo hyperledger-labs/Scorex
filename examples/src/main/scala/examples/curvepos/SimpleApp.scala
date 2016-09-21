@@ -1,6 +1,6 @@
 package examples.curvepos
 
-import examples.curvepos.transaction.{SimpleWallet, SimpleNodeViewModifier, FeeTransaction}
+import examples.curvepos.transaction.{SimpleBlock, SimpleWallet, SimplestTransaction}
 import io.circe.Json
 import scorex.core.NodeViewHolder
 import scorex.core.api.http.ApiRoute
@@ -24,8 +24,8 @@ class SimpleApp extends Application {
   override lazy val appVersion: ApplicationVersion = ApplicationVersion(0, 1, 0)
 
   override type P = PublicKey25519Proposition
-  override type TX = FeeTransaction
-  override type PMOD = SimpleNodeViewModifier
+  override type TX = SimplestTransaction
+  override type PMOD = SimpleBlock
 
   override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
   override val apiTypes = Seq()
