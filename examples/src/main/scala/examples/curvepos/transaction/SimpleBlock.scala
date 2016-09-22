@@ -12,7 +12,8 @@ import shapeless.HNil
 import scala.util.Try
 
 case class SimpleBlock(txs: Seq[SimpleTransaction],
-
+                       override val parentId: ModifierId,
+                       override val timestamp: Long,
                        generator: PublicKey25519)
   extends Block[PublicKey25519Proposition, SimpleTransaction] {
 
@@ -31,13 +32,9 @@ case class SimpleBlock(txs: Seq[SimpleTransaction],
 
   override def version: ModifierTypeId = 0: Byte
 
-  override def parentId: ModifierId = ???
-
   override def bytes: Array[ModifierTypeId] = ???
 
   override def json: Json = ???
-
-  override def timestamp: Long = ???
 }
 
 object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
