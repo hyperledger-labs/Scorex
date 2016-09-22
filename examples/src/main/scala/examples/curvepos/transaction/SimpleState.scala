@@ -47,14 +47,15 @@ class SimpleState extends ScorexLogging
     this
   }
 
-  override def applyChanges(mod: SimpleBlock): Try[SimpleState] = Try {
-    val generatorReward = mod.txs.map(_.fee).sum
-    val generatorBox: PublicKey25519NoncedBox = accountBox(mod.generator).headOption match {
+  override def applyChanges(block: SimpleBlock): Try[SimpleState] = Try {
+    val generatorReward = block.txs.map(_.fee).sum
+    val gen = PublicKey25519Proposition(block.generator)
+    val generatorBox: PublicKey25519NoncedBox = accountBox(gen).headOption match {
       case Some(oldBox) => oldBox.copy(nonce = oldBox.nonce + 1, value = oldBox.value + generatorReward)
-      case None => PublicKey25519NoncedBox(mod.generator, 1, generatorReward)
+      case None => PublicKey25519NoncedBox(gen, 1, generatorReward)
     }
 
-    val txChanges = mod.txs.map(tx => changes(tx)).map(_.get)
+    val txChanges = block.txs.map(tx => changes(tx)).map(_.get)
     val toRemove: Set[PublicKey25519NoncedBox] = txChanges.flatMap(_.toRemove).toSet
     val toAppend: Set[PublicKey25519NoncedBox] = (generatorBox +: txChanges.flatMap(_.toAppend)).toSet
     applyChanges(StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend)).get
