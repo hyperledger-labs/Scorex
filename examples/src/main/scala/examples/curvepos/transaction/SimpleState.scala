@@ -6,13 +6,12 @@ import com.google.common.primitives.Ints
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
 import scorex.core.transaction.TransactionChanges
-import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.utils.ScorexLogging
-
 import scala.collection.concurrent.TrieMap
 import scala.util.{Failure, Success, Try}
+
 
 class SimpleState extends ScorexLogging
   with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
@@ -67,7 +66,10 @@ class SimpleState extends ScorexLogging
 
   override def validate(transaction: SimpleTransaction): Try[Unit] = transaction match {
     case ft: FeeTransaction => Try(closedBox(ft.boxId).get)
-    case sp: SimplePayment => ???
+    case sp: SimplePayment => Try {
+      val b = accountBox(PublicKey25519Proposition(sp.sender)).head
+      (b.value >= sp.amount + sp.fee) && (b.nonce + 1 == sp.nonce)
+    }
   }
 
   /**

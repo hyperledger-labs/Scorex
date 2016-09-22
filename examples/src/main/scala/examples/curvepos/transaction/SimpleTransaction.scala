@@ -41,6 +41,7 @@ case class SimplePayment(sender: PublicKey25519,
                          recipient: PublicKey25519,
                          amount: Long,
                          fee: Long,
+                         nonce: Long,
                          timestamp: Long)
   extends SimpleTransaction {
 
@@ -56,6 +57,7 @@ case class SimplePayment(sender: PublicKey25519,
       recipient.bytes ++
       Longs.toByteArray(amount) ++
       Longs.toByteArray(fee) ++
+      Longs.toByteArray(nonce) ++
       Longs.toByteArray(timestamp))
 
   override def companion: NodeViewModifierCompanion[SimplePayment] =
