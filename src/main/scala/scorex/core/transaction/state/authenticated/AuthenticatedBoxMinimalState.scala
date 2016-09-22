@@ -1,5 +1,6 @@
 package scorex.core.transaction.state.authenticated
 
+import scorex.core.transaction.box.Box
 import scorex.crypto.authds.storage.StorageType
 import scorex.crypto.authds.{AuthenticatedDictionary, DataProof}
 import scorex.crypto.hash.CryptographicHash
@@ -11,8 +12,8 @@ import scorex.utils._
 import scala.util.{Failure, Success, Try}
 
 
-trait BoxMinimalState[P <: Proposition, BTX <: BoxTransaction[P], M <: PersistentNodeViewModifier[P, BTX], BMS <: BoxMinimalState[P, BTX, M, BMS]]
-  extends MinimalState[P, BTX, M, BMS] {
+trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, BX], M <: PersistentNodeViewModifier[P, BTX], BMS <: BoxMinimalState[P, BX, BTX, M, BMS]]
+  extends MinimalState[P, BX, BTX, M, BMS] {
   self: BMS =>
 
   /**
@@ -58,9 +59,9 @@ trait BoxMinimalState[P <: Proposition, BTX <: BoxTransaction[P], M <: Persisten
   def semanticValidity(tx: BTX): Try[Unit]
 }
 
-trait AuthenticatedBoxMinimalState[P <: Proposition, TX <: Transaction[P], M <: PersistentNodeViewModifier[P, TX], HashFunction <: CryptographicHash,
-AMS <: AuthenticatedBoxMinimalState[P, TX, M, HashFunction, AMS]]
-  extends MinimalState[P, TX, M, AMS] {
+trait AuthenticatedBoxMinimalState[P <: Proposition, BX <: Box[P], TX <: Transaction[P], M <: PersistentNodeViewModifier[P, TX], HashFunction <: CryptographicHash,
+AMS <: AuthenticatedBoxMinimalState[P, BX, TX, M, HashFunction, AMS]]
+  extends MinimalState[P, BX, TX, M, AMS] {
   self: AMS =>
 
   type ElementProof <: DataProof

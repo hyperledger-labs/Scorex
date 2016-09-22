@@ -31,7 +31,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   import NodeViewHolder._
 
   type HIS <: History[P, TX, PMOD, HIS]
-  type MS <: MinimalState[P, TX, PMOD, MS]
+  type MS <: MinimalState[P, _, TX, PMOD, MS]
   type WL <: Wallet[P, TX, WL]
   type MP <: MemoryPool[TX, MP]
 

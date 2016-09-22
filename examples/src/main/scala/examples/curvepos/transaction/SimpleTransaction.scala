@@ -22,7 +22,7 @@ sealed trait SimpleTransaction
 case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
   extends SimpleTransaction {
 
-  def genesisChanges(): TransactionChanges[PublicKey25519Proposition] =
+  def genesisChanges(): TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
     TransactionChanges(Set(), Set(), fee)
 
   override def json: Json = Map("transaction" -> "Not implemented").asJson

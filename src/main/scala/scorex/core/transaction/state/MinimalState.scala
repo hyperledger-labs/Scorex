@@ -12,8 +12,10 @@ import scala.util.Try
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
-trait MinimalState[P <: Proposition, TX <: Transaction[P],
-M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, TX, M, MS]] extends NodeViewComponent {
+trait MinimalState[P <: Proposition,
+BX <: Box[P],
+TX <: Transaction[P],
+M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
   self: MS =>
 
   type VersionTag = NodeViewModifier.ModifierId
@@ -26,17 +28,17 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, TX, M, MS]] extend
 
   def filterValid(txs: Seq[TX]): Seq[TX] = txs.filter(isValid)
 
-  def closedBox(boxId: Array[Byte]): Option[Box[P]]
+  def closedBox(boxId: Array[Byte]): Option[BX]
 
   def validate(transaction: TX): Try[Unit]
   /**
     * A Transaction opens existing boxes and creates new ones
     */
-  def changes(transaction: TX): Try[TransactionChanges[P]]
+  def changes(transaction: TX): Try[TransactionChanges[P, BX]]
 
-  def accountBox(proposition: P): Seq[Box[P]]
+  def accountBox(proposition: P): Seq[BX]
 
-  def applyChanges(change: StateChanges[P]): Try[MS]
+  def applyChanges(change: StateChanges[P, BX]): Try[MS]
 
   def applyChanges(mods: Seq[M]): Try[MS] =
     mods.foldLeft(Try(this)){case (curTry, mod) =>

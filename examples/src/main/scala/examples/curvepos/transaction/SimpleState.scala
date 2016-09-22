@@ -15,12 +15,12 @@ import scala.collection.concurrent.TrieMap
 import scala.util.{Failure, Success, Try}
 
 class SimpleState extends ScorexLogging
-  with MinimalState[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleState] {
+  with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
 
   private val EmptyVersion: Int = 0
   private var v: Int = EmptyVersion
 
-  private val storage: TrieMap[ByteBuffer, Box[PublicKey25519Proposition]] = TrieMap()
+  private val storage: TrieMap[ByteBuffer, PublicKey25519NoncedBox] = TrieMap()
   private val accountIndex: TrieMap[String, PublicKey25519NoncedBox] = TrieMap()
 
   def isEmpty: Boolean = v == EmptyVersion
@@ -30,7 +30,7 @@ class SimpleState extends ScorexLogging
   override def accountBox(p: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] =
     accountIndex.get(p.address).map(box => Seq(box)).getOrElse(Seq())
 
-  override def closedBox(boxId: Array[Byte]): Option[Box[PublicKey25519Proposition]] =
+  override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
     storage.get(ByteBuffer.wrap(boxId))
 
   override def rollbackTo(version: VersionTag): Try[SimpleState] = {
@@ -39,12 +39,11 @@ class SimpleState extends ScorexLogging
   }
 
 
-  override def applyChanges(change: StateChanges[PublicKey25519Proposition]): Try[SimpleState] = Try {
+  override def applyChanges(change: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]): Try[SimpleState] = Try {
     change.toRemove.foreach(b => storage.remove(ByteBuffer.wrap(b.id)))
     change.toAppend.foreach { b =>
       storage.put(ByteBuffer.wrap(b.id), b)
-      //TODO asInstanceOf
-      accountIndex.put(b.proposition.address, b.asInstanceOf[PublicKey25519NoncedBox])
+      accountIndex.put(b.proposition.address, b)
     }
     this
   }
@@ -57,9 +56,9 @@ class SimpleState extends ScorexLogging
     }
 
     val txChanges = mod.txs.map(tx => changes(tx)).map(_.get)
-    val toRemove: Set[Box[PublicKey25519Proposition]] = txChanges.flatMap(_.toRemove).toSet
-    val toAppend: Set[Box[PublicKey25519Proposition]] = (generatorBox +: txChanges.flatMap(_.toAppend)).toSet
-    applyChanges(StateChanges[PublicKey25519Proposition](toRemove, toAppend)).get
+    val toRemove: Set[PublicKey25519NoncedBox] = txChanges.flatMap(_.toRemove).toSet
+    val toAppend: Set[PublicKey25519NoncedBox] = (generatorBox +: txChanges.flatMap(_.toAppend)).toSet
+    applyChanges(StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend)).get
   }
 
   override def companion: NodeViewComponentCompanion = ???
@@ -74,7 +73,7 @@ class SimpleState extends ScorexLogging
   /**
     * A Transaction opens existing boxes and creates new ones
     */
-  override def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition]] =
+  override def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
   transaction match {
     case ft: FeeTransaction =>
       if (isEmpty) Success(ft.genesisChanges())
@@ -84,7 +83,7 @@ class SimpleState extends ScorexLogging
             val newSender = oldSender.copy(value = oldSender.value - ft.fee, nonce = oldSender.nonce + 1)
             require(newSender.value >= 0)
 
-            Success(TransactionChanges[PublicKey25519Proposition](Set(oldSender), Set(newSender), ft.fee))
+            Success(TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(oldSender), Set(newSender), ft.fee))
           case _ => throw new Exception("Wrong kind of box")
         }
       }

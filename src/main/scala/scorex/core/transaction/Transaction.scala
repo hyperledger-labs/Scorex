@@ -48,7 +48,7 @@ trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]] extends
   def transactions: Option[Seq[TX]]
 }
 
-case class TransactionChanges[P <: Proposition](toRemove: Set[Box[P]], toAppend: Set[Box[P]], minerReward: Long)
+case class TransactionChanges[P <: Proposition, BX <: Box[P]](toRemove: Set[BX], toAppend: Set[BX], minerReward: Long)
 
 
 /**
@@ -73,10 +73,10 @@ object Transaction {
   val TransactionModifierId = 2: Byte
 }
 
-abstract class BoxTransaction[P <: Proposition] extends Transaction[P] {
+abstract class BoxTransaction[P <: Proposition, BX <: Box[P]] extends Transaction[P] {
 
   val unlockers: Traversable[BoxUnlocker[P]]
-  val newBoxes: Traversable[Box[P]]
+  val newBoxes: Traversable[BX]
 
   override lazy val messageToSign: Array[Byte] =
     newBoxes.map(_.bytes).reduce(_ ++ _) ++
