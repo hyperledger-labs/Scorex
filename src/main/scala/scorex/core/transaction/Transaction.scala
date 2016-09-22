@@ -5,10 +5,8 @@ import io.circe.Json
 import scorex.core.serialization.JsonSerializable
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.box.{Box, BoxUnlocker}
-import scorex.core.transaction.state.MinimalState
+import scala.util.Try
 
-import scala.util.{Failure, Success, Try}
-import scorex.utils.toTry
 
 trait NodeViewModifier {
   self =>
