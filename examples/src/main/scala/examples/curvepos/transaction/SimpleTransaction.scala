@@ -9,6 +9,8 @@ import scorex.core.transaction.{NodeViewModifierCompanion, Transaction, Transact
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PublicKey25519
 
+import scala.util.Try
+
 
 sealed trait SimpleTransaction
   extends Transaction[PublicKey25519Proposition]
@@ -35,7 +37,11 @@ case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
 }
 
 
-case class SimplePayment(sender: PublicKey25519, recipient: PublicKey25519, amount: Long, fee: Long, timestamp: Long)
+case class SimplePayment(sender: PublicKey25519,
+                         recipient: PublicKey25519,
+                         amount: Long,
+                         fee: Long,
+                         timestamp: Long)
   extends SimpleTransaction {
 
   override def json: Json = ???
@@ -52,5 +58,10 @@ case class SimplePayment(sender: PublicKey25519, recipient: PublicKey25519, amou
       Longs.toByteArray(fee) ++
       Longs.toByteArray(timestamp))
 
-  override def companion: NodeViewModifierCompanion[SimplePayment] = ???
+  override def companion: NodeViewModifierCompanion[SimplePayment] =
+    new NodeViewModifierCompanion[SimplePayment] {
+      override def bytes(modifier: SimplePayment): Array[Byte] = ???
+
+      override def parse(bytes: Array[Byte]): Try[SimplePayment] = ???
+    }
 }

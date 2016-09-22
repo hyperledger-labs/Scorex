@@ -15,6 +15,7 @@ trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewC
   //getters
   def getById(id: ModifierId): Option[TX]
 
+  //get mempool transaction ids not presenting in ids
   def notIn(ids: Seq[ModifierId]): Seq[ModifierId]
 
   def getAll(ids: Seq[ModifierId]): Seq[TX]

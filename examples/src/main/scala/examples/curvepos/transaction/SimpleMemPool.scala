@@ -8,7 +8,7 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 import scala.util.Try
 
-class SimplestMemPool extends MemoryPool[SimpleTransaction, SimplestMemPool] {
+class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
 
   private val pool: TrieMap[TxKey, SimpleTransaction] = TrieMap()
   private type TxKey = scala.collection.mutable.WrappedArray.ofByte
@@ -18,27 +18,27 @@ class SimplestMemPool extends MemoryPool[SimpleTransaction, SimplestMemPool] {
   //getters
   override def getById(id: ModifierId): Option[SimpleTransaction] = pool.get(key(id))
 
-  override def filter(id: Array[Byte]): SimplestMemPool = {
+  override def filter(id: Array[Byte]): SimpleMemPool = {
     pool.remove(key(id))
     this
   }
 
-  override def filter(tx: SimpleTransaction): SimplestMemPool = filter(Seq(tx))
+  override def filter(tx: SimpleTransaction): SimpleMemPool = filter(Seq(tx))
 
-  override def filter(txs: Iterable[SimpleTransaction]): SimplestMemPool = {
+  override def filter(txs: Iterable[SimpleTransaction]): SimpleMemPool = {
     txs.foreach(tx => pool.remove(key(tx.id)))
     this
   }
 
-  override def putWithoutCheck(txs: Iterable[SimpleTransaction]): SimplestMemPool = {
+  override def putWithoutCheck(txs: Iterable[SimpleTransaction]): SimpleMemPool = {
     txs.foreach(tx => pool.put(key(tx.id), tx))
     this
   }
 
   //modifiers
-  override def put(tx: SimpleTransaction): Try[SimplestMemPool] = put(Seq(tx))
+  override def put(tx: SimpleTransaction): Try[SimpleMemPool] = put(Seq(tx))
 
-  override def put(txs: Iterable[SimpleTransaction]): Try[SimplestMemPool] = Try {
+  override def put(txs: Iterable[SimpleTransaction]): Try[SimpleMemPool] = Try {
     txs.foreach(tx => require(!pool.contains(key(tx.id))))
     putWithoutCheck(txs)
   }
@@ -46,20 +46,18 @@ class SimplestMemPool extends MemoryPool[SimpleTransaction, SimplestMemPool] {
   /**
     * Get sequence of transactions and remove them from pool
     */
-  override def drain(limit: Int): (Iterable[SimpleTransaction], SimplestMemPool) = {
+  override def drain(limit: Int): (Iterable[SimpleTransaction], SimpleMemPool) = {
     val txs: Iterable[SimpleTransaction] = pool.keys.take(limit).flatMap(k => pool.get(k))
     (txs, filter(txs))
   }
 
-  override def remove(tx: SimpleTransaction): SimplestMemPool = filter(tx)
+  override def remove(tx: SimpleTransaction): SimpleMemPool = filter(tx)
 
   override def notIn(ids: Seq[ModifierId]): Seq[ModifierId] = ???
 
-  override def getAll(ids: Seq[ModifierId]): Seq[SimpleTransaction] = {
-    pool.keys.flatMap(k => pool.get(k)).toSeq
-  }
+  override def getAll(ids: Seq[ModifierId]): Seq[SimpleTransaction] = pool.values.toSeq
 
   override def companion: NodeViewComponentCompanion = ???
 
-  override type NVCT = SimplestMemPool
+  override type NVCT = SimpleMemPool
 }

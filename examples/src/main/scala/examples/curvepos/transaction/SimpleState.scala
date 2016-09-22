@@ -14,8 +14,8 @@ import scorex.core.utils.ScorexLogging
 import scala.collection.concurrent.TrieMap
 import scala.util.{Failure, Success, Try}
 
-class MinimalStateImpl extends ScorexLogging
-  with MinimalState[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, MinimalStateImpl] {
+class SimpleState extends ScorexLogging
+  with MinimalState[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleState] {
 
   private val EmptyVersion: Int = 0
   private var v: Int = EmptyVersion
@@ -27,20 +27,19 @@ class MinimalStateImpl extends ScorexLogging
 
   override def version: VersionTag = Ints.toByteArray(v)
 
-  override def accountBox(p: PublicKey25519Proposition): Option[PublicKey25519NoncedBox] = {
-    accountIndex.get(p.address)
-  }
+  override def accountBox(p: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] =
+    accountIndex.get(p.address).map(box => Seq(box)).getOrElse(Seq())
 
   override def closedBox(boxId: Array[Byte]): Option[Box[PublicKey25519Proposition]] =
     storage.get(ByteBuffer.wrap(boxId))
 
-  override def rollbackTo(version: VersionTag): Try[MinimalStateImpl] = {
+  override def rollbackTo(version: VersionTag): Try[SimpleState] = {
     log.warn("Rollback is not implemented")
     Try(this)
   }
 
 
-  override def applyChanges(change: StateChanges[PublicKey25519Proposition]): Try[MinimalStateImpl] = Try {
+  override def applyChanges(change: StateChanges[PublicKey25519Proposition]): Try[SimpleState] = Try {
     change.toRemove.foreach(b => storage.remove(ByteBuffer.wrap(b.id)))
     change.toAppend.foreach { b =>
       storage.put(ByteBuffer.wrap(b.id), b)
@@ -50,9 +49,9 @@ class MinimalStateImpl extends ScorexLogging
     this
   }
 
-  override def applyChanges(mod: SimpleBlock): Try[MinimalStateImpl] = Try {
+  override def applyChanges(mod: SimpleBlock): Try[SimpleState] = Try {
     val generatorReward = mod.txs.map(_.fee).sum
-    val generatorBox: PublicKey25519NoncedBox = accountBox(mod.generator) match {
+    val generatorBox: PublicKey25519NoncedBox = accountBox(mod.generator).headOption match {
       case Some(oldBox) => oldBox.copy(nonce = oldBox.nonce + 1, value = oldBox.value + generatorReward)
       case None => PublicKey25519NoncedBox(mod.generator, 1, generatorReward)
     }
@@ -76,7 +75,7 @@ class MinimalStateImpl extends ScorexLogging
     * A Transaction opens existing boxes and creates new ones
     */
   override def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition]] =
-  transaction match{
+  transaction match {
     case ft: FeeTransaction =>
       if (isEmpty) Success(ft.genesisChanges())
       else {

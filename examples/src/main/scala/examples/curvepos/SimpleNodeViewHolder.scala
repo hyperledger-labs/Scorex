@@ -16,8 +16,8 @@ class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, Sim
 
   override protected def genesisState: (HIS, MS, WL, MP) = ???
 
-  override type MS = MinimalStateImpl
+  override type MS = SimpleState
   override type WL = SimpleWallet
-  override type MP = SimplestMemPool
+  override type MP = SimpleMemPool
   override val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] = null
 }
