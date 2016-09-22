@@ -31,7 +31,7 @@ trait History[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewMo
     */
   def isEmpty: Boolean
 
-  def contains(block: PM): Boolean = contains(block.id())
+  def contains(block: PM): Boolean = contains(block.id)
 
   def contains(id: BlockId): Boolean = blockById(id).isDefined
 

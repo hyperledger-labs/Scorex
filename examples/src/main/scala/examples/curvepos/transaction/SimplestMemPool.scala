@@ -26,12 +26,12 @@ class SimplestMemPool extends MemoryPool[SimpleTransaction, SimplestMemPool] {
   override def filter(tx: SimpleTransaction): SimplestMemPool = filter(Seq(tx))
 
   override def filter(txs: Iterable[SimpleTransaction]): SimplestMemPool = {
-    txs.foreach(tx => pool.remove(key(tx.id())))
+    txs.foreach(tx => pool.remove(key(tx.id)))
     this
   }
 
   override def putWithoutCheck(txs: Iterable[SimpleTransaction]): SimplestMemPool = {
-    txs.foreach(tx => pool.put(key(tx.id()), tx))
+    txs.foreach(tx => pool.put(key(tx.id), tx))
     this
   }
 
@@ -39,7 +39,7 @@ class SimplestMemPool extends MemoryPool[SimpleTransaction, SimplestMemPool] {
   override def put(tx: SimpleTransaction): Try[SimplestMemPool] = put(Seq(tx))
 
   override def put(txs: Iterable[SimpleTransaction]): Try[SimplestMemPool] = Try {
-    txs.foreach(tx => require(!pool.contains(key(tx.id()))))
+    txs.foreach(tx => require(!pool.contains(key(tx.id))))
     putWithoutCheck(txs)
   }
 

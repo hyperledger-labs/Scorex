@@ -69,6 +69,7 @@ class MinimalStateImpl extends ScorexLogging
 
   override def validate(transaction: SimpleTransaction): Try[Unit] = transaction match {
     case ft: FeeTransaction => Try(closedBox(ft.boxId).get)
+    case sp: SimplePayment => ???
   }
 
   /**

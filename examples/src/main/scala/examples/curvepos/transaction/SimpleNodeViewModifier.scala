@@ -16,7 +16,7 @@ case class SimpleBlock(txs: Seq[SimpleTransaction], generator: PublicKey25519Pro
 
   override def companion: NodeViewModifierCompanion[SimpleBlock] = SimpleNodeViewModifierCompanion
 
-  override def id(): ModifierId =
+  override def id: ModifierId =
     FastCryptographicHash(txs.map(_.messageToSign).reduce(_ ++ _) ++ generator.pubKeyBytes)
 
   override val modifierTypeId: ModifierTypeId = -1: Byte

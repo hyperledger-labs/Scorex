@@ -20,7 +20,7 @@ trait NodeViewModifier {
   val modifierTypeId: ModifierTypeId
 
   //todo: check statically or dynamically output size
-  def id(): ModifierId
+  def id: ModifierId
 
   def companion: NodeViewModifierCompanion[M]
 }

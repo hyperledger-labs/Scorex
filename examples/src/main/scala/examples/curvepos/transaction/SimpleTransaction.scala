@@ -7,13 +7,11 @@ import io.circe.Json
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.{NodeViewModifierCompanion, Transaction, TransactionChanges}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.MinimalState
+import scorex.core.transaction.state.PublicKey25519
 
-import scala.util.Try
 
 sealed trait SimpleTransaction
   extends Transaction[PublicKey25519Proposition]
-
 
 
 /**
@@ -31,23 +29,28 @@ case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
 
   override def companion: NodeViewModifierCompanion[FeeTransaction] = ???
 
-  override def id(): ModifierId = FastCryptographicHash(messageToSign)
+  override def id: ModifierId = FastCryptographicHash(messageToSign)
 
   override type M = FeeTransaction
 }
 
 
-case class SimplePayment(fee: Long, timestamp: Long)
+case class SimplePayment(sender: PublicKey25519, recipient: PublicKey25519, amount: Long, fee: Long, timestamp: Long)
   extends SimpleTransaction {
 
   override def json: Json = ???
 
-  override val messageToSign: Array[Byte] = ???
+  override lazy val messageToSign: Array[Byte] = id
 
   override type M = SimplePayment
 
   //todo: check statically or dynamically output size
-  override def id(): ModifierId = ???
+  override lazy val id: ModifierId = FastCryptographicHash(
+    sender.bytes ++
+      recipient.bytes ++
+      Longs.toByteArray(amount) ++
+      Longs.toByteArray(fee) ++
+      Longs.toByteArray(timestamp))
 
   override def companion: NodeViewModifierCompanion[SimplePayment] = ???
 }

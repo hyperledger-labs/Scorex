@@ -39,7 +39,7 @@ trait Block[P <: Proposition, TX <: Transaction[P]]
 
   def parentId: NodeViewModifier.ModifierId
 
-  def encodedId: String = Base58.encode(id())
+  def encodedId: String = Base58.encode(id)
 
   def bytes: Array[Byte]
 

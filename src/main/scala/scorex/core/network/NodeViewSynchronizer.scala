@@ -108,7 +108,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
           val c = modifiers.head.companion.asInstanceOf[NodeViewModifierCompanion[NodeViewModifier]]
           val modType = modifiers.head.modifierTypeId
 
-          val m = modType -> modifiers.map(m => m.id() -> c.bytes(m)).toMap
+          val m = modType -> modifiers.map(m => m.id -> c.bytes(m)).toMap
           val msg = Message(ModifiersSpec, Right(m), None)
           sessionPeer.handlerRef ! msg
         }
