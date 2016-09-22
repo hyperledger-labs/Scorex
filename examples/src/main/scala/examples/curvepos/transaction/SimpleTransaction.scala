@@ -29,7 +29,11 @@ case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
 
   override val messageToSign: Array[Byte] = Longs.toByteArray(fee) ++ Longs.toByteArray(timestamp)
 
-  override def companion: NodeViewModifierCompanion[FeeTransaction] = ???
+  override def companion: NodeViewModifierCompanion[FeeTransaction] = new NodeViewModifierCompanion[FeeTransaction] {
+    override def bytes(modifier: FeeTransaction): Array[Byte] = ???
+
+    override def parse(bytes: Array[Byte]): Try[FeeTransaction] = ???
+  }
 
   override def id: ModifierId = FastCryptographicHash(messageToSign)
 

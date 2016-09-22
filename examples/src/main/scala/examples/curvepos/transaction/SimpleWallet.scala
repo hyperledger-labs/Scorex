@@ -42,5 +42,4 @@ class SimpleWallet(seed: Array[Byte]) extends Wallet[PublicKey25519Proposition, 
   override def bulkScan(txs: Seq[SimpleTransaction]): SimpleWallet = ???
 
   override def companion: NodeViewComponentCompanion = ???
-
 }
