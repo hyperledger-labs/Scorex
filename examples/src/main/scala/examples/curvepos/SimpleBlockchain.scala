@@ -4,7 +4,6 @@ import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{BlockId, RollbackTo}
-import scorex.core.transaction.NodeViewModifier
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 import scala.collection.concurrent.TrieMap
@@ -34,10 +33,14 @@ class SimpleBlockchain
   override def openSurface(): Seq[BlockId] = Seq(ids.last)
 
   //todo: argument should be ID | Seq[ID]
-  override def continuation(from: Seq[BlockId], size: Int): Seq[SimpleBlock] = ???
+  override def continuation(from: Seq[BlockId], size: Int): Seq[SimpleBlock] =
+    continuationIds(from, size).map(blockById).map(_.get)
 
   //todo: argument should be ID | Seq[ID]
-  override def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId] = ???
+  override def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId] = {
+    require(from.size == 1)
+    ids.dropWhile(id => !id.sameElements(from.head)).take(size)
+  }
 
   /**
     * Quality score of a best chain, e.g. cumulative difficulty in case of Bitcoin / Nxt
