@@ -2,7 +2,7 @@ package examples.curvepos
 
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewComponentCompanion
-import scorex.core.consensus.History
+import scorex.core.consensus.{BlockChain, History}
 import scorex.core.consensus.History.{BlockId, RollbackTo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
@@ -11,7 +11,7 @@ import scala.util.Try
 
 
 class SimpleBlockchain
-  extends History[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleBlockchain] {
+  extends BlockChain[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleBlockchain] {
 
   type Height = Int
 
@@ -57,4 +57,19 @@ class SimpleBlockchain
   override type NVCT = this.type
 
   override def companion: NodeViewComponentCompanion = null
+
+  override def score(block: SimpleBlock): Score = ???
+
+  /**
+    * Height of the a chain, or a longest chain in an explicit block-tree
+    */
+  override def height(): Height = ???
+
+  override def heightOf(blockId: BlockId): Option[Height] = ???
+
+  override def discardBlock(): Try[SimpleBlockchain] = ???
+
+  override def blockAt(height: Height): Option[SimpleBlock] = ???
+
+  override def children(blockId: BlockId): Seq[SimpleBlock] = ???
 }
