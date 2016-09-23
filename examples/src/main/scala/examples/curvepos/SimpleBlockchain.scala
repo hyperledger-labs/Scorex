@@ -27,7 +27,12 @@ class SimpleBlockchain
 
   override def blockById(blockId: BlockId): Option[SimpleBlock] = blocks.get(blockId)
 
-  override def append(block: SimpleBlock): Try[(SimpleBlockchain, Option[RollbackTo[SimpleBlock]])] = ???
+  override def append(block: SimpleBlock): Try[(SimpleBlockchain, Option[RollbackTo[SimpleBlock]])] = {
+    val blockId = block.id
+    val parentId = block.parentId
+
+    ???
+  }
 
   //todo: should be ID | Seq[ID]
   override def openSurface(): Seq[BlockId] = Seq(ids.last)
