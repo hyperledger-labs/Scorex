@@ -41,11 +41,13 @@ trait History[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewMo
 
   def append(block: PM): Try[(HT, Option[RollbackTo[PM]])]
 
-  //todo: should be ID | Seq[ID]
+  //todo: output should be ID | Seq[ID]
   def openSurface(): Seq[BlockId]
 
+  //todo: argument should be ID | Seq[ID]
   def continuation(from: Seq[BlockId], size: Int): Seq[PM]
 
+  //todo: argument should be ID | Seq[ID]
   def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
 
   /**
