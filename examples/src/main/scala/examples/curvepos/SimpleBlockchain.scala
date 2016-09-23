@@ -15,8 +15,7 @@ class SimpleBlockchain
 
   type Height = Int
 
-  lazy val ids = IndexedSeq[BlockId]()
-  lazy val blocks = TrieMap[BlockId, SimpleBlock]()
+  lazy val blocks = IndexedSeq[(BlockId, SimpleBlock)]()
 
   /**
     * Is there's no history, even genesis block
@@ -25,7 +24,8 @@ class SimpleBlockchain
     */
   override def isEmpty: Boolean = blocks.isEmpty
 
-  override def blockById(blockId: BlockId): Option[SimpleBlock] = blocks.get(blockId)
+  override def blockById(blockId: BlockId): Option[SimpleBlock] =
+    blocks.find(_._1.sameElements(blockId)).map(_._2)
 
   override def append(block: SimpleBlock): Try[(SimpleBlockchain, Option[RollbackTo[SimpleBlock]])] = {
     val blockId = block.id
@@ -35,16 +35,16 @@ class SimpleBlockchain
   }
 
   //todo: should be ID | Seq[ID]
-  override def openSurface(): Seq[BlockId] = Seq(ids.last)
+  override def openSurface(): Seq[BlockId] = Seq(blocks.last._1)
 
   //todo: argument should be ID | Seq[ID]
   override def continuation(from: Seq[BlockId], size: Int): Seq[SimpleBlock] =
-    continuationIds(from, size).map(blockById).map(_.get)
+  continuationIds(from, size).map(blockById).map(_.get)
 
   //todo: argument should be ID | Seq[ID]
   override def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId] = {
     require(from.size == 1)
-    ids.dropWhile(id => !id.sameElements(from.head)).take(size)
+    blocks.dropWhile(t => !t._1.sameElements(from.head)).take(size).map(_._1)
   }
 
   /**
@@ -63,9 +63,12 @@ class SimpleBlockchain
   /**
     * Height of the a chain, or a longest chain in an explicit block-tree
     */
-  override def height(): Height = ???
+  override def height(): Height = blocks.size
 
-  override def heightOf(blockId: BlockId): Option[Height] = ???
+  override def heightOf(blockId: BlockId): Option[Height] = {
+    val idx = blocks.indexWhere(_._1.sameElements(blockId))
+    if (idx == -1) None else Some(idx + 1)
+  }
 
   override def discardBlock(): Try[SimpleBlockchain] = ???
 
