@@ -63,7 +63,7 @@ class SimpleState extends ScorexLogging
 
   override def companion: NodeViewComponentCompanion = ???
 
-  override type NVCT = this.type
+  override type NVCT = SimpleState
 
   override def validate(transaction: SimpleTransaction): Try[Unit] = transaction match {
     case sp: SimplePayment => Try {
