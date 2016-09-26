@@ -6,12 +6,12 @@ import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.NodeViewModifier.ModifierTypeId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.NodeViewModifierCompanion
-import shapeless.{HNil, ::}
+import shapeless.{::, HNil}
 
 import scala.util.Try
-
 import Block._
 import SimpleBlock._
+import com.google.common.primitives.{Ints, Longs}
 
 case class SimpleBlock(override val parentId: BlockId,
                        override val timestamp: Long,
@@ -47,7 +47,21 @@ object SimpleBlock {
 }
 
 object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
-  override def bytes(modifier: SimpleBlock): Array[ModifierTypeId] = ???
+  override def bytes(modifier: SimpleBlock): Array[ModifierTypeId] = {
+    modifier.parentId ++
+      Longs.toByteArray(modifier.timestamp) ++
+      Array(modifier.version) ++
+      modifier.generationSignature ++
+      Longs.toByteArray(modifier.baseTarget) ++
+      modifier.generator.pubKeyBytes ++ {
+        val cntBytes = Ints.toByteArray(modifier.txs.size)
+        modifier.txs.foldLeft(cntBytes){case (bytes, tx) =>
+          val txBytes = tx.companion.bytes(tx)
+          bytes ++ Ints.toByteArray(txBytes.size) ++ txBytes
+        }
+      }
+
+  }
 
   override def parse(bytes: Array[ModifierTypeId]): Try[SimpleBlock] = ???
 }
