@@ -9,7 +9,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {
   override type HIS = SimpleBlockchain
 
-  override def restoreState(): Option[(HIS, MS, WL, MP)] = ???
+  override def restoreState(): Option[(HIS, MS, WL, MP)] = None
 
   //todo: ???
   override def fixDb(): Unit = ???
