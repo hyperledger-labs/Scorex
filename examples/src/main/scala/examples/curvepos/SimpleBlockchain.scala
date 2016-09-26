@@ -54,7 +54,7 @@ class SimpleBlockchain
     */
   override def score(): BigInt = ???
 
-  override type NVCT = this.type
+  override type NVCT = SimpleBlockchain
 
   override def companion: NodeViewComponentCompanion = null
 

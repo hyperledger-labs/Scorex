@@ -30,7 +30,7 @@ class SimpleApp extends Application {
   override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
   override val apiTypes = Seq()
   override val apiRoutes: Seq[ApiRoute] = Seq()
-  override val wallet: Wallet[P, TX, _] = new SimpleWallet(Random.randomBytes(32))
+  override val wallet: Wallet[P, TX, _] = new SimpleWallet()
   override val nodeViewHolder: NodeViewHolder[P, TX, PMOD] = new SimpleNodeViewHolder
 }
 

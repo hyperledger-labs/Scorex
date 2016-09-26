@@ -26,8 +26,7 @@ case class PublicKey25519Proposition(publicKey: PublicKey25519) extends ProofOfK
 object PublicKey25519Proposition {
   val AddressVersion: Byte = 1
   val ChecksumLength = 4
-  val PubKeyLength = 32
-  val AddressLength = 1 + PubKeyLength + ChecksumLength
+  val AddressLength = 1 + Constants25519.PubKeyLength + ChecksumLength
 
   def calcCheckSum(bytes: Array[Byte]): Array[Byte] = hash(bytes).take(ChecksumLength)
 
@@ -45,4 +44,9 @@ object PublicKey25519Proposition {
         else Failure(new Exception("Wrong checksum"))
       }
     }
+}
+
+object Constants25519 {
+  val PrivKeyLength = 32
+  val PubKeyLength = 32
 }
