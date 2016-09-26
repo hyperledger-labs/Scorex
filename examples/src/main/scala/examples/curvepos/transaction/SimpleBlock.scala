@@ -28,16 +28,12 @@ case class SimpleBlock(override val parentId: BlockId,
   override def id: BlockId =
     FastCryptographicHash(txs.map(_.messageToSign).reduce(_ ++ _) ++ generator.bytes)
 
-  override type B = SimpleBlock
-
   override type M = SimpleBlock
 
   override type BlockFields = BlockId :: Timestamp :: Version ::
     GenerationSignature :: BaseTarget :: PublicKey25519Proposition :: Seq[SimpleTransaction] :: HNil
 
   override val version: Version = 0: Byte
-
-  override def bytes: Array[Byte] = ???
 
   override def json: Json = ???
 

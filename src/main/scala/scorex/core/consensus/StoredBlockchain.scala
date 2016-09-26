@@ -29,7 +29,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
     if (signatures.size() > 0) database.rollback()
 
     def writeBlock(height: Int, block: B): Try[Unit] = Try {
-      blocks.put(height, block.bytes)
+      blocks.put(height, block.companion.bytes(block))
       scoreMap.put(height, score() + score(block))
       signatures.put(height, block.id)
       database.commit()

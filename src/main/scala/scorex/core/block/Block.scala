@@ -31,8 +31,6 @@ trait Block[P <: Proposition, TX <: Transaction[P]]
 
   override val modifierTypeId: Byte = 1
 
-  type B >: self.type <: Block[P, TX]
-
   type BlockFields <: HList
 
   def version: Version
@@ -40,8 +38,6 @@ trait Block[P <: Proposition, TX <: Transaction[P]]
   def parentId: NodeViewModifier.ModifierId
 
   def encodedId: String = Base58.encode(id)
-
-  def bytes: Array[Byte]
 
   /* = (version +: Longs.toByteArray(timestamp)) ++ arrayWithSize(consensusData.bytes) ++
      arrayWithSize(transactionalData.bytes)*/

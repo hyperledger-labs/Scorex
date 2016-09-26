@@ -27,8 +27,6 @@ trait NodeViewModifierCompanion[M <: NodeViewModifier] {
   def bytes(modifier: M): Array[Byte]
 
   def parse(bytes: Array[Byte]): Try[M]
-
-  def bytes(modifiers: Seq[M]): Seq[Array[Byte]] = modifiers.map(bytes)
 }
 
 /**
