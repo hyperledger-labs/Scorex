@@ -10,7 +10,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.utils.ScorexLogging
 import scala.collection.concurrent.TrieMap
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 
 class SimpleState extends ScorexLogging

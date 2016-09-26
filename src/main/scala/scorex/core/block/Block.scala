@@ -1,6 +1,7 @@
 package scorex.core.block
 
 import io.circe.Json
+import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.consensus.History
 import scorex.crypto.encode.Base58
 import scorex.core.serialization.JsonSerializable
@@ -30,12 +31,11 @@ trait Block[P <: Proposition, TX <: Transaction[P]]
 
   override val modifierTypeId: Byte = 1
 
-
   type B >: self.type <: Block[P, TX]
 
   type BlockFields <: HList
 
-  def version: Byte
+  def version: Version
 
   def parentId: NodeViewModifier.ModifierId
 
@@ -55,14 +55,23 @@ trait Block[P <: Proposition, TX <: Transaction[P]]
      "transactionalData" -> transactionalData.json
    ).asJson */
 
-  def timestamp: Long
+  def timestamp: Timestamp
+
+  def blockFields: BlockFields
+}
+
+object Block {
+  type BlockId = NodeViewModifier.ModifierId
+  type Timestamp = Long
+  type Version = Byte
+
+  val BlockIdLength: Int = NodeViewModifier.ModifierIdSize
+
 }
 
 trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
   extends NodeViewModifierCompanion[B] {
   self =>
-
-  type BlockId = NodeViewModifier.ModifierId
 
   def isValid(block: B): Boolean
 
@@ -75,8 +84,6 @@ trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
     * @return blocks' producers
     */
   def producers(block: B, history: History[P, TX, B, _]): Seq[P]
-
-  val BlockIdLength: Int
 
   val MaxRollback: Int
 }

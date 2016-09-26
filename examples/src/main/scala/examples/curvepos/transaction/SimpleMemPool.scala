@@ -53,6 +53,7 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
 
   override def remove(tx: SimpleTransaction): SimpleMemPool = filter(tx)
 
+  //get mempool transaction ids not presenting in ids
   override def notIn(ids: Seq[ModifierId]): Seq[ModifierId] = ???
 
   override def getAll(ids: Seq[ModifierId]): Seq[SimpleTransaction] = pool.values.toSeq
