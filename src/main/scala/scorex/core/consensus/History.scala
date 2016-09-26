@@ -55,7 +55,7 @@ trait History[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewMo
     *
     * @return
     */
-  def score(): BigInt
+  def chainScore(): BigInt
 }
 
 object History {

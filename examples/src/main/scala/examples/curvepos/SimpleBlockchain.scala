@@ -1,5 +1,7 @@
 package examples.curvepos
 
+import java.math.BigInteger
+
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.consensus.{BlockChain, History}
@@ -52,13 +54,13 @@ class SimpleBlockchain
     *
     * @return
     */
-  override def score(): BigInt = ???
+  override def chainScore(): BigInt = blocks.map(ib => score(ib._2)).sum
 
   override type NVCT = SimpleBlockchain
 
   override def companion: NodeViewComponentCompanion = null
 
-  override def score(block: SimpleBlock): Score = ???
+  override def score(block: SimpleBlock): Score = BigInt("18446744073709551616") / block.baseTarget
 
   /**
     * Height of the a chain, or a longest chain in an explicit block-tree
