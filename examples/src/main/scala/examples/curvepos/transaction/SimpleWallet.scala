@@ -15,8 +15,8 @@ class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength))
   extends Wallet[PublicKey25519Proposition, SimpleTransaction, SimpleWallet] {
   override type S = PrivateKey25519
   override type PI = PublicKey25519
-  override type NVCT = this.type
 
+  override type NVCT = SimpleWallet
 
   private val secret: S = {
     val pair = Curve25519.createKeyPair(seed)
@@ -27,6 +27,10 @@ class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength))
     if (publicImage.address == secret.publicImage.address) Some(secret) else None
   }
 
+  /**
+    * Only one secret is supported so this method always returns unmodified wallet
+    * @return
+    */
   override def generateNewSecret(): SimpleWallet = this
 
   override def secrets: Set[S] = Set(secret)
@@ -35,7 +39,9 @@ class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength))
 
   override def publicKeys: Set[PI] = Set(secret.publicImage)
 
-  override def scan(tx: SimpleTransaction): SimpleWallet = this
+  override def scan(tx: SimpleTransaction): SimpleWallet = tx match {
+    case sp: SimplePayment => this
+  }
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleTransaction]] = ???
 

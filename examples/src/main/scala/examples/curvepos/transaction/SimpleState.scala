@@ -66,7 +66,6 @@ class SimpleState extends ScorexLogging
   override type NVCT = this.type
 
   override def validate(transaction: SimpleTransaction): Try[Unit] = transaction match {
-    case ft: FeeTransaction => Try(closedBox(ft.boxId).get)
     case sp: SimplePayment => Try {
       val b = accountBox(PublicKey25519Proposition(sp.sender)).head
       (b.value >= sp.amount + sp.fee) && (b.nonce + 1 == sp.nonce)
@@ -78,19 +77,6 @@ class SimpleState extends ScorexLogging
     */
   override def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
   transaction match {
-    case ft: FeeTransaction =>
-      if (isEmpty) Success(ft.genesisChanges())
-      else {
-        closedBox(ft.boxId) match {
-          case Some(oldSender: PublicKey25519NoncedBox) =>
-            val newSender = oldSender.copy(value = oldSender.value - ft.fee, nonce = oldSender.nonce + 1)
-            require(newSender.value >= 0)
-
-            Success(TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(oldSender), Set(newSender), ft.fee))
-          case _ => throw new Exception("Wrong kind of box")
-        }
-      }
-
     case _: SimplePayment => Failure(new Exception("implementation is needed"))
   }
 }

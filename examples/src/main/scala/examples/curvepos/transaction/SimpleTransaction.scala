@@ -16,31 +16,6 @@ sealed trait SimpleTransaction
   extends Transaction[PublicKey25519Proposition]
 
 
-/**
-  * Transaction that sends fee to a miner
-  */
-case class FeeTransaction(boxId: Array[Byte], fee: Long, timestamp: Long)
-  extends SimpleTransaction {
-
-  def genesisChanges(): TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
-    TransactionChanges(Set(), Set(), fee)
-
-  override def json: Json = Map("transaction" -> "Not implemented").asJson
-
-  override val messageToSign: Array[Byte] = Longs.toByteArray(fee) ++ Longs.toByteArray(timestamp)
-
-  override def companion: NodeViewModifierCompanion[FeeTransaction] = new NodeViewModifierCompanion[FeeTransaction] {
-    override def bytes(modifier: FeeTransaction): Array[Byte] = ???
-
-    override def parse(bytes: Array[Byte]): Try[FeeTransaction] = ???
-  }
-
-  override def id: ModifierId = FastCryptographicHash(messageToSign)
-
-  override type M = FeeTransaction
-}
-
-
 case class SimplePayment(sender: PublicKey25519,
                          recipient: PublicKey25519,
                          amount: Long,
