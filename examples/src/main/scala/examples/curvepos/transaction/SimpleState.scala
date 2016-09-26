@@ -49,7 +49,7 @@ class SimpleState extends ScorexLogging
 
   override def applyChanges(block: SimpleBlock): Try[SimpleState] = Try {
     val generatorReward = block.txs.map(_.fee).sum
-    val gen = PublicKey25519Proposition(block.generator)
+    val gen = block.generator
     val generatorBox: PublicKey25519NoncedBox = accountBox(gen).headOption match {
       case Some(oldBox) => oldBox.copy(nonce = oldBox.nonce + 1, value = oldBox.value + generatorReward)
       case None => PublicKey25519NoncedBox(gen, 1, generatorReward)
@@ -67,7 +67,7 @@ class SimpleState extends ScorexLogging
 
   override def validate(transaction: SimpleTransaction): Try[Unit] = transaction match {
     case sp: SimplePayment => Try {
-      val b = accountBox(PublicKey25519Proposition(sp.sender)).head
+      val b = accountBox(sp.sender).head
       (b.value >= sp.amount + sp.fee) && (b.nonce + 1 == sp.nonce)
     }
   }

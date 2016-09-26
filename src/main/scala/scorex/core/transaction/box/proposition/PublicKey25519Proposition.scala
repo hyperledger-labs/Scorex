@@ -3,18 +3,16 @@ package scorex.core.transaction.box.proposition
 import scorex.crypto.encode.Base58
 import scorex.core.crypto.hash.FastCryptographicHash._
 import scorex.crypto.signatures.Curve25519
-import scorex.core.transaction.state.{PrivateKey25519, PublicKey25519}
+import scorex.core.transaction.state.PrivateKey25519
 
 import scala.util.{Failure, Success, Try}
 
-case class PublicKey25519Proposition(publicKey: PublicKey25519) extends ProofOfKnowledgeProposition[PrivateKey25519] {
+case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKnowledgeProposition[PrivateKey25519] {
   import PublicKey25519Proposition._
-
-  lazy val pubKeyBytes = publicKey.bytes
 
   lazy val address: String = Base58.encode((AddressVersion +: pubKeyBytes) ++ calcCheckSum(pubKeyBytes))
 
-  lazy val bytes = publicKey.bytes
+  lazy val bytes = pubKeyBytes
 
   override def toString: String = address
 
@@ -40,7 +38,7 @@ object PublicKey25519Proposition {
         val checkSumGenerated = calcCheckSum(addressBytes.dropRight(ChecksumLength))
 
         if (checkSum.sameElements(checkSumGenerated))
-          Success(PublicKey25519Proposition(PublicKey25519(addressBytes.dropRight(ChecksumLength).tail)))
+          Success(PublicKey25519Proposition(addressBytes.dropRight(ChecksumLength).tail))
         else Failure(new Exception("Wrong checksum"))
       }
     }

@@ -2,7 +2,7 @@ package examples.curvepos.transaction
 
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
-import scorex.core.transaction.state.{PrivateKey25519, PublicKey25519}
+import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 import scorex.crypto.signatures.Curve25519
 import scorex.utils.Random
@@ -14,7 +14,7 @@ import Constants25519.PrivKeyLength
 class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength))
   extends Wallet[PublicKey25519Proposition, SimpleTransaction, SimpleWallet] {
   override type S = PrivateKey25519
-  override type PI = PublicKey25519
+  override type PI = PublicKey25519Proposition
 
   override type NVCT = SimpleWallet
 

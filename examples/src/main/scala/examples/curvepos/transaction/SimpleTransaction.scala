@@ -1,13 +1,11 @@
 package examples.curvepos.transaction
 
-import io.circe.syntax._
 import scorex.core.transaction.NodeViewModifier.ModifierId
 import com.google.common.primitives.Longs
 import io.circe.Json
 import scorex.core.crypto.hash.FastCryptographicHash
-import scorex.core.transaction.{NodeViewModifierCompanion, Transaction, TransactionChanges}
+import scorex.core.transaction.{NodeViewModifierCompanion, Transaction}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PublicKey25519
 
 import scala.util.Try
 
@@ -16,8 +14,8 @@ sealed trait SimpleTransaction
   extends Transaction[PublicKey25519Proposition]
 
 
-case class SimplePayment(sender: PublicKey25519,
-                         recipient: PublicKey25519,
+case class SimplePayment(sender: PublicKey25519Proposition,
+                         recipient: PublicKey25519Proposition,
                          amount: Long,
                          fee: Long,
                          nonce: Long,

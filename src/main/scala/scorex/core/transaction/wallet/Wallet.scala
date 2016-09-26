@@ -11,8 +11,8 @@ import scorex.core.crypto.hash.SecureCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.{NodeViewModifier, Transaction}
 import scorex.core.transaction.box.Box
-import scorex.core.transaction.box.proposition.{Proposition, PublicImage, PublicKey25519Proposition}
-import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PublicKey25519, Secret}
+import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition, PublicKey25519Proposition}
+import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, Secret}
 import scorex.utils.randomBytes
 
 import scala.collection.JavaConversions._
@@ -33,7 +33,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P], W <: Wallet[P, TX, W]] exte
   type VersionTag = NodeViewModifier.ModifierId
 
   type S <: Secret
-  type PI <: PublicImage[S]
+  type PI <: ProofOfKnowledgeProposition[S]
 
   def generateNewSecret(): W
 
@@ -64,7 +64,7 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
   extends Wallet[PublicKey25519Proposition, TX, DefaultWallet25519[TX]] {
 
   override type S = PrivateKey25519
-  override type PI = PublicKey25519
+  override type PI = PublicKey25519Proposition
 
   val walletFileOpt: Option[File] = settings.walletDirOpt.map(walletDir => new java.io.File(walletDir, "wallet.s.dat"))
   val password: String = settings.walletPassword
@@ -114,7 +114,7 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
     val randomSeed = SecureCryptographicHash(Bytes.concat(Ints.toByteArray(nonce), seed))
     val (priv, pub) = PrivateKey25519Companion.generateKeys(randomSeed)
 
-    dbSecrets.put(pub.publicKeyBytes, priv.privKeyBytes)
+    dbSecrets.put(pub.pubKeyBytes, priv.privKeyBytes)
     db.commit()
     db.close()
     new DefaultWallet25519[TX](settings)
@@ -128,16 +128,16 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
 
   override def historyBoxes: Seq[WalletBox[PublicKey25519Proposition]] = ???
 
-  override def publicKeys: Set[PublicKey25519] =
-    dbSecrets.getKeys.map(PublicKey25519.apply).toSet
+  override def publicKeys: Set[PublicKey25519Proposition] =
+    dbSecrets.getKeys.map(PublicKey25519Proposition.apply).toSet
 
   //todo: protection?
   override def secrets: Set[PrivateKey25519] =
     dbSecrets.getEntries.map(e => PrivateKey25519(e.getValue, e.getKey)).toSet
 
-  override def secretByPublicImage(publicImage: PublicKey25519): Option[PrivateKey25519] =
+  override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
     Option(dbSecrets.get(publicImage))
-      .map(privBytes => PrivateKey25519(privBytes, publicImage.publicKeyBytes))
+      .map(privBytes => PrivateKey25519(privBytes, publicImage.pubKeyBytes))
 
   override type NVCT = DefaultWallet25519[TX]
 

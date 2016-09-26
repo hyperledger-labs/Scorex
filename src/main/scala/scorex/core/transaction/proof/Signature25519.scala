@@ -11,7 +11,7 @@ case class Signature25519(signature: Array[Byte]) extends ProofOfKnowledge[Priva
   override lazy val bytes: Array[Byte] = signature
 
   override def isValid(proposition: PublicKey25519Proposition, message: Array[Byte]): Boolean =
-    Curve25519.verify(signature, message, proposition.publicKey.bytes)
+    Curve25519.verify(signature, message, proposition.bytes)
 }
 
 object Signature25519 {

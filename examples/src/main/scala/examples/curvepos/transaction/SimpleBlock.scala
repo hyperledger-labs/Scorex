@@ -5,7 +5,6 @@ import scorex.core.block.Block
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PublicKey25519
 import scorex.core.transaction.NodeViewModifierCompanion
 import shapeless.{HNil, ::}
 
@@ -16,7 +15,7 @@ import Block._
 case class SimpleBlock(txs: Seq[SimpleTransaction],
                        override val parentId: BlockId,
                        override val timestamp: Long,
-                       generator: PublicKey25519)
+                       generator: PublicKey25519Proposition)
   extends Block[PublicKey25519Proposition, SimpleTransaction] {
 
   override def transactions: Option[Seq[SimpleTransaction]] = Some(txs)
@@ -29,6 +28,10 @@ case class SimpleBlock(txs: Seq[SimpleTransaction],
   override type B = SimpleBlock
 
   override type M = SimpleBlock
+
+  type GenerationSignature = Array[Byte]
+
+  type BaseTarget = Long
 
   override type BlockFields = Seq[SimpleTransaction] :: Timestamp :: Version :: HNil
 
