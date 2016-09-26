@@ -1,14 +1,10 @@
 package examples.curvepos
 
-import java.math.BigInteger
-
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewComponentCompanion
-import scorex.core.consensus.{BlockChain, History}
+import scorex.core.consensus.BlockChain
 import scorex.core.consensus.History.{BlockId, RollbackTo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-
-import scala.collection.concurrent.TrieMap
 import scala.util.Try
 
 
