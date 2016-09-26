@@ -9,10 +9,11 @@ import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.wallet.Wallet
-import scorex.utils.Random
 
 /**
-  * Curve25519 accounts + ??? Consensus
+  * Simple application implementing simple transactions
+  * (just transfers from one pubkey to another)
+  * and Nxt-like(simplified) Consensus
   */
 class SimpleApp extends Application {
   override implicit val settings: Settings = new Settings {
@@ -35,6 +36,5 @@ class SimpleApp extends Application {
 }
 
 object SimpleApp extends App {
-  val app = new SimpleApp
-  app.run()
+  new SimpleApp().run()
 }
