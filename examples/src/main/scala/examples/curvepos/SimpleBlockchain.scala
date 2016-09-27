@@ -5,18 +5,12 @@ import scorex.core.NodeViewComponentCompanion
 import scorex.core.consensus.BlockChain
 import scorex.core.consensus.History.{BlockId, RollbackTo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
+import SimpleBlockchain.Height
 
-class SimpleBlockchain
+case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[BlockId, SimpleBlock] = Map())
   extends BlockChain[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleBlockchain] {
-
-  type Height = Int
-
-  lazy val blockIds = mutable.Map[Height, BlockId]()
-  lazy val blocks = mutable.Map[BlockId, SimpleBlock]()
 
   /**
     * Is there's no history, even genesis block
@@ -34,10 +28,8 @@ class SimpleBlockchain
 
     if (blockIds.isEmpty || (blockIds.last._2 sameElements parentId)) {
       val h = height() + 1
-
-      blockIds += h -> blockId
-      blocks += blockId -> block
-      Success(this, None)
+      val newChain = SimpleBlockchain(blockIds + (h -> blockId), blocks + (blockId -> block))
+      Success(newChain, None)
     } else Failure(new Exception("No parent is a last block"))
   }
 
@@ -82,4 +74,8 @@ class SimpleBlockchain
 
   override def children(blockId: BlockId): Seq[SimpleBlock] =
     heightOf(blockId).map(_ + 1).flatMap(blockAt).toSeq
+}
+
+object SimpleBlockchain{
+  type Height = Int
 }

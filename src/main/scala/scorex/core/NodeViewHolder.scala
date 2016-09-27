@@ -65,7 +65,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def notifySubscribers[O <: ModificationOutcome](eventType: EventType.Value, signal: O) = subscribers.get(eventType).foreach(_ ! signal)
 
   private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
-    val updWallet = wallet().scan(tx)
+    val updWallet = wallet().scan(tx, offchain = true)
     memoryPool().put(tx) match {
       case Success(updPool) =>
         nodeView = (history(), minimalState(), updWallet, updPool)

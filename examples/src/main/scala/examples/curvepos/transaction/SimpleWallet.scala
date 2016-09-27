@@ -23,6 +23,8 @@ class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength))
     PrivateKey25519(pair._1, pair._2)
   }
 
+  //private val offchainTransactions
+
   override def secretByPublicImage(publicImage: PI): Option[S] = {
     if (publicImage.address == secret.publicImage.address) Some(secret) else None
   }
@@ -39,8 +41,9 @@ class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength))
 
   override def publicKeys: Set[PI] = Set(secret.publicImage)
 
-  override def scan(tx: SimpleTransaction): SimpleWallet = tx match {
-    case sp: SimplePayment => this
+  override def scan(tx: SimpleTransaction, offchain: Boolean): SimpleWallet = tx match {
+    case sp: SimplePayment =>
+      this
   }
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleTransaction]] = ???
