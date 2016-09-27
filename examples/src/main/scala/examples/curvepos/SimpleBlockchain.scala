@@ -77,7 +77,9 @@ class SimpleBlockchain
 
   override def discardBlock(): Try[SimpleBlockchain] = ???
 
-  override def blockAt(height: Height): Option[SimpleBlock] = ???
+  override def blockAt(height: Height): Option[SimpleBlock] =
+    blockIds.get(height).flatMap(blocks.get)
 
-  override def children(blockId: BlockId): Seq[SimpleBlock] = ???
+  override def children(blockId: BlockId): Seq[SimpleBlock] =
+    heightOf(blockId).map(_ + 1).flatMap(blockAt).toSeq
 }
