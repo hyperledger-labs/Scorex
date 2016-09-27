@@ -5,6 +5,8 @@ import scorex.core.NodeViewComponentCompanion
 import scorex.core.consensus.BlockChain
 import scorex.core.consensus.History.{BlockId, RollbackTo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+
+import scala.collection.mutable
 import scala.util.Try
 
 
@@ -13,7 +15,8 @@ class SimpleBlockchain
 
   type Height = Int
 
-  lazy val blocks = IndexedSeq[(BlockId, SimpleBlock)]()
+  lazy val blockIds = mutable.Map[Height, BlockId]()
+  lazy val blocks = mutable.Map[BlockId, SimpleBlock]()
 
   /**
     * Is there's no history, even genesis block
@@ -42,7 +45,7 @@ class SimpleBlockchain
   //todo: argument should be ID | Seq[ID]
   override def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId] = {
     require(from.size == 1)
-    blocks.dropWhile(t => !t._1.sameElements(from.head)).take(size).map(_._1)
+    blocks.dropWhile(t => !t._1.sameElements(from.head)).take(size).keys.toSeq
   }
 
   /**
@@ -63,10 +66,8 @@ class SimpleBlockchain
     */
   override def height(): Height = blocks.size
 
-  override def heightOf(blockId: BlockId): Option[Height] = {
-    val idx = blocks.indexWhere(_._1.sameElements(blockId))
-    if (idx == -1) None else Some(idx + 1)
-  }
+  override def heightOf(blockId: BlockId): Option[Height] =
+    blockIds.find(_._2 sameElements blockId).map(_._1)
 
   override def discardBlock(): Try[SimpleBlockchain] = ???
 

@@ -30,7 +30,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
 
     def writeBlock(height: Int, block: B): Try[Unit] = Try {
       blocks.put(height, block.companion.bytes(block))
-      scoreMap.put(height, score() + score(block))
+      scoreMap.put(height, chainScore() + score(block))
       signatures.put(height, block.id)
       database.commit()
     }
@@ -107,7 +107,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
 
   override def height(): Int = blockStorage.height()
 
-  override def score(): BigInt = blockStorage.dbScore()
+  override def chainScore(): BigInt = blockStorage.dbScore()
 
   override def heightOf(blockSignature: BlockId): Option[Int] = blockStorage.heightOf(blockSignature)
 
