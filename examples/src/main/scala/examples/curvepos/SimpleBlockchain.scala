@@ -7,7 +7,7 @@ import scorex.core.consensus.History.{BlockId, RollbackTo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 import scala.collection.mutable
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 
 class SimpleBlockchain
@@ -28,11 +28,17 @@ class SimpleBlockchain
   override def blockById(blockId: BlockId): Option[SimpleBlock] =
     blocks.find(_._1.sameElements(blockId)).map(_._2)
 
-  override def append(block: SimpleBlock): Try[(SimpleBlockchain, Option[RollbackTo[SimpleBlock]])] = {
+  override def append(block: SimpleBlock): Try[(SimpleBlockchain, Option[RollbackTo[SimpleBlock]])] = synchronized {
     val blockId = block.id
     val parentId = block.parentId
 
-    ???
+    if (blockIds.isEmpty || (blockIds.last._2 sameElements parentId)) {
+      val h = height() + 1
+
+      blockIds += h -> blockId
+      blocks += blockId -> block
+      Success(this, None)
+    } else Failure(new Exception("No parent is a last block"))
   }
 
   //todo: should be ID | Seq[ID]
