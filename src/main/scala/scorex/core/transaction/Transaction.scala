@@ -68,6 +68,8 @@ abstract class Transaction[P <: Proposition]
 }
 
 object Transaction {
+  type TransactionId = NodeViewModifier.ModifierId
+
   val TransactionModifierId = 2: Byte
 }
 
