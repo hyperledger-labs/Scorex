@@ -37,6 +37,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   /**
     * Only one secret is supported so this method always returns unmodified wallet
+    *
     * @return
     */
   override def generateNewSecret(): SimpleWallet = SimpleWallet(Random.randomBytes(PrivKeyLength))
@@ -49,15 +50,18 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def scan(tx: SimpleTransaction, offchain: Boolean): SimpleWallet = tx match {
     case sp: SimplePayment =>
-      if(sp.sender.bytes sameElements pubKeyBytes){
-        if(offchain) ??? else ???
-      }
-
-      if(sp.recipient.bytes sameElements pubKeyBytes){
-        if(offchain) ??? else ???
-      }
-
-      this
+      if ((sp.sender.bytes sameElements pubKeyBytes) || (sp.recipient.bytes sameElements pubKeyBytes)) {
+        if (offchain) {
+          SimpleWallet(seed, chainTransactions, offchainTransactions + (sp.id -> sp), currentBalance)
+        } else {
+          val ct = chainTransactions + (sp.id -> sp)
+          val oct = offchainTransactions - sp.id
+          val cb = if (sp.recipient.bytes sameElements pubKeyBytes) {
+            currentBalance + sp.amount
+          } else currentBalance - sp.amount
+          SimpleWallet(seed, ct, oct, cb)
+        }
+      } else this
   }
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleTransaction]] = ???
