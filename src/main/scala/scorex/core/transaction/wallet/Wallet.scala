@@ -40,7 +40,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P], W <: Wallet[P, TX, W]] exte
   //todo: or Try[Wallet[P, TX]] ?
   def scan(tx: TX, offchain: Boolean): W
 
-  def bulkScan(txs: Seq[TX]): W
+  def bulkScan(txs: Seq[TX], offchain: Boolean): W
 
   def historyTransactions: Seq[WalletTransaction[P, TX]]
 
@@ -122,7 +122,7 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
 
   override def scan(tx: TX, offchain: Boolean): DefaultWallet25519[TX] = ???
 
-  override def bulkScan(txs: Seq[TX]):  DefaultWallet25519[TX] = ???
+  override def bulkScan(txs: Seq[TX], offchain: Boolean):  DefaultWallet25519[TX] = ???
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, TX]] = ???
 

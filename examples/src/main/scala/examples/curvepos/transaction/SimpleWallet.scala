@@ -70,7 +70,9 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     Seq()
   }
 
-  override def bulkScan(txs: Seq[SimpleTransaction]): SimpleWallet = ???
+  override def bulkScan(txs: Seq[SimpleTransaction], offchain: Boolean): SimpleWallet =
+    txs.foldLeft(this) { case(wallet, tx) => wallet.scan(tx, offchain)}
+
 
   override def companion: NodeViewComponentCompanion = ???
 }

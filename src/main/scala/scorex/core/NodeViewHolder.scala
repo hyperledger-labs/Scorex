@@ -95,7 +95,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             //todo: continue from here
             maybeRollback.map(rb => wallet().rollback(rb.to))
               .getOrElse(Success(wallet()))
-              .map(w => w.bulkScan(appliedTxs)) match {
+              .map(w => w.bulkScan(appliedTxs, offchain = false)) match {
 
               case Success(newWallet) =>
                 nodeView = (newHistory, newMinState, newWallet, newMemPool)
