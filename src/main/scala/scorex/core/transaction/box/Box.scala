@@ -7,6 +7,8 @@ import scorex.core.transaction.box.proposition.Proposition
   * Box is a state element locked by some proposition.
   */
 trait Box[P <: Proposition] extends BytesSerializable {
+  type Amount = Long
+
   val proposition: P
 
   val value: Long
