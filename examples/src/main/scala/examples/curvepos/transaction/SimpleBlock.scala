@@ -47,15 +47,15 @@ object SimpleBlock {
 }
 
 object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
-  override def bytes(modifier: SimpleBlock): Array[ModifierTypeId] = {
-    modifier.parentId ++
-      Longs.toByteArray(modifier.timestamp) ++
-      Array(modifier.version) ++
-      modifier.generationSignature ++
-      Longs.toByteArray(modifier.baseTarget) ++
-      modifier.generator.pubKeyBytes ++ {
-        val cntBytes = Ints.toByteArray(modifier.txs.size)
-        modifier.txs.foldLeft(cntBytes){case (bytes, tx) =>
+  override def bytes(block: SimpleBlock): Array[ModifierTypeId] = {
+    block.parentId ++
+      Longs.toByteArray(block.timestamp) ++
+      Array(block.version) ++
+      block.generationSignature ++
+      Longs.toByteArray(block.baseTarget) ++
+      block.generator.pubKeyBytes ++ {
+        val cntBytes = Ints.toByteArray(block.txs.size)
+        block.txs.foldLeft(cntBytes){case (bytes, tx) =>
           val txBytes = tx.companion.bytes(tx)
           bytes ++ Ints.toByteArray(txBytes.size) ++ txBytes
         }
