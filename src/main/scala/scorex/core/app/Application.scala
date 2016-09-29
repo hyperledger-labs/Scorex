@@ -1,6 +1,6 @@
 package scorex.core.app
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import scorex.core.NodeViewHolder
@@ -28,10 +28,10 @@ trait Application extends ScorexLogging {
   type TX <: Transaction[P]
   type PMOD <: PersistentNodeViewModifier[P, TX]
 
+  type NVHT <: NodeViewHolder[P, TX, PMOD]
+
   //settings
   implicit val settings: Settings
-
-  val nodeViewHolder: NodeViewHolder[P, TX, PMOD]
 
   val wallet: Wallet[P, TX, _]
 
@@ -39,7 +39,7 @@ trait Application extends ScorexLogging {
   val apiRoutes: Seq[ApiRoute]
   val apiTypes: Seq[Type]
 
-  protected implicit lazy val actorSystem = ActorSystem("lagonaki")
+  protected implicit lazy val actorSystem = ActorSystem(applicationName)
 
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
@@ -57,6 +57,7 @@ trait Application extends ScorexLogging {
 
   lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs)
 
+  val nodeViewHolderRef: ActorRef
 
   lazy val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
     applicationName, appVersion), "networkController")

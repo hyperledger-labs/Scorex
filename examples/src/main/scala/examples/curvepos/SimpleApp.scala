@@ -1,8 +1,8 @@
 package examples.curvepos
 
-import examples.curvepos.transaction.{SimpleBlock, SimpleWallet, SimpleTransaction}
+import akka.actor.{ActorRef, Props}
+import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction, SimpleWallet}
 import io.circe.Json
-import scorex.core.NodeViewHolder
 import scorex.core.api.http.ApiRoute
 import scorex.core.app.{Application, ApplicationVersion}
 import scorex.core.network.message.MessageSpec
@@ -20,7 +20,7 @@ class SimpleApp extends Application {
     override def settingsJSON: Map[String, Json] = Map()
   }
 
-  override val applicationName: String = "SimpleApp"
+  override lazy val applicationName: String = "SimpleApp"
 
   override lazy val appVersion: ApplicationVersion = ApplicationVersion(0, 1, 0)
 
@@ -28,11 +28,14 @@ class SimpleApp extends Application {
   override type TX = SimpleTransaction
   override type PMOD = SimpleBlock
 
+  override type NVHT = SimpleNodeViewHolder
+
   override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
   override val apiTypes = Seq()
   override val apiRoutes: Seq[ApiRoute] = Seq()
-  override val wallet: Wallet[P, TX, _] = new SimpleWallet()
-  override val nodeViewHolder: NodeViewHolder[P, TX, PMOD] = new SimpleNodeViewHolder
+  override val wallet: Wallet[P, TX, _] = SimpleWallet()
+
+  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
 }
 
 object SimpleApp extends App {
