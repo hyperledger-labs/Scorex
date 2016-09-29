@@ -2,6 +2,7 @@ package examples.curvepos
 
 import akka.actor.{ActorRef, Props}
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction, SimpleWallet}
+import io.circe
 import io.circe.Json
 import scorex.core.api.http.ApiRoute
 import scorex.core.app.{Application, ApplicationVersion}
@@ -16,8 +17,9 @@ import scorex.core.transaction.wallet.Wallet
   * and Nxt-like(simplified) Consensus
   */
 class SimpleApp extends Application {
-  override implicit val settings: Settings = new Settings {
-    override def settingsJSON: Map[String, Json] = Map()
+  val settingsFilename = "settings.json"
+  implicit val settings = new Settings {
+    override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 
   override lazy val applicationName: String = "SimpleApp"
