@@ -3,13 +3,13 @@ package examples.curvepos
 import akka.actor.{ActorRef, Props}
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction, SimpleWallet}
 import io.circe
-import io.circe.Json
-import scorex.core.api.http.ApiRoute
+import scorex.core.api.http.{ApiRoute, UtilsApiRoute}
 import scorex.core.app.{Application, ApplicationVersion}
 import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.wallet.Wallet
+import scala.reflect.runtime.universe._
 
 /**
   * Simple application implementing simple transactions
@@ -33,8 +33,8 @@ class SimpleApp extends Application {
   override type NVHT = SimpleNodeViewHolder
 
   override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
-  override val apiTypes = Seq()
-  override val apiRoutes: Seq[ApiRoute] = Seq()
+  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute])
+  override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings))
   override val wallet: Wallet[P, TX, _] = SimpleWallet()
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
