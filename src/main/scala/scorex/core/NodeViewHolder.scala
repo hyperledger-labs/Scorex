@@ -194,12 +194,13 @@ object NodeViewHolder {
   case class FailedTransaction[P <: Proposition, TX <: Transaction[P]]
   (transaction: TX, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  case class FailedModification[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]](modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class FailedModification[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
+    (modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]]
+    (transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
   //todo: successful modification
 
   case class Subscribe(events: Seq[EventType.Value])
-
 }
