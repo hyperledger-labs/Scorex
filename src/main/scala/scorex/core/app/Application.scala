@@ -59,7 +59,7 @@ trait Application extends ScorexLogging {
 
   val nodeViewHolderRef: ActorRef
 
-  lazy val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
+  val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
     applicationName, appVersion), "networkController")
 
   //todo: launch NodeViewSynchronizer

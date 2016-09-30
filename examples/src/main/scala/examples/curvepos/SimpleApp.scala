@@ -18,7 +18,7 @@ import scala.reflect.runtime.universe._
   */
 class SimpleApp extends Application {
   val settingsFilename = "settings.json"
-  implicit val settings = new Settings {
+  implicit lazy val settings = new Settings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 
@@ -32,7 +32,7 @@ class SimpleApp extends Application {
 
   override type NVHT = SimpleNodeViewHolder
 
-  override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
+  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
   override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings))
   override val wallet: Wallet[P, TX, _] = SimpleWallet()
