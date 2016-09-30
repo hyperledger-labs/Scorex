@@ -17,7 +17,7 @@ import scala.reflect.runtime.universe._
   * and Nxt-like(simplified) Consensus
   */
 class SimpleApp extends Application {
-  val settingsFilename = "settings.json"
+  lazy val settingsFilename = "settings.json"
   implicit lazy val settings = new Settings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
