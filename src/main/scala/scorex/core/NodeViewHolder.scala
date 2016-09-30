@@ -9,7 +9,7 @@ import scorex.core.transaction.NodeViewModifier.ModifierTypeId
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
-import scorex.core.transaction.wallet.Wallet
+import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.mutable
@@ -32,11 +32,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   type HIS <: History[P, TX, PMOD, HIS]
   type MS <: MinimalState[P, _, TX, PMOD, MS]
-  type WL <: Wallet[P, TX, WL]
+  type VL <: Vault[P, TX, VL]
   type MP <: MemoryPool[TX, MP]
 
 
-  type NodeView = (HIS, MS, WL, MP)
+  type NodeView = (HIS, MS, VL, MP)
 
   val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]]
 
@@ -53,7 +53,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def minimalState(): MS = nodeView._2
 
-  private def wallet(): WL = nodeView._3
+  private def vault(): VL = nodeView._3
 
   private def memoryPool(): MP = nodeView._4
 
@@ -65,7 +65,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def notifySubscribers[O <: ModificationOutcome](eventType: EventType.Value, signal: O) = subscribers.get(eventType).foreach(_ ! signal)
 
   private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
-    val updWallet = wallet().scan(tx, offchain = true)
+    val updWallet = vault().scan(tx, offchain = true)
     memoryPool().put(tx) match {
       case Success(updPool) =>
         nodeView = (history(), minimalState(), updWallet, updPool)
@@ -93,8 +93,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter(appliedTxs)
 
             //todo: continue from here
-            maybeRollback.map(rb => wallet().rollback(rb.to))
-              .getOrElse(Success(wallet()))
+            maybeRollback.map(rb => vault().rollback(rb.to))
+              .getOrElse(Success(vault()))
               .map(w => w.bulkScan(appliedTxs, offchain = false)) match {
 
               case Success(newWallet) =>
