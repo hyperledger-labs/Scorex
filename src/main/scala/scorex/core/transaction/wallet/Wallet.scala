@@ -1,21 +1,10 @@
 package scorex.core.transaction.wallet
 
-import java.io.File
-
-import com.google.common.primitives.{Bytes, Ints}
-import org.mapdb.{DBMaker, HTreeMap}
-import org.mapdb.serializer.SerializerByteArray
-import scorex.core.{NodeViewComponent, NodeViewComponentCompanion}
-import scorex.crypto.encode.Base58
-import scorex.core.crypto.hash.SecureCryptographicHash
-import scorex.core.settings.Settings
+import scorex.core.NodeViewComponent
 import scorex.core.transaction.{NodeViewModifier, Transaction}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition, PublicKey25519Proposition}
-import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, Secret}
-import scorex.utils.randomBytes
-
-import scala.collection.JavaConversions._
+import scorex.core.transaction.state.Secret
 import scala.util.Try
 
 case class WalletBox[P <: Proposition](box: Box[P], transactionId: Array[Byte], createdAt: Int, destroyedAt: Option[Int])
