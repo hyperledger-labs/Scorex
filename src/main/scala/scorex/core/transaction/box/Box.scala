@@ -9,9 +9,8 @@ import scorex.core.transaction.box.proposition.Proposition
 trait Box[P <: Proposition] extends BytesSerializable {
   type Amount = Long
 
+  val value: Amount
   val proposition: P
-
-  val value: Long
 
   val id: Array[Byte]
 }
