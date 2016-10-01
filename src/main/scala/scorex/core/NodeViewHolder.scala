@@ -79,9 +79,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]) = {
     history().append(pmod) match {
       case Success((newHistory, maybeRollback)) =>
-        maybeRollback.map(rb => minimalState().rollbackTo(rb.to).flatMap(_.applyChanges(rb.applied)))
+        maybeRollback.map(rb => minimalState().rollbackTo(rb.to).flatMap(_.applyModifiers(rb.applied)))
           .getOrElse(Success(minimalState()))
-          .flatMap(minState => minState.applyChanges(pmod)) match {
+          .flatMap(minState => minState.applyModifier(pmod)) match {
 
           case Success(newMinState) =>
             val rolledBackTxs = maybeRollback.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())

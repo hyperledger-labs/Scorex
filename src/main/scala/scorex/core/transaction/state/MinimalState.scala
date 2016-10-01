@@ -1,6 +1,5 @@
 package scorex.core.transaction.state
 
-
 import scorex.core.NodeViewComponent
 import scorex.core.block.StateChanges
 import scorex.core.transaction.box.Box
@@ -9,16 +8,17 @@ import scorex.core.transaction._
 
 import scala.util.Try
 
+import MinimalState.VersionTag
+
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
+
 trait MinimalState[P <: Proposition,
 BX <: Box[P],
 TX <: Transaction[P],
 M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
   self: MS =>
-
-  type VersionTag = NodeViewModifier.ModifierId
 
   def version: VersionTag
 
@@ -32,21 +32,30 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] ex
 
   def validate(transaction: TX): Try[Unit]
 
+  def boxOf(proposition: P): Seq[BX]
+
   /**
     * A Transaction opens existing boxes and creates new ones
     */
   def changes(transaction: TX): Try[TransactionChanges[P, BX]]
 
-  def boxOf(proposition: P): Seq[BX]
+  def changes(mod: M): Try[StateChanges[P, BX]]
 
-  def applyChanges(change: StateChanges[P, BX]): Try[MS]
+  def applyChanges(changes: StateChanges[P, BX], newVersion: VersionTag): Try[MS]
 
-  def applyChanges(mod: M): Try[MS]
+  def applyModifier(mod: M): Try[MS] = {
+    val newVersion = mod.id
+    changes(mod).flatMap(cs => applyChanges(cs, newVersion))
+  }
 
-  def applyChanges(mods: Seq[M]): Try[MS] =
-    mods.foldLeft(Try(this)){case (curTry, mod) =>
-        curTry flatMap (_.applyChanges(mod))
+  def applyModifiers(mods: Seq[M]): Try[MS] =
+    mods.foldLeft(Try(this)) { case (curTry, mod) =>
+      curTry flatMap (_.applyModifier(mod))
     }
 
   def rollbackTo(version: VersionTag): Try[MS]
+}
+
+object MinimalState {
+  type VersionTag = NodeViewModifier.ModifierId
 }

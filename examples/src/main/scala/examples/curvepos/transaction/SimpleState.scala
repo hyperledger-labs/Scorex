@@ -2,32 +2,25 @@ package examples.curvepos.transaction
 
 import java.nio.ByteBuffer
 
-import com.google.common.primitives.Ints
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
 import scorex.core.transaction.TransactionChanges
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState
+import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.utils.ScorexLogging
-import scala.collection.concurrent.TrieMap
 import scala.util.{Failure, Try}
 
+import SimpleState.EmptyVersion
 
-class SimpleState extends ScorexLogging
+case class SimpleState(override val version: VersionTag = EmptyVersion,
+                       storage: Map[ByteBuffer, PublicKey25519NoncedBox] = Map()) extends ScorexLogging
   with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
 
-  private val EmptyVersion: Int = 0
-  private var v: Int = EmptyVersion
-
-  private val storage: TrieMap[ByteBuffer, PublicKey25519NoncedBox] = TrieMap()
-  private val accountIndex: TrieMap[String, PublicKey25519NoncedBox] = TrieMap()
-
-  def isEmpty: Boolean = v == EmptyVersion
-
-  override def version: VersionTag = Ints.toByteArray(v)
+  def isEmpty: Boolean = version sameElements EmptyVersion
 
   override def boxOf(p: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] =
-    accountIndex.get(p.address).map(box => Seq(box)).getOrElse(Seq())
+    storage.values.filter(b => b.proposition.address == p.address).toSeq
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
     storage.get(ByteBuffer.wrap(boxId))
@@ -37,28 +30,13 @@ class SimpleState extends ScorexLogging
     Try(this)
   }
 
+  override def applyChanges(change: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleState] = Try {
+    val rmap = change.toRemove.foldLeft(storage) { case (m, b) => m - ByteBuffer.wrap(b.id) }
 
-  override def applyChanges(change: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]): Try[SimpleState] = Try {
-    change.toRemove.foreach(b => storage.remove(ByteBuffer.wrap(b.id)))
-    change.toAppend.foreach { b =>
-      storage.put(ByteBuffer.wrap(b.id), b)
-      accountIndex.put(b.proposition.address, b)
+    val amap = change.toAppend.foldLeft(rmap) { case (m, b) =>
+      m + (ByteBuffer.wrap(b.id) -> b)
     }
-    this
-  }
-
-  override def applyChanges(block: SimpleBlock): Try[SimpleState] = Try {
-    val generatorReward = block.txs.map(_.fee).sum
-    val gen = block.generator
-    val generatorBox: PublicKey25519NoncedBox = boxOf(gen).headOption match {
-      case Some(oldBox) => oldBox.copy(nonce = oldBox.nonce + 1, value = oldBox.value + generatorReward)
-      case None => PublicKey25519NoncedBox(gen, 1, generatorReward)
-    }
-
-    val txChanges = block.txs.map(tx => changes(tx)).map(_.get)
-    val toRemove: Set[PublicKey25519NoncedBox] = txChanges.flatMap(_.toRemove).toSet
-    val toAppend: Set[PublicKey25519NoncedBox] = (generatorBox +: txChanges.flatMap(_.toAppend)).toSet
-    applyChanges(StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend)).get
+    SimpleState(newVersion, amap)
   }
 
   override def companion: NodeViewComponentCompanion = ???
@@ -75,8 +53,27 @@ class SimpleState extends ScorexLogging
   /**
     * A Transaction opens existing boxes and creates new ones
     */
-  override def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
-  transaction match {
-    case _: SimplePayment => Failure(new Exception("implementation is needed"))
+  override def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+    transaction match {
+      case _: SimplePayment => Failure(new Exception("implementation is needed"))
+    }
   }
+
+  override def changes(block: SimpleBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = Try {
+    val generatorReward = block.txs.map(_.fee).sum
+    val gen = block.generator
+    val generatorBox: PublicKey25519NoncedBox = boxOf(gen).headOption match {
+      case Some(oldBox) => oldBox.copy(nonce = oldBox.nonce + 1, value = oldBox.value + generatorReward)
+      case None => PublicKey25519NoncedBox(gen, 1, generatorReward)
+    }
+
+    val txChanges = block.txs.map(tx => changes(tx)).map(_.get)
+    val toRemove: Set[PublicKey25519NoncedBox] = txChanges.flatMap(_.toRemove).toSet
+    val toAppend: Set[PublicKey25519NoncedBox] = (generatorBox +: txChanges.flatMap(_.toAppend)).toSet
+    StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend)
+  }
+}
+
+object SimpleState {
+  val EmptyVersion: Array[Byte] = Array.fill(32)(0: Byte)
 }
