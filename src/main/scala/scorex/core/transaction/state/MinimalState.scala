@@ -31,6 +31,7 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] ex
   def closedBox(boxId: Array[Byte]): Option[BX]
 
   def validate(transaction: TX): Try[Unit]
+
   /**
     * A Transaction opens existing boxes and creates new ones
     */
@@ -40,12 +41,12 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] ex
 
   def applyChanges(change: StateChanges[P, BX]): Try[MS]
 
+  def applyChanges(mod: M): Try[MS]
+
   def applyChanges(mods: Seq[M]): Try[MS] =
     mods.foldLeft(Try(this)){case (curTry, mod) =>
         curTry flatMap (_.applyChanges(mod))
     }
-
-  def applyChanges(mod: M): Try[MS]
 
   def rollbackTo(version: VersionTag): Try[MS]
 }
