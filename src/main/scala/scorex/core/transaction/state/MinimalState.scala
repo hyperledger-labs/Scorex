@@ -36,7 +36,7 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] ex
     */
   def changes(transaction: TX): Try[TransactionChanges[P, BX]]
 
-  def accountBox(proposition: P): Seq[BX]
+  def boxOf(proposition: P): Seq[BX]
 
   def applyChanges(change: StateChanges[P, BX]): Try[MS]
 
