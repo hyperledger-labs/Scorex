@@ -50,12 +50,15 @@ case class SimpleBlock(override val parentId: BlockId,
 }
 
 object SimpleBlock {
+  val GenerationSignature = 64
+
   type GenerationSignature = Array[Byte]
 
   type BaseTarget = Long
 }
 
 object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
+
   override def bytes(block: SimpleBlock): Array[ModifierTypeId] = {
     block.parentId ++
       Longs.toByteArray(block.timestamp) ++
@@ -72,5 +75,21 @@ object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
 
   }
 
-  override def parse(bytes: Array[ModifierTypeId]): Try[SimpleBlock] = ???
+  override def parse(bytes: Array[ModifierTypeId]): Try[SimpleBlock] = Try {
+    val parentId = bytes.slice(0, Block.BlockIdLength)
+    val timestamp = Longs.fromByteArray(bytes.slice(Block.BlockIdLength, Block.BlockIdLength + 8))
+    val version = bytes.slice(Block.BlockIdLength + 8, Block.BlockIdLength + 9).head
+    val s0 = Block.BlockIdLength + 9
+    val generationSignature = bytes.slice(s0, s0 + SimpleBlock.GenerationSignature)
+    val baseTarget = Longs.fromByteArray(bytes.slice(s0 + SimpleBlock.GenerationSignature, s0 + SimpleBlock.GenerationSignature + 8))
+    val s1 = s0 + SimpleBlock.GenerationSignature + 8
+    val generator = PublicKey25519Proposition(bytes.slice(s1, s1 + 32))
+    val cnt = Ints.fromByteArray(bytes.slice(s1 + 32, s1 + 36))
+    val s2 = s1 + 36
+    val txs = (0 until cnt) map { i =>
+      val bt = bytes.slice(s2 + SimpleTransaction.TransactionLength * i, s2 + SimpleTransaction.TransactionLength * i)
+      SimpleTransaction.parse(bt).get
+    }
+    SimpleBlock(parentId, timestamp, generationSignature, baseTarget, generator, txs)
+  }
 }

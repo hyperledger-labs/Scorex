@@ -13,6 +13,7 @@ import scala.util.Try
 
 sealed trait SimpleTransaction extends Transaction[PublicKey25519Proposition]
 
+
 case class SimplePayment(sender: PublicKey25519Proposition,
                          recipient: PublicKey25519Proposition,
                          amount: Long,
@@ -43,10 +44,14 @@ case class SimplePayment(sender: PublicKey25519Proposition,
       Longs.toByteArray(nonce) ++
       Longs.toByteArray(timestamp))
 
-  override def companion: NodeViewModifierCompanion[SimplePayment] =
-    new NodeViewModifierCompanion[SimplePayment] {
-      override def bytes(modifier: SimplePayment): Array[Byte] = ???
+  override val companion: NodeViewModifierCompanion[SimplePayment] = SimpleTransaction
+}
 
-      override def parse(bytes: Array[Byte]): Try[SimplePayment] = ???
-    }
+
+object SimpleTransaction extends NodeViewModifierCompanion[SimplePayment] {
+  val TransactionLength: Int = ???
+
+  override def bytes(modifier: SimplePayment): Array[Byte] = ???
+
+  override def parse(bytes: Array[Byte]): Try[SimplePayment] = ???
 }
