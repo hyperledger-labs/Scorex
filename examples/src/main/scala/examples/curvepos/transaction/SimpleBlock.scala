@@ -69,7 +69,7 @@ object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
       val cntBytes = Ints.toByteArray(block.txs.size)
       block.txs.foldLeft(cntBytes) { case (bytes, tx) =>
         val txBytes = tx.companion.bytes(tx)
-        bytes ++ Ints.toByteArray(txBytes.size) ++ txBytes
+        bytes ++ txBytes
       }
     }
 
@@ -87,7 +87,7 @@ object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
     val cnt = Ints.fromByteArray(bytes.slice(s1 + 32, s1 + 36))
     val s2 = s1 + 36
     val txs = (0 until cnt) map { i =>
-      val bt = bytes.slice(s2 + SimpleTransaction.TransactionLength * i, s2 + SimpleTransaction.TransactionLength * i)
+      val bt = bytes.slice(s2 + SimpleTransaction.TransactionLength * i, s2 + SimpleTransaction.TransactionLength * (i + 1))
       SimpleTransaction.parse(bt).get
     }
     SimpleBlock(parentId, timestamp, generationSignature, baseTarget, generator, txs)

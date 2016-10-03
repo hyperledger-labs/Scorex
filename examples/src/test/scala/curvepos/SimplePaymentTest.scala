@@ -1,6 +1,6 @@
 package curvepos
 
-import examples.curvepos.transaction.{SimpleBlockCompanion, SimplePayment}
+import examples.curvepos.transaction.{SimplePayment, SimpleTransaction}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 
@@ -16,6 +16,8 @@ with ExampleGenerators {
       val companion = b.companion
       val recovered = companion.parse(companion.bytes(b)).get
       companion.bytes(b) shouldEqual companion.bytes(recovered)
+
+      companion.bytes(recovered).length shouldEqual SimpleTransaction.TransactionLength
     }
   }
 

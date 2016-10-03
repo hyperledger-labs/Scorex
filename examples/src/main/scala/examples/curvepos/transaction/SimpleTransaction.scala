@@ -54,7 +54,7 @@ object SimpleTransaction extends NodeViewModifierCompanion[SimplePayment] {
       Longs.toByteArray(m.fee) ++
       Longs.toByteArray(m.nonce) ++
       Longs.toByteArray(m.timestamp)
-  }
+  }.ensuring(_.length == TransactionLength)
 
   override def parse(bytes: Array[Byte]): Try[SimplePayment] = Try {
     val sender = PublicKey25519Proposition(bytes.slice(0, Constants25519.PubKeyLength))
