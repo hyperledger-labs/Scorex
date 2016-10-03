@@ -5,7 +5,7 @@ import io.circe.Json
 import io.circe.syntax._
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.NodeViewModifier.ModifierId
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
 import scorex.core.transaction.{NodeViewModifierCompanion, Transaction}
 import scorex.crypto.encode.Base58
 
@@ -37,21 +37,33 @@ case class SimplePayment(sender: PublicKey25519Proposition,
 
   //todo: check statically or dynamically output size
   override lazy val id: ModifierId = FastCryptographicHash(
-    sender.bytes ++
-      recipient.bytes ++
-      Longs.toByteArray(amount) ++
-      Longs.toByteArray(fee) ++
-      Longs.toByteArray(nonce) ++
-      Longs.toByteArray(timestamp))
+    companion.bytes(this)
+  )
 
   override val companion: NodeViewModifierCompanion[SimplePayment] = SimpleTransaction
 }
 
 
 object SimpleTransaction extends NodeViewModifierCompanion[SimplePayment] {
-  val TransactionLength: Int = ???
+  val TransactionLength: Int = 2 * Constants25519.PubKeyLength + 32
 
-  override def bytes(modifier: SimplePayment): Array[Byte] = ???
+  override def bytes(m: SimplePayment): Array[Byte] = {
+    m.sender.bytes ++
+      m.recipient.bytes ++
+      Longs.toByteArray(m.amount) ++
+      Longs.toByteArray(m.fee) ++
+      Longs.toByteArray(m.nonce) ++
+      Longs.toByteArray(m.timestamp)
+  }
 
-  override def parse(bytes: Array[Byte]): Try[SimplePayment] = ???
+  override def parse(bytes: Array[Byte]): Try[SimplePayment] = Try {
+    val sender = PublicKey25519Proposition(bytes.slice(0, Constants25519.PubKeyLength))
+    val recipient = PublicKey25519Proposition(bytes.slice(Constants25519.PubKeyLength, 2 * Constants25519.PubKeyLength))
+    val s = 2 * Constants25519.PubKeyLength
+    val amount = Longs.fromByteArray(bytes.slice(s, s + 8))
+    val fee = Longs.fromByteArray(bytes.slice(s + 8, s + 16))
+    val nonce = Longs.fromByteArray(bytes.slice(s + 16, s + 24))
+    val timestamp = Longs.fromByteArray(bytes.slice(s + 24, s + 32))
+    SimplePayment(sender, recipient, amount, fee, nonce, timestamp)
+  }
 }

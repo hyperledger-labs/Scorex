@@ -50,7 +50,7 @@ case class SimpleBlock(override val parentId: BlockId,
 }
 
 object SimpleBlock {
-  val GenerationSignature = 64
+  val SignatureLength = 64
 
   type GenerationSignature = Array[Byte]
 
@@ -80,9 +80,9 @@ object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
     val timestamp = Longs.fromByteArray(bytes.slice(Block.BlockIdLength, Block.BlockIdLength + 8))
     val version = bytes.slice(Block.BlockIdLength + 8, Block.BlockIdLength + 9).head
     val s0 = Block.BlockIdLength + 9
-    val generationSignature = bytes.slice(s0, s0 + SimpleBlock.GenerationSignature)
-    val baseTarget = Longs.fromByteArray(bytes.slice(s0 + SimpleBlock.GenerationSignature, s0 + SimpleBlock.GenerationSignature + 8))
-    val s1 = s0 + SimpleBlock.GenerationSignature + 8
+    val generationSignature = bytes.slice(s0, s0 + SimpleBlock.SignatureLength)
+    val baseTarget = Longs.fromByteArray(bytes.slice(s0 + SimpleBlock.SignatureLength, s0 + SimpleBlock.SignatureLength + 8))
+    val s1 = s0 + SimpleBlock.SignatureLength + 8
     val generator = PublicKey25519Proposition(bytes.slice(s1, s1 + 32))
     val cnt = Ints.fromByteArray(bytes.slice(s1 + 32, s1 + 36))
     val s2 = s1 + 36
