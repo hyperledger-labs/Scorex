@@ -14,7 +14,6 @@ case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX, cre
 trait Vault[P <: Proposition, TX <: Transaction[P], V <: Vault[P, TX, V]] extends NodeViewComponent {
   type VersionTag = NodeViewModifier.ModifierId
 
-  //todo: or Try[Wallet[P, TX]] ?
   def scan(tx: TX, offchain: Boolean): V
 
   def bulkScan(txs: Seq[TX], offchain: Boolean): V
