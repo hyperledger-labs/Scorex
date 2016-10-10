@@ -22,7 +22,8 @@ trait CorsSupport {
     }
   }
 
-  //this handles preflight OPTIONS requests. TODO: see if can be done with rejection handler,
+  //this handles preflight OPTIONS requests.
+  // TODO: see if can be done with rejection handler,
   //otherwise has to be under addAccessControlHeaders
   private def preflightRequestHandler: Route = options {
     complete(HttpResponse(200).withHeaders(

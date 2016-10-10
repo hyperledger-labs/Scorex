@@ -28,7 +28,6 @@ case class SimplePayment(sender: PublicKey25519Proposition,
 
   override type M = SimplePayment
 
-  //todo: check statically or dynamically output size
   override lazy val id: ModifierId = FastCryptographicHash(
     sender.bytes ++
       recipient.bytes ++
