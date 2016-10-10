@@ -17,7 +17,6 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
     .ensuring(m => m.size == specs.size, "Duplicate message codes")
 
   //MAGIC ++ Array(spec.messageCode) ++ Ints.toByteArray(dataLength) ++ dataWithChecksum
-  // TODO BytesParseable[Message[_]]
   def parseBytes(bytes: ByteBuffer, sourceOpt: Option[ConnectedPeer]): Try[Message[_]] = Try {
     val magic = new Array[Byte](MagicLength)
     bytes.get(magic)
