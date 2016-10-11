@@ -20,7 +20,11 @@ import scala.util.{Failure, Success}
 //todo: async update?
 
 /**
-  * Composite local view
+  * Composite local view of the node
+  *
+  * Contains instances for History, MinimalState, Vault, MemoryPool.
+  * The instances are read-only for external world.
+  * Updates of the composite view(the instances are to be performed atomically.
   *
   * @tparam P
   * @tparam TX
@@ -195,12 +199,13 @@ object NodeViewHolder {
   (transaction: TX, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
   case class FailedModification[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
-    (modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  (modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
   case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]]
-    (transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  (transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
   //todo: successful modification
 
   case class Subscribe(events: Seq[EventType.Value])
+
 }
