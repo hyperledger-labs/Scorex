@@ -2,8 +2,8 @@ package scorex.core.network
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.NodeViewHolder
-import scorex.core.NodeViewHolder.{FailedModification, FailedTransaction, Subscribe}
-import scorex.core.network.NetworkController.DataFromPeer
+import scorex.core.NodeViewHolder._
+import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.NodeViewModifier._
 import scorex.core.transaction.{NodeViewModifier, NodeViewModifierCompanion, Transaction}
@@ -40,15 +40,30 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
 
     //subscribe for failed transaction,
-    val events = Seq(NodeViewHolder.EventType.FailedTransaction, NodeViewHolder.EventType.FailedPersistentModifier)
+    val events = Seq(
+      NodeViewHolder.EventType.FailedTransaction,
+      NodeViewHolder.EventType.FailedPersistentModifier,
+      NodeViewHolder.EventType.SuccessfulTransaction,
+      NodeViewHolder.EventType.SuccessfulPersistentModifier
+    )
     viewHolderRef ! Subscribe(events)
   }
+
+  private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
+    if (source.isEmpty) {
+      val data = m.modifierTypeId -> Seq(m.id -> m.companion.bytes(m)).toMap
+      val msg = Message(ModifiersSpec, Right(data), None)
+      networkControllerRef ! SendToNetwork(msg, Broadcast)
+    }
 
   private def viewHolderEvents: Receive = {
     case FailedTransaction(tx, throwable, source) =>
     //todo: ban source peer?
     case FailedModification(mod, throwable, source) =>
     //todo: ban source peer?
+
+    case SuccessfulTransaction(tx, source) => sendModifierIfLocal(tx, source)
+    case SuccessfulModification(mod, source) => sendModifierIfLocal(mod, source)
   }
 
   //object ids coming from other node

@@ -19,6 +19,7 @@ import scala.util.{Failure, Success}
 //todo: listeners
 //todo: async update?
 
+//todo: send out successful modification events
 /**
   * Composite local view of the node
   *
@@ -204,8 +205,8 @@ object NodeViewHolder {
   case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]]
   (transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  //todo: successful modification
+  case class SuccessfulModification[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
+  (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
   case class Subscribe(events: Seq[EventType.Value])
-
 }
