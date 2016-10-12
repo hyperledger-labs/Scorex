@@ -12,7 +12,15 @@ import scorex.core.transaction.box.proposition.Proposition
 import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
 
-
+/**
+  * A middle layer between a node view holder(NodeViewHolder) and a network
+  * //todo: also a local updater?
+  *
+  * @param networkControllerRef
+  * @param viewHolderRef
+  * @tparam P
+  * @tparam TX
+  */
 class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
 (networkControllerRef: ActorRef, viewHolderRef: ActorRef) extends Actor {
 
