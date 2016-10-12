@@ -31,8 +31,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
   //against objects sent
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
 
-  private var sessionId = 0L
-  private var sessionPeerOpt: Option[ConnectedPeer] = None
+  private var sessions = mutable.Map[Long, ConnectedPeer]()
 
   override def preStart(): Unit = {
     //register as a handler for some types of messages
@@ -71,9 +70,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == InvSpec.messageCode =>
 
+      val sessionId = sessions.keySet.max + 1
+      sessions += sessionId -> remote
       viewHolderRef ! CompareViews(sessionId, invData._1, invData._2)
-      sessionId = sessionId + 1
-      sessionPeerOpt = Some(remote)
   }
 
   //other node asking for objects by their ids
@@ -81,6 +80,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == RequestModifierSpec.messageCode =>
 
+      val sessionId = sessions.keySet.max + 1
+      sessions += sessionId -> remote
       viewHolderRef ! GetLocalObjects(sessionId, invData._1, invData._2)
   }
 
@@ -98,7 +99,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
       val filteredIds = askedIds.diff(modIds)
 
       if (askedIds.size - modIds.size == filteredIds.size) {
-        val msg = ModifiersFromRemote(sessionId, data._1, modifiers.valuesIterator.toSeq, remote)
+        val msg = ModifiersFromRemote(data._1, modifiers.valuesIterator.toSeq, remote)
         viewHolderRef ! msg
         asked.put(typeId, filteredIds)
       } else {
@@ -110,13 +111,13 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
   //local node sending object ids to remote
   private def requestFromLocal: Receive = {
     case RequestFromLocal(sid, modifierTypeId, modifierIds) =>
-      if (sid == sessionId && modifierIds.nonEmpty) {
-        sessionPeerOpt.foreach { sessionPeer =>
+      sessions.get(sid).foreach { sessionPeer =>
+        if (modifierIds.nonEmpty) {
           val msg = Message(RequestModifierSpec, Right(modifierTypeId -> modifierIds), None)
           sessionPeer.handlerRef ! msg
         }
+        sessions -= sid
       }
-      sessionPeerOpt = None
       val newids = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds
       asked.put(modifierTypeId, newids)
   }
@@ -124,9 +125,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
   //local node sending out objects requested to remote
   private def responseFromLocal: Receive = {
     case ResponseFromLocal(sid, typeId, modifiers: Seq[NodeViewModifier]) =>
-      if (sid == sessionId && modifiers.nonEmpty) {
-        sessionPeerOpt.foreach { sessionPeer =>
-
+      if (modifiers.nonEmpty) {
+        sessions.get(sid).foreach { sessionPeer =>
           //todo: asInstanceOf, convert to bytes in NodeViewHolder?
           val c = modifiers.head.companion.asInstanceOf[NodeViewModifierCompanion[NodeViewModifier]]
           val modType = modifiers.head.modifierTypeId
@@ -134,9 +134,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
           val m = modType -> modifiers.map(m => m.id -> c.bytes(m)).toMap
           val msg = Message(ModifiersSpec, Right(m), None)
           sessionPeer.handlerRef ! msg
+
+          sessions -= sid
         }
       }
-      sessionPeerOpt = None
   }
 
   override def receive: Receive =
@@ -158,6 +159,6 @@ object NodeViewSynchronizer {
 
   case class ResponseFromLocal[M <: NodeViewModifier](sid: Long, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
-  case class ModifiersFromRemote(sid: Long, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]], remote: ConnectedPeer)
+  case class ModifiersFromRemote(modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]], remote: ConnectedPeer)
 
 }

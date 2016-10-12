@@ -144,7 +144,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   private def processRemoteModifiers: Receive = {
-    case ModifiersFromRemote(sid, modifierTypeId, remoteObjects, remote) =>
+    case ModifiersFromRemote(modifierTypeId, remoteObjects, remote) =>
       modifierCompanions.get(modifierTypeId) foreach { companion =>
         remoteObjects.flatMap(r => companion.parse(r).toOption).foreach(m =>
           modify(m, Some(remote))
