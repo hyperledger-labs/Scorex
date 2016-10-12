@@ -67,12 +67,8 @@ object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
       Longs.toByteArray(block.baseTarget) ++
       block.generator.pubKeyBytes ++ {
       val cntBytes = Ints.toByteArray(block.txs.size)
-      block.txs.foldLeft(cntBytes) { case (bytes, tx) =>
-        val txBytes = tx.companion.bytes(tx)
-        bytes ++ txBytes
-      }
+      block.txs.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
     }
-
   }
 
   override def parse(bytes: Array[ModifierTypeId]): Try[SimpleBlock] = Try {

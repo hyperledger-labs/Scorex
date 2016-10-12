@@ -35,9 +35,7 @@ case class SimplePayment(sender: PublicKey25519Proposition,
 
   override type M = SimplePayment
 
-  override lazy val id: ModifierId = FastCryptographicHash(
-    companion.bytes(this)
-  )
+  override lazy val id: ModifierId = FastCryptographicHash(bytes)
 
   override val companion: NodeViewModifierCompanion[SimplePayment] = SimpleTransaction
 }

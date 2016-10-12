@@ -2,13 +2,14 @@ package scorex.core.transaction
 
 import com.google.common.primitives.Longs
 import io.circe.Json
-import scorex.core.serialization.JsonSerializable
+import scorex.core.serialization.{BytesSerializable, JsonSerializable}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.box.{Box, BoxUnlocker}
+
 import scala.util.Try
 
 
-trait NodeViewModifier {
+trait NodeViewModifier extends BytesSerializable {
   self =>
 
   import NodeViewModifier.{ModifierId, ModifierTypeId}
@@ -19,6 +20,8 @@ trait NodeViewModifier {
 
   //todo: check statically or dynamically output size
   def id: ModifierId
+
+  lazy val bytes: Array[Byte] = companion.bytes(this)
 
   def companion: NodeViewModifierCompanion[M]
 }

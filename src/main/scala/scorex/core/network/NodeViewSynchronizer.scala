@@ -50,7 +50,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
 
   private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
     if (source.isEmpty) {
-      val data = m.modifierTypeId -> Seq(m.id -> m.companion.bytes(m)).toMap
+      val data = m.modifierTypeId -> Seq(m.id -> m.bytes).toMap
       val msg = Message(ModifiersSpec, Right(data), None)
       networkControllerRef ! SendToNetwork(msg, Broadcast)
     }
@@ -127,11 +127,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
     case ResponseFromLocal(sid, typeId, modifiers: Seq[NodeViewModifier]) =>
       if (modifiers.nonEmpty) {
         sessions.get(sid).foreach { sessionPeer =>
-          //todo: asInstanceOf, convert to bytes in NodeViewHolder?
-          val c = modifiers.head.companion.asInstanceOf[NodeViewModifierCompanion[NodeViewModifier]]
           val modType = modifiers.head.modifierTypeId
 
-          val m = modType -> modifiers.map(m => m.id -> c.bytes(m)).toMap
+          val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
           val msg = Message(ModifiersSpec, Right(m), None)
           sessionPeer.handlerRef ! msg
 
