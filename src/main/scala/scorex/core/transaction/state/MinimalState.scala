@@ -1,13 +1,12 @@
 package scorex.core.transaction.state
 
-import scorex.core.NodeViewComponent
+import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier}
 import scorex.core.block.StateChanges
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction._
 
 import scala.util.Try
-
 import MinimalState.VersionTag
 
 /**

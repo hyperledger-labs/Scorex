@@ -4,10 +4,10 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
+import scorex.core.NodeViewModifier
+import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, ModifiersSpec, RequestModifierSpec}
-import scorex.core.transaction.NodeViewModifier
-import scorex.core.transaction.NodeViewModifier._
 
 import scala.util.Try
 

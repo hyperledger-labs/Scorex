@@ -4,11 +4,11 @@ import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.SimpleBlock._
 import io.circe.Json
 import io.circe.syntax._
+import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.NodeViewModifierCompanion
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
-import scorex.core.transaction.NodeViewModifier.ModifierTypeId
-import scorex.core.transaction.NodeViewModifierCompanion
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 import shapeless.{::, HNil}

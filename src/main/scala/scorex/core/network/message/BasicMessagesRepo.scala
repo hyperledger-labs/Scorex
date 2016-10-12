@@ -5,10 +5,9 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
+import scorex.core.NodeViewModifier
+import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.network.message.Message._
-import scorex.core.transaction.NodeViewModifier
-import scorex.core.transaction.NodeViewModifier._
-
 import scala.util.Try
 
 

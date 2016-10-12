@@ -1,9 +1,8 @@
 package examples.curvepos
 
 import examples.curvepos.transaction._
-import scorex.core.NodeViewHolder
-import scorex.core.transaction.NodeViewModifier.ModifierTypeId
-import scorex.core.transaction.{NodeViewModifier, NodeViewModifierCompanion}
+import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {

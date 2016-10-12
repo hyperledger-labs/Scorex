@@ -3,14 +3,14 @@ package scorex.core.app
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import scorex.core.NodeViewHolder
+import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.api.http.{ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.wallet.Wallet
-import scorex.core.transaction.{PersistentNodeViewModifier, Transaction}
+import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global

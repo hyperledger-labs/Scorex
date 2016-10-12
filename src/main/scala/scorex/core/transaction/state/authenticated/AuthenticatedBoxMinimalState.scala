@@ -1,10 +1,11 @@
 package scorex.core.transaction.state.authenticated
 
+import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.box.Box
 import scorex.crypto.authds.storage.StorageType
 import scorex.crypto.authds.{AuthenticatedDictionary, DataProof}
 import scorex.crypto.hash.CryptographicHash
-import scorex.core.transaction.{BoxTransaction, PersistentNodeViewModifier, Transaction}
+import scorex.core.transaction.{BoxTransaction, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.utils._

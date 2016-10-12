@@ -1,6 +1,7 @@
 package scorex.core.block
 
 import io.circe.Json
+import scorex.core.{NodeViewModifier, NodeViewModifierCompanion, PersistentNodeViewModifier}
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.consensus.History
 import scorex.crypto.encode.Base58

@@ -1,7 +1,8 @@
 package scorex.core.consensus
 
-import scorex.core.NodeViewComponent
-import scorex.core.transaction.{NodeViewModifier, PersistentNodeViewModifier, Transaction}
+import scorex.core.{NodeViewComponent, NodeViewModifier}
+import scorex.core.PersistentNodeViewModifier
+import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58
 

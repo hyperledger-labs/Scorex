@@ -1,12 +1,12 @@
 package scorex.core.network
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.NodeViewHolder
+import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.core.NodeViewHolder._
+import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
-import scorex.core.transaction.NodeViewModifier._
-import scorex.core.transaction.{NodeViewModifier, NodeViewModifierCompanion, Transaction}
+import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 
 import scala.collection.mutable
@@ -25,7 +25,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
 (networkControllerRef: ActorRef, viewHolderRef: ActorRef) extends Actor {
 
   import NodeViewSynchronizer._
-  import scorex.core.transaction.NodeViewModifier._
+  import scorex.core.NodeViewModifier._
 
   //modifier ids asked from other nodes are kept in order to check then
   //against objects sent

@@ -1,8 +1,8 @@
 package examples.curvepos.transaction
 
 import scorex.core.NodeViewComponentCompanion
+import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.transaction.MemoryPool
-import scorex.core.transaction.NodeViewModifier.ModifierId
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable

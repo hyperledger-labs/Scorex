@@ -5,7 +5,7 @@ import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
 import scorex.core.network.NodeViewSynchronizer._
-import scorex.core.transaction.NodeViewModifier.ModifierTypeId
+import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState

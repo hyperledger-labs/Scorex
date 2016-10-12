@@ -1,12 +1,11 @@
 package scorex
 
 import java.net.{InetAddress, InetSocketAddress}
-
 import org.scalacheck.{Arbitrary, Gen}
+import scorex.core.NodeViewModifier
+import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.app.ApplicationVersion
 import scorex.core.network.message.BasicMsgDataTypes._
-import scorex.core.transaction.NodeViewModifier
-import scorex.core.transaction.NodeViewModifier.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519Companion
 
@@ -56,6 +55,4 @@ trait ObjectGenerators {
 
   val propositionGen: Gen[PublicKey25519Proposition] = genBoundedBytes(64, 64)
     .map(s => PrivateKey25519Companion.generateKeys(s)._2)
-
-
 }
