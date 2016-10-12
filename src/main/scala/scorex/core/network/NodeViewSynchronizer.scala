@@ -27,8 +27,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
   import NodeViewSynchronizer._
   import scorex.core.transaction.NodeViewModifier._
 
-  //asked from other nodes
-  //todo: clean old entries in asked
+  //modifier ids asked from other nodes are kept in order to check then
+  //against objects sent
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
 
   private var sessionId = 0L
