@@ -6,9 +6,6 @@ import scorex.core.transaction.box.proposition.Proposition
 
 import scala.util.Try
 
-/**
-  * Created by kushti on 12.10.16.
-  */
 trait NodeViewModifier extends BytesSerializable {
   self =>
 
