@@ -10,9 +10,6 @@ class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, Sim
 
   override def restoreState(): Option[(HIS, MS, VL, MP)] = None
 
-  //todo: ???
-  override def fixDb(): Unit = ???
-
   override protected def genesisState: (HIS, MS, VL, MP) =
     (new SimpleBlockchain, new SimpleState, SimpleWallet(), new SimpleMemPool)
 

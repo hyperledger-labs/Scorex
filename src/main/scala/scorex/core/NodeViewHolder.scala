@@ -43,7 +43,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]]
 
-  val networkChunkSize = 100 //todo: fix
+  val networkChunkSize = 100 //todo: make configurable?
 
   /**
     * Restore a local view during a node startup. If no any stored view found
@@ -63,9 +63,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def memoryPool(): MP = nodeView._4
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, ActorRef]()
-
-  //todo: "some check and fix database" function
-  def fixDb()
 
   private def notifySubscribers[O <: ModificationOutcome](eventType: EventType.Value, signal: O) =
     subscribers.get(eventType).foreach(_ ! signal)
@@ -128,7 +125,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       case pmod: PMOD@unchecked =>
         pmodModify(pmod, source)
     }
-    fixDb()
   }
 
   protected def genesisState: NodeView
@@ -194,6 +190,10 @@ object NodeViewHolder {
     val SuccessfulPersistentModifier = Value(4)
   }
 
+  //a command to subscribe for events
+  case class Subscribe(events: Seq[EventType.Value])
+
+  //hierarchy of events regarding successful/failed modifiers application
   trait ModificationOutcome {
     val source: Option[ConnectedPeer]
   }
@@ -209,7 +209,4 @@ object NodeViewHolder {
 
   case class SuccessfulModification[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
   (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
-
-  case class Subscribe(events: Seq[EventType.Value])
-
 }
