@@ -1,5 +1,6 @@
 package scorex.core
 
+import com.typesafe.config.ConfigFactory
 import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
@@ -31,7 +32,7 @@ object NodeViewModifier {
   type ModifierTypeId = Byte
   type ModifierId = Array[Byte]
 
-  val ModifierIdSize: Int = 32 //todo: make configurable via application.conf
+  val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(32)
 }
 
 trait NodeViewModifierCompanion[M <: NodeViewModifier] {
