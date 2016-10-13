@@ -19,7 +19,6 @@ import scala.util.{Failure, Success}
 //todo: listeners
 //todo: async update?
 
-//todo: send out successful modification events
 /**
   * Composite local view of the node
   *
@@ -106,6 +105,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
               case Success(newWallet) =>
                 nodeView = (newHistory, newMinState, newWallet, newMemPool)
+                notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
 
               case Failure(e) =>
                 notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
