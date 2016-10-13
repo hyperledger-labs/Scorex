@@ -40,7 +40,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   type VL <: Vault[P, TX, VL]
   type MP <: MemoryPool[TX, MP]
 
-
   type NodeView = (HIS, MS, VL, MP)
 
   val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]]
@@ -53,6 +52,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     */
   def restoreState(): Option[NodeView]
 
+  //mutable private node view instance
   private var nodeView: NodeView = restoreState().getOrElse(genesisState)
 
   private def history(): HIS = nodeView._1
@@ -68,7 +68,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   //todo: "some check and fix database" function
   def fixDb()
 
-  private def notifySubscribers[O <: ModificationOutcome](eventType: EventType.Value, signal: O) = subscribers.get(eventType).foreach(_ ! signal)
+  private def notifySubscribers[O <: ModificationOutcome](eventType: EventType.Value, signal: O) =
+    subscribers.get(eventType).foreach(_ ! signal)
 
   private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
     val updWallet = vault().scan(tx, offchain = true)
@@ -210,4 +211,5 @@ object NodeViewHolder {
   (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
   case class Subscribe(events: Seq[EventType.Value])
+
 }
