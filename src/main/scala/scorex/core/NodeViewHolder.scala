@@ -48,7 +48,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   val networkChunkSize = 100 //todo: fix
 
   /**
-    * restore a local view during a node startup
+    * Restore a local view during a node startup. If no any stored view found
+    * (e.g. if it is a first launch of a node) None is to be returned
     */
   def restoreState(): Option[NodeView]
 

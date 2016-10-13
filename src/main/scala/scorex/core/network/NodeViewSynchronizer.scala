@@ -97,7 +97,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
         viewHolderRef ! msg
         asked.put(typeId, filteredIds)
       } else {
-        //peer has sent some object not requested -> ban!
+        //remote peer has sent some object not requested -> ban!
         //todo: ban a peer
       }
   }
