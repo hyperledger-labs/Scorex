@@ -45,14 +45,21 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   val networkChunkSize = 100 //todo: make configurable?
 
+
+  //mutable private node view instance
+  private var nodeView: NodeView = restoreState().getOrElse(genesisState)
+
+  /**
+    * Hard-coded initial view all the honest nodes in a network are making progress from.
+    */
+  protected def genesisState: NodeView
+
   /**
     * Restore a local view during a node startup. If no any stored view found
     * (e.g. if it is a first launch of a node) None is to be returned
     */
   def restoreState(): Option[NodeView]
 
-  //mutable private node view instance
-  private var nodeView: NodeView = restoreState().getOrElse(genesisState)
 
   private def history(): HIS = nodeView._1
 
@@ -114,17 +121,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
-  private def modify[MOD <: NodeViewModifier](m: MOD, source: Option[ConnectedPeer]): Unit = {
-    m match {
-      case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
-        txModify(tx, source)
+  private def modify[MOD <: NodeViewModifier](m: MOD, source: Option[ConnectedPeer]): Unit = m match {
+    case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
+      txModify(tx, source)
 
-      case pmod: PMOD@unchecked =>
-        pmodModify(pmod, source)
-    }
+    case pmod: PMOD@unchecked =>
+      pmodModify(pmod, source)
   }
-
-  protected def genesisState: NodeView
 
   def apis: Seq[ApiRoute] = Seq(
     genesisState._1,
@@ -165,7 +168,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
           memoryPool().getAll(modifierIds)
         case typeId: Byte =>
-          modifierIds.flatMap(id => history().blockById(id))
+          modifierIds.flatMap(id => history().blockById(id)) //todo: why block by id?
       }
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
