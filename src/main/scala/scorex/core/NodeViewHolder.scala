@@ -95,24 +95,21 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
             val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter(appliedTxs)
 
-            //todo: continue from here
-            maybeRollback.map(rb => vault().rollback(rb.to))
-              .getOrElse(Success(vault()))
-              .map(w => w.bulkScan(appliedTxs, offchain = false)) match {
+            val newWallet = maybeRollback
+              .map(rb => vault().rollback(rb.to).get) //we consider that vault always able to perform a rollback needed
+              .map(w => w.bulkScan(appliedTxs, offchain = false))
+              .getOrElse(vault())
 
-              case Success(newWallet) =>
-                nodeView = (newHistory, newMinState, newWallet, newMemPool)
-                notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
-
-              case Failure(e) =>
-                notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
-            }
+            nodeView = (newHistory, newMinState, newWallet, newMemPool)
+            notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
 
           case Failure(e) =>
+            log.warn(s"Cant' apply persistent modifier (id: ${pmod.id}, contents: $pmod) to minimal state")
             notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
         }
 
       case Failure(e) =>
+        log.warn(s"Cant' apply persistent modifier (id: ${pmod.id}, contents: $pmod) to history")
         notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
     }
   }
