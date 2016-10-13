@@ -6,7 +6,7 @@ import com.google.common.primitives.{Bytes, Ints}
 import org.mapdb.serializer.SerializerByteArray
 import org.mapdb.{DBMaker, HTreeMap}
 import scorex.core.NodeViewComponentCompanion
-import scorex.core.crypto.hash.SecureCryptographicHash
+import scorex.core.crypto.hash.DoubleCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -73,7 +73,7 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
 
   override def generateNewSecret(): DefaultWallet25519[TX] = {
     val nonce = lastNonce.incrementAndGet()
-    val randomSeed = SecureCryptographicHash(Bytes.concat(Ints.toByteArray(nonce), seed))
+    val randomSeed = DoubleCryptographicHash(Bytes.concat(Ints.toByteArray(nonce), seed))
     val (priv, pub) = PrivateKey25519Companion.generateKeys(randomSeed)
 
     dbSecrets.put(pub.pubKeyBytes, priv.privKeyBytes)
