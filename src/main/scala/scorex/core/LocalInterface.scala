@@ -26,21 +26,20 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   private def viewHolderEvents: Receive = {
-    case StartingPersistentModifierApplication(pmod: PMOD) =>
-      onStartingPersistentModifierApplication(pmod)
+    case stm: StartingPersistentModifierApplication[P, TX, PMOD] =>
+      onStartingPersistentModifierApplication(stm.modifier)
 
-    case FailedTransaction(tx: TX, throwable, source) =>
-      onFailedTransaction(tx)
+    case ft: FailedTransaction[P, TX] =>
+      onFailedTransaction(ft.transaction)
 
-    case FailedModification(mod: PMOD, throwable, source) =>
-      onFailedModification(mod)
+    case fm: FailedModification[P, TX, PMOD] =>
+      onFailedModification(fm.modifier)
 
-    case SuccessfulTransaction(tx: TX, source) =>
-      onSuccessfulTransaction(tx)
+    case st: SuccessfulTransaction[P, TX] =>
+      onSuccessfulTransaction(st.transaction)
 
-
-    case SuccessfulModification(mod: PMOD, source) =>
-      onSuccessfulModification(mod)
+    case sm: SuccessfulModification[P, TX, PMOD] =>
+      onSuccessfulModification(sm.modifier)
   }
 
   protected def onStartingPersistentModifierApplication(pmod: PMOD): Unit
