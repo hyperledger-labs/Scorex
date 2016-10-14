@@ -69,10 +69,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def memoryPool(): MP = nodeView._4
 
-  private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, ActorRef]()
+  private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, Seq[ActorRef]]()
 
   private def notifySubscribers[O <: NodeViewHolderEvent](eventType: EventType.Value, signal: O) =
-    subscribers.get(eventType).foreach(_ ! signal)
+    subscribers.getOrElse(eventType, Seq()).foreach(_ ! signal)
 
   private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
     val updWallet = vault().scan(tx, offchain = true)
@@ -143,7 +143,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def handleSubscribe: Receive = {
     case NodeViewHolder.Subscribe(events) =>
-      events.foreach(evt => subscribers.put(evt, sender()))
+      events.foreach { evt =>
+        val current = subscribers.getOrElse(evt, Seq())
+        subscribers.put(evt, current :+ sender())
+      }
   }
 
   private def processRemoteModifiers: Receive = {
@@ -204,7 +207,7 @@ object NodeViewHolder {
 
   //node view holder starting persistent modifier application
   case class StartingPersistentModifierApplication[
-    P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]
+  P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]
   ](modifier: PMOD) extends NodeViewHolderEvent
 
   //hierarchy of events regarding modifiers application outcome
