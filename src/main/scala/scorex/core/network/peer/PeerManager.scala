@@ -12,6 +12,7 @@ import scala.collection.mutable
 import scala.util.Random
 
 /**
+ * Peer manager takes care of peers connected and in process
  * Must be singleton
  *
  */

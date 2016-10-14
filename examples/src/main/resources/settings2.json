@@ -4,22 +4,22 @@
     "upnp": false,
     "upnpGatewayTimeout": 7000,
     "upnpDiscoverTimeout": 3000,
-    "port": 9084,
+    "port": 9088,
     "knownPeers": [
-      "127.0.0.2:9088"
+      "127.0.0.1:9084"
     ],
     "maxConnections": 10
   },
-  "walletDir": "/tmp/scorex/wallet",
+  "walletDir": "/tmp/scorex/wallet2",
   "walletPassword": "cookies",
-  "dataDir": "/tmp/scorex/data",
-  "rpcPort": 9085,
+  "dataDir": "/tmp/scorex/data2",
+  "rpcPort": 9089,
   "rpcAllowed": [],
   "maxRollback": 100,
   "blockGenerationDelay": 0,
   "genesisTimestamp": 1460952000000,
   "perma": {
-    "treeDir": "/tmp/scorex/data/tree/",
+    "treeDir": "/tmp/scorex/data/tree2/",
     "authDataStorage": "permatree.db"
   },
   "cors": false

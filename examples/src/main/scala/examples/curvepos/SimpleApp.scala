@@ -16,8 +16,7 @@ import scala.reflect.runtime.universe._
   * (just transfers from one pubkey to another)
   * and Nxt-like(simplified) Consensus
   */
-class SimpleApp extends Application {
-  lazy val settingsFilename = "settings.json"
+class SimpleApp(val settingsFilename: String) extends Application {
   implicit lazy val settings = new Settings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
@@ -41,5 +40,6 @@ class SimpleApp extends Application {
 }
 
 object SimpleApp extends App {
-  new SimpleApp().run()
+  val settingsFilename = args.headOption.getOrElse("settings.json")
+  new SimpleApp(settingsFilename).run()
 }
