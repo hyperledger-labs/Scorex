@@ -71,7 +71,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, ActorRef]()
 
-  private def notifySubscribers[O <: ModificationOutcome](eventType: EventType.Value, signal: O) =
+  private def notifySubscribers[O <: NodeViewHolderEvent](eventType: EventType.Value, signal: O) =
     subscribers.get(eventType).foreach(_ ! signal)
 
   private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
@@ -87,6 +87,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]) = {
+    notifySubscribers(
+      EventType.StartingPersistentModifierApplication,
+      StartingPersistentModifierApplication[P, TX, PMOD](pmod)
+    )
+
     history().append(pmod) match {
       case Success((newHistory, maybeRollback)) =>
         maybeRollback.map(rb => minimalState().rollbackTo(rb.to).flatMap(_.applyModifiers(rb.applied)))
@@ -188,13 +193,22 @@ object NodeViewHolder {
     val FailedPersistentModifier = Value(2)
     val SuccessfulTransaction = Value(3)
     val SuccessfulPersistentModifier = Value(4)
+
+    val StartingPersistentModifierApplication = Value(5)
   }
 
   //a command to subscribe for events
   case class Subscribe(events: Seq[EventType.Value])
 
-  //hierarchy of events regarding successful/failed modifiers application
-  trait ModificationOutcome {
+  trait NodeViewHolderEvent
+
+  //node view holder starting persistent modifier application
+  case class StartingPersistentModifierApplication[
+    P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]
+  ](modifier: PMOD) extends NodeViewHolderEvent
+
+  //hierarchy of events regarding modifiers application outcome
+  trait ModificationOutcome extends NodeViewHolderEvent {
     val source: Option[ConnectedPeer]
   }
 
@@ -209,4 +223,5 @@ object NodeViewHolder {
 
   case class SuccessfulModification[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
   (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+
 }
