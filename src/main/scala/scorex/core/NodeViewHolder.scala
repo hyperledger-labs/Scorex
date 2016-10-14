@@ -1,6 +1,7 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
@@ -149,14 +150,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       }
   }
 
-  private def processRemoteModifiers: Receive = {
-    case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
-      modifierCompanions.get(modifierTypeId) foreach { companion =>
-        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach(m =>
-          modify(m, Some(remote))
-        )
-      }
-  }
 
   private def compareViews: Receive = {
     case CompareViews(sid, modifierTypeId, modifierIds) =>
@@ -181,11 +174,31 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
 
+  private def processRemoteModifiers: Receive = {
+    case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
+      modifierCompanions.get(modifierTypeId) foreach { companion =>
+        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach(m =>
+          modify(m, Some(remote))
+        )
+      }
+  }
+
+  private def processLocallyGeneratedModifiers: Receive = {
+    case lt: LocallyGeneratedTransaction[P, TX] =>
+      modify(lt.tx, None)
+
+    case lm: LocallyGeneratedModifier[P, TX, PMOD] =>
+      modify(lm.pmod, None)
+  }
+
   override def receive: Receive =
     handleSubscribe orElse
       compareViews orElse
       readLocalObjects orElse
-      processRemoteModifiers
+      processRemoteModifiers orElse
+      processLocallyGeneratedModifiers orElse {
+      case a: Any => log.error("Strange input: " + a)
+    }
 }
 
 

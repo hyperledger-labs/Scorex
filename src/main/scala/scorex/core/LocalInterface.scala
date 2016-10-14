@@ -1,15 +1,17 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
 import scorex.core.NodeViewHolder._
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.utils.ScorexLogging
 
 /**
   *
   */
 trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
-  extends Actor {
+  extends Actor with ScorexLogging {
 
   val viewHolderRef: ActorRef
 
@@ -53,5 +55,20 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def onSuccessfulModification(mod: PMOD): Unit
 
 
-  override def receive: Receive = viewHolderEvents
+  override def receive: Receive = viewHolderEvents orElse {
+    case lt: LocallyGeneratedTransaction[P, TX] =>
+      viewHolderRef ! lt
+    case lm: LocallyGeneratedModifier[P, TX, PMOD] =>
+      viewHolderRef ! lm
+    case a: Any => log.error("Strange input: " + a)
+  }
+}
+
+object LocalInterface {
+
+  case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
+
+  case class LocallyGeneratedModifier[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
+  (pmod: PMOD)
+
 }
