@@ -37,6 +37,7 @@ class SimpleApp(val settingsFilename: String) extends Application {
   override val wallet: Wallet[P, TX, _] = SimpleWallet()
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
+  override lazy val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
 }
 
 object SimpleApp extends App {

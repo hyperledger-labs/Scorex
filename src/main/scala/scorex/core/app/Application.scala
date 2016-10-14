@@ -64,8 +64,7 @@ trait Application extends ScorexLogging {
 
   val nodeViewSynchronizer = actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX]], networkController, nodeViewHolderRef))
 
-
-
+  val localInterface: ActorRef
 
   implicit val materializer = ActorMaterializer()
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
