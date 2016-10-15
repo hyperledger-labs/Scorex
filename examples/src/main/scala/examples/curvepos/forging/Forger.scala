@@ -3,8 +3,10 @@ package examples.curvepos.forging
 import akka.actor.Actor
 
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class Forger extends Actor {
+
   import Forger._
 
   //set to true for initial generator
@@ -26,6 +28,7 @@ class Forger extends Actor {
 }
 
 object Forger {
+
   case object StartMining
   case object StopMining
 
