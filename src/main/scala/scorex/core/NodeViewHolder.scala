@@ -197,12 +197,16 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       readLocalObjects orElse
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse {
+      case GetCurrentView =>
+        sender() ! (history(), minimalState(), vault(), memoryPool())
       case a: Any => log.error("Strange input: " + a)
     }
 }
 
 
 object NodeViewHolder {
+
+  object GetCurrentView
 
   object EventType extends Enumeration {
     val FailedTransaction = Value(1)
