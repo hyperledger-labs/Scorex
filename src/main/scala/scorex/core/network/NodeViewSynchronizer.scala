@@ -14,7 +14,6 @@ import scorex.core.network.message.BasicMsgDataTypes._
 
 /**
   * A middle layer between a node view holder(NodeViewHolder) and a network
-  * //todo: also a local updater?
   *
   * @param networkControllerRef
   * @param viewHolderRef
