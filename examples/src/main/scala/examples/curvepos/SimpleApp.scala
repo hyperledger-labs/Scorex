@@ -1,6 +1,7 @@
 package examples.curvepos
 
 import akka.actor.{ActorRef, Props}
+import examples.curvepos.forging.ForgerSettings
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction, SimpleWallet}
 import io.circe
 import scorex.core.api.http.{ApiRoute, UtilsApiRoute}
@@ -9,6 +10,7 @@ import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.wallet.Wallet
+
 import scala.reflect.runtime.universe._
 
 /**
@@ -17,7 +19,7 @@ import scala.reflect.runtime.universe._
   * and Nxt-like(simplified) Consensus
   */
 class SimpleApp(val settingsFilename: String) extends Application {
-  implicit lazy val settings = new Settings {
+  implicit lazy val settings = new Settings with ForgerSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 

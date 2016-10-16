@@ -191,14 +191,18 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       modify(lm.pmod, None)
   }
 
+  private def viewGetters: Receive = {
+    case GetCurrentView =>
+      sender() ! (history(), minimalState(), vault(), memoryPool())
+  }
+
   override def receive: Receive =
     handleSubscribe orElse
       compareViews orElse
       readLocalObjects orElse
       processRemoteModifiers orElse
-      processLocallyGeneratedModifiers orElse {
-      case GetCurrentView =>
-        sender() ! (history(), minimalState(), vault(), memoryPool())
+      processLocallyGeneratedModifiers orElse
+      viewGetters orElse {
       case a: Any => log.error("Strange input: " + a)
     }
 }

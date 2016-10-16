@@ -80,7 +80,6 @@ trait Settings extends ScorexLogging {
   lazy val rpcPort = settingsJSON.get("rpcPort").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultRpcPort)
   lazy val rpcAllowed: Seq[String] = settingsJSON.get("rpcAllowed").flatMap(_.asArray.map(_.flatMap(_.asString))).getOrElse(DefaultRpcAllowed.split(""))
 
-  lazy val offlineGeneration = settingsJSON.get("offlineGeneration").flatMap(_.asBoolean).getOrElse(false)
   lazy val historySynchronizerTimeout: FiniteDuration = settingsJSON.get("historySynchronizerTimeout").flatMap(_.asNumber).flatMap(_.toInt)
     .map(x => x.seconds).getOrElse(DefaultHistorySynchronizerTimeout)
 

@@ -39,7 +39,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], BT <
   /**
     * Block with maximum blockchain score
     */
-  def lastBlock: Block[P, TX] = lastBlocks(1).head
+  def lastBlock: B = lastBlocks(1).head
 
   def lastBlockIds(howMany: Int): Seq[BlockId] = lastBlocks(howMany).map(_.id)
 
