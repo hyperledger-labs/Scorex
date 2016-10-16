@@ -1,11 +1,11 @@
 package examples.curvepos.forging
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class Forger extends Actor {
+class Forger(viewHolderRef: ActorRef) extends Actor {
 
   import Forger._
 

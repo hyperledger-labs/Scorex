@@ -55,19 +55,15 @@ class ApiClient(settings: Settings) {
   }
 }
 
-object ApiClient {
+object ApiClient extends App {
+  val settingsFilename = args.headOption.getOrElse("settings.json")
+  val settings = new Settings {
+    override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
+  }
+  val apiClient = new ApiClient(settings)
 
-
-  def main(args: Array[String]): Unit = {
-    val settingsFilename = args.headOption.getOrElse("settings.json")
-    val settings = new Settings {
-      override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
-    }
-    val apiClient = new ApiClient(settings)
-
-    println("Welcome to the Scorex command-line client...")
-    Iterator.continually(StdIn.readLine()).takeWhile(!_.equals("quit")).foreach { command =>
-      println(s"[$command RESULT] " + apiClient.executeCommand(command))
-    }
+  println("Welcome to the Scorex command-line client...")
+  Iterator.continually(StdIn.readLine()).takeWhile(!_.equals("quit")).foreach { command =>
+    println(s"[$command RESULT] " + apiClient.executeCommand(command))
   }
 }
