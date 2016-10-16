@@ -39,22 +39,20 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   private def bounded(value: BigInt, min: BigInt, max: BigInt): BigInt =
     if (value < min) min else if (value > max) max else value
 
-  private def calcBaseTarget(lastBlockBaseTarget: Long,
-                             lastBlockTimestamp: Long,
+  private def calcBaseTarget(lastBlock: SimpleBlock,
                              currentTime: Long): Long = {
-    val eta = currentTime - lastBlockTimestamp
-    val prevBt = BigInt(lastBlockBaseTarget)
+    val eta = currentTime - lastBlock.timestamp
+    val prevBt = BigInt(lastBlock.baseTarget)
     val t0 = bounded(prevBt * eta / InterBlocksDelay, prevBt / 2, prevBt * 2)
     bounded(t0, 1, Long.MaxValue).toLong
   }
 
-  protected def calcTarget(lastBlockBaseTarget: Long,
-                           lastBlockTimestamp: Long,
+  protected def calcTarget(lastBlock: SimpleBlock,
                            state: SimpleState,
                            generator: PublicKey25519Proposition): BigInt = {
-    val eta = (NetworkTime.time() - lastBlockTimestamp) / 1000 //in seconds
+    val eta = (NetworkTime.time() - lastBlock.timestamp) / 1000 //in seconds
     val balance = state.boxOf(generator).headOption.map(_.value).getOrElse(0L)
-    BigInt(lastBlockBaseTarget) * eta * balance
+    BigInt(lastBlock.baseTarget) * eta * balance
   }
 
   private def calcGeneratorSignature(lastBlock: SimpleBlock, generator: PublicKey25519Proposition) =
