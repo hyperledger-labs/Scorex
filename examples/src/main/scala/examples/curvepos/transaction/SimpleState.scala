@@ -2,6 +2,7 @@ package examples.curvepos.transaction
 
 import java.nio.ByteBuffer
 
+import examples.curvepos.transaction.SimpleState.EmptyVersion
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
 import scorex.core.transaction.TransactionChanges
@@ -9,13 +10,12 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.utils.ScorexLogging
-import scala.util.{Failure, Try}
 
-import SimpleState.EmptyVersion
+import scala.util.{Failure, Try}
 
 case class SimpleState(override val version: VersionTag = EmptyVersion,
                        storage: Map[ByteBuffer, PublicKey25519NoncedBox] = Map()) extends ScorexLogging
-  with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
+with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
 
   def isEmpty: Boolean = version sameElements EmptyVersion
 
@@ -55,7 +55,11 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
     */
   override def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     transaction match {
-      case _: SimplePayment => Failure(new Exception("implementation is needed"))
+      case genesis: SimplePayment if isEmpty => Try {
+        val toAppend: Set[PublicKey25519NoncedBox] = Set(PublicKey25519NoncedBox(genesis.recipient, genesis.amount))
+        TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), toAppend, 0)
+      }
+      case _ => Failure(new Exception("implementation is needed"))
     }
   }
 

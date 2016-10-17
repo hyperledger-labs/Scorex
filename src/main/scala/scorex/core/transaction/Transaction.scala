@@ -2,6 +2,8 @@ package scorex.core.transaction
 
 import io.circe.Json
 import scorex.core.NodeViewModifier
+import scorex.core.NodeViewModifier._
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.JsonSerializable
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.box.Box
@@ -26,6 +28,9 @@ abstract class Transaction[P <: Proposition]
   def json: Json
 
   val messageToSign: Array[Byte]
+
+  override lazy val id: ModifierId = FastCryptographicHash(messageToSign)
+
 }
 
 
