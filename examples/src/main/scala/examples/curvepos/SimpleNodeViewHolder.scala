@@ -42,6 +42,8 @@ class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, Sim
     }
     require(!state.isEmpty)
 
+    log.info(s"Genesis state with block ${genesisBlock.json.noSpaces} created")
+
     (blockchain, state, wallet, new SimpleMemPool)
   }
 }
