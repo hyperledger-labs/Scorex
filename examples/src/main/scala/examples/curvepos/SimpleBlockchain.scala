@@ -2,15 +2,19 @@ package examples.curvepos
 
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewComponentCompanion
-import scorex.core.consensus.BlockChain
+import scorex.core.consensus.{BlockChain, SyncInfo}
 import scorex.core.consensus.History.{BlockId, RollbackTo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scala.util.{Failure, Success, Try}
 
+import scala.util.{Failure, Success, Try}
 import SimpleBlockchain.Height
 
 case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[BlockId, SimpleBlock] = Map())
   extends BlockChain[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleBlockchain] {
+
+  import BlockChain.Score
+
+  override type SI = SimpleSyncInfo
 
   /**
     * Is there's no history, even genesis block
@@ -74,8 +78,14 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
 
   override def children(blockId: BlockId): Seq[SimpleBlock] =
     heightOf(blockId).map(_ + 1).flatMap(blockAt).toSeq
+
+  override def syncInfo: SimpleSyncInfo = ???
 }
 
-object SimpleBlockchain{
+case class SimpleSyncInfo(score: BlockChain.Score) extends SyncInfo[SimpleBlockchain] {
+  override def bytes: Array[Byte] = ???
+}
+
+object SimpleBlockchain {
   type Height = Int
 }

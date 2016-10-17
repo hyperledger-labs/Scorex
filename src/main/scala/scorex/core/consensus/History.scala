@@ -52,6 +52,7 @@ trait History[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewMo
   //todo: argument should be ID | Seq[ID]
   def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
 
+  def syncInfo: SI
 }
 
 object History {
