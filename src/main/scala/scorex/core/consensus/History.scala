@@ -21,9 +21,10 @@ import scala.util.Try
   */
 
 trait History[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewModifier[P, TX], HT <: History[P, TX, PM, HT]] extends NodeViewComponent {
-  self =>
 
   import History._
+
+  type SI <: SyncInfo[HT]
 
   /**
     * Is there's no history, even genesis block
