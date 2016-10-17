@@ -92,7 +92,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       EventType.StartingPersistentModifierApplication,
       StartingPersistentModifierApplication[P, TX, PMOD](pmod)
     )
-    log.info(s"Apply modifier to nodeviewHolder.  Score: ${history().chainScore()}")
+    log.info(s"Apply modifier to nodeViewHolder.")
 
     history().append(pmod) match {
       case Success((newHistory, maybeRollback)) =>
