@@ -1,7 +1,8 @@
 package examples.curvepos
 
 import akka.actor.{ActorRef, Props}
-import examples.curvepos.forging.ForgerSettings
+import examples.curvepos.forging.Forger.StartMining
+import examples.curvepos.forging.{Forger, ForgerSettings}
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction, SimpleWallet}
 import io.circe
 import scorex.core.api.http.{ApiRoute, UtilsApiRoute}
@@ -40,6 +41,10 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
   override lazy val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
+
+  val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))
+  forger ! StartMining
+
 }
 
 object SimpleApp extends App {
