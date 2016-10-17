@@ -11,7 +11,7 @@ import scala.util.Try
 trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], BT <: BlockChain[P, TX, B, BT]]
   extends History[P, TX, B, BT] with ScorexLogging {
 
-  type Score = BigInt
+  import BlockChain.Score
 
   def score(block: B): Score
 
@@ -83,4 +83,15 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], BT <
   def children(blockId: BlockId): Seq[B]
 
   lazy val genesisBlock: B = blockAt(1).get
+
+  /**
+    * Quality score of a best chain, e.g. cumulative difficulty in case of Bitcoin / Nxt
+    *
+    * @return
+    */
+  def chainScore(): Score
+}
+
+object BlockChain {
+  type Score = BigInt
 }

@@ -21,9 +21,10 @@ import scala.util.Try
   */
 
 trait History[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewModifier[P, TX], HT <: History[P, TX, PM, HT]] extends NodeViewComponent {
-  self =>
 
   import History._
+
+  type SI <: SyncInfo[HT]
 
   /**
     * Is there's no history, even genesis block
@@ -51,12 +52,7 @@ trait History[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewMo
   //todo: argument should be ID | Seq[ID]
   def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
 
-  /**
-    * Quality score of a best chain, e.g. cumulative difficulty in case of Bitcoin / Nxt
-    *
-    * @return
-    */
-  def chainScore(): BigInt
+  def syncInfo: SI
 }
 
 object History {
