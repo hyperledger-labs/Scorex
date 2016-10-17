@@ -1,6 +1,6 @@
 package examples.curvepos.transaction
 
-import com.google.common.primitives.{Ints, Longs}
+import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.curvepos.transaction.SimpleBlock._
 import io.circe.Json
 import io.circe.syntax._
@@ -25,10 +25,9 @@ case class SimpleBlock(override val parentId: BlockId,
 
   override def transactions: Option[Seq[SimpleTransaction]] = Some(txs)
 
-  override def companion: NodeViewModifierCompanion[SimpleBlock] = SimpleBlockCompanion
+  override def companion = SimpleBlockCompanion
 
-  override def id: BlockId =
-    FastCryptographicHash(txs.map(_.messageToSign).reduce(_ ++ _) ++ generator.bytes)
+  override def id: BlockId = FastCryptographicHash(companion.messageToSing(this))
 
   override type M = SimpleBlock
 
@@ -59,7 +58,19 @@ object SimpleBlock {
 
 object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
 
-  override def bytes(block: SimpleBlock): Array[ModifierTypeId] = {
+  def messageToSing(block: SimpleBlock): Array[Byte] = {
+    block.parentId ++
+      Longs.toByteArray(block.timestamp) ++
+      Array(block.version) ++
+      Longs.toByteArray(block.baseTarget) ++
+      block.generator.pubKeyBytes ++ {
+      val cntBytes = Ints.toByteArray(block.txs.size)
+      block.txs.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
+    }
+  }
+
+  override def bytes(block: SimpleBlock): Array[Byte] = {
+    //TODO use messageToSign
     block.parentId ++
       Longs.toByteArray(block.timestamp) ++
       Array(block.version) ++

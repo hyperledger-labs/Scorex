@@ -43,13 +43,11 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
     putWithoutCheck(txs)
   }
 
-  /**
-    * Get sequence of transactions and remove them from pool
-    */
-  override def drain(limit: Int): (Iterable[SimpleTransaction], SimpleMemPool) = {
-    val txs: Iterable[SimpleTransaction] = unconfTxs.keys.take(limit).flatMap(k => unconfTxs.get(k))
-    (txs, filter(txs))
+  override def take(limit: Int): (Iterable[SimpleTransaction], SimpleMemPool) = {
+    (unconfTxs.keys.take(limit).flatMap(k => unconfTxs.get(k)), this)
   }
+
+
 
   override def remove(tx: SimpleTransaction): SimpleMemPool = filter(tx)
 

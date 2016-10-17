@@ -2,15 +2,17 @@ package examples.curvepos.forging
 
 import akka.actor.{Actor, ActorRef}
 import examples.curvepos.SimpleBlockchain
-import examples.curvepos.transaction.{SimpleBlock, SimpleMemPool, SimpleState, SimpleWallet}
+import examples.curvepos.transaction._
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.NetworkTime
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.util.Try
 
 trait ForgerSettings extends Settings {
   lazy val offlineGeneration = settingsJSON.get("offlineGeneration").flatMap(_.asBoolean).getOrElse(false)
@@ -29,7 +31,8 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   private val hash = FastCryptographicHash
 
 
-  val InterBlocksDelay = 15 //in seconds
+  val InterBlocksDelay = 15
+  //in seconds
   val blockGenerationDelay = 500 //in millis
 
   override def preStart(): Unit = {
@@ -69,24 +72,32 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
     case StopMining =>
       forging = false
 
-    case CurrentView(b:SimpleBlockchain, st: SimpleState, wallet: SimpleWallet, pool: SimpleMemPool) =>
-//      val currentState = t._2
-//      val lastBlock = t._1.lastBlock
-//      val memPool = t._4
-//
-//
-//
-//      val toInclude = currentState.filterValid(memPool.drain(TransactionsInBlock)._1.toSeq)
-//
-//
-//      val gs = lastBlock.generationSignature
+    case CurrentView(history: SimpleBlockchain, state: SimpleState, wallet: SimpleWallet, memPool: SimpleMemPool) =>
+      val lastBlock = history.lastBlock
+      val generators: Set[PublicKey25519Proposition] = wallet.publicKeys
+      lazy val toInclude = state.filterValid(memPool.take(TransactionsInBlock)._1.toSeq)
 
+      val generatedBlocks = generators.flatMap { generator =>
+        val hit = calcHit(lastBlock, generator)
+        val target = calcTarget(lastBlock, state, generator)
+        if (hit < target) {
+          Try {
+            val timestamp = NetworkTime.time()
+            val bt = calcBaseTarget(lastBlock, timestamp)
+            val secret: PrivateKey25519 = wallet.secretByPublicImage(generator).get
 
+            val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
+            val signature = PrivateKey25519Companion.sign(secret, unsigned.companion.messageToSing(unsigned))
+            unsigned.copy(generationSignature = signature.signature)
+          }.toOption
+        } else {
+          None
+        }
+      }
+      generatedBlocks.foreach(block => viewHolderRef ! block)
 
     case Forge =>
       viewHolderRef ! GetCurrentView
-      context.system.scheduler.scheduleOnce(1.second)(self ! Forge)
-
   }
 }
 
