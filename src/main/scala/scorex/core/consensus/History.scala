@@ -52,12 +52,6 @@ trait History[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewMo
   //todo: argument should be ID | Seq[ID]
   def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
 
-  /**
-    * Quality score of a best chain, e.g. cumulative difficulty in case of Bitcoin / Nxt
-    *
-    * @return
-    */
-  def chainScore(): BigInt
 }
 
 object History {
