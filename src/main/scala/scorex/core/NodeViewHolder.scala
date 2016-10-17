@@ -118,12 +118,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
 
           case Failure(e) =>
-            log.warn(s"Cant' apply persistent modifier (id: ${pmod.id}, contents: $pmod) to minimal state")
+            log.warn(s"Can`t apply persistent modifier (id: ${pmod.id}, contents: $pmod) to minimal state", e)
             notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
         }
 
       case Failure(e) =>
-        log.warn(s"Cant' apply persistent modifier (id: ${pmod.id}, contents: $pmod) to history")
+        log.warn(s"Can`t apply persistent modifier (id: ${pmod.id}, contents: $pmod) to history", e)
         notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
     }
   }
