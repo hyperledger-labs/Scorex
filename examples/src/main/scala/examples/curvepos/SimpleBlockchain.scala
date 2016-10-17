@@ -31,7 +31,7 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
     val blockId = block.id
     val parentId = block.parentId
 
-    if (blockIds.isEmpty || (blockIds.last._2 sameElements parentId)) {
+    if (blockIds.isEmpty || (lastBlock.id sameElements parentId)) {
       val h = height() + 1
       val newChain = SimpleBlockchain(blockIds + (h -> blockId), blocks + (blockId -> block))
       Success(newChain, None)
