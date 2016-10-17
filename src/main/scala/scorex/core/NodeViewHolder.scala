@@ -2,11 +2,11 @@ package scorex.core
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
+import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.History
-import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
 import scorex.core.network.NodeViewSynchronizer._
-import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -193,7 +193,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def viewGetters: Receive = {
     case GetCurrentView =>
-      sender() ! (history(), minimalState(), vault(), memoryPool())
+      sender() ! CurrentView(history(), minimalState(), vault(), memoryPool())
   }
 
   override def receive: Receive =
@@ -247,5 +247,8 @@ object NodeViewHolder {
 
   case class SuccessfulModification[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
   (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+
+
+  case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
 
 }

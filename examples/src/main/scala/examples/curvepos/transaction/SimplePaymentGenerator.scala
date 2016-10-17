@@ -3,6 +3,7 @@ package examples.curvepos.transaction
 import akka.actor.ActorRef
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
 import scorex.core.NodeViewHolder
+import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import akka.pattern.ask
 import akka.util.Timeout
@@ -17,12 +18,12 @@ class SimplePaymentGenerator(viewHolderRef: ActorRef, localInterfaceRef: ActorRe
     implicit val timeout = Timeout(5.seconds)
 
     val f = viewHolderRef ? NodeViewHolder.GetCurrentView
-    val fv = f.mapTo[(SimpleBlockchain, SimpleState, SimpleWallet, SimpleMemPool)]
+    val fv = f.mapTo[CurrentView[SimpleBlockchain, SimpleState, SimpleWallet, SimpleMemPool]]
 
     val view = Await.result(fv, 5.seconds)
 
-    val wallet: SimpleWallet = view._3
-    val state: SimpleState = view._2
+    val wallet: SimpleWallet = view.vault
+    val state: SimpleState = view.state
 
     require(wallet.currentBalance >= amount, "Not enough money")
     val from = wallet.publicKeys.head

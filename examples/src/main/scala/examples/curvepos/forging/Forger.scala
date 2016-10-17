@@ -3,7 +3,7 @@ package examples.curvepos.forging
 import akka.actor.{Actor, ActorRef}
 import examples.curvepos.SimpleBlockchain
 import examples.curvepos.transaction.{SimpleBlock, SimpleMemPool, SimpleState, SimpleWallet}
-import scorex.core.NodeViewHolder.GetCurrentView
+import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -69,17 +69,17 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
     case StopMining =>
       forging = false
 
-    case t:(SimpleBlockchain, SimpleState, SimpleWallet, SimpleMemPool) =>
-      val currentState = t._2
-      val lastBlock = t._1.lastBlock
-      val memPool = t._4
-
-
-
-      val toInclude = currentState.filterValid(memPool.drain(TransactionsInBlock)._1.toSeq)
-
-
-      val gs = lastBlock.generationSignature
+    case CurrentView(b:SimpleBlockchain, st: SimpleState, wallet: SimpleWallet, pool: SimpleMemPool) =>
+//      val currentState = t._2
+//      val lastBlock = t._1.lastBlock
+//      val memPool = t._4
+//
+//
+//
+//      val toInclude = currentState.filterValid(memPool.drain(TransactionsInBlock)._1.toSeq)
+//
+//
+//      val gs = lastBlock.generationSignature
 
 
 
