@@ -37,6 +37,7 @@ case class SimpleBlock(override val parentId: BlockId,
   override val version: Version = 0: Byte
 
   override def json: Json = Map(
+    "id" -> Base58.encode(id).asJson,
     "parentId" -> Base58.encode(parentId).asJson,
     "timestamp" -> timestamp.asJson,
     "generationSignature" -> Base58.encode(generationSignature).asJson,

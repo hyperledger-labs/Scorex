@@ -5,6 +5,7 @@ import scorex.core.NodeViewComponentCompanion
 import scorex.core.consensus.BlockChain
 import scorex.core.consensus.History.{BlockId, RollbackTo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.crypto.encode.Base58
 import scala.util.{Failure, Success, Try}
 
 import SimpleBlockchain.Height
@@ -30,7 +31,8 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
       val h = height() + 1
       val newChain = SimpleBlockchain(blockIds + (h -> blockId), blocks + (blockId -> block))
       Success(newChain, None)
-    } else Failure(new Exception("No parent is a last block"))
+    } else Failure(new Exception(s"Last block id is ${Base58.encode(blockIds.last._2)}, " +
+      s"expected ${Base58.encode(parentId)}}"))
   }
 
   //todo: should be ID | Seq[ID]
