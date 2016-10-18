@@ -20,13 +20,14 @@ object BasicMsgDataTypes {
 
 import scorex.core.network.message.BasicMsgDataTypes._
 
-class SyncInfoMessage[SI <: SyncInfo[_]] extends MessageSpec[SI] {
+class SyncInfoSpec[SI <: SyncInfo[_]](deserializer: Array[Byte] => Try[SI]) extends MessageSpec[SI] {
+
   override val messageCode: MessageCode = 65: Byte
   override val messageName: String = "Sync"
 
-  override def deserializeData(bytes: Array[MessageCode]): Try[SI] = ???
+  override def deserializeData(bytes: Array[Byte]): Try[SI] = deserializer(bytes)
 
-  override def serializeData(data: SI): Array[MessageCode] = data.bytes
+  override def serializeData(data: SI): Array[Byte] = data.bytes
 }
 
 object InvSpec extends MessageSpec[InvData] {
@@ -36,7 +37,7 @@ object InvSpec extends MessageSpec[InvData] {
   override val messageCode: MessageCode = 55: Byte
   override val messageName: String = "Inv"
 
-  override def deserializeData(bytes: Array[MessageCode]): Try[InvData] = Try {
+  override def deserializeData(bytes: Array[Byte]): Try[InvData] = Try {
     val typeId = bytes.head
     val count = Ints.fromByteArray(bytes.slice(1, 5))
 
