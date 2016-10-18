@@ -33,7 +33,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
 
   private val seniors = mutable.Set[ConnectedPeer]()
 
-
   private val juniors = mutable.Set[ConnectedPeer]()
 
   override def preStart(): Unit = {

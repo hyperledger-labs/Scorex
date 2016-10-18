@@ -7,7 +7,9 @@ import java.util
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message._
+
 import scala.util.Try
 
 
@@ -17,6 +19,15 @@ object BasicMsgDataTypes {
 }
 
 import scorex.core.network.message.BasicMsgDataTypes._
+
+class SyncInfoMessage[SI <: SyncInfo[_]] extends MessageSpec[SI] {
+  override val messageCode: MessageCode = 65: Byte
+  override val messageName: String = "Sync"
+
+  override def deserializeData(bytes: Array[MessageCode]): Try[SI] = ???
+
+  override def serializeData(data: SI): Array[MessageCode] = data.bytes
+}
 
 object InvSpec extends MessageSpec[InvData] {
   //todo: fetch from settings file?
