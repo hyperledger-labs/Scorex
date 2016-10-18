@@ -55,6 +55,17 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
     */
   override def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     transaction match {
+      case tx: SimplePayment if !isEmpty => Try {
+        val oldSenderBox = boxOf(tx.sender).head
+        val oldRecipientBox = boxOf(tx.recipient).head
+        val toRemove = Set(oldSenderBox, oldRecipientBox)
+        val toAppend = Set(
+          oldRecipientBox.copy(nonce = oldRecipientBox.nonce + 1, value = oldRecipientBox.value + tx.amount),
+          oldSenderBox.copy(nonce = oldRecipientBox.nonce + 1, value = oldRecipientBox.value - tx.amount - tx.fee)
+        ).ensuring(_.forall(_.value >= 0))
+
+        TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend, tx.fee)
+      }
       case genesis: SimplePayment if isEmpty => Try {
         val toAppend: Set[PublicKey25519NoncedBox] = Set(PublicKey25519NoncedBox(genesis.recipient, genesis.amount))
         TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), toAppend, 0)
