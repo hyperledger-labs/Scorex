@@ -3,7 +3,7 @@ package examples.curvepos
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewComponentCompanion
-import scorex.core.consensus.History.{BlockId, RollbackTo}
+import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
 import scorex.core.consensus.{BlockChain, SyncInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
@@ -81,7 +81,15 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   override def children(blockId: BlockId): Seq[SimpleBlock] =
     heightOf(blockId).map(_ + 1).flatMap(blockAt).toSeq
 
-  override def syncInfo: SimpleSyncInfo = ???
+  override def syncInfo: SimpleSyncInfo = SimpleSyncInfo(chainScore())
+
+  override def compare(other: SimpleSyncInfo): HistoryComparisonResult.Value = {
+    val local = syncInfo.score
+    val remote = other.score
+    if (local < remote) HistoryComparisonResult.Older
+    else if(local == remote) HistoryComparisonResult.Equal
+    else HistoryComparisonResult.Younger
+  }
 }
 
 case class SimpleSyncInfo(score: BlockChain.Score) extends SyncInfo[SimpleBlockchain] {

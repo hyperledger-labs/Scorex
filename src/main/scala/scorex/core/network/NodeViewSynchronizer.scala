@@ -30,7 +30,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
   //against objects sent
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
 
+
   private val seniors = mutable.Set[ConnectedPeer]()
+
+
   private val juniors = mutable.Set[ConnectedPeer]()
 
   override def preStart(): Unit = {
