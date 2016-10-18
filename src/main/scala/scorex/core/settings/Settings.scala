@@ -78,10 +78,6 @@ trait Settings extends ScorexLogging {
   lazy val declaredAddress = p2pSettings.get("myAddress").flatMap(_.asString)
 
   lazy val rpcPort = settingsJSON.get("rpcPort").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultRpcPort)
-  lazy val rpcAllowed: Seq[String] = settingsJSON.get("rpcAllowed").flatMap(_.asArray.map(_.flatMap(_.asString))).getOrElse(DefaultRpcAllowed.split(""))
-
-  lazy val historySynchronizerTimeout: FiniteDuration = settingsJSON.get("historySynchronizerTimeout").flatMap(_.asNumber).flatMap(_.toInt)
-    .map(x => x.seconds).getOrElse(DefaultHistorySynchronizerTimeout)
 
   lazy val blockGenerationDelay: FiniteDuration = settingsJSON.get("blockGenerationDelay").flatMap(_.asNumber).flatMap(_.toLong)
     .map(x => FiniteDuration(x, MILLISECONDS)).getOrElse(DefaultBlockGenerationDelay)
@@ -99,8 +95,7 @@ trait Settings extends ScorexLogging {
 
   lazy val apiKeyHash = settingsJSON.get("apiKeyHash").flatMap(_.asString).flatMap(s => Base58.decode(s).toOption)
 
-  //todo: move to application.conf
-  lazy val genesisTimestamp: Long = settingsJSON.get("genesisTimestamp").flatMap(_.asNumber).flatMap(_.toLong).getOrElse(DefaultGenesisTimestamp)
+  lazy val corsAllowed = settingsJSON.get("cors").flatMap(_.asBoolean).getOrElse(false)
 
   //NETWORK
   private val DefaultMaxConnections = 20
@@ -110,14 +105,10 @@ trait Settings extends ScorexLogging {
   val MaxBlocksChunks = 10
 
   //API
-  lazy val corsAllowed = settingsJSON.get("cors").flatMap(_.asBoolean).getOrElse(false)
 
   private val DefaultRpcPort = 9085
-  private val DefaultRpcAllowed = "127.0.0.1"
 
   private val DefaultBlockGenerationDelay: FiniteDuration = 1.second
-  private val DefaultHistorySynchronizerTimeout: FiniteDuration = 30.seconds
   private val DefaultMiningThreads: Int = 1
 
-  private val DefaultGenesisTimestamp: Long = 1460952000000L
 }
