@@ -5,11 +5,9 @@ import examples.curvepos.SimpleBlockchain
 import examples.curvepos.transaction._
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
-import scorex.core.PersistentNodeViewModifier
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
-import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.{ScorexLogging, NetworkTime}
 
@@ -76,7 +74,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
       forging = false
 
     case CurrentView(history: SimpleBlockchain, state: SimpleState, wallet: SimpleWallet, memPool: SimpleMemPool) =>
-      log.info("Trying to generate a new block")
+      log.info("Trying to generate a new block, chain length: " + history.height())
 
       val lastBlock = history.lastBlock
       val generators: Set[PublicKey25519Proposition] = wallet.publicKeys
