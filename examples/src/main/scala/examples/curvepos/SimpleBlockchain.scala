@@ -92,10 +92,6 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   }
 }
 
-case class SimpleSyncInfo(score: BlockChain.Score) extends SyncInfo[SimpleBlockchain] {
-  override def bytes: Array[Byte] = ???
-}
-
 object SimpleBlockchain {
   type Height = Int
 }

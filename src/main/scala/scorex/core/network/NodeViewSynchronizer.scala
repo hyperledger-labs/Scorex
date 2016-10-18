@@ -17,11 +17,13 @@ import scorex.core.network.message.BasicMsgDataTypes._
   *
   * @param networkControllerRef
   * @param viewHolderRef
+  * @param syncInfoSpec
   * @tparam P
   * @tparam TX
+  * @tparam SIS
   */
-class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
-(networkControllerRef: ActorRef, viewHolderRef: ActorRef) extends Actor {
+class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SIS <: SyncInfoSpec[_]]
+(networkControllerRef: ActorRef, viewHolderRef: ActorRef, syncInfoSpec: SIS) extends Actor {
 
   import NodeViewSynchronizer._
   import scorex.core.NodeViewModifier._
@@ -37,7 +39,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P]]
 
   override def preStart(): Unit = {
     //register as a handler for some types of messages
-    val messageSpecs = Seq(InvSpec, RequestModifierSpec, ModifiersSpec)
+    val messageSpecs = Seq(InvSpec, RequestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
 
     //subscribe for failed transaction,
