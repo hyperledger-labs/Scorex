@@ -5,6 +5,9 @@ dependencyOverrides in ThisBuild ++= Set(
   "ch.qos.logback" % "logback-classic" % "1.1.7",
   "ch.qos.logback" % "logback-core" % "1.1.7",
   "com.chuusai" % "shapeless_2.11" % "2.3.2",
+  "com.esotericsoftware" % "kryo" % "4.0.0",
+  "com.esotericsoftware" % "minlog" % "1.3.0",
+  "com.esotericsoftware" % "reflectasm" % "1.11.3",
   "com.fasterxml.jackson.core" % "jackson-annotations" % "2.5.4",
   "com.fasterxml.jackson.core" % "jackson-core" % "2.5.4",
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.5.4",
@@ -74,6 +77,8 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.joda" % "joda-convert" % "1.7",
   "org.mapdb" % "elsa" % "3.0.0-M5",
   "org.mapdb" % "mapdb" % "3.0.2",
+  "org.objenesis" % "objenesis" % "2.2",
+  "org.ow2.asm" % "asm" % "5.0.4",
   "org.reactivestreams" % "reactive-streams" % "1.0.0",
   "org.reflections" % "reflections" % "0.9.10",
   "org.scala-lang.modules" % "scala-java8-compat_2.11" % "0.7.0",
@@ -97,4 +102,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.5",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH 9132b2612a1f8fb9308c135230aef8c6b74183f5
+// LIBRARY_DEPENDENCIES_HASH f9a1c76f95f22220642aba2606df78b580ba4956
