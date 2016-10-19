@@ -54,8 +54,7 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
   override def validate(transaction: SimpleTransaction): Try[Unit] = transaction match {
     case sp: SimplePayment => Try {
       val b = boxOf(sp.sender).head
-      (b.value >= sp.amount + sp.fee) && (b.nonce + 1 == sp.nonce) && sp.amount >= 0 && sp.fee > 0 &&
-        (sp.amount + sp.fee > 0)
+      (b.value >= Math.addExact(sp.amount, sp.fee)) && (b.nonce + 1 == sp.nonce)
     }
   }
 
@@ -68,9 +67,10 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
         val oldSenderBox = boxOf(tx.sender).head
         val oldRecipientBox = boxOf(tx.recipient).headOption
         val newRecipientBox = oldRecipientBox.map { oldB =>
-          oldB.copy(nonce = oldB.nonce + 1, value = oldB.value + tx.amount)
+          oldB.copy(nonce = oldB.nonce + 1, value = Math.addExact(oldB.value, tx.amount))
         }.getOrElse(PublicKey25519NoncedBox(tx.recipient, tx.amount))
-        val newSenderBox = oldSenderBox.copy(nonce = oldSenderBox.nonce + 1, value = oldSenderBox.value - tx.amount - tx.fee)
+        val newSenderBox = oldSenderBox.copy(nonce = oldSenderBox.nonce + 1,
+          value = Math.addExact(Math.addExact(oldSenderBox.value, -tx.amount), -tx.fee))
         val toRemove = Set(oldSenderBox) ++ oldRecipientBox
         val toAppend = Set(newRecipientBox, newSenderBox).ensuring(_.forall(_.value >= 0))
 
