@@ -1,5 +1,6 @@
-package curvepos
+package curvepos.serialization
 
+import curvepos.ExampleGenerators
 import examples.curvepos.transaction.{SimplePayment, SimpleTransaction}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
