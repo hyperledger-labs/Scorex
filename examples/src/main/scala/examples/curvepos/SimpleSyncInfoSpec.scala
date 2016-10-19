@@ -5,7 +5,7 @@ import scorex.core.network.message.SyncInfoSpec
 
 import scala.util.Try
 
-case class SimpleSyncInfo(score: BlockChain.Score) extends SyncInfo[SimpleBlockchain] {
+case class SimpleSyncInfo(score: BlockChain.Score) extends SyncInfo {
   override def bytes: Array[Byte] = score.toByteArray
 }
 

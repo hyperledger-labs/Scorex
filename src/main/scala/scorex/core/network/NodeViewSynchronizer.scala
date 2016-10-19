@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.core.NodeViewHolder._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.consensus.SyncInfo
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.Transaction
@@ -22,7 +23,7 @@ import scorex.core.network.message.BasicMsgDataTypes._
   * @tparam TX
   * @tparam SIS
   */
-class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SIS <: SyncInfoSpec[_]]
+class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoSpec[SI]]
 (networkControllerRef: ActorRef, viewHolderRef: ActorRef, syncInfoSpec: SIS) extends Actor {
 
   import NodeViewSynchronizer._
@@ -47,7 +48,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SIS <: SyncIn
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.FailedPersistentModifier,
       NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.SuccessfulPersistentModifier
+      NodeViewHolder.EventType.SuccessfulPersistentModifier,
+
+      NodeViewHolder.EventType.OtherNodeSyncingStatus
     )
     viewHolderRef ! Subscribe(events)
   }
@@ -67,6 +70,15 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SIS <: SyncIn
 
     case SuccessfulTransaction(tx, source) => sendModifierIfLocal(tx, source)
     case SuccessfulModification(mod, source) => sendModifierIfLocal(mod, source)
+  }
+
+
+  //sync info is coming from another node
+  private def processSync: Receive = {
+    case DataFromPeer(spec, syncData: SI, remote)
+      if spec.messageCode == syncInfoSpec.messageCode =>
+
+      viewHolderRef ! OtherNodeSyncingInfo(remote, syncData)
   }
 
   //object ids coming from other node
@@ -124,15 +136,16 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SIS <: SyncIn
   private def responseFromLocal: Receive = {
     case ResponseFromLocal(peer, typeId, modifiers: Seq[NodeViewModifier]) =>
       if (modifiers.nonEmpty) {
-          val modType = modifiers.head.modifierTypeId
-          val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
-          val msg = Message(ModifiersSpec, Right(m), None)
-          peer.handlerRef ! msg
+        val modType = modifiers.head.modifierTypeId
+        val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
+        val msg = Message(ModifiersSpec, Right(m), None)
+        peer.handlerRef ! msg
       }
   }
 
   override def receive: Receive =
-    processInv orElse
+    processSync orElse
+      processInv orElse
       modifiersReq orElse
       requestFromLocal orElse
       responseFromLocal orElse
@@ -152,4 +165,5 @@ object NodeViewSynchronizer {
 
   case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
+  case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
 }

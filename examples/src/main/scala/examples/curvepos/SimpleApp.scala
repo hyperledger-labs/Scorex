@@ -42,7 +42,7 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
   override lazy val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfoSpec.type]],
+    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
       networkController, nodeViewHolderRef, SimpleSyncInfoSpec))
   override lazy val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
 

@@ -8,6 +8,8 @@ import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
 import scala.util.{Failure, Success}
 
 class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {
+  override type SI = SimpleSyncInfo
+
   override type HIS = SimpleBlockchain
   override type MS = SimpleState
   override type VL = SimpleWallet

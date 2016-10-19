@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.api.http.ApiRoute
-import scorex.core.consensus.History
+import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
 import scorex.core.transaction._
@@ -35,10 +35,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   import NodeViewHolder._
 
-  type HIS <: History[P, TX, PMOD, HIS]
+  type SI <: SyncInfo
+  type HIS <: History[P, TX, PMOD, SI, HIS]
   type MS <: MinimalState[P, _, TX, PMOD, MS]
   type VL <: Vault[P, TX, VL]
   type MP <: MemoryPool[TX, MP]
+
 
   type NodeView = (HIS, MS, VL, MP)
 
@@ -197,6 +199,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! CurrentView(history(), minimalState(), vault(), memoryPool())
   }
 
+  private def compareSyncInfo: Receive = {
+    case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
+      val otherStatus = history().compare(syncInfo)
+
+  }
+
   override def receive: Receive =
     handleSubscribe orElse
       compareViews orElse
@@ -214,18 +222,25 @@ object NodeViewHolder {
   object GetCurrentView
 
   object EventType extends Enumeration {
+    //finished modifier application, successful of failed
     val FailedTransaction = Value(1)
     val FailedPersistentModifier = Value(2)
     val SuccessfulTransaction = Value(3)
     val SuccessfulPersistentModifier = Value(4)
 
+    //starting persistent modifier application. The application could be slow
     val StartingPersistentModifierApplication = Value(5)
+
+    //
+    val OtherNodeSyncingStatus = Value(6)
   }
 
   //a command to subscribe for events
   case class Subscribe(events: Seq[EventType.Value])
 
   trait NodeViewHolderEvent
+
+  case class OtherNodeSyncingStatus(peer: ConnectedPeer, status: History.HistoryComparisonResult.Value)
 
   //node view holder starting persistent modifier application
   case class StartingPersistentModifierApplication[
