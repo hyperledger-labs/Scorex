@@ -6,7 +6,7 @@ version := "2.0.0-SNAPSHOT"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-val circeVersion = "0.4.1"
+val circeVersion = "0.5.+"
 
 val networkDependencies = Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.+",
@@ -40,10 +40,12 @@ val testingDependencies = Seq(
   "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"
 )
 
+//todo: leave mapdb only
 libraryDependencies ++= Seq(
   "org.mapdb" % "mapdb" % "3.+",
+  "com.h2database" % "h2-mvstore" % "1.4.192",
   "com.chuusai" %% "shapeless" % "2.+",
-  "org.consensusresearch" %% "scrypto" % "1.2.0-RC2"
+  "org.consensusresearch" %% "scrypto" % "1.2.0-RC3"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 

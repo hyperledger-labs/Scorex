@@ -2,8 +2,6 @@ package scorex.core.transaction.state.authenticated
 
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.box.Box
-import scorex.crypto.authds.storage.StorageType
-import scorex.crypto.authds.{AuthenticatedDictionary, DataProof}
 import scorex.crypto.hash.CryptographicHash
 import scorex.core.transaction.{BoxTransaction, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
@@ -60,6 +58,8 @@ trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, B
   def semanticValidity(tx: BTX): Try[Unit]
 }
 
+/*
+todo: rewrite / uncomment
 trait AuthenticatedBoxMinimalState[P <: Proposition, BX <: Box[P], TX <: Transaction[P], M <: PersistentNodeViewModifier[P, TX], HashFunction <: CryptographicHash,
 AMS <: AuthenticatedBoxMinimalState[P, BX, TX, M, HashFunction, AMS]]
   extends MinimalState[P, BX, TX, M, AMS] {
@@ -73,4 +73,4 @@ AMS <: AuthenticatedBoxMinimalState[P, BX, TX, M, HashFunction, AMS]]
   def digest: HashFunction#Digest
 
   val hashFunction: HashFunction
-}
+}*/
