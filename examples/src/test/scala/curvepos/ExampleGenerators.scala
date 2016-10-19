@@ -1,6 +1,6 @@
 package curvepos
 
-import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleTransaction}
+import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleTransaction, SimpleWallet}
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.ObjectGenerators
 import scorex.core.block.Block
@@ -8,11 +8,17 @@ import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 trait ExampleGenerators extends ObjectGenerators {
+  val wallet = SimpleWallet()
+  wallet.generateNewSecret()
+  val genesisAcc = wallet.secrets.head
+
+  val positiveLongGen: Gen[Long] = Gen.choose(1, Long.MaxValue)
+
   val paymentGen: Gen[SimplePayment] = for {
     sender: PublicKey25519Proposition <- propositionGen
     recipient: PublicKey25519Proposition <- propositionGen
-    amount: Long <- Arbitrary.arbitrary[Long]
-    fee: Long <- Arbitrary.arbitrary[Long]
+    amount: Long <- positiveLongGen
+    fee: Long <- positiveLongGen
     nonce: Long <- Arbitrary.arbitrary[Long]
     timestamp: Long <- Arbitrary.arbitrary[Long]
   } yield SimplePayment(sender, recipient, amount, fee, nonce, timestamp)
@@ -27,4 +33,14 @@ trait ExampleGenerators extends ObjectGenerators {
     txs: Seq[SimpleTransaction] <- Gen.listOf(paymentGen)
   } yield new SimpleBlock(parentId, timestamp, generationSignature, baseTarget, generator, txs)
 
+  val genesisBlock: SimpleBlock = {
+
+    val IntitialBasetarget = 153722867L
+    val generator = PublicKey25519Proposition(Array.fill(SimpleBlock.SignatureLength)(0: Byte))
+    val toInclude: Seq[SimpleTransaction] = Seq(SimplePayment(genesisAcc.publicImage, genesisAcc.publicImage, Long.MaxValue, 0, 1, 0))
+
+    SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
+      0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), IntitialBasetarget, generator, toInclude)
+
+  }
 }

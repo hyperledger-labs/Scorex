@@ -10,6 +10,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.encode.Base58
 
 import scala.util.{Failure, Try}
 
@@ -18,6 +19,12 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
 with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
 
   def isEmpty: Boolean = version sameElements EmptyVersion
+
+  def totalBalance: Long = storage.keySet.flatMap(k => storage.get(k).map(_.value)).sum
+
+  override def toString: String = {
+    s"SimpleState at ${Base58.encode(version)}\n" + storage.keySet.flatMap(k => storage.get(k)).mkString("\n  ")
+  }
 
   override def boxOf(p: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] =
     storage.values.filter(b => b.proposition.address == p.address).toSeq
@@ -34,6 +41,7 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
     val rmap = change.toRemove.foldLeft(storage) { case (m, b) => m - ByteBuffer.wrap(b.id) }
 
     val amap = change.toAppend.foldLeft(rmap) { case (m, b) =>
+      require(b.value >= 0)
       m + (ByteBuffer.wrap(b.id) -> b)
     }
     SimpleState(newVersion, amap)
@@ -46,7 +54,8 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
   override def validate(transaction: SimpleTransaction): Try[Unit] = transaction match {
     case sp: SimplePayment => Try {
       val b = boxOf(sp.sender).head
-      (b.value >= sp.amount + sp.fee) && (b.nonce + 1 == sp.nonce)
+      (b.value >= sp.amount + sp.fee) && (b.nonce + 1 == sp.nonce) && sp.amount >= 0 && sp.fee > 0 &&
+        (sp.amount + sp.fee > 0)
     }
   }
 
@@ -57,12 +66,13 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
     transaction match {
       case tx: SimplePayment if !isEmpty => Try {
         val oldSenderBox = boxOf(tx.sender).head
-        val oldRecipientBox = boxOf(tx.recipient).head
-        val toRemove = Set(oldSenderBox, oldRecipientBox)
-        val toAppend = Set(
-          oldRecipientBox.copy(nonce = oldRecipientBox.nonce + 1, value = oldRecipientBox.value + tx.amount),
-          oldSenderBox.copy(nonce = oldRecipientBox.nonce + 1, value = oldRecipientBox.value - tx.amount - tx.fee)
-        ).ensuring(_.forall(_.value >= 0))
+        val oldRecipientBox = boxOf(tx.recipient).headOption
+        val newRecipientBox = oldRecipientBox.map { oldB =>
+          oldB.copy(nonce = oldB.nonce + 1, value = oldB.value + tx.amount)
+        }.getOrElse(PublicKey25519NoncedBox(tx.recipient, tx.amount))
+        val newSenderBox = oldSenderBox.copy(nonce = oldSenderBox.nonce + 1, value = oldSenderBox.value - tx.amount - tx.fee)
+        val toRemove = Set(oldSenderBox) ++ oldRecipientBox
+        val toAppend = Set(newRecipientBox, newSenderBox).ensuring(_.forall(_.value >= 0))
 
         TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend, tx.fee)
       }
@@ -77,14 +87,20 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
   override def changes(block: SimpleBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = Try {
     val generatorReward = block.txs.map(_.fee).sum
     val gen = block.generator
-    val generatorBox: PublicKey25519NoncedBox = boxOf(gen).headOption match {
-      case Some(oldBox) => oldBox.copy(nonce = oldBox.nonce + 1, value = oldBox.value + generatorReward)
-      case None => PublicKey25519NoncedBox(gen, 1, generatorReward)
-    }
 
     val txChanges = block.txs.map(tx => changes(tx)).map(_.get)
     val toRemove: Set[PublicKey25519NoncedBox] = txChanges.flatMap(_.toRemove).toSet
-    val toAppend: Set[PublicKey25519NoncedBox] = (generatorBox +: txChanges.flatMap(_.toAppend)).toSet
+    val toAppendFrom: Set[PublicKey25519NoncedBox] = txChanges.flatMap(_.toAppend).toSet
+    val (generator, withoutGenerator) = toAppendFrom.partition(_.proposition.address == gen.address)
+    val generatorBox: PublicKey25519NoncedBox = (generator ++ boxOf(gen)).headOption match {
+      case Some(oldBox) =>
+        oldBox.copy(nonce = oldBox.nonce + 1, value = oldBox.value + generatorReward)
+      case None =>
+        PublicKey25519NoncedBox(gen, 1, generatorReward)
+    }
+    val toAppend = withoutGenerator + generatorBox
+    require(toAppend.forall(_.value >= 0))
+
     StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend)
   }
 }
