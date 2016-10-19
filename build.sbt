@@ -41,7 +41,8 @@ val testingDependencies = Seq(
 )
 
 val serializationDependencies = Seq(
-  "com.esotericsoftware" % "kryo" % "4.+"
+  "com.esotericsoftware" % "kryo" % "4.+",
+  "com.twitter" %% "chill" % "0.+"
 )
 
 //todo: leave mapdb only

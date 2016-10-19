@@ -6,6 +6,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "ch.qos.logback" % "logback-core" % "1.1.7",
   "com.chuusai" % "shapeless_2.11" % "2.3.2",
   "com.esotericsoftware" % "kryo" % "4.0.0",
+  "com.esotericsoftware" % "kryo-shaded" % "3.0.3",
   "com.esotericsoftware" % "minlog" % "1.3.0",
   "com.esotericsoftware" % "reflectasm" % "1.11.3",
   "com.fasterxml.jackson.core" % "jackson-annotations" % "2.5.4",
@@ -29,6 +30,8 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.milessabin" % "si2712fix-plugin_2.11.8" % "1.2.0",
   "com.ning" % "async-http-client" % "1.9.11",
   "com.thoughtworks.paranamer" % "paranamer" % "2.6",
+  "com.twitter" % "chill-java" % "0.8.1",
+  "com.twitter" % "chill_2.11" % "0.8.1",
   "com.typesafe" % "config" % "1.3.0",
   "com.typesafe" % "ssl-config-akka_2.11" % "0.2.1",
   "com.typesafe" % "ssl-config-core_2.11" % "0.2.1",
@@ -102,4 +105,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.5",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH f9a1c76f95f22220642aba2606df78b580ba4956
+// LIBRARY_DEPENDENCIES_HASH 1142abb9a77f9e0f43fa19daacda939f730569a2
