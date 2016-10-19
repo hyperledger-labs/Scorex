@@ -29,8 +29,6 @@ import shapeless.HList
 trait Block[P <: Proposition, TX <: Transaction[P]]
   extends PersistentNodeViewModifier[P, TX] with JsonSerializable {
 
-  override val modifierTypeId: Byte = 1
-
   type BlockFields <: HList
 
   def version: Version

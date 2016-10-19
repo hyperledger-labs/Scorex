@@ -48,9 +48,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.FailedPersistentModifier,
       NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.SuccessfulPersistentModifier,
-
-      NodeViewHolder.EventType.OtherNodeSyncingStatus
+      NodeViewHolder.EventType.SuccessfulPersistentModifier
     )
     viewHolderRef ! Subscribe(events)
   }
@@ -79,6 +77,11 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       if spec.messageCode == syncInfoSpec.messageCode =>
 
       viewHolderRef ! OtherNodeSyncingInfo(remote, syncData)
+  }
+
+  //view holder is telling other node status
+  private def processSyncStatus: Receive = {
+    case OtherNodeSyncingStatus(remote, status, startingPoints) =>
   }
 
   //object ids coming from other node
@@ -166,4 +169,5 @@ object NodeViewSynchronizer {
   case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
   case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
+
 }

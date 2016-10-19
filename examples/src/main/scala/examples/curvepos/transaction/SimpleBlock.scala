@@ -23,6 +23,8 @@ case class SimpleBlock(override val parentId: BlockId,
                        txs: Seq[SimpleTransaction])
   extends Block[PublicKey25519Proposition, SimpleTransaction] {
 
+  override val modifierTypeId: Byte = SimpleBlock.ModifierTypeId
+
   override def transactions: Option[Seq[SimpleTransaction]] = Some(txs)
 
   override def companion = SimpleBlockCompanion
@@ -50,6 +52,8 @@ case class SimpleBlock(override val parentId: BlockId,
 }
 
 object SimpleBlock {
+  val ModifierTypeId = 1: Byte
+
   val SignatureLength = 64
 
   type GenerationSignature = Array[Byte]

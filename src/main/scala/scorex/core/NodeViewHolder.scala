@@ -201,8 +201,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
-      val otherStatus = history().compare(syncInfo)
-
+      sender() ! OtherNodeSyncingStatus(remote, history().compare(syncInfo), syncInfo.startingPoints)
   }
 
   override def receive: Receive =
@@ -211,7 +210,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       readLocalObjects orElse
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
-      viewGetters orElse {
+      viewGetters orElse
+      compareSyncInfo orElse {
       case a: Any => log.error("Strange input: " + a)
     }
 }
@@ -230,9 +230,6 @@ object NodeViewHolder {
 
     //starting persistent modifier application. The application could be slow
     val StartingPersistentModifierApplication = Value(5)
-
-    //
-    val OtherNodeSyncingStatus = Value(6)
   }
 
   //a command to subscribe for events
@@ -240,7 +237,9 @@ object NodeViewHolder {
 
   trait NodeViewHolderEvent
 
-  case class OtherNodeSyncingStatus(peer: ConnectedPeer, status: History.HistoryComparisonResult.Value)
+  case class OtherNodeSyncingStatus(peer: ConnectedPeer,
+                                    status: History.HistoryComparisonResult.Value,
+                                    startingPoints: Seq[(NodeViewModifier.ModifierTypeId, NodeViewModifier.ModifierId)])
 
   //node view holder starting persistent modifier application
   case class StartingPersistentModifierApplication[

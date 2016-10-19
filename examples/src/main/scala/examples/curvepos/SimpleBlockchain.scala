@@ -79,7 +79,7 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   override def children(blockId: BlockId): Seq[SimpleBlock] =
     heightOf(blockId).map(_ + 1).flatMap(blockAt).toSeq
 
-  override def syncInfo: SimpleSyncInfo = SimpleSyncInfo(chainScore())
+  override def syncInfo: SimpleSyncInfo = SimpleSyncInfo(lastBlock.id, chainScore())
 
   override def compare(other: SimpleSyncInfo): HistoryComparisonResult.Value = {
     val local = syncInfo.score
