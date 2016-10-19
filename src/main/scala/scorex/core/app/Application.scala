@@ -62,7 +62,7 @@ trait Application extends ScorexLogging {
   val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
     applicationName, appVersion), "networkController")
 
-  val nodeViewSynchronizer = actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX]], networkController, nodeViewHolderRef))
+  val nodeViewSynchronizer:ActorRef  //actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, ]], networkController, nodeViewHolderRef, ))
 
   val localInterface: ActorRef
 

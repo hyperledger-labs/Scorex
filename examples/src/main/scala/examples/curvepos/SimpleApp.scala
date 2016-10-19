@@ -7,6 +7,7 @@ import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction, SimpleWall
 import io.circe
 import scorex.core.api.http.{ApiRoute, UtilsApiRoute}
 import scorex.core.app.{Application, ApplicationVersion}
+import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -40,6 +41,9 @@ class SimpleApp(val settingsFilename: String) extends Application {
   override val wallet: Wallet[P, TX, _] = SimpleWallet()
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
+  override lazy val nodeViewSynchronizer: ActorRef =
+    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfoSpec.type]],
+      networkController, nodeViewHolderRef, SimpleSyncInfoSpec))
   override lazy val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
 
   val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))

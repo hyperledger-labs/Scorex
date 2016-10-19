@@ -28,7 +28,6 @@ import shapeless.HList
 
 trait Block[P <: Proposition, TX <: Transaction[P]]
   extends PersistentNodeViewModifier[P, TX] with JsonSerializable {
-  self =>
 
   override val modifierTypeId: Byte = 1
 
@@ -68,7 +67,6 @@ object Block {
 
 trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
   extends NodeViewModifierCompanion[B] {
-  self =>
 
   def isValid(block: B): Boolean
 

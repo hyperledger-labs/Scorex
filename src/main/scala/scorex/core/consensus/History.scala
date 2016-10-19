@@ -53,10 +53,23 @@ trait History[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewMo
   def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
 
   def syncInfo: SI
+
+  /**
+    * Whether another's node syncinfo shows that another node is ahead or behind ours
+    * @param other other's node sync info
+    * @return Equal if nodes have the same history, Younger if another node is behind, Older if a new node is ahead
+    */
+  def compare(other: SI): HistoryComparisonResult.Value
 }
 
 object History {
   type BlockId = NodeViewModifier.ModifierId
+
+  object HistoryComparisonResult extends Enumeration {
+    val Equal = Value(1)
+    val Younger = Value(2)
+    val Older = Value(3)
+  }
 
   case class RollbackTo[PM <: PersistentNodeViewModifier[_, _]](to: BlockId, thrown: Seq[PM], applied: Seq[PM])
 }
