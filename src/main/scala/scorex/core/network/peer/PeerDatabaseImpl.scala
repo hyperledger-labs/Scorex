@@ -9,7 +9,6 @@ import scala.collection.JavaConversions._
 
 class PeerDatabaseImpl(settings: Settings, filename: Option[String]) extends PeerDatabase {
 
-
   val database = filename match {
     case Some(file) => new MVStore.Builder().fileName(file).compress().open()
     case None => new MVStore.Builder().open()

@@ -78,7 +78,7 @@ trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
     *
     * @return blocks' producers
     */
-  def producers(block: B, history: History[P, TX, B, _]): Seq[P]
+  def producers(block: B, history: History[P, TX, B, _, _]): Seq[P]
 
   val MaxRollback: Int
 }

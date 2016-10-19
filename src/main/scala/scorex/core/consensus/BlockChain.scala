@@ -8,8 +8,8 @@ import scorex.core.utils.ScorexLogging
 
 import scala.util.Try
 
-trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], BT <: BlockChain[P, TX, B, BT]]
-  extends History[P, TX, B, BT] with ScorexLogging {
+trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <: SyncInfo, BT <: BlockChain[P, TX, B, SI, BT]]
+  extends History[P, TX, B, SI, BT] with ScorexLogging {
 
   import BlockChain.Score
 

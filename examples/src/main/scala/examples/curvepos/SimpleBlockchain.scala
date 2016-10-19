@@ -11,11 +11,9 @@ import scorex.crypto.encode.Base58
 import scala.util.{Failure, Success, Try}
 
 case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[BlockId, SimpleBlock] = Map())
-  extends BlockChain[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleBlockchain] {
+  extends BlockChain[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleSyncInfo, SimpleBlockchain] {
 
   import BlockChain.Score
-
-  override type SI = SimpleSyncInfo
 
   /**
     * Is there's no history, even genesis block

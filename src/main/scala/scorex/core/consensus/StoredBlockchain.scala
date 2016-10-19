@@ -13,8 +13,9 @@ import scala.util.{Failure, Success, Try}
 /**
   * If no datafolder provided, blockchain lives in RAM (useful for tests)
   */
-trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SBT <: BlockChain[P, TX, B, SBT]]
-  extends BlockChain[P, TX, B, StoredBlockchain[P, TX, B, SBT]] with ScorexLogging {
+trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <: SyncInfo, SBT <: BlockChain[P, TX, B, SI, SBT]]
+  extends BlockChain[P, TX, B, SI, SBT] with ScorexLogging {
+  self : SBT =>
 
   val dataFolderOpt: Option[String]
 
@@ -71,7 +72,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
     BlockchainPersistence(db)
   }
 
-  override def append(block: B): Try[(StoredBlockchain[P, TX, B, SBT], Option[RollbackTo[B]])] = synchronized {
+  override def append(block: B): Try[(SBT, Option[RollbackTo[B]])] = synchronized {
     Try {
       val parent = block.parentId
       if ((height() == 0) || (lastBlock.id sameElements parent)) {
@@ -87,7 +88,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
     }
   }
 
-  override def discardBlock(): Try[StoredBlockchain[P, TX, B, SBT]] = synchronized {
+  override def discardBlock(): Try[SBT] = synchronized {
     Try {
       require(height() > 1, "Chain is empty or contains genesis block only, can't make rollback")
       val h = height()
