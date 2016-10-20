@@ -1,17 +1,18 @@
 package scorex.core.network
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.core.NodeViewHolder._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
+import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.{NodeViewHolder, NodeViewModifier}
 
 import scala.collection.mutable
-import scorex.core.network.message.BasicMsgDataTypes._
 
 /**
   * A middle layer between a node view holder(NodeViewHolder) and a network
@@ -24,7 +25,7 @@ import scorex.core.network.message.BasicMsgDataTypes._
   * @tparam SIS
   */
 class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoSpec[SI]]
-(networkControllerRef: ActorRef, viewHolderRef: ActorRef, syncInfoSpec: SIS) extends Actor {
+(networkControllerRef: ActorRef, viewHolderRef: ActorRef, syncInfoSpec: SIS, pool: ScorexKryoPool) extends Actor {
 
   import NodeViewSynchronizer._
   import scorex.core.NodeViewModifier._
@@ -57,7 +58,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
     if (source.isEmpty) {
-      val data = m.modifierTypeId -> Seq(m.id -> m.bytes).toMap
+      val data = m.modifierTypeId -> Seq(m.id -> pool.toBytesWithoutClass(m)).toMap
       val msg = Message(ModifiersSpec, Right(data), None)
       networkControllerRef ! SendToNetwork(msg, Broadcast)
     }
@@ -137,7 +138,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case ResponseFromLocal(peer, typeId, modifiers: Seq[NodeViewModifier]) =>
       if (modifiers.nonEmpty) {
         val modType = modifiers.head.modifierTypeId
-        val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
+        val m = modType -> modifiers.map(m => m.id -> pool.toBytesWithoutClass(m)).toMap
         val msg = Message(ModifiersSpec, Right(m), None)
         peer.handlerRef ! msg
       }
@@ -166,4 +167,5 @@ object NodeViewSynchronizer {
   case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
   case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
+
 }

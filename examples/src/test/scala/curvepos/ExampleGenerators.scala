@@ -24,7 +24,7 @@ trait ExampleGenerators extends ObjectGenerators {
   } yield SimplePayment(sender, recipient, amount, fee, nonce, timestamp)
 
 
-  val blockGenerator: Gen[SimpleBlock] = for {
+  val blockGen: Gen[SimpleBlock] = for {
     parentId: BlockId <- genBoundedBytes(Block.BlockIdLength, Block.BlockIdLength)
     timestamp: Long <- Arbitrary.arbitrary[Long]
     baseTarget: Long <- Arbitrary.arbitrary[Long]

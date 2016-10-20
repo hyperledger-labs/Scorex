@@ -47,45 +47,6 @@ class HandshakeSerializer extends NullableSerializer[Handshake] {
 
     Handshake(applicationName, applicationVersion, nodeName, nonce, declaredAddress, time)
   }
-  /*
-    override def write(kryo: Kryo, output: Output, data: Handshake): Unit = {
-      val anb = data.applicationName.getBytes
-
-      val fab = data.declaredAddress.map { isa =>
-        isa.getAddress.getAddress ++ Ints.toByteArray(isa.getPort)
-      }.getOrElse(Array[Byte]())
-
-      val nodeNameBytes = data.nodeName.getBytes
-
-      output.writeByte(anb.size.toByte)
-      output.writeBytes(anb)
-      output.writeBytes(data.applicationVersion.bytes)
-      output.writeByte(nodeNameBytes.size.toByte)
-      output.writeBytes(nodeNameBytes)
-      output.writeLong(data.nodeNonce)
-      output.writeInt(fab.length)
-      output.writeBytes(fab)
-      output.writeLong(data.time)
-    }
-
-    override def read(kryo: Kryo, input: Input, c: Class[Handshake]): Handshake = {
-      val anbSize = input.readByte()
-      val an = new String(input.readBytes(anbSize))
-      val av = ApplicationVersion.parseBytes(input.readBytes(ApplicationVersion.SerializedVersionLength)).get
-      val nodeNameBytesLength = input.readByte()
-      val nodeName = new String(input.readBytes(nodeNameBytesLength))
-      val nonce = input.readLong()
-      val fas = input.readInt()
-      val isaOpt = if (fas > 0) {
-        val fa = input.readBytes(fas - 4)
-        val port = input.readInt()
-        Some(new InetSocketAddress(InetAddress.getByAddress(fa), port))
-      } else None
-
-      val time = input.readLong()
-      Handshake(an, av, nodeName, nonce, isaOpt, time)
-    }
-  */
 
 
 }

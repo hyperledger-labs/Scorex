@@ -8,6 +8,7 @@ import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.{ScorexLogging, NetworkTime}
 
@@ -90,7 +91,8 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
             val secret: PrivateKey25519 = wallet.secretByPublicImage(generator).get
 
             val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
-            val signature = PrivateKey25519Companion.sign(secret, unsigned.companion.messageToSing(unsigned))
+            val signature:Signature25519 = ???
+//            val signature = PrivateKey25519Companion.sign(secret, unsigned.companion.messageToSing(unsigned))
             val signedBlock = unsigned.copy(generationSignature = signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
             LocallyGeneratedModifier[PublicKey25519Proposition, SimpleTransaction, SimpleBlock](signedBlock)

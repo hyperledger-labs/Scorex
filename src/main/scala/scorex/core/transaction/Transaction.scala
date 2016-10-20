@@ -27,10 +27,6 @@ abstract class Transaction[P <: Proposition]
 
   def json: Json
 
-  val messageToSign: Array[Byte]
-
-  override lazy val id: ModifierId = FastCryptographicHash(messageToSign)
-
 }
 
 

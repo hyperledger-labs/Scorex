@@ -7,12 +7,12 @@ import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.network.Handshake
-import scorex.core.serialization.ScorexKryoInstantiator
+import scorex.core.serialization.{ScorexKryoPool, ScorexRegistrar}
 
 class SerializationSpecification extends PropSpec with GeneratorDrivenPropertyChecks with Matchers
-  with ObjectGenerators {
+with ObjectGenerators {
 
-  private val pool = ScorexKryoInstantiator.defaultPool
+  private val pool = new ScorexKryoPool(new ScorexRegistrar)
 
   property("ByteLengthUtf8StringSerializer test") {
     checkSerialization[String](Arbitrary.arbitrary[String].suchThat(_.length < 80), classOf[String])
@@ -28,7 +28,7 @@ class SerializationSpecification extends PropSpec with GeneratorDrivenPropertyCh
   def checkSerialization[T](gen: Gen[T], cls: Class[T], check: (T, T) => Unit = (o1: T, o2: T) => o1 shouldBe o2) = {
     forAll(gen) { obj: T =>
       val bytes = pool.toBytesWithoutClass(obj)
-      val obj2 = pool.fromBytes(bytes, cls)
+      val obj2 = pool.fromBytes(bytes, cls).get
       check(obj2, obj)
       val bytes2 = pool.toBytesWithoutClass(obj2)
       bytes shouldEqual bytes2

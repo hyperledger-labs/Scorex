@@ -10,6 +10,7 @@ import com.google.common.primitives.Ints
 import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.utils.ScorexLogging
 
 import scala.util.{Failure, Success}
@@ -32,7 +33,8 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef,
                                  peerManager: ActorRef,
                                  messagesHandler: MessageHandler,
                                  connection: ActorRef,
-                                 remote: InetSocketAddress) extends Actor with Buffering with ScorexLogging {
+                                 remote: InetSocketAddress,
+                                 serializer: ScorexKryoPool) extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler._
 
@@ -74,13 +76,13 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef,
 
   private def handshake: Receive = ({
     case h: Handshake =>
-      connection ! Write(ByteString(h.bytes))
+      connection ! Write(ByteString(serializer.toBytesWithoutClass(h)))
       log.info(s"Handshake sent to $remote")
       handshakeSent = true
       self ! HandshakeCheck
 
     case Received(data) =>
-      Handshake.parseBytes(data.toArray) match {
+      serializer.fromBytes(data.toArray, classOf[Handshake]) match {
         case Success(handshake) =>
           peerManager ! Handshaked(remote, handshake)
           log.info(s"Got a Handshake from $remote")

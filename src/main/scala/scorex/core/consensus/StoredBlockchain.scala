@@ -3,6 +3,7 @@ package scorex.core.consensus
 import org.h2.mvstore.{MVMap, MVStore}
 import scorex.core.block.{Block, BlockCompanion}
 import scorex.core.consensus.History.{BlockId, RollbackTo}
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
@@ -15,9 +16,11 @@ import scala.util.{Failure, Success, Try}
   */
 trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <: SyncInfo, SBT <: BlockChain[P, TX, B, SI, SBT]]
   extends BlockChain[P, TX, B, SI, SBT] with ScorexLogging {
-  self : SBT =>
+  self: SBT =>
 
   val dataFolderOpt: Option[String]
+
+  val pool: ScorexKryoPool
 
   val blockCompanion: BlockCompanion[P, TX, B]
 
@@ -30,7 +33,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
     if (signatures.size() > 0) database.rollback()
 
     def writeBlock(height: Int, block: B): Try[Unit] = Try {
-      blocks.put(height, block.bytes)
+      blocks.put(height, pool.toBytesWithoutClass(block))
       scoreMap.put(height, chainScore() + score(block))
       signatures.put(height, block.id)
       database.commit()

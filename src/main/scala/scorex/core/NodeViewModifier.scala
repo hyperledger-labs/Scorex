@@ -7,7 +7,7 @@ import scorex.core.transaction.box.proposition.Proposition
 
 import scala.util.Try
 
-trait NodeViewModifier extends BytesSerializable {
+trait NodeViewModifier {
   self =>
 
   import NodeViewModifier.{ModifierId, ModifierTypeId}
@@ -19,9 +19,6 @@ trait NodeViewModifier extends BytesSerializable {
   //todo: check statically or dynamically output size
   def id: ModifierId
 
-  lazy val bytes: Array[Byte] = companion.bytes(this)
-
-  def companion: NodeViewModifierCompanion[M]
 }
 
 /**
