@@ -1,5 +1,6 @@
 package scorex.core.consensus
 
+import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.{NodeViewComponent, NodeViewModifier}
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.Transaction
@@ -21,10 +22,10 @@ import scala.util.Try
   */
 
 trait History[P <: Proposition,
-  TX <: Transaction[P],
-  PM <: PersistentNodeViewModifier[P, TX],
-  SI <: SyncInfo,
-  HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
+TX <: Transaction[P],
+PM <: PersistentNodeViewModifier[P, TX],
+SI <: SyncInfo,
+HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   import History._
 
@@ -45,19 +46,21 @@ trait History[P <: Proposition,
 
   def append(block: PM): Try[(HT, Option[RollbackTo[PM]])]
 
+  //todo: is it needed?
   //todo: output should be ID | Seq[ID]
   def openSurface(): Seq[BlockId]
 
   //todo: argument should be ID | Seq[ID]
-  def continuation(from: Seq[BlockId], size: Int): Seq[PM]
+  def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[PM]]
 
   //todo: argument should be ID | Seq[ID]
-  def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId]
+  def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]]
 
   def syncInfo: SI
 
   /**
     * Whether another's node syncinfo shows that another node is ahead or behind ours
+    *
     * @param other other's node sync info
     * @return Equal if nodes have the same history, Younger if another node is behind, Older if a new node is ahead
     */
@@ -74,4 +77,5 @@ object History {
   }
 
   case class RollbackTo[PM <: PersistentNodeViewModifier[_, _]](to: BlockId, thrown: Seq[PM], applied: Seq[PM])
+
 }

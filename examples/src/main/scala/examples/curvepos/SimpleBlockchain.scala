@@ -3,8 +3,9 @@ package examples.curvepos
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewComponentCompanion
+import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
-import scorex.core.consensus.{BlockChain, SyncInfo}
+import scorex.core.consensus.BlockChain
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 
@@ -41,13 +42,16 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   override def openSurface(): Seq[BlockId] = Seq(blocks.last._1)
 
   //todo: argument should be ID | Seq[ID]
-  override def continuation(from: Seq[BlockId], size: Int): Seq[SimpleBlock] =
-    continuationIds(from, size).map(blockById).map(_.get)
+  override def continuation(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[SimpleBlock]] =
+    continuationIds(from, size).map(_.map(_._2).map(blockById).map(_.get))
 
   //todo: argument should be ID | Seq[ID]
-  override def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId] = {
+  override def continuationIds(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[(ModifierTypeId, BlockId)]] = {
     require(from.size == 1)
-    blocks.dropWhile(t => !t._1.sameElements(from.head)).take(size).keys.toSeq
+    require(from.head._1 == SimpleBlock.ModifierTypeId)
+
+    val s = blocks.dropWhile(t => !t._1.sameElements(from.head._2)).take(size).keys.toSeq
+    if (s.isEmpty) None else Some(s.map(id => SimpleBlock.ModifierTypeId -> id))
   }
 
   /**
@@ -79,7 +83,7 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   override def children(blockId: BlockId): Seq[SimpleBlock] =
     heightOf(blockId).map(_ + 1).flatMap(blockAt).toSeq
 
-  override def syncInfo: SimpleSyncInfo = SimpleSyncInfo(lastBlock.id, chainScore())
+  override def syncInfo: SimpleSyncInfo = SimpleSyncInfo(answer = false, lastBlock.id, chainScore())
 
   override def compare(other: SimpleSyncInfo): HistoryComparisonResult.Value = {
     val local = syncInfo.score

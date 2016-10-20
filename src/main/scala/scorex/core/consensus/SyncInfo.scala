@@ -5,6 +5,7 @@ import scorex.core.serialization.BytesSerializable
 
 
 trait SyncInfo extends BytesSerializable {
+  def answer: Boolean
   def startingPoints: Seq[(NodeViewModifier.ModifierTypeId, NodeViewModifier.ModifierId)]
 }
 

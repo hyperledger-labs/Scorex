@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.core.NodeViewHolder._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.consensus.SyncInfo
+import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.Transaction
@@ -12,6 +12,8 @@ import scorex.core.transaction.box.proposition.Proposition
 
 import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * A middle layer between a node view holder(NodeViewHolder) and a network
@@ -28,15 +30,15 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   import NodeViewSynchronizer._
   import scorex.core.NodeViewModifier._
+  import History.HistoryComparisonResult._
 
   //modifier ids asked from other nodes are kept in order to check then
   //against objects sent
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
 
-
   private val seniors = mutable.Set[ConnectedPeer]()
-
   private val juniors = mutable.Set[ConnectedPeer]()
+  private val equals = mutable.Set[ConnectedPeer]()
 
   override def preStart(): Unit = {
     //register as a handler for some types of messages
@@ -51,6 +53,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       NodeViewHolder.EventType.SuccessfulPersistentModifier
     )
     viewHolderRef ! Subscribe(events)
+
+    context.system.scheduler.schedule(2.seconds, 15.seconds)(self ! GetLocalSyncInfo)
   }
 
   private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
@@ -70,6 +74,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case SuccessfulModification(mod, source) => sendModifierIfLocal(mod, source)
   }
 
+  //sending out sync message to a random peer
+  private def syncSend: Receive = {
+    case CurrentSyncInfo(syncInfo: SI) =>
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToRandom)
+  }
+
 
   //sync info is coming from another node
   private def processSync: Receive = {
@@ -81,7 +91,31 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //view holder is telling other node status
   private def processSyncStatus: Receive = {
-    case OtherNodeSyncingStatus(remote, status, startingPoints) =>
+    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo:SI, extOpt) =>
+      if(!remoteSyncInfo.answer) {
+        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(localSyncInfo), None), SendToRandom)
+      }
+
+      seniors.remove(remote)
+      juniors.remove(remote)
+      equals.remove(remote)
+
+      status match {
+        case Older =>
+          seniors.add(remote)
+
+        case Younger =>
+          juniors.add(remote)
+          assert(extOpt.isDefined)
+          val ext = extOpt.get
+          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach{
+            case (mid, mods) =>
+              networkControllerRef ! SendToNetwork(Message(InvSpec, Right(mid -> mods), None), SendToPeer(remote))
+          }
+
+        case Equal =>
+          equals.add(remote)
+      }
   }
 
   //object ids coming from other node
@@ -131,8 +165,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         val msg = Message(RequestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
-      val newids = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds
-      asked.put(modifierTypeId, newids)
+      val newIds = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds
+      asked.put(modifierTypeId, newIds)
   }
 
   //local node sending out objects requested to remote
@@ -147,7 +181,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   }
 
   override def receive: Receive =
-    processSync orElse
+    syncSend orElse
+      processSync orElse
+      processSyncStatus orElse
       processInv orElse
       modifiersReq orElse
       requestFromLocal orElse
@@ -157,6 +193,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 }
 
 object NodeViewSynchronizer {
+
+  case object GetLocalSyncInfo
 
   case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 

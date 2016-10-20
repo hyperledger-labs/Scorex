@@ -2,7 +2,7 @@ package scorex.core
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
-import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
@@ -160,7 +160,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
           memoryPool().notIn(modifierIds)
         case _ =>
-          history().continuationIds(modifierIds, networkChunkSize)
+          modifierIds.filterNot(history().contains)
       }
 
       sender() ! NodeViewSynchronizer.RequestFromLocal(sid, modifierTypeId, ids)
@@ -194,14 +194,20 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       modify(lm.pmod, None)
   }
 
-  private def viewGetters: Receive = {
+  private def getCurrentInfo: Receive = {
     case GetCurrentView =>
       sender() ! CurrentView(history(), minimalState(), vault(), memoryPool())
   }
 
   private def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
-      sender() ! OtherNodeSyncingStatus(remote, history().compare(syncInfo), syncInfo.startingPoints)
+      val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
+      sender() ! OtherNodeSyncingStatus(remote, history().compare(syncInfo), syncInfo, history().syncInfo, extensionOpt)
+  }
+
+  private def getSyncInfo: Receive = {
+    case GetSyncInfo =>
+      sender() ! CurrentSyncInfo(history().syncInfo)
   }
 
   override def receive: Receive =
@@ -210,7 +216,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       readLocalObjects orElse
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
-      viewGetters orElse
+      getCurrentInfo orElse
+      getSyncInfo orElse
       compareSyncInfo orElse {
       case a: Any => log.error("Strange input: " + a)
     }
@@ -218,6 +225,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 
 object NodeViewHolder {
+
+  object GetSyncInfo
+
+  case class CurrentSyncInfo[SI <: SyncInfo](syncInfo: SyncInfo)
 
   object GetCurrentView
 
@@ -237,9 +248,11 @@ object NodeViewHolder {
 
   trait NodeViewHolderEvent
 
-  case class OtherNodeSyncingStatus(peer: ConnectedPeer,
-                                    status: History.HistoryComparisonResult.Value,
-                                    startingPoints: Seq[(NodeViewModifier.ModifierTypeId, NodeViewModifier.ModifierId)])
+  case class OtherNodeSyncingStatus[SI <: SyncInfo](peer: ConnectedPeer,
+                                                    status: History.HistoryComparisonResult.Value,
+                                                    remoteSyncInfo: SI,
+                                                    localSyncInfo: SI,
+                                                    extension: Option[Seq[(ModifierTypeId, ModifierId)]])
 
   //node view holder starting persistent modifier application
   case class StartingPersistentModifierApplication[

@@ -1,5 +1,6 @@
 package scorex.core.consensus
 
+import scorex.core.NodeViewModifier._
 import scorex.core.block.Block
 import scorex.core.consensus.History.BlockId
 import scorex.core.transaction.Transaction
@@ -47,7 +48,20 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   override def openSurface(): scala.Seq[BlockId] = lastBlockIds(1)
 
   //todo: argument should be ID | Seq[ID]
-  override def continuationIds(openSurface: Seq[BlockId], size: Int): Seq[BlockId] = lastBlockIds(size)
+  override def continuationIds(openSurface: Seq[(ModifierTypeId, ModifierId)], size: Int):
+  Option[Seq[(ModifierTypeId, ModifierId)]] = {
+    assert(openSurface.size == 1)
+    val modId = openSurface.head._1
+    val s = lookForward(openSurface.head._2, size)
+    if (s.isEmpty) None else Some(s.map(id => modId -> id))
+  }
+
+  //todo: argument should be ID | Seq[ID]
+  override def continuation(openSurface: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[B]] = {
+    assert(openSurface.size == 1)
+    val s = lookForward(openSurface.head._2, size)
+    if (s.isEmpty) None else Some(s.map(id => blockById(id).get))
+  }
 
   /**
     * Average delay in milliseconds between last blockNum blocks starting from block
@@ -69,16 +83,13 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   def lastBlocks(howMany: Int): Seq[B] =
     (Math.max(1, height() - howMany + 1) to height()).flatMap(blockAt).reverse
 
-  //todo: argument should be ID | Seq[ID]
-  override def continuation(openSurface: Seq[BlockId], size: Int): Seq[B] = lastBlocks(size)
-
   /**
     * Return howMany blocks starting from parentSignature
     */
   def lookForward(parentSignature: BlockId, howMany: Int): Seq[BlockId] =
-    heightOf(parentSignature).map { h =>
-      (h + 1).to(Math.min(height(), h + howMany: Int)).flatMap(blockAt).map(_.id)
-    }.getOrElse(Seq())
+  heightOf(parentSignature).map { h =>
+    (h + 1).to(Math.min(height(), h + howMany: Int)).flatMap(blockAt).map(_.id)
+  }.getOrElse(Seq())
 
   def children(blockId: BlockId): Seq[B]
 
