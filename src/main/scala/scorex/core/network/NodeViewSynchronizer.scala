@@ -74,6 +74,11 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case SuccessfulModification(mod, source) => sendModifierIfLocal(mod, source)
   }
 
+  private def getLocalSyncInfo: Receive = {
+    case GetLocalSyncInfo =>
+      viewHolderRef ! NodeViewHolder.GetSyncInfo
+  }
+
   //sending out sync message to a random peer
   private def syncSend: Receive = {
     case CurrentSyncInfo(syncInfo: SI) =>
@@ -91,8 +96,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //view holder is telling other node status
   private def processSyncStatus: Receive = {
-    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo:SI, extOpt) =>
-      if(!remoteSyncInfo.answer) {
+    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI, extOpt) =>
+      if (!remoteSyncInfo.answer) {
         networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(localSyncInfo), None), SendToRandom)
       }
 
@@ -108,7 +113,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
           juniors.add(remote)
           assert(extOpt.isDefined)
           val ext = extOpt.get
-          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach{
+          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
             case (mid, mods) =>
               networkControllerRef ! SendToNetwork(Message(InvSpec, Right(mid -> mods), None), SendToPeer(remote))
           }
@@ -181,7 +186,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   }
 
   override def receive: Receive =
-    syncSend orElse
+    getLocalSyncInfo orElse
+      syncSend orElse
       processSync orElse
       processSyncStatus orElse
       processInv orElse

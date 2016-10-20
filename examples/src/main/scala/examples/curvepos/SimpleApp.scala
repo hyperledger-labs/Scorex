@@ -47,8 +47,6 @@ class SimpleApp(val settingsFilename: String) extends Application {
   override lazy val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
 
   val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))
-  forger ! StartMining
-
 }
 
 object SimpleApp extends App {
