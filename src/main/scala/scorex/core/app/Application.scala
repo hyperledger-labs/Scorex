@@ -33,8 +33,6 @@ trait Application extends ScorexLogging {
   //settings
   implicit val settings: Settings
 
-  val wallet: Wallet[P, TX, _]
-
   //api
   val apiRoutes: Seq[ApiRoute]
   val apiTypes: Seq[Type]

@@ -12,15 +12,11 @@
   },
   "walletDir": "/tmp/scorex/wallet2",
   "walletPassword": "cookies",
+  "walletSeed": "app2",
   "dataDir": "/tmp/scorex/data2",
   "rpcPort": 9089,
   "rpcAllowed": [],
   "maxRollback": 100,
   "blockGenerationDelay": 0,
-  "genesisTimestamp": 1460952000000,
-  "perma": {
-    "treeDir": "/tmp/scorex/data/tree2/",
-    "authDataStorage": "permatree.db"
-  },
   "cors": false
 }

@@ -35,12 +35,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     if (publicImage.address == secret.publicImage.address) Some(secret) else None
   }
 
-  /**
-    * Only one secret is supported
-    *
-    * @return
-    */
-  override def generateNewSecret(): SimpleWallet = ??? //SimpleWallet(Random.randomBytes(PrivKeyLength))
+  override def generateNewSecret(): SimpleWallet = throw new Error("Only one secret is supported")
 
   override def secrets: Set[S] = Set(secret)
 

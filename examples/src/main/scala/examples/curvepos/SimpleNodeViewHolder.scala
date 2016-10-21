@@ -2,12 +2,16 @@ package examples.curvepos
 
 import examples.curvepos.transaction._
 import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
+import scorex.crypto.encode.Base58
 
 import scala.util.{Failure, Success}
 
-class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {
+class SimpleNodeViewHolder(settings: Settings)
+  extends NodeViewHolder[PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {
+
   override type SI = SimpleSyncInfo
 
   override type HIS = SimpleBlockchain
@@ -23,17 +27,13 @@ class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, Sim
   override protected def genesisState: (HIS, MS, VL, MP) = {
     val emptyBlockchain = new SimpleBlockchain
     val emptyState = new SimpleState
-    val wallet1 = SimpleWallet("hello world".getBytes)
-    val wallet2 = SimpleWallet("hello world!".getBytes)
 
-    val acc1 = wallet1.publicKeys.head
-    val acc2 = wallet2.publicKeys.head
+    val genesisAcc = SimpleWallet(Base58.decode("genesis").get).publicKeys.head
 
     val IntitialBaseTarget = 153722867L
     val generator = PublicKey25519Proposition(Array.fill(SimpleBlock.SignatureLength)(0: Byte))
     val toInclude: Seq[SimpleTransaction] = Seq(
-      SimplePayment(acc1, acc1, Long.MaxValue, 1, 1, 0),
-      SimplePayment(acc2, acc2, Long.MaxValue, 1, 1, 0)
+      SimplePayment(genesisAcc, genesisAcc, Long.MaxValue, 1, 1, 0)
     )
 
     val genesisBlock: SimpleBlock = SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
@@ -53,7 +53,6 @@ class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, Sim
 
     log.info(s"Genesis state with block (id: ${genesisBlock.id}) ${genesisBlock.json.noSpaces} created")
 
-    //todo: fix - made node-specific wallet to be returned
-    (blockchain, state, wallet1, new SimpleMemPool)
+    (blockchain, state, SimpleWallet(settings.walletSeed), new SimpleMemPool)
   }
 }
