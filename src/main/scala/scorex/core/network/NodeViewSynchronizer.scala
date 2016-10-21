@@ -12,6 +12,8 @@ import scorex.core.transaction.box.proposition.Proposition
 
 import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.utils.ScorexLogging
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -26,7 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   * @tparam SIS
   */
 class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoSpec[SI]]
-(networkControllerRef: ActorRef, viewHolderRef: ActorRef, syncInfoSpec: SIS) extends Actor {
+(networkControllerRef: ActorRef, viewHolderRef: ActorRef, syncInfoSpec: SIS) extends Actor with ScorexLogging {
 
   import NodeViewSynchronizer._
   import scorex.core.NodeViewModifier._
@@ -54,7 +56,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     )
     viewHolderRef ! Subscribe(events)
 
-    context.system.scheduler.schedule(2.seconds, 15.seconds)(self ! GetLocalSyncInfo)
+    context.system.scheduler.schedule(2.seconds, 2.seconds)(self ! GetLocalSyncInfo)
   }
 
   private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
@@ -195,7 +197,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       requestFromLocal orElse
       responseFromLocal orElse
       modifiersFromRemote orElse
-      viewHolderEvents
+      viewHolderEvents orElse {
+        case a: Any => log.error("Strange input: " + a)
+    }
 }
 
 object NodeViewSynchronizer {
