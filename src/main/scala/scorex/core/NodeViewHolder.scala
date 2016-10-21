@@ -95,7 +95,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       EventType.StartingPersistentModifierApplication,
       StartingPersistentModifierApplication[P, TX, PMOD](pmod)
     )
-    log.info(s"Apply modifier to nodeViewHolder.")
+
+    log.info(s"Apply modifier to nodeViewHolder")
 
     history().append(pmod) match {
       case Success((newHistory, maybeRollback)) =>
@@ -117,6 +118,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               .map(w => w.bulkScan(appliedTxs, offchain = false))
               .getOrElse(vault())
 
+            log.info(s"Persistent modifier ${pmod.id} applied successfully")
             nodeView = (newHistory, newMinState, newWallet, newMemPool)
             notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
 
@@ -202,16 +204,23 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
-      log.info(s"Comparing remote info with starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
-      log.info(s"Local side contains head: is ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
+      log.debug(s"Comparing remote info with starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
+      log.debug(s"Local side contains head: ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
 
       val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
-      sender() ! OtherNodeSyncingStatus(remote, history().compare(syncInfo), syncInfo, history().syncInfo, extensionOpt)
+
+      sender() ! OtherNodeSyncingStatus(
+        remote,
+        history().compare(syncInfo),
+        syncInfo,
+        history().syncInfo(true),
+        extensionOpt
+      )
   }
 
   private def getSyncInfo: Receive = {
     case GetSyncInfo =>
-      sender() ! CurrentSyncInfo(history().syncInfo)
+      sender() ! CurrentSyncInfo(history().syncInfo(false))
   }
 
   override def receive: Receive =

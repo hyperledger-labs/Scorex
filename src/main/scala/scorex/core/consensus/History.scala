@@ -56,7 +56,7 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
   //todo: argument should be ID | Seq[ID]
   def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]]
 
-  def syncInfo: SI
+  def syncInfo(answer: Boolean): SI
 
   /**
     * Whether another's node syncinfo shows that another node is ahead or behind ours
