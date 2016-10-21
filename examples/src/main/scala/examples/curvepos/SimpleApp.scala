@@ -38,9 +38,8 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings))
-  override val wallet: Wallet[P, TX, _] = SimpleWallet()
 
-  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
+  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder], settings))
   val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))
 
   override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef,

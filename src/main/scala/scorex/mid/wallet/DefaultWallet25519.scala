@@ -12,8 +12,7 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
-import scorex.crypto.encode.Base58
-import scorex.utils._
+
 import scala.collection.JavaConversions._
 
 /**
@@ -30,41 +29,13 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
 
   val walletFileOpt: Option[File] = settings.walletDirOpt.map(walletDir => new java.io.File(walletDir, "wallet.s.dat"))
   val password: String = settings.walletPassword
-  val seedOpt: Option[Array[Byte]] = settings.walletSeed
+  val seed: Array[Byte] = settings.walletSeed
 
   val db = DBMaker
     .fileDB("wallet.dat")
     .make()
 
   private val dbSeed = db.atomicString("seed").createOrOpen()
-
-  lazy val seed: Array[Byte] = Option(dbSeed.get())
-    .map(Base58.decode)
-    .flatMap(_.toOption)
-    .getOrElse {
-      val s = seedOpt.getOrElse {
-        val Attempts = 10
-        val SeedSize = 64
-        lazy val randomSeed = randomBytes(SeedSize)
-        def readSeed(limit: Int = Attempts): Array[Byte] = {
-          println("Please type your wallet seed or type Enter to generate random one")
-          val typed = scala.io.StdIn.readLine()
-          if (typed.isEmpty) {
-            println(s"Your random generated seed is ${Base58.encode(randomSeed)}")
-            randomSeed
-          } else
-            Base58.decode(typed).getOrElse {
-              if (limit > 0) {
-                println("Wallet seed should be correct Base58 encoded string.")
-                readSeed(limit - 1)
-              } else throw new Error("Sorry you have made too many incorrect seed guesses")
-            }
-        }
-        readSeed()
-      }
-      dbSeed.set(Base58.encode(s))
-      s
-    }
 
   private def lastNonce = db.atomicInteger("nonce").createOrOpen()
 
@@ -84,7 +55,7 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
 
   override def scan(tx: TX, offchain: Boolean): DefaultWallet25519[TX] = ???
 
-  override def bulkScan(txs: Seq[TX], offchain: Boolean):  DefaultWallet25519[TX] = ???
+  override def bulkScan(txs: Seq[TX], offchain: Boolean): DefaultWallet25519[TX] = ???
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, TX]] = ???
 
@@ -103,7 +74,7 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
 
   override type NVCT = DefaultWallet25519[TX]
 
-  override def companion: NodeViewComponentCompanion = ???  //todo: fix
+  override def companion: NodeViewComponentCompanion = ??? //todo: fix
 
-  def rollback(to: VersionTag) = ???  //todo: fix
+  def rollback(to: VersionTag) = ??? //todo: fix
 }
