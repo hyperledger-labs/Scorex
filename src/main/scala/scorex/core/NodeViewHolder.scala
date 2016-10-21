@@ -49,6 +49,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   val networkChunkSize = 100 //todo: make configurable?
 
+  //todo: make configurable limited size
+  private val modifiersCache = mutable.Map[ModifierId, PMOD]()
 
   //mutable private node view instance
   private var nodeView: NodeView = restoreState().getOrElse(genesisState)
@@ -90,7 +92,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
-  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]) = {
+  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]):Unit = {
     notifySubscribers(
       EventType.StartingPersistentModifierApplication,
       StartingPersistentModifierApplication[P, TX, PMOD](pmod)
@@ -128,8 +130,16 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         }
 
       case Failure(e) =>
-        log.warn(s"Can`t apply persistent modifier (id: ${pmod.id}, contents: $pmod) to history", e)
+        log.warn(s"Can`t apply persistent modifier (id: ${pmod.id}, contents: $pmod) to history, reason: ${e.getMessage}")
+        modifiersCache.put(pmod.parentId, pmod)
         notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
+    }
+
+    val os = history().openSurfaceIds()
+    modifiersCache.find{case (pid, _) =>
+      os.exists(_ sameElements pid)
+    }.foreach{case (_, pm) =>
+      pmodModify(pm, None) //todo: None is not correct, remember peer in cache
     }
   }
 
