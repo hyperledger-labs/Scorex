@@ -122,6 +122,10 @@ lazy val examples = Project(id = "examples", base = file(s"examples"))
     testOptions in Test := Seq(Tests.Filter(_.matches(".*TestSuite$")))
   )
 
+lazy val elm = Project(id = "elm", base = file(s"elm"))
+  .dependsOn(basics)
+  .settings(commonSettings: _*)
+
 lazy val basics = Project(id = "scorex", base = file("."))
   .settings(commonSettings: _*)
   .settings(

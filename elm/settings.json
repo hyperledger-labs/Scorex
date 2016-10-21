@@ -1,0 +1,21 @@
+{
+  "p2p": {
+    "bindAddress": "0.0.0.0",
+    "upnp": false,
+    "upnpGatewayTimeout": 7000,
+    "upnpDiscoverTimeout": 3000,
+    "port": 9084,
+    "knownPeers": [
+    ],
+    "maxConnections": 10
+  },
+  "walletDir": "/tmp/poscoin/wallet",
+  "dataDir": "/tmp/poscoin/data",
+  "rpcPort": 9085,
+  "rpcAllowed": [],
+  "maxRollback": 100,
+  "blockGenerationDelay": 0,
+  "genesisTimestamp": 1460952000000,
+  "apiKeyHash": "GmVvcpx1BRUPDZiADbZ7a6zgQV3Sgj2GhNoEiTH9Drdx",
+  "cors": false
+}
