@@ -28,7 +28,7 @@ class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, Sim
     val acc1 = wallet1.publicKeys.head
     val acc2 = wallet2.publicKeys.head
 
-    val IntitialBasetarget = 153722867L
+    val IntitialBaseTarget = 153722867L
     val generator = PublicKey25519Proposition(Array.fill(SimpleBlock.SignatureLength)(0: Byte))
     val toInclude: Seq[SimpleTransaction] = Seq(
       SimplePayment(acc1, acc1, Long.MaxValue, 1, 1, 0),
@@ -36,7 +36,8 @@ class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, Sim
     )
 
     val genesisBlock: SimpleBlock = SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
-      0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), IntitialBasetarget, generator, toInclude)
+      0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), IntitialBaseTarget, generator, toInclude)
+
     val blockchain = emptyBlockchain.append(genesisBlock) match {
       case Failure(f) => throw f
       case Success(newBlockchain) => newBlockchain._1
@@ -49,7 +50,7 @@ class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, Sim
     }
     require(!state.isEmpty)
 
-    log.info(s"Genesis state with block ${genesisBlock.json.noSpaces} created")
+    log.info(s"Genesis state with block (id: ${genesisBlock.id}) ${genesisBlock.json.noSpaces} created")
 
     //todo: fix - made node-specific wallet to be returned
     (blockchain, state, wallet1, new SimpleMemPool)

@@ -56,7 +56,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     )
     viewHolderRef ! Subscribe(events)
 
-    context.system.scheduler.schedule(2.seconds, 5.seconds)(self ! GetLocalSyncInfo)
+    context.system.scheduler.schedule(2.seconds, 15.seconds)(self ! GetLocalSyncInfo)
   }
 
   private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
