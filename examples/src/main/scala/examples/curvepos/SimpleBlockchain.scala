@@ -39,7 +39,7 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   }
 
   //todo: should be ID | Seq[ID]
-  override def openSurface(): Seq[BlockId] = Seq(blocks.last._1)
+  override def openSurfaceIds(): Seq[BlockId] = Seq(blocks.last._1)
 
   //todo: argument should be ID | Seq[ID]
   override def continuation(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[SimpleBlock]] =

@@ -32,8 +32,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   private val hash = FastCryptographicHash
 
 
-  val InterBlocksDelay = 15
-  //in seconds
+  val InterBlocksDelay = 15 //in seconds
   val blockGenerationDelay = 500.millisecond
 
   override def preStart(): Unit = {

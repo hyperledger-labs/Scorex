@@ -15,7 +15,8 @@ class SimpleNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, Sim
   override type VL = SimpleWallet
   override type MP = SimpleMemPool
 
-  override lazy val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] = ???
+  override lazy val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
+    Map(SimpleBlock.ModifierTypeId -> SimpleBlockCompanion)
 
   override def restoreState(): Option[(HIS, MS, VL, MP)] = None
 

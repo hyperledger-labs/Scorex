@@ -48,7 +48,7 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   //todo: is it needed?
   //todo: output should be ID | Seq[ID]
-  def openSurface(): Seq[BlockId]
+  def openSurfaceIds(): Seq[BlockId]
 
   //todo: argument should be ID | Seq[ID]
   def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[PM]]

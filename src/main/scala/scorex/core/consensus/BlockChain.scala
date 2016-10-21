@@ -45,7 +45,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   def lastBlockIds(howMany: Int): Seq[BlockId] = lastBlocks(howMany).map(_.id)
 
   //just last block id
-  override def openSurface(): scala.Seq[BlockId] = lastBlockIds(1)
+  override def openSurfaceIds(): scala.Seq[BlockId] = lastBlockIds(1)
 
   //todo: argument should be ID | Seq[ID]
   override def continuationIds(openSurface: Seq[(ModifierTypeId, ModifierId)], size: Int):
