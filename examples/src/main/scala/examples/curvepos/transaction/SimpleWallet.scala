@@ -36,11 +36,13 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   }
 
   /**
-    * Only one secret is supported so this method always returns unmodified wallet
+    * Only one secret is supported
     *
     * @return
     */
   override def generateNewSecret(): SimpleWallet = SimpleWallet(Random.randomBytes(PrivKeyLength))
+
+  override def generateNewSecret(seed: Array[Byte]): SimpleWallet = SimpleWallet(seed)
 
   override def secrets: Set[S] = Set(secret)
 
@@ -72,7 +74,6 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def bulkScan(txs: Seq[SimpleTransaction], offchain: Boolean): SimpleWallet =
     txs.foldLeft(this) { case(wallet, tx) => wallet.scan(tx, offchain)}
-
 
   override def companion: NodeViewComponentCompanion = ???
 }

@@ -71,6 +71,8 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
   private lazy val dbSecrets: HTreeMap[Array[Byte], Array[Byte]] =
     db.hashMap("secrets", new SerializerByteArray, new SerializerByteArray).createOrOpen()
 
+  override def generateNewSecret(seed: Array[Byte]): DefaultWallet25519[TX] = ???
+
   override def generateNewSecret(): DefaultWallet25519[TX] = {
     val nonce = lastNonce.incrementAndGet()
     val randomSeed = DoubleCryptographicHash(Bytes.concat(Ints.toByteArray(nonce), seed))

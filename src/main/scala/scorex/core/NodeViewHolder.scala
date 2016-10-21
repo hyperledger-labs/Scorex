@@ -12,6 +12,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.encode.Base58
 
 import scala.collection.mutable
 import scala.util.{Failure, Success}
@@ -201,6 +202,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
+      log.info(s"Comparing remote info with starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
+      log.info(s"Local side contains head: is ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
+
       val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
       sender() ! OtherNodeSyncingStatus(remote, history().compare(syncInfo), syncInfo, history().syncInfo, extensionOpt)
   }
