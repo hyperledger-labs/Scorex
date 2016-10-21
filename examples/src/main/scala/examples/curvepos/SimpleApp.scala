@@ -34,7 +34,8 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override type NVHT = SimpleNodeViewHolder
 
-  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
+  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(SimpleSyncInfoSpec)
+
   override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings))
   override val wallet: Wallet[P, TX, _] = SimpleWallet()
