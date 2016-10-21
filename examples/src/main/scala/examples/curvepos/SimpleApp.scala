@@ -1,7 +1,6 @@
 package examples.curvepos
 
 import akka.actor.{ActorRef, Props}
-import examples.curvepos.forging.Forger.StartMining
 import examples.curvepos.forging.{Forger, ForgerSettings}
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction, SimpleWallet}
 import io.circe
@@ -41,12 +40,13 @@ class SimpleApp(val settingsFilename: String) extends Application {
   override val wallet: Wallet[P, TX, _] = SimpleWallet()
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
-  override lazy val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
-      networkController, nodeViewHolderRef, SimpleSyncInfoSpec))
   override lazy val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
 
   val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))
+
+  override val nodeViewSynchronizer: ActorRef =
+    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
+      networkController, nodeViewHolderRef, SimpleSyncInfoSpec))
 }
 
 object SimpleApp extends App {
