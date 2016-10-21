@@ -167,6 +167,7 @@ class NetworkController(settings: Settings,
 
   override def receive: Receive = bindingLogic orElse businessLogic orElse peerLogic orElse interfaceCalls orElse {
     case RegisterMessagesHandler(specs, handler) =>
+      log.info(s"Registering handlers for ${specs.map(s => s.messageCode -> s.messageName)}")
       messageHandlers += specs.map(_.messageCode) -> handler
 
     case CommandFailed(cmd: Tcp.Command) =>
