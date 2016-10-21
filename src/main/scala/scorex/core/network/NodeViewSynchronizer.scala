@@ -13,6 +13,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.encode.Base58
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -63,7 +64,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     if (source.isEmpty) {
       val data = m.modifierTypeId -> Seq(m.id -> m.bytes).toMap
       val msg = Message(ModifiersSpec, Right(data), None)
-      networkControllerRef ! SendToNetwork(msg, Broadcast)
+    //  networkControllerRef ! SendToNetwork(msg, Broadcast) todo: uncomment, send only inv to equals
     }
 
   private def viewHolderEvents: Receive = {
@@ -149,19 +150,24 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       val typeId = data._1
       val modifiers = data._2
 
-      val modIds = modifiers.keySet
-
       val askedIds = asked.getOrElse(typeId, mutable.Set())
-      val filteredIds = askedIds.diff(modIds)
 
-      if (askedIds.size - modIds.size == filteredIds.size) {
-        val msg = ModifiersFromRemote(remote, data._1, modifiers.valuesIterator.toSeq)
-        viewHolderRef ! msg
-        asked.put(typeId, filteredIds)
-      } else {
-        //remote peer has sent some object not requested -> ban!
-        //todo: ban a peer
-      }
+      log.info(s"Got modifiers with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+      log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+
+      val fm = modifiers.flatMap{case(mid, mod) =>
+        if(askedIds.exists(id => id sameElements mid)){
+          askedIds.retain(id => !(id sameElements mid))
+          Some(mod)
+        } else {
+          None
+          //todo: remote peer has sent some object not requested -> ban?
+        }
+      }.toSeq
+
+      asked.put(typeId, askedIds)
+      val msg = ModifiersFromRemote(remote, data._1, fm)
+      viewHolderRef ! msg
   }
 
   //local node sending object ids to remote
