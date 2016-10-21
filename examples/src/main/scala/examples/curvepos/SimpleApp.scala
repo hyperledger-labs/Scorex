@@ -40,9 +40,10 @@ class SimpleApp(val settingsFilename: String) extends Application {
   override val wallet: Wallet[P, TX, _] = SimpleWallet()
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
-  override lazy val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
-
   val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))
+
+  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef,
+    forger))
 
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
