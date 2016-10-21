@@ -58,7 +58,7 @@ case class ElmWallet(secret: PrivateKey25519 = ElmWallet.generateSecret(),
       // reduce balance by relevant inputs
 
       val outs = for {
-        t <- chainTxs.get(tx.id)
+        t <- chainTxs.get(tx.id).toSeq
         txIn <- t.inputs
         txOut <- chainTxOutputs.get(txIn.closedBoxId)
       } yield txOut

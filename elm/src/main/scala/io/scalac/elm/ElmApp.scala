@@ -2,7 +2,8 @@ package io.scalac.elm
 
 import akka.actor.ActorRef
 import io.scalac.elm.config.{AppConfig, AppInfo}
-import io.scalac.elm.transaction.ElmTransaction
+import io.scalac.elm.core.ElmNodeViewHolder
+import io.scalac.elm.transaction.{ElmBlock, ElmTransaction}
 import scorex.core.api.http._
 import scorex.core.app.Application
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -19,8 +20,8 @@ class ElmApp(appConfig: AppConfig) extends Application {
 
   override type P = PublicKey25519Proposition
   override type TX = ElmTransaction
-  override type PMOD = this.type
-  override type NVHT = this.type
+  override type PMOD = ElmBlock
+  override type NVHT = ElmNodeViewHolder
 
   override val apiRoutes = Seq(
     UtilsApiRoute(settings),

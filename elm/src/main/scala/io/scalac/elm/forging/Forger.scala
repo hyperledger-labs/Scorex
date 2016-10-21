@@ -21,6 +21,7 @@ trait ForgerSettings extends Settings {
 class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Actor with ScorexLogging {
 
   import Forger._
+  import context.dispatcher
 
   //should be a part of consensus, but for our app is okay
   val TransactionsInBlock = 100
@@ -89,7 +90,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
             val secret: PrivateKey25519 = wallet.secretByPublicImage(generator).get
 
             val unsigned: ElmBlock = ElmBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
-            val signature = PrivateKey25519Companion.sign(secret, unsigned.companion.messageToSing(unsigned))
+            val signature = PrivateKey25519Companion.sign(secret, unsigned.companion.bytes(unsigned))
             val signedBlock = unsigned.copy(generationSignature = signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
             LocallyGeneratedModifier[PublicKey25519Proposition, ElmTransaction, ElmBlock](signedBlock)

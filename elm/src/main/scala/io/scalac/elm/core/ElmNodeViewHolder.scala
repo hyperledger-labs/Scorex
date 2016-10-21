@@ -29,7 +29,7 @@ class ElmNodeViewHolder extends NodeViewHolder[PublicKey25519Proposition, ElmTra
     val acc = wallet.secrets.head
     val IntitialBasetarget = 153722867L
     val generator = PublicKey25519Proposition(Array.fill(ElmBlock.SignatureLength)(0: Byte))
-    val toInclude: Seq[ElmTransaction] = Seq(ElmPayment(acc.publicImage, acc.publicImage, Long.MaxValue, 1, 1, 0))
+    val toInclude: Seq[ElmTransaction] = null //Seq(ElmPayment(acc.publicImage, acc.publicImage, Long.MaxValue, 1, 1, 0))
 
     val genesisBlock: ElmBlock = ElmBlock(Array.fill(ElmBlock.SignatureLength)(-1: Byte),
       0L, Array.fill(ElmBlock.SignatureLength)(0: Byte), IntitialBasetarget, generator, toInclude)

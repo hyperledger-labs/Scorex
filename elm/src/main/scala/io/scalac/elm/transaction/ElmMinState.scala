@@ -67,7 +67,7 @@ case class ElmMinState(version: VersionTag = EmptyVersion, storage: Map[ByteBuff
   /**
     * A Transaction opens existing boxes and creates new ones
     */
-  override def changes(transaction: ElmTransaction): Try[TransactionChanges[PublicKey25519Proposition, TxOutput]] = {
+  override def changes(transaction: ElmTransaction): Try[TransactionChanges[PublicKey25519Proposition, TxOutput]] =  ??? /*{
     transaction match {
       case tx: SimplePayment if !isEmpty => Try {
         val oldSenderBox = boxOf(tx.sender).head
@@ -88,9 +88,9 @@ case class ElmMinState(version: VersionTag = EmptyVersion, storage: Map[ByteBuff
       }
       case _ => Failure(new Exception("implementation is needed"))
     }
-  }
+  }*/
 
-  override def changes(block: ElmBlock): Try[StateChanges[PublicKey25519Proposition, TxOutput]] = Try {
+  override def changes(block: ElmBlock): Try[StateChanges[PublicKey25519Proposition, TxOutput]] = ??? /*Try {
     val generatorReward = block.txs.map(_.fee).sum
     val gen = block.generator
 
@@ -108,5 +108,5 @@ case class ElmMinState(version: VersionTag = EmptyVersion, storage: Map[ByteBuff
     require(toAppend.forall(_.value >= 0))
 
     StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend)
-  }
+  }*/
 }
