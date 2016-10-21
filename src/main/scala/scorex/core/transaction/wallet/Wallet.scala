@@ -23,8 +23,6 @@ trait Wallet[P <: Proposition, TX <: Transaction[P], W <: Wallet[P, TX, W]]
 
   def generateNewSecret(): W
 
-  def generateNewSecret(seed: Array[Byte]): W
-
   def historyTransactions: Seq[WalletTransaction[P, TX]]
 
   def historyBoxes: Seq[WalletBox[P]]

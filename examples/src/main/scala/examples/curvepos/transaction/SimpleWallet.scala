@@ -40,9 +40,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     *
     * @return
     */
-  override def generateNewSecret(): SimpleWallet = SimpleWallet(Random.randomBytes(PrivKeyLength))
-
-  override def generateNewSecret(seed: Array[Byte]): SimpleWallet = SimpleWallet(seed)
+  override def generateNewSecret(): SimpleWallet = ??? //SimpleWallet(Random.randomBytes(PrivKeyLength))
 
   override def secrets: Set[S] = Set(secret)
 
