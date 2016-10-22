@@ -1,6 +1,7 @@
 package examples.curvepos
 
 import akka.actor.ActorRef
+import examples.curvepos.forging.Forger
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.LocalInterface
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -17,4 +18,8 @@ class SimpleLocalInterface(override val viewHolderRef: ActorRef, forgerRef: Acto
   override protected def onSuccessfulTransaction(tx: SimpleTransaction): Unit = {} //TODO
 
   override protected def onSuccessfulModification(mod: SimpleBlock): Unit = {} //TODO
+
+  override protected def onNoBetterNeighbour(): Unit = forgerRef ! Forger.StartMining
+
+  override protected def onBetterNeighbourAppeared(): Unit = forgerRef ! Forger.StopMining
 }

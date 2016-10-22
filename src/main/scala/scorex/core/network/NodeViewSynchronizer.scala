@@ -1,7 +1,7 @@
 package scorex.core.network
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.{NodeViewHolder, NodeViewModifier}
+import scorex.core.{LocalInterface, NodeViewHolder, NodeViewModifier}
 import scorex.core.NodeViewHolder._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.{History, SyncInfo}
@@ -23,13 +23,17 @@ import scala.concurrent.ExecutionContext.Implicits.global
   *
   * @param networkControllerRef
   * @param viewHolderRef
+  * @param localInterfaceRef
   * @param syncInfoSpec
   * @tparam P
   * @tparam TX
   * @tparam SIS
   */
 class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoSpec[SI]]
-(networkControllerRef: ActorRef, viewHolderRef: ActorRef, syncInfoSpec: SIS) extends Actor with ScorexLogging {
+(networkControllerRef: ActorRef,
+ viewHolderRef: ActorRef,
+ localInterfaceRef: ActorRef,
+ syncInfoSpec: SIS) extends Actor with ScorexLogging {
 
   import NodeViewSynchronizer._
   import scorex.core.NodeViewModifier._
@@ -39,9 +43,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //against objects sent
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
 
-  private val seniors = mutable.Set[ConnectedPeer]()
-  private val juniors = mutable.Set[ConnectedPeer]()
-  private val equals = mutable.Set[ConnectedPeer]()
+  private val seniors = mutable.Set[String]()
+  private val juniors = mutable.Set[String]()
+  private val equals = mutable.Set[String]()
 
   override def preStart(): Unit = {
     //register as a handler for some types of messages
@@ -104,16 +108,20 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(localSyncInfo), None), SendToRandom)
       }
 
-      seniors.remove(remote)
-      juniors.remove(remote)
-      equals.remove(remote)
+      val seniorsBefore = seniors.size
+
+      val remoteHost = remote.socketAddress.getAddress.getHostAddress
+
+      seniors.remove(remoteHost)
+      juniors.remove(remoteHost)
+      equals.remove(remoteHost)
 
       status match {
         case Older =>
-          seniors.add(remote)
+          seniors.add(remoteHost)
 
         case Younger =>
-          juniors.add(remote)
+          juniors.add(remoteHost)
           assert(extOpt.isDefined)
           val ext = extOpt.get
           ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
@@ -122,7 +130,17 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
           }
 
         case Equal =>
-          equals.add(remote)
+          equals.add(remoteHost)
+      }
+
+      val seniorsAfter = seniors.size
+
+      if (seniorsBefore > 0 && seniorsAfter == 0){
+        localInterfaceRef ! LocalInterface.NoBetterNeighbour
+      }
+
+      if (seniorsBefore == 0 && seniorsAfter > 0){
+        localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
       }
   }
 

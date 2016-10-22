@@ -47,7 +47,7 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
-      networkController, nodeViewHolderRef, SimpleSyncInfoSpec))
+      networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoSpec))
 }
 
 object SimpleApp extends App {

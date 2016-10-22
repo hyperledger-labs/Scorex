@@ -20,7 +20,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
   import shapeless.syntax.typeable._
 
   override def equals(obj: scala.Any): Boolean =
-    obj.cast[ConnectedPeer].exists(_.socketAddress == this.socketAddress)
+    obj.cast[ConnectedPeer].exists(_.socketAddress.getAddress.getHostAddress == this.socketAddress.getAddress.getHostAddress)
 }
 
 

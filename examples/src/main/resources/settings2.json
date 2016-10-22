@@ -1,6 +1,6 @@
 {
   "p2p": {
-    "bindAddress": "0.0.0.0",
+    "bindAddress": "127.0.0.2",
     "upnp": false,
     "upnpGatewayTimeout": 7000,
     "upnpDiscoverTimeout": 3000,

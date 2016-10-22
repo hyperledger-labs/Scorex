@@ -187,13 +187,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           }
         }
 
-        log.info(s"Cache before: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache before: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
 
         var t: Option[(ConnectedPeer, PMOD)] = None
         do {
           t = {
             val os = history().openSurfaceIds()
-            modifiersCache.find { case (mid, (remote, pmod)) =>
+            modifiersCache.find { case (mid, (_, pmod)) =>
               os.exists(_ sameElements pmod.parentId)
             }.map { t =>
               val res = t._2
@@ -204,7 +204,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           t.foreach{case(peer, pmod) => pmodModify(pmod, Some(peer))}
         } while( t.isDefined )
 
-        log.info(s"Cache after: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache after: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
       }
   }
 
@@ -213,6 +213,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       txModify(lt.tx, None)
 
     case lm: LocallyGeneratedModifier[P, TX, PMOD] =>
+      log.info(s"Got locally generated modifier: ${Base58.encode(lm.pmod.id)}")
       pmodModify(lm.pmod, None)
   }
 
@@ -258,11 +259,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 object NodeViewHolder {
 
-  object GetSyncInfo
+  case object GetSyncInfo
 
   case class CurrentSyncInfo[SI <: SyncInfo](syncInfo: SyncInfo)
 
-  object GetCurrentView
+  case object GetCurrentView
 
   object EventType extends Enumeration {
     //finished modifier application, successful of failed
