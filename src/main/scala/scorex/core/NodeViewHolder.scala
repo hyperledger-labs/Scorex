@@ -50,7 +50,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   val networkChunkSize = 100 //todo: make configurable?
 
   //todo: make configurable limited size
-  private val modifiersCache = mutable.Map[ModifierId, PMOD]()
+  private val modifiersCache = mutable.Map[ModifierId, (ConnectedPeer, PMOD)]()
 
   //mutable private node view instance
   private var nodeView: NodeView = restoreState().getOrElse(genesisState)
@@ -92,7 +92,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
-  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]):Unit = {
+  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]): Unit = {
     notifySubscribers(
       EventType.StartingPersistentModifierApplication,
       StartingPersistentModifierApplication[P, TX, PMOD](pmod)
@@ -120,35 +120,19 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               .map(w => w.bulkScan(appliedTxs, offchain = false))
               .getOrElse(vault())
 
-            log.info(s"Persistent modifier ${pmod.id} applied successfully")
+            log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
             nodeView = (newHistory, newMinState, newWallet, newMemPool)
             notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
 
           case Failure(e) =>
-            log.warn(s"Can`t apply persistent modifier (id: ${pmod.id}, contents: $pmod) to minimal state", e)
+            log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
             notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
         }
 
       case Failure(e) =>
-        log.warn(s"Can`t apply persistent modifier (id: ${pmod.id}, contents: $pmod) to history, reason: ${e.getMessage}")
-        modifiersCache.put(pmod.parentId, pmod)
+        log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to history, reason: ${e.getMessage}")
         notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
     }
-
-    val os = history().openSurfaceIds()
-    modifiersCache.find{case (pid, _) =>
-      os.exists(_ sameElements pid)
-    }.foreach{case (_, pm) =>
-      pmodModify(pm, None) //todo: None is not correct, remember peer in cache
-    }
-  }
-
-  private def modify[MOD <: NodeViewModifier](m: MOD, source: Option[ConnectedPeer]): Unit = m match {
-    case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
-      txModify(tx, source)
-
-    case pmod: PMOD@unchecked =>
-      pmodModify(pmod, source)
   }
 
   def apis: Seq[ApiRoute] = Seq(
@@ -173,7 +157,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         case typeId: Byte if typeId == Transaction.TransactionModifierId =>
           memoryPool().notIn(modifierIds)
         case _ =>
-          modifierIds.filterNot(history().contains)
+          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
       }
 
       sender() ! NodeViewSynchronizer.RequestFromLocal(sid, modifierTypeId, ids)
@@ -193,18 +177,43 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
       modifierCompanions.get(modifierTypeId) foreach { companion =>
-        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach(m =>
-          modify(m, Some(remote))
-        )
+        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach { m =>
+          m match {
+            case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
+              txModify(tx, Some(remote))
+
+            case pmod: PMOD@unchecked =>
+              modifiersCache.put(pmod.id, remote -> pmod)
+          }
+        }
+
+        log.info(s"Cache before: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+
+        var t: Option[(ConnectedPeer, PMOD)] = None
+        do {
+          t = {
+            val os = history().openSurfaceIds()
+            modifiersCache.find { case (mid, (remote, pmod)) =>
+              os.exists(_ sameElements pmod.parentId)
+            }.map { t =>
+              val res = t._2
+              modifiersCache.remove(t._1)
+              res
+            }
+          }
+          t.foreach{case(peer, pmod) => pmodModify(pmod, Some(peer))}
+        } while( t.isDefined )
+
+        log.info(s"Cache after: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
       }
   }
 
   private def processLocallyGeneratedModifiers: Receive = {
     case lt: LocallyGeneratedTransaction[P, TX] =>
-      modify(lt.tx, None)
+      txModify(lt.tx, None)
 
     case lm: LocallyGeneratedModifier[P, TX, PMOD] =>
-      modify(lm.pmod, None)
+      pmodModify(lm.pmod, None)
   }
 
   private def getCurrentInfo: Receive = {
@@ -301,5 +310,4 @@ object NodeViewHolder {
 
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
-
 }
