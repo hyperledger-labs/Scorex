@@ -1,6 +1,6 @@
 package examples.curvepos
 
-import examples.curvepos.transaction._
+import examples.curvepos.transaction.{SimplePayment, _}
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -28,12 +28,14 @@ class SimpleNodeViewHolder(settings: Settings)
     val emptyBlockchain = new SimpleBlockchain
     val emptyState = new SimpleState
 
-    val genesisAcc = SimpleWallet(Base58.decode("genesis").get).publicKeys.head
+    val genesisAcc1 = SimpleWallet(Base58.decode("genesis").get).publicKeys.head
+    val genesisAcc2 = SimpleWallet(Base58.decode("genesis2").get).publicKeys.head
 
     val IntitialBaseTarget = 153722867L
     val generator = PublicKey25519Proposition(Array.fill(SimpleBlock.SignatureLength)(0: Byte))
     val toInclude: Seq[SimpleTransaction] = Seq(
-      SimplePayment(genesisAcc, genesisAcc, Long.MaxValue, 1, 1, 0)
+      SimplePayment(genesisAcc1, genesisAcc1, 50000000, 0, 1, 0),
+      SimplePayment(genesisAcc2, genesisAcc2, 50000000, 0, 1, 0)
     )
 
     val genesisBlock: SimpleBlock = SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
