@@ -16,16 +16,13 @@ case class TransactionChanges[P <: Proposition, BX <: Box[P]](toRemove: Set[BX],
   * A transaction is an atomic state modifier
   */
 
-abstract class Transaction[P <: Proposition]
-  extends NodeViewModifier with JsonSerializable {
+abstract class Transaction[P <: Proposition] extends NodeViewModifier  {
 
   override val modifierTypeId: Byte = Transaction.TransactionModifierId
 
   val fee: Long
 
   val timestamp: Long
-
-  def json: Json
 
   val messageToSign: Array[Byte]
 

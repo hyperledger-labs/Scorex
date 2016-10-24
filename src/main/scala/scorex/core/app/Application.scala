@@ -71,10 +71,9 @@ trait Application extends ScorexLogging {
   def run() {
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
+    log.debug(s"RPC is allowed at 0.0.0.0:${settings.rpcPort}")
 
     Http().bindAndHandle(combinedRoute, "0.0.0.0", settings.rpcPort)
-
-    //historySynchronizer ! scorex.block.Block.genesis[P, TX, CD](settings.genesisTimestamp)
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {

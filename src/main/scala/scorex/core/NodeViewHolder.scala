@@ -177,14 +177,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
       modifierCompanions.get(modifierTypeId) foreach { companion =>
-        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach { m =>
-          m match {
-            case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
-              txModify(tx, Some(remote))
+        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach {
+          case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.TransactionModifierId =>
+            txModify(tx, Some(remote))
 
-            case pmod: PMOD@unchecked =>
-              modifiersCache.put(pmod.id, remote -> pmod)
-          }
+          case pmod: PMOD@unchecked =>
+            modifiersCache.put(pmod.id, remote -> pmod)
         }
 
         log.debug(s"Cache before: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
@@ -201,8 +199,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               res
             }
           }
-          t.foreach{case(peer, pmod) => pmodModify(pmod, Some(peer))}
-        } while( t.isDefined )
+          t.foreach { case (peer, pmod) => pmodModify(pmod, Some(peer)) }
+        } while (t.isDefined)
 
         log.debug(s"Cache after: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
       }
@@ -311,4 +309,5 @@ object NodeViewHolder {
 
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
+
 }

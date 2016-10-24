@@ -2,13 +2,13 @@ package scorex.core
 
 import com.typesafe.config.ConfigFactory
 import scorex.core.NodeViewModifier.ModifierId
-import scorex.core.serialization.BytesSerializable
+import scorex.core.serialization.{JsonSerializable, BytesSerializable}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 
 import scala.util.Try
 
-trait NodeViewModifier extends BytesSerializable {
+trait NodeViewModifier extends BytesSerializable with JsonSerializable {
   self =>
 
   import NodeViewModifier.{ModifierId, ModifierTypeId}
@@ -30,6 +30,7 @@ trait NodeViewModifier extends BytesSerializable {
   * are of the some length fixed with the ModifierIdSize constant
   */
 object NodeViewModifier {
+
   type ModifierTypeId = Byte
   type ModifierId = Array[Byte]
 
