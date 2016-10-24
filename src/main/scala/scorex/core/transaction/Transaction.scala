@@ -1,12 +1,10 @@
 package scorex.core.transaction
 
-import io.circe.Json
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier._
 import scorex.core.crypto.hash.FastCryptographicHash
-import scorex.core.serialization.JsonSerializable
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.box.Box
+import scorex.core.transaction.box.proposition.Proposition
 
 
 case class TransactionChanges[P <: Proposition, BX <: Box[P]](toRemove: Set[BX], toAppend: Set[BX], minerReward: Long)
@@ -16,9 +14,9 @@ case class TransactionChanges[P <: Proposition, BX <: Box[P]](toRemove: Set[BX],
   * A transaction is an atomic state modifier
   */
 
-abstract class Transaction[P <: Proposition] extends NodeViewModifier  {
+abstract class Transaction[P <: Proposition] extends NodeViewModifier {
 
-  override val modifierTypeId: Byte = Transaction.TransactionModifierId
+  override val modifierTypeId: Byte = NodeViewModifier.TransactionModifierId
 
   val fee: Long
 
@@ -33,6 +31,4 @@ abstract class Transaction[P <: Proposition] extends NodeViewModifier  {
 
 object Transaction {
   type TransactionId = NodeViewModifier.ModifierId
-
-  val TransactionModifierId = 2: Byte
 }

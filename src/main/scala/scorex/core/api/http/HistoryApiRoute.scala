@@ -52,7 +52,7 @@ case class HistoryApiRoute[P <: Proposition, TX <: Transaction[P]](override val 
   }
 
   @Path("/{id}")
-  @ApiOperation(value = "Glock by id", notes = "Block by id", httpMethod = "GET")
+  @ApiOperation(value = "Block by id", notes = "Block by id", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "block id ", required = true, dataType = "string", paramType = "path")
   ))
@@ -60,9 +60,9 @@ case class HistoryApiRoute[P <: Proposition, TX <: Transaction[P]](override val 
     getJsonRoute {
       Base58.decode(encodedId) match {
         case Success(id) =>
-          //TODO 1:Byte and null
+          //TODO null
           val source: ConnectedPeer = new ConnectedPeer(null, null)
-          (nodeViewHolderRef ? GetLocalObjects(source, 1: Byte, Seq(id)))
+          (nodeViewHolderRef ? GetLocalObjects(source, NodeViewModifier.BlockModifierId, Seq(id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
             .map(_.localObjects.headOption.map(_.json).getOrElse(ApiError.blockNotExists))
         case _ => Future(ApiError.blockNotExists)

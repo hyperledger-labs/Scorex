@@ -2,7 +2,7 @@ package examples.curvepos
 
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
-import scorex.core.NodeViewComponentCompanion
+import scorex.core.{NodeViewModifier, NodeViewComponentCompanion}
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
 import scorex.core.consensus.BlockChain
@@ -51,14 +51,14 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   //todo: argument should be ID | Seq[ID]
   override def continuationIds(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[(ModifierTypeId, BlockId)]] = {
     require(from.size == 1)
-    require(from.head._1 == SimpleBlock.ModifierTypeId)
+    require(from.head._1 == NodeViewModifier.BlockModifierId)
 
     val fromId = from.head._2
 
     blockIds.find(_._2 sameElements fromId).map { case (fromHeight, _) =>
       (fromHeight + 1).to(fromHeight + size)
         .flatMap(blockIds.get)
-        .map(id => SimpleBlock.ModifierTypeId -> id)
+        .map(id => NodeViewModifier.BlockModifierId -> id)
     }
   }
 

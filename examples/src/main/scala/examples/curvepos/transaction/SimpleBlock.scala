@@ -5,7 +5,7 @@ import examples.curvepos.transaction.SimpleBlock._
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.ModifierTypeId
-import scorex.core.NodeViewModifierCompanion
+import scorex.core.{NodeViewModifier, NodeViewModifierCompanion}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
@@ -23,7 +23,7 @@ case class SimpleBlock(override val parentId: BlockId,
                        txs: Seq[SimpleTransaction])
   extends Block[PublicKey25519Proposition, SimpleTransaction] {
 
-  override val modifierTypeId: Byte = SimpleBlock.ModifierTypeId
+  override val modifierTypeId: Byte = NodeViewModifier.BlockModifierId
 
   override def transactions: Option[Seq[SimpleTransaction]] = Some(txs)
 

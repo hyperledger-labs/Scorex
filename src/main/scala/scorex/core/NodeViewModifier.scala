@@ -34,6 +34,10 @@ object NodeViewModifier {
   type ModifierTypeId = Byte
   type ModifierId = Array[Byte]
 
+  //TODO other types?
+  val BlockModifierId = 1: Byte
+  val TransactionModifierId = 2: Byte
+
   val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(32)
 }
 
