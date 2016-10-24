@@ -26,4 +26,5 @@ Dockerfile
 sheet.scala
 
 # example2 is not public atm
-example2/
+examples/src/main/scala/examples/hybrid
+examples/src/test/scala/examples/hybrid
