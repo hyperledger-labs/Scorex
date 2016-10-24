@@ -11,11 +11,7 @@ import shapeless.{::, HNil}
 
 
 object ElmBlock extends Serialization[ElmBlock] {
-  val SignatureLength = 64
-
   type GenerationSignature = Array[Byte]
-
-  type BaseTarget = Long
 
   val codec = getCodec
 }
@@ -24,7 +20,6 @@ case class ElmBlock(
   parentId: Block.BlockId,
   timestamp: Long,
   generationSignature: ElmBlock.GenerationSignature,
-  baseTarget: ElmBlock.BaseTarget,
   generator: PublicKey25519Proposition,
   txs: Seq[ElmTransaction]
 ) extends Block[PublicKey25519Proposition, ElmTransaction] {
@@ -41,11 +36,13 @@ case class ElmBlock(
   override type M = ElmBlock
 
   override type BlockFields = BlockId :: Timestamp :: Version ::
-    GenerationSignature :: BaseTarget :: PublicKey25519Proposition :: Seq[ElmTransaction] :: HNil
+    GenerationSignature :: PublicKey25519Proposition :: Seq[ElmTransaction] :: HNil
 
   override val version: Version = 0: Byte
 
   override def json: Json = ElmBlock.toJson(this)
 
-  override lazy val blockFields: BlockFields = parentId :: timestamp :: version :: generationSignature :: baseTarget :: generator :: txs :: HNil
+  def jsonNoTxs: Json = ElmBlock.toJson(this.copy(txs = Nil))
+
+  override lazy val blockFields: BlockFields = parentId :: timestamp :: version :: generationSignature :: generator :: txs :: HNil
 }

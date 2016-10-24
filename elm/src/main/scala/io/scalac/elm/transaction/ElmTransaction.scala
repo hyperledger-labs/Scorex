@@ -13,7 +13,7 @@ object ElmTransaction extends Serialization[ElmTransaction] {
   val codec = getCodec
 }
 
-case class ElmTransaction(inputs: Seq[TxInput], outputs: Seq[TxOutput], fee: Long, timestamp: Long, signature: Array[Byte])
+case class ElmTransaction(inputs: Seq[TxInput], outputs: Seq[TxOutput], fee: Long, timestamp: Long)
   extends Transaction[PublicKey25519Proposition] {
 
   override type M = ElmTransaction

@@ -1,5 +1,6 @@
-package io.scalac.elm.transaction
+package io.scalac.elm.state
 
+import io.scalac.elm.transaction.ElmTransaction
 import io.scalac.elm.util.ByteKey
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.NodeViewModifier.ModifierId
