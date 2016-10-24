@@ -9,7 +9,6 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 trait ExampleGenerators extends ObjectGenerators {
   val wallet = SimpleWallet()
-  wallet.generateNewSecret()
   val genesisAcc = wallet.secrets.head
 
   val positiveLongGen: Gen[Long] = Gen.choose(1, Long.MaxValue)

@@ -23,22 +23,25 @@ case class SimpleBlock(override val parentId: BlockId,
                        txs: Seq[SimpleTransaction])
   extends Block[PublicKey25519Proposition, SimpleTransaction] {
 
-  override val modifierTypeId: Byte = SimpleBlock.ModifierTypeId
-
-  override def transactions: Option[Seq[SimpleTransaction]] = Some(txs)
-
-  override def companion = SimpleBlockCompanion
-
-  override def id: BlockId = FastCryptographicHash(companion.messageToSing(this))
-
   override type M = SimpleBlock
 
   override type BlockFields = BlockId :: Timestamp :: Version ::
     GenerationSignature :: BaseTarget :: PublicKey25519Proposition :: Seq[SimpleTransaction] :: HNil
 
-  override val version: Version = 0: Byte
+  override lazy val modifierTypeId: Byte = SimpleBlock.ModifierTypeId
 
-  override def json: Json = Map(
+  override lazy val transactions: Option[Seq[SimpleTransaction]] = Some(txs)
+
+  override lazy val companion = SimpleBlockCompanion
+
+  override lazy val id: BlockId = FastCryptographicHash(companion.messageToSing(this))
+
+  override lazy val version: Version = 0: Byte
+
+  override lazy val blockFields: BlockFields = parentId :: timestamp :: version :: generationSignature :: baseTarget ::
+    generator :: txs :: HNil
+
+  override lazy val json: Json = Map(
     "id" -> Base58.encode(id).asJson,
     "parentId" -> Base58.encode(parentId).asJson,
     "timestamp" -> timestamp.asJson,
@@ -47,8 +50,6 @@ case class SimpleBlock(override val parentId: BlockId,
     "generator" -> Base58.encode(generator.pubKeyBytes).asJson,
     "txs" -> txs.map(_.json).asJson
   ).asJson
-
-  override lazy val blockFields: BlockFields = parentId :: timestamp :: version :: generationSignature :: baseTarget :: generator :: txs :: HNil
 }
 
 object SimpleBlock {
