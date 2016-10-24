@@ -29,7 +29,7 @@ case class HistoryApiRoute[P <: Proposition, TX <: Transaction[P]](override val 
                                                                   (implicit val context: ActorRefFactory) extends ApiRoute {
 
   override val route = pathPrefix("history") {
-    openSurface ~ byId
+    openSurface
   }
 
   type PM <: PersistentNodeViewModifier[P, TX]
@@ -51,6 +51,10 @@ case class HistoryApiRoute[P <: Proposition, TX <: Transaction[P]](override val 
     }
   }
 
+  /*
+
+  todo: fix
+
   @Path("/{id}")
   @ApiOperation(value = "Block by id", notes = "Block by id", httpMethod = "GET")
   @ApiImplicitParams(Array(
@@ -62,11 +66,11 @@ case class HistoryApiRoute[P <: Proposition, TX <: Transaction[P]](override val 
         case Success(id) =>
           //TODO null
           val source: ConnectedPeer = new ConnectedPeer(null, null)
-          (nodeViewHolderRef ? GetLocalObjects(source, NodeViewModifier.BlockModifierId, Seq(id)))
+          (nodeViewHolderRef ? GetLocalObjects(source, SimpleBlock., Seq(id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
             .map(_.localObjects.headOption.map(_.json).getOrElse(ApiError.blockNotExists))
         case _ => Future(ApiError.blockNotExists)
       }
     }
-  }
+  }*/
 }

@@ -154,7 +154,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def compareViews: Receive = {
     case CompareViews(sid, modifierTypeId, modifierIds) =>
       val ids = modifierTypeId match {
-        case typeId: Byte if typeId == NodeViewModifier.TransactionModifierId =>
+        case typeId: Byte if typeId == Transaction.ModifierTypeId =>
           memoryPool().notIn(modifierIds)
         case _ =>
           modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
@@ -166,7 +166,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
       val objs: Seq[NodeViewModifier] = modifierTypeId match {
-        case typeId: Byte if typeId == NodeViewModifier.TransactionModifierId =>
+        case typeId: Byte if typeId == Transaction.ModifierTypeId =>
           memoryPool().getAll(modifierIds)
         case typeId: Byte =>
           modifierIds.flatMap(id => history().blockById(id)) //todo: why block by id?
@@ -178,7 +178,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
       modifierCompanions.get(modifierTypeId) foreach { companion =>
         remoteObjects.flatMap(r => companion.parse(r).toOption).foreach {
-          case (tx: TX@unchecked) if tx.modifierTypeId == NodeViewModifier.TransactionModifierId =>
+          case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
             txModify(tx, Some(remote))
 
           case pmod: PMOD@unchecked =>

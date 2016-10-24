@@ -51,14 +51,14 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   //todo: argument should be ID | Seq[ID]
   override def continuationIds(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[(ModifierTypeId, BlockId)]] = {
     require(from.size == 1)
-    require(from.head._1 == NodeViewModifier.BlockModifierId)
+    require(from.head._1 == SimpleBlock.ModifierTypeId)
 
     val fromId = from.head._2
 
     blockIds.find(_._2 sameElements fromId).map { case (fromHeight, _) =>
       (fromHeight + 1).to(fromHeight + size)
         .flatMap(blockIds.get)
-        .map(id => NodeViewModifier.BlockModifierId -> id)
+        .map(id => SimpleBlock.ModifierTypeId -> id)
     }
   }
 

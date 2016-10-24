@@ -9,7 +9,7 @@ import scala.util.Try
 
 case class SimpleSyncInfo(answer: Boolean, lastBlockID: NodeViewModifier.ModifierId, score: BlockChain.Score) extends SyncInfo {
   override def startingPoints: Seq[(NodeViewModifier.ModifierTypeId, NodeViewModifier.ModifierId)] = {
-    Seq(NodeViewModifier.BlockModifierId -> lastBlockID)
+    Seq(SimpleBlock.ModifierTypeId -> lastBlockID)
   }
 
   override def bytes: Array[Byte] = (if (answer) 1: Byte else 0: Byte) +: (lastBlockID ++ score.toByteArray)

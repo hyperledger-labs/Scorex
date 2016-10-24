@@ -20,7 +20,7 @@ class SimpleNodeViewHolder(settings: Settings)
   override type MP = SimpleMemPool
 
   override lazy val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
-    Map(NodeViewModifier.BlockModifierId -> SimpleBlockCompanion)
+    Map(SimpleBlock.ModifierTypeId -> SimpleBlockCompanion)
 
   override def restoreState(): Option[(HIS, MS, VL, MP)] = None
 

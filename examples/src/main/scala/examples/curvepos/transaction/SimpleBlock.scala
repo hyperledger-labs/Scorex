@@ -23,7 +23,7 @@ case class SimpleBlock(override val parentId: BlockId,
                        txs: Seq[SimpleTransaction])
   extends Block[PublicKey25519Proposition, SimpleTransaction] {
 
-  override val modifierTypeId: Byte = NodeViewModifier.BlockModifierId
+  override val modifierTypeId: Byte = SimpleBlock.ModifierTypeId
 
   override def transactions: Option[Seq[SimpleTransaction]] = Some(txs)
 

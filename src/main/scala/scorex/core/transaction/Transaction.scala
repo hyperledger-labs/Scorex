@@ -15,8 +15,7 @@ case class TransactionChanges[P <: Proposition, BX <: Box[P]](toRemove: Set[BX],
   */
 
 abstract class Transaction[P <: Proposition] extends NodeViewModifier {
-
-  override val modifierTypeId: Byte = NodeViewModifier.TransactionModifierId
+  override val modifierTypeId: Byte = Transaction.ModifierTypeId
 
   val fee: Long
 
@@ -30,5 +29,6 @@ abstract class Transaction[P <: Proposition] extends NodeViewModifier {
 
 
 object Transaction {
+  val ModifierTypeId = 2: Byte
   type TransactionId = NodeViewModifier.ModifierId
 }
