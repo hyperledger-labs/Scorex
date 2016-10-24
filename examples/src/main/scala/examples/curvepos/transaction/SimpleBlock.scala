@@ -16,7 +16,7 @@ import shapeless.{::, HNil}
 import scala.util.Try
 
 case class SimpleBlock(override val parentId: BlockId,
-                       override val timestamp: Long,
+                       override val timestamp: Block.Timestamp,
                        generationSignature: GenerationSignature,
                        baseTarget: BaseTarget,
                        generator: PublicKey25519Proposition,
