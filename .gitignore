@@ -24,3 +24,6 @@ Dockerfile
 
 # for temporary experiments
 sheet.scala
+
+# example2 is not public atm
+example2/
