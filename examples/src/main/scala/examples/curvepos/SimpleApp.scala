@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, Props}
 import examples.curvepos.forging.{Forger, ForgerSettings}
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import io.circe
-import scorex.core.api.http.{ApiRoute, HistoryApiRoute, UtilsApiRoute}
+import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, UtilsApiRoute}
 import scorex.core.app.{Application, ApplicationVersion}
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
@@ -45,9 +45,9 @@ class SimpleApp(val settingsFilename: String) extends Application {
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
       networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoSpec))
 
-  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[HistoryApiRoute[P, TX]])
+  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings),
-    HistoryApiRoute[P, TX](settings, nodeViewHolderRef))
+    NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
 
 }
 

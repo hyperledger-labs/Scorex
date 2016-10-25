@@ -23,17 +23,21 @@ import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 
-@Path("/history")
-@Api(value = "/history", produces = "application/json")
-case class HistoryApiRoute[P <: Proposition, TX <: Transaction[P]](override val settings: Settings, nodeViewHolderRef: ActorRef)
-                                                                  (implicit val context: ActorRefFactory) extends ApiRoute {
+@Path("/nodeView")
+@Api(value = "/nodeView", produces = "application/json")
+case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
+(override val settings: Settings, nodeViewHolderRef: ActorRef)
+(implicit val context: ActorRefFactory) extends ApiRoute {
 
-  override val route = pathPrefix("history") {
-    openSurface
+  override val route = pathPrefix("nodeView") {
+    openSurface ~ persistentModifierById
   }
 
   type PM <: PersistentNodeViewModifier[P, TX]
   type HIS <: History[P, TX, PM, _, _ <: History[P, TX, PM, _, _]]
+
+  //TODO null?
+  private val source: ConnectedPeer = null
 
   def getHistory(): Try[HIS] = Try {
     Await.result((nodeViewHolderRef ? GetCurrentView).mapTo[CurrentView[_, _ <: HIS, _, _]].map(_.history), 5.seconds)
@@ -51,26 +55,39 @@ case class HistoryApiRoute[P <: Proposition, TX <: Transaction[P]](override val 
     }
   }
 
-  /*
 
-  todo: fix
-
-  @Path("/{id}")
-  @ApiOperation(value = "Block by id", notes = "Block by id", httpMethod = "GET")
+  @Path("/persistentModifier/{id}")
+  @ApiOperation(value = "Persistent modifier by id", notes = "Persistent modifier by id", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "block id ", required = true, dataType = "string", paramType = "path")
   ))
-  def byId: Route = path(Segment) { case encodedId =>
+  def persistentModifierById: Route = path("persistentModifier" / Segment) { case encodedId =>
     getJsonRoute {
       Base58.decode(encodedId) match {
         case Success(id) =>
-          //TODO null
-          val source: ConnectedPeer = new ConnectedPeer(null, null)
-          (nodeViewHolderRef ? GetLocalObjects(source, SimpleBlock., Seq(id)))
+          //TODO 1: Byte
+          (nodeViewHolderRef ? GetLocalObjects(source, 1: Byte, Seq(id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
             .map(_.localObjects.headOption.map(_.json).getOrElse(ApiError.blockNotExists))
         case _ => Future(ApiError.blockNotExists)
       }
     }
-  }*/
+  }
+
+  @Path("/transaction/{id}")
+  @ApiOperation(value = "Transaction by id", notes = "Transaction by id", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "block id ", required = true, dataType = "string", paramType = "path")
+  ))
+  def transactionById: Route = path("transaction" / Segment) { case encodedId =>
+    getJsonRoute {
+      Base58.decode(encodedId) match {
+        case Success(id) =>
+          (nodeViewHolderRef ? GetLocalObjects(null, Transaction.ModifierTypeId, Seq(id)))
+            .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
+            .map(_.localObjects.headOption.map(_.json).getOrElse(ApiError.blockNotExists))
+        case _ => Future(ApiError.blockNotExists)
+      }
+    }
+  }
 }
