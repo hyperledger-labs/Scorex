@@ -1,11 +1,11 @@
 package examples.curvepos.transaction
 
-import com.google.common.primitives.{Bytes, Ints, Longs}
+import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.SimpleBlock._
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.ModifierTypeId
-import scorex.core.{NodeViewModifier, NodeViewModifierCompanion}
+import scorex.core.NodeViewModifierCompanion
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
@@ -63,6 +63,7 @@ object SimpleBlock {
 }
 
 object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
+  import SimplePaymentCompanion.TransactionLength
 
   def messageToSing(block: SimpleBlock): Array[Byte] = {
     block.parentId ++
@@ -100,8 +101,8 @@ object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
     val cnt = Ints.fromByteArray(bytes.slice(s1 + 32, s1 + 36))
     val s2 = s1 + 36
     val txs = (0 until cnt) map { i =>
-      val bt = bytes.slice(s2 + SimpleTransaction.TransactionLength * i, s2 + SimpleTransaction.TransactionLength * (i + 1))
-      SimpleTransaction.parse(bt).get
+      val bt = bytes.slice(s2 + TransactionLength * i, s2 + TransactionLength * (i + 1))
+      SimplePaymentCompanion.parse(bt).get
     }
     SimpleBlock(parentId, timestamp, generationSignature, baseTarget, generator, txs)
   }

@@ -46,6 +46,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "io.circe" % "circe-jawn_2.11" % "0.5.4",
   "io.circe" % "circe-numbers_2.11" % "0.5.4",
   "io.circe" % "circe-parser_2.11" % "0.5.4",
+  "io.iohk" % "iodb_2.11" % "1.0-M1-SNAPSHOT",
   "io.netty" % "netty" % "3.10.0.Final",
   "io.spray" % "spray-json_2.11" % "1.3.2",
   "io.swagger" % "swagger-annotations" % "1.5.10",
@@ -97,4 +98,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.5",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH 9132b2612a1f8fb9308c135230aef8c6b74183f5
+// LIBRARY_DEPENDENCIES_HASH e6ebb34032c87ea909db472e2f46b6d183e857a6

@@ -14,7 +14,31 @@ import scala.util.Try
 
 sealed trait SimpleTransaction extends Transaction[PublicKey25519Proposition]
 
-object SimpleTransaction extends NodeViewModifierCompanion[SimplePayment] {
+case class SimplePayment(sender: PublicKey25519Proposition,
+                         recipient: PublicKey25519Proposition,
+                         amount: Long,
+                         fee: Long,
+                         nonce: Long,
+                         timestamp: Long)
+  extends SimpleTransaction {
+
+  override type M = SimplePayment
+
+  override def json: Json = Map(
+    "sender" -> Base58.encode(sender.pubKeyBytes).asJson,
+    "recipient" -> Base58.encode(recipient.pubKeyBytes).asJson,
+    "amount" -> amount.asJson,
+    "fee" -> fee.asJson,
+    "nonce" -> nonce.asJson,
+    "timestamp" -> timestamp.asJson
+  ).asJson
+
+  override lazy val messageToSign: Array[Byte] = id
+
+  override lazy val companion = SimplePaymentCompanion
+}
+
+object SimplePaymentCompanion extends NodeViewModifierCompanion[SimplePayment] {
   val TransactionLength: Int = 2 * Constants25519.PubKeyLength + 32
 
   override def bytes(m: SimplePayment): Array[Byte] = {
@@ -36,28 +60,4 @@ object SimpleTransaction extends NodeViewModifierCompanion[SimplePayment] {
     val timestamp = Longs.fromByteArray(bytes.slice(s + 24, s + 32))
     SimplePayment(sender, recipient, amount, fee, nonce, timestamp)
   }
-}
-
-case class SimplePayment(sender: PublicKey25519Proposition,
-                         recipient: PublicKey25519Proposition,
-                         amount: Long,
-                         fee: Long,
-                         nonce: Long,
-                         timestamp: Long)
-  extends SimpleTransaction {
-
-  override def json: Json = Map(
-    "sender" -> Base58.encode(sender.pubKeyBytes).asJson,
-    "recipient" -> Base58.encode(recipient.pubKeyBytes).asJson,
-    "amount" -> amount.asJson,
-    "fee" -> fee.asJson,
-    "nonce" -> nonce.asJson,
-    "timestamp" -> timestamp.asJson
-  ).asJson
-
-  override lazy val messageToSign: Array[Byte] = id
-
-  override type M = SimplePayment
-
-  override val companion: NodeViewModifierCompanion[SimplePayment] = SimpleTransaction
 }
