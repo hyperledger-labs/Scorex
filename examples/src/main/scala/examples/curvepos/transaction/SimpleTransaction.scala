@@ -24,7 +24,7 @@ case class SimplePayment(sender: PublicKey25519Proposition,
 
   override type M = SimplePayment
 
-  override def json: Json = Map(
+  override lazy val json: Json = Map(
     "sender" -> Base58.encode(sender.pubKeyBytes).asJson,
     "recipient" -> Base58.encode(recipient.pubKeyBytes).asJson,
     "amount" -> amount.asJson,
