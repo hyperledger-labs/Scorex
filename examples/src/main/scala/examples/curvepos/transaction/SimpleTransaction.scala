@@ -3,9 +3,7 @@ package examples.curvepos.transaction
 import com.google.common.primitives.Longs
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.NodeViewModifierCompanion
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
 import scorex.core.transaction.Transaction
 import scorex.crypto.encode.Base58

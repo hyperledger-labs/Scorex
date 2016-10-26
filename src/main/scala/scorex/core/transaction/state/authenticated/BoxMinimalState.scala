@@ -2,8 +2,7 @@ package scorex.core.transaction.state.authenticated
 
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.box.Box
-import scorex.crypto.hash.CryptographicHash
-import scorex.core.transaction.{BoxTransaction, Transaction}
+import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.utils._
