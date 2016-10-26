@@ -11,10 +11,5 @@ trait NodeViewComponent {
 }
 
 trait NodeViewComponentCompanion {
-
   def api: ApiRoute
-
-  //def produceModification[M <: NodeStateModifier, CompType <: NodeViewComponent](component: CompType, m: M): UndoneModification[M, CompType]
-
-  //network functions to call
 }
