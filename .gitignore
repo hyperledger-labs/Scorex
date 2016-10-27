@@ -24,7 +24,3 @@ Dockerfile
 
 # for temporary experiments
 sheet.scala
-
-# example2 is not public atm
-examples/src/main/scala/examples/hybrid
-examples/src/test/scala/examples/hybrid
