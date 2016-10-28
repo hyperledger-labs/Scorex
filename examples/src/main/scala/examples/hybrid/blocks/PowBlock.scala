@@ -1,6 +1,7 @@
 package examples.hybrid.blocks
 
 import com.google.common.primitives.Longs
+import examples.hybrid.mining.PowMiner
 import examples.hybrid.state.SimpleBoxTransaction
 import shapeless.{::, HNil}
 import io.circe.Json
@@ -39,6 +40,8 @@ case class PowBlock(override val parentId: BlockId,
   override lazy val blockFields: BlockFields = parentId :: prevPosId :: timestamp :: nonce :: HNil
 
   override lazy val json: Json = ???
+
+  lazy val correctWork = BigInt(1, id) < PowMiner.Difficulty
 }
 
 object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {

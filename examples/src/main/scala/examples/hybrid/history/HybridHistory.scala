@@ -4,10 +4,10 @@ package examples.hybrid.history
 import java.io.File
 
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock, PowBlockCompanion}
+import examples.hybrid.mining.PowMiner
 import examples.hybrid.state.SimpleBoxTransaction
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DBMaker, Serializer}
-import org.mapdb.QueueLong.Node.SERIALIZER
 import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.History
@@ -96,11 +96,25 @@ class HybridHistory(settings: Settings)
     * @return
     */
   override def append(block: HybridPersistentNodeViewModifier):
-  Try[(HybridHistory, Option[RollbackTo[HybridPersistentNodeViewModifier]])] = {
+  Try[(HybridHistory, Option[RollbackTo[HybridPersistentNodeViewModifier]])] = Try {
 
     block match {
-      case powBlock: PowBlock => ???
+      case powBlock: PowBlock =>
+        if(!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
+          //check work
+          assert(powBlock.correctWork, "work done is incorrent")
 
+          //check PoW parent id
+          blockById(powBlock.parentId).get
+
+          //check referenced PoS block exists as well
+          val posBlock = blockById(powBlock.prevPosId).get
+
+          //check referenced PoS block points to parent PoW block
+          assert(posBlock.parentId sameElements posBlock.parentId, "ref rule broken")
+        }
+
+        ???
       case posBlock: PosBlock => ???
     }
   }

@@ -32,14 +32,14 @@ class PowMiner extends Actor with ScorexLogging {
         Future {
           var foundBlock: Option[PowBlock] = None
 
-          while(status.nonCancelled && foundBlock.isEmpty) {
+          while (status.nonCancelled && foundBlock.isEmpty) {
             val nonce = Random.nextLong()
 
             val ts = System.currentTimeMillis()
             val b = PowBlock(parentId, prevPosId, ts, nonce)
 
             foundBlock =
-              if (BigInt(1, b.id) < PowMiner.Difficulty) {
+              if (b.correctWork) {
                 Some(b)
               } else {
                 println(s"tried: $nonce $ts")
@@ -50,11 +50,11 @@ class PowMiner extends Actor with ScorexLogging {
         }
       })
 
-      p.future.onComplete{toBlock =>
+      p.future.onComplete { toBlock =>
         toBlock.getOrElse(None).foreach(block => self ! block)
       }
 
-    case b:PowBlock =>
+    case b: PowBlock =>
       println(s"locally found block: $b")
 
     case StopMining =>
@@ -69,7 +69,10 @@ class PowMiner extends Actor with ScorexLogging {
 object PowMiner extends App {
   lazy val Difficulty = BigInt(848376755153961272L).pow(4)
 
+  lazy val GenesisParentId = Array.fill(32)(1: Byte)
+
   case class StartMining(parentId: BlockId, prevPosId: BlockId)
 
   case object StopMining
+
 }
