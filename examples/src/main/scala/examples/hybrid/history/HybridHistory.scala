@@ -49,28 +49,37 @@ class HybridHistory(settings: Settings)
   //see http://bitcoin.stackexchange.com/questions/29742/strongest-vs-longest-chain-and-orphaned-blocks
   lazy val blockScores = metaDb.hashMap("hidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
 
+  //reverse index: only link to parent is stored in a block
+  //so to go forward along the chains we need for additional indexes
+
+  //links from a pow block to a next pow block
+  lazy val forwardPowLinks = metaDb.hashMap("fpow", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
+
+  //links from a pow block to a corresponding pos block
+  lazy val forwardPosLinks = metaDb.hashMap("fpos", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
+
   //for now score = chain length; that's not very secure, see link above
   private lazy val currentScoreVar = metaDb.atomicLong("score").createOrOpen()
   lazy val currentScore = currentScoreVar.get()
 
-  private lazy val lastPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
-  lazy val lastPowId = lastPowIdVar.get()
+  private lazy val bestPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
+  lazy val bestPowId = bestPowIdVar.get()
 
-  private lazy val lastPosIdVar = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen()
-  lazy val lastPosId = lastPosIdVar.get()
+  private lazy val bestPosIdVar = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen()
+  lazy val bestPosId = bestPosIdVar.get()
 
   lazy val lastPowBlock = {
     require(currentScore > 0, "History is empty")
-    blockById(lastPowId).get.asInstanceOf[PowBlock]
+    blockById(bestPowId).get.asInstanceOf[PowBlock]
   }
 
   lazy val lastPosBlock = {
     require(currentScore > 0, "History is empty")
-    blockById(lastPosId).get.asInstanceOf[PosBlock]
+    blockById(bestPosId).get.asInstanceOf[PosBlock]
   }
 
   lazy val pairCompleted: Boolean = {
-    lastPosBlock.parentId sameElements lastPowId
+    lastPosBlock.parentId sameElements bestPowId
   }
 
 
@@ -115,13 +124,13 @@ class HybridHistory(settings: Settings)
   //for parameters, ids are going from genesis to current block
 
   @tailrec
-  private def findCommonParent(chain1Ids: Seq[BlockId], chain2Ids: Seq[BlockId]): BlockId = {
+  private def findCommonBlock(chain1Ids: Seq[BlockId], chain2Ids: Seq[BlockId]): BlockId = {
     val c1h = chain1Ids.head
     val c2h = chain2Ids.head
 
     if (chain2Ids.contains(c1h)) c1h
     else if (chain1Ids.contains(c2h)) c2h
-    else findCommonParent(blockById(c1h).get.parentId +: chain1Ids, blockById(c2h).get.parentId +: chain2Ids)
+    else findCommonBlock(blockById(c1h).get.parentId +: chain1Ids, blockById(c2h).get.parentId +: chain2Ids)
   }
 
   /**
@@ -151,14 +160,25 @@ class HybridHistory(settings: Settings)
         val blockScore = score + 1
         blockScores.put(blockId, blockScore)
 
-        if (powBlock.parentId sameElements PowMiner.GenesisParentId) {
+        val rollbackOpt = if (powBlock.parentId sameElements PowMiner.GenesisParentId) {
           //genesis block
           currentScoreVar.set(blockScore)
-          lastPowIdVar.set(blockId)
+          bestPowIdVar.set(blockId)
         } else {
-          //check for chain switching
-          if (blockScore > currentScore && !(powBlock.parentId sameElements lastPowId)) {
-            findCommonParent(Seq(powBlock.parentId), Seq(lastPowBlock.parentId))
+          if (blockScore > currentScore) {
+            //check for chain switching
+            if(!(powBlock.parentId sameElements bestPowId)) {
+              val common = findCommonBlock(Seq(powBlock.parentId), Seq(lastPowBlock.parentId, bestPowId))
+              currentScoreVar.set(blockScore)
+              bestPowIdVar.set(blockId)
+              forwardPowLinks.put(powBlock.parentId, blockId)
+            } else{
+              currentScoreVar.set(blockScore)
+              bestPowIdVar.set(blockId)
+              forwardPowLinks.put(powBlock.parentId, blockId)
+            }
+          }else{
+            forwardPowLinks.put(powBlock.parentId, blockId)
           }
         }
 
