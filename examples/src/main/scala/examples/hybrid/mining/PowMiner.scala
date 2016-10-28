@@ -71,6 +71,8 @@ object PowMiner extends App {
 
   lazy val GenesisParentId = Array.fill(32)(1: Byte)
 
+  lazy val MaxBlockSize = 100000
+
   case class StartMining(parentId: BlockId, prevPosId: BlockId)
 
   case object StopMining

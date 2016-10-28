@@ -15,6 +15,7 @@ import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, Rollback
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
+import scala.annotation.tailrec
 import scala.util.Try
 
 /**
@@ -49,11 +50,14 @@ class HybridHistory(settings: Settings)
   lazy val blockScores = metaDb.hashMap("hidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
 
   //for now score = chain length; that's not very secure, see link above
-  lazy val currentScore = metaDb.atomicLong("score").createOrOpen().get()
+  private lazy val currentScoreVar = metaDb.atomicLong("score").createOrOpen()
+  lazy val currentScore = currentScoreVar.get()
 
-  lazy val lastPowId = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen().get()
+  private lazy val lastPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
+  lazy val lastPowId = lastPowIdVar.get()
 
-  lazy val lastPosId = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen().get()
+  private lazy val lastPosIdVar = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen()
+  lazy val lastPosId = lastPosIdVar.get()
 
   lazy val lastPowBlock = {
     require(currentScore > 0, "History is empty")
@@ -90,6 +94,36 @@ class HybridHistory(settings: Settings)
     }
   }.getOrElse(None)
 
+  //PoW consensus rules checks, work/references
+  //throws exception if anything wrong
+  def checkPowConsensusRules(powBlock: PowBlock): Unit = {
+    //check work
+    assert(powBlock.correctWork, "work done is incorrent")
+
+    //check PoW parent id
+    blockById(powBlock.parentId).get
+
+    //check referenced PoS block exists as well
+    val posBlock = blockById(powBlock.prevPosId).get
+
+    //check referenced PoS block points to parent PoW block
+    assert(posBlock.parentId sameElements posBlock.parentId, "ref rule broken")
+  }
+
+
+  //find an id for common parent of two pow blocks with given ids
+  //for parameters, ids are going from genesis to current block
+
+  @tailrec
+  private def findCommonParent(chain1Ids: Seq[BlockId], chain2Ids: Seq[BlockId]): BlockId = {
+    val c1h = chain1Ids.head
+    val c2h = chain2Ids.head
+
+    if (chain2Ids.contains(c1h)) c1h
+    else if (chain1Ids.contains(c2h)) c2h
+    else findCommonParent(blockById(c1h).get.parentId +: chain1Ids, blockById(c2h).get.parentId +: chain2Ids)
+  }
+
   /**
     *
     * @param block - block to append
@@ -100,18 +134,32 @@ class HybridHistory(settings: Settings)
 
     block match {
       case powBlock: PowBlock =>
-        if(!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
-          //check work
-          assert(powBlock.correctWork, "work done is incorrent")
 
-          //check PoW parent id
-          blockById(powBlock.parentId).get
+        val score = if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
+          checkPowConsensusRules(powBlock)
+          blockScores.get(powBlock.parentId): Long
+        } else 0L
 
-          //check referenced PoS block exists as well
-          val posBlock = blockById(powBlock.prevPosId).get
+        //update block storage and the scoring index
+        val blockId = powBlock.id
 
-          //check referenced PoS block points to parent PoW block
-          assert(posBlock.parentId sameElements posBlock.parentId, "ref rule broken")
+        blockStorage.update(
+          blockStorage.lastVersion + 1,
+          Seq(),
+          Seq(ByteArrayWrapper(blockId) -> ByteArrayWrapper(powBlock.bytes)))
+
+        val blockScore = score + 1
+        blockScores.put(blockId, blockScore)
+
+        if (powBlock.parentId sameElements PowMiner.GenesisParentId) {
+          //genesis block
+          currentScoreVar.set(blockScore)
+          lastPowIdVar.set(blockId)
+        } else {
+          //check for chain switching
+          if (blockScore > currentScore && !(powBlock.parentId sameElements lastPowId)) {
+            findCommonParent(Seq(powBlock.parentId), Seq(lastPowBlock.parentId))
+          }
         }
 
         ???
