@@ -1,7 +1,6 @@
 package examples.hybrid
 
 import akka.actor.{ActorRef, Props}
-import examples.curvepos.SimpleLocalInterface
 import examples.curvepos.forging.ForgerSettings
 import examples.hybrid.blocks.HybridPersistentNodeViewModifier
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSpec}
@@ -21,7 +20,7 @@ class HybridApp(val settingsFilename: String) extends Application {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 
-  override val applicationName: String = "2-Hop"
+  override lazy val applicationName: String = "2-Hop"
 
   //redefine it as lazy val
   override def appVersion: ApplicationVersion = ApplicationVersion(0, 1, 1)
@@ -35,11 +34,11 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val apiRoutes: Seq[ApiRoute] = Seq()
   override val apiTypes: Seq[Type] = Seq()
 
-  override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoSpec)
+  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoSpec)
 
   override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
 
-  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
+  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[HLocalInterface], nodeViewHolderRef))
 
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoSpec.type]],
