@@ -4,7 +4,7 @@ import java.io.File
 
 import com.google.common.primitives.Longs
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.blocks.HybridPersistentNodeViewModifier
+import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import io.iohk.iodb.LSMStore
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
@@ -14,8 +14,10 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.transaction.state.authenticated.BoxMinimalState
 
-import scala.util.Try
+import scala.util.{Success, Try}
 
+
+object PowChanges extends StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set())
 
 case class SimpleBoxStoredState(store: LSMStore,
                            override val version: VersionTag) extends
@@ -42,9 +44,16 @@ case class SimpleBoxStoredState(store: LSMStore,
     */
   override def changes(transaction: SimpleBoxTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = ???
 
-  override def changes(mod: HybridPersistentNodeViewModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = ???
+  override def changes(mod: HybridPersistentNodeViewModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+    mod match {
+      case pb: PowBlock => Success(PowChanges)
+      case ps: PosBlock => ???
+    }
+  }
 
-  override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleBoxStoredState] = ???
+  override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleBoxStoredState] = {
+    ???
+  }
 
   override def rollbackTo(version: VersionTag): Try[SimpleBoxStoredState] = Try {
     store.rollback(dbVersion(version))
