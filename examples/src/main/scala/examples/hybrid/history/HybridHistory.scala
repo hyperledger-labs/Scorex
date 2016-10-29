@@ -54,18 +54,18 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   private lazy val bestPosIdVar = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen()
   lazy val bestPosId = bestPosIdVar.get()
 
-  lazy val lastPowBlock = {
+  lazy val bestPowBlock = {
     require(currentScore > 0, "History is empty")
     blockById(bestPowId).get.asInstanceOf[PowBlock]
   }
 
-  lazy val lastPosBlock = {
+  lazy val bestPosBlock = {
     require(currentScore > 0, "History is empty")
     blockById(bestPosId).get.asInstanceOf[PosBlock]
   }
 
   lazy val pairCompleted: Boolean = {
-    lastPosBlock.parentId sameElements bestPowId
+    bestPosBlock.parentId sameElements bestPowId
   }
 
 
@@ -103,6 +103,18 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
     //check referenced PoS block points to parent PoW block
     assert(posBlock.parentId sameElements posBlock.parentId, "ref rule broken")
+  }
+
+  //PoS consensus rules checks, throws exception if anything wrong
+  def checkPoSConsensusRules(posBlock: PosBlock): Unit = {
+    //check PoW block exists
+    blockById(posBlock.parentId).get
+
+    //todo: check signature
+
+    //todo: check transactions
+
+    //todo: check PoS rules
   }
 
 
@@ -156,7 +168,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
           if (blockScore > currentScore) {
             //check for chain switching
             if (!(powBlock.parentId sameElements bestPowId)) {
-              val (newSuffix, oldSuffix) = suffixesAfterCommonBlock(Seq(powBlock.parentId), Seq(lastPowBlock.parentId, bestPowId))
+              val (newSuffix, oldSuffix) = suffixesAfterCommonBlock(Seq(powBlock.parentId), Seq(bestPowBlock.parentId, bestPowId))
               val rollbackPoint = newSuffix.head
 
               val throwBlocks = oldSuffix.tail.map(id => blockById(id).get)
@@ -184,7 +196,17 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
           }
         }
         (new HybridHistory(blocksStorage, metaDb), rollbackOpt)
-      case posBlock: PosBlock => ???
+      case posBlock: PosBlock =>
+        checkPoSConsensusRules(posBlock)
+
+        val powParent = posBlock.parentId
+
+        val blockId = posBlock.id
+
+        forwardPosLinks.put(powParent, blockId)
+
+        if(powParent sameElements bestPowId) bestPosIdVar.set(blockId)
+        (new HybridHistory(blocksStorage, metaDb), None) //no rollback ever
     }
   }
 
