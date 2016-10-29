@@ -14,7 +14,7 @@ class HLocalInterface(override val viewHolderRef: ActorRef)
 
   override protected def onFailedTransaction(tx: SimpleBoxTransaction): Unit = {}
 
-  override protected def onFailedModification(mod: HybridPersistentNodeViewModifier): Unit = {]}
+  override protected def onFailedModification(mod: HybridPersistentNodeViewModifier): Unit = {}
 
   override protected def onSuccessfulTransaction(tx: SimpleBoxTransaction): Unit = {}
 
