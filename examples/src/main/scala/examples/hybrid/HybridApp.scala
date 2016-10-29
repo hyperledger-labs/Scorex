@@ -1,12 +1,15 @@
 package examples.hybrid
 
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, Props}
+import examples.curvepos.SimpleLocalInterface
 import examples.curvepos.forging.ForgerSettings
 import examples.hybrid.blocks.HybridPersistentNodeViewModifier
+import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSpec}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import scorex.core.api.http.ApiRoute
 import scorex.core.app.{Application, ApplicationVersion}
+import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -28,15 +31,19 @@ class HybridApp(val settingsFilename: String) extends Application {
   override type PMOD = HybridPersistentNodeViewModifier
   override type NVHT = HybridNodeViewHolder
 
-  override val apiRoutes: Seq[ApiRoute] = ???
-  override val apiTypes: Seq[Type] = ???
+  //todo: consider API calls
+  override val apiRoutes: Seq[ApiRoute] = Seq()
+  override val apiTypes: Seq[Type] = Seq()
 
-  override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = ???
+  override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoSpec)
 
-  override val nodeViewHolderRef: ActorRef = ???
+  override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
 
-  override val nodeViewSynchronizer: ActorRef = ???
-  override val localInterface: ActorRef = ???
+  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
+
+  override val nodeViewSynchronizer: ActorRef =
+    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoSpec.type]],
+      networkController, nodeViewHolderRef, localInterface, HybridSyncInfoSpec))
 }
 
 

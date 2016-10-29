@@ -36,6 +36,7 @@ class SimpleApp(val settingsFilename: String) extends Application {
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(SimpleSyncInfoSpec)
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder], settings))
+
   val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))
 
   override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef,

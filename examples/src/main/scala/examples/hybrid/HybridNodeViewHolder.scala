@@ -7,10 +7,11 @@ import examples.hybrid.state.{SimpleBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
 import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
 import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 
-class HybridNodeViewHolder extends NodeViewHolder[
+class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[
   PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridPersistentNodeViewModifier] {
