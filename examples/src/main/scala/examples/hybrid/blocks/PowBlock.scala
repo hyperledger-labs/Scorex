@@ -41,7 +41,7 @@ case class PowBlock(override val parentId: BlockId,
 
   override lazy val json: Json = ???
 
-  lazy val correctWork = BigInt(1, id) < PowMiner.Difficulty
+  lazy val correctWork = companion.workDone(id)
 }
 
 object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {
@@ -62,6 +62,9 @@ object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {
     val nonce = Longs.fromByteArray(bytes.slice(72, 80))
     PowBlock(parentId, prevPosId, timestamp, nonce)
   }
+
+  def workDone(id: Array[Byte]): Boolean =
+    BigInt(1, id) < PowMiner.Difficulty
 }
 
 object PowBlock {

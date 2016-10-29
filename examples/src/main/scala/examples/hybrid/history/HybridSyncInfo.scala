@@ -4,7 +4,6 @@ import examples.hybrid.blocks.{PosBlock, PowBlock}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.SyncInfo
 
-//todo: add score
 case class HybridSyncInfo(override val answer: Boolean,
                           lastPowBlockId: ModifierId,
                           lastPosBlockId: ModifierId

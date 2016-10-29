@@ -239,7 +239,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     }
   }
 
-  override def syncInfo(answer: Boolean): HybridSyncInfo = ???
+  override def syncInfo(answer: Boolean): HybridSyncInfo =
+    HybridSyncInfo(answer, bestPowId, bestPosId)
 
   /**
     * Whether another's node syncinfo shows that another node is ahead or behind ours
@@ -247,7 +248,31 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     * @param other other's node sync info
     * @return Equal if nodes have the same history, Younger if another node is behind, Older if a new node is ahead
     */
-  override def compare(other: HybridSyncInfo): HistoryComparisonResult.Value = ???
+  override def compare(other: HybridSyncInfo): HistoryComparisonResult.Value = {
+    //todo: check PoW header correctness, return cheater status for that
+    //todo: return cheater status in other cases, e.g. PoW id is a correct PoS id
+
+    blockById(other.lastPowBlockId) match {
+      case Some(pb: PowBlock) =>
+        if (pb.id sameElements bestPowId) {
+          val prevPosId = pb.prevPosId
+          val otherNext = !(other.lastPosBlockId sameElements prevPosId)
+          val selfNext = !(bestPosId sameElements prevPosId)
+
+          (otherNext, selfNext) match {
+            case (true, true) =>
+              HistoryComparisonResult.Equal
+            case (true, false) =>
+              HistoryComparisonResult.Older
+            case (false, true) =>
+              HistoryComparisonResult.Younger
+            case (false, false) =>
+              HistoryComparisonResult.Equal
+          }
+        } else HistoryComparisonResult.Younger
+      case None => HistoryComparisonResult.Older
+    }
+  }
 
   override def companion: NodeViewComponentCompanion = ???
 }
