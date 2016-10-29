@@ -1,9 +1,9 @@
 package examples.hybrid
 
 import akka.actor.{ActorRef, Props}
-import examples.curvepos.forging.ForgerSettings
 import examples.hybrid.blocks.HybridPersistentNodeViewModifier
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSpec}
+import examples.hybrid.mining.{MiningSettings, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import scorex.core.api.http.{ApiRoute, UtilsApiRoute}
@@ -16,7 +16,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scala.reflect.runtime.universe._
 
 class HybridApp(val settingsFilename: String) extends Application {
-  implicit lazy val settings = new Settings with ForgerSettings {
+  implicit lazy val settings = new Settings with MiningSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 
@@ -30,7 +30,6 @@ class HybridApp(val settingsFilename: String) extends Application {
   override type PMOD = HybridPersistentNodeViewModifier
   override type NVHT = HybridNodeViewHolder
 
-  //todo: consider API calls
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings))
   override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute])
 
@@ -43,8 +42,9 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoSpec.type]],
       networkController, nodeViewHolderRef, localInterface, HybridSyncInfoSpec))
-}
 
+  val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
+}
 
 object HybridApp extends App {
   val settingsFilename = args.headOption.getOrElse("settings.json")

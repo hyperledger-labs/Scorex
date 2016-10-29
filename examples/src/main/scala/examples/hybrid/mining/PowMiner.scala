@@ -1,27 +1,39 @@
 package examples.hybrid.mining
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import examples.hybrid.blocks.PowBlock
 import examples.hybrid.util.Cancellable
 import scorex.core.block.Block._
+import scorex.core.settings.Settings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.util.Random
 import scala.concurrent._
-
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+
+trait MiningSettings extends Settings {
+  lazy val offlineGeneration = settingsJSON.get("offlineGeneration").flatMap(_.asBoolean).getOrElse(false)
+}
 
 /**
   * A controller for PoW mining
   * currently it is starting to work on getting a (PoW; PoS) block references
   * and stops on a new PoW block found (when PoS ref is unknown)
   */
-class PowMiner extends Actor with ScorexLogging {
+class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends Actor with ScorexLogging {
 
   import PowMiner._
 
   private var cancellableOpt: Option[Cancellable] = None
+
+  override def preStart(): Unit = {
+    //todo: check for a last block
+    if (miningSettings.offlineGeneration) {
+      context.system.scheduler.scheduleOnce(1.second)(self ! StartMining(GenesisParentId, GenesisParentId))
+    }
+  }
 
   override def receive: Receive = {
     case StartMining(parentId: BlockId, prevPosId: BlockId) =>
@@ -55,7 +67,7 @@ class PowMiner extends Actor with ScorexLogging {
       }
 
     case b: PowBlock =>
-      println(s"locally found block: $b")
+      println(s"locally generated block: $b")
 
     case StopMining =>
       log.info("Mining stopped")
@@ -76,5 +88,4 @@ object PowMiner extends App {
   case class StartMining(parentId: BlockId, prevPosId: BlockId)
 
   case object StopMining
-
 }
