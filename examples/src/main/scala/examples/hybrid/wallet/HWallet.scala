@@ -44,3 +44,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def companion: NodeViewComponentCompanion = ???
 }
+
+object HWallet {
+  def emptyWallet: HWallet = HWallet()
+}

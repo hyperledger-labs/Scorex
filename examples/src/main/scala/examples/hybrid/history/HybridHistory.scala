@@ -284,6 +284,7 @@ object HybridHistory {
     val dataDir = dataDirOpt.get
 
     val iFile = new File(s"$dataDir/blocks")
+    iFile.mkdirs()
     val blockStorage = new LSMStore(iFile)
 
     val metaDb =

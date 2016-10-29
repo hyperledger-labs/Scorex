@@ -28,11 +28,17 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[
   /**
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
-  override protected def genesisState: (HIS, MS, VL, MP) = ???
+  override protected def genesisState: (HIS, MS, VL, MP) = (
+    HybridHistory.emptyHistory(settings),
+    SimpleBoxStoredState.emptyState(settings),
+    HWallet.emptyWallet,
+    HMemPool.emptyPool
+    )
 
   /**
     * Restore a local view during a node startup. If no any stored view found
     * (e.g. if it is a first launch of a node) None is to be returned
     */
-  override def restoreState(): Option[(HIS, MS, VL, MP)] = ???
+  //todo: restore state from database
+  override def restoreState(): Option[(HIS, MS, VL, MP)] = None
 }

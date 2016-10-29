@@ -43,3 +43,8 @@ case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTrans
 
   override def companion: NodeViewComponentCompanion = ???
 }
+
+
+object HMemPool {
+  lazy val emptyPool: HMemPool = HMemPool(Map())
+}

@@ -8,6 +8,7 @@ import examples.hybrid.blocks.HybridPersistentNodeViewModifier
 import io.iohk.iodb.LSMStore
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
+import scorex.core.settings.Settings
 import scorex.core.transaction.TransactionChanges
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
@@ -16,7 +17,7 @@ import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scala.util.Try
 
 
-class SimpleBoxStoredState(store: LSMStore,
+case class SimpleBoxStoredState(store: LSMStore,
                            override val version: VersionTag) extends
   BoxMinimalState[PublicKey25519Proposition,
     PublicKey25519NoncedBox,
@@ -53,10 +54,15 @@ class SimpleBoxStoredState(store: LSMStore,
   override def companion: NodeViewComponentCompanion = ???
 }
 
+object SimpleBoxStoredState{
+  def emptyState(settings: Settings): SimpleBoxStoredState = {
+    val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
+    val dataDir = dataDirOpt.get
 
-object IODBPlayground {
-  val dir = new File("/tmp/")
-  dir.mkdirs()
+    val iFile = new File(s"$dataDir/state")
+    iFile.mkdirs()
+    val stateStorage = new LSMStore(iFile)
 
-  val store = new LSMStore(dir)
+    SimpleBoxStoredState(stateStorage, Array.emptyByteArray)
+  }
 }
