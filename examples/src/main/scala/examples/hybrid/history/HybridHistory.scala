@@ -14,6 +14,7 @@ import scorex.core.consensus.History
 import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.utils.ScorexLogging
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -24,7 +25,11 @@ import scala.util.Try
   */
 //todo: add some versioned field to the class
 class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
-  extends History[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HybridSyncInfo, HybridHistory] {
+  extends History[PublicKey25519Proposition,
+    SimpleBoxTransaction,
+    HybridPersistentNodeViewModifier,
+    HybridSyncInfo,
+    HybridHistory] with ScorexLogging {
 
   override type NVCT = HybridHistory
 
@@ -205,18 +210,34 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
         forwardPosLinks.put(powParent, blockId)
 
-        if(powParent sameElements bestPowId) bestPosIdVar.set(blockId)
+        if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
         (new HybridHistory(blocksStorage, metaDb), None) //no rollback ever
     }
   }
 
-  //todo: is it needed?
-  override def openSurfaceIds(): Seq[BlockId] =
-    if(pairCompleted) Seq(bestPowId, bestPosId) else Seq(bestPowId)
+  override def openSurfaceIds(): Seq[BlockId] = if (pairCompleted) Seq(bestPowId, bestPosId) else Seq(bestPowId)
 
-  override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[HybridPersistentNodeViewModifier]] = ???
+  override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[HybridPersistentNodeViewModifier]] = {
+    continuationIds(from, size).map(_.map { case (_, mId) =>
+      blockById(mId).get
+    })
+  }
 
-  override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = ???
+  override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+    require(from.length == 1)
+    val (modTypeId, modId) = from.head
+
+    blockById(modId).map { _ =>
+      (1 to size).foldLeft(Seq(modTypeId -> modId)) { case (collected, _) =>
+        blockById(collected.last._2).get match {
+          case pb: PowBlock =>
+            collected :+ PosBlock.ModifierTypeId -> forwardPosLinks.get(pb.id)
+          case ps: PosBlock =>
+            collected :+ PowBlock.ModifierTypeId -> forwardPowLinks.get(ps.parentId)
+        }
+      }.tail
+    }
+  }
 
   override def syncInfo(answer: Boolean): HybridSyncInfo = ???
 
