@@ -6,7 +6,7 @@ import examples.hybrid.blocks.HybridPersistentNodeViewModifier
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSpec}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
-import scorex.core.api.http.ApiRoute
+import scorex.core.api.http.{ApiRoute, UtilsApiRoute}
 import scorex.core.app.{Application, ApplicationVersion}
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
@@ -31,8 +31,8 @@ class HybridApp(val settingsFilename: String) extends Application {
   override type NVHT = HybridNodeViewHolder
 
   //todo: consider API calls
-  override val apiRoutes: Seq[ApiRoute] = Seq()
-  override val apiTypes: Seq[Type] = Seq()
+  override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings))
+  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute])
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoSpec)
 
