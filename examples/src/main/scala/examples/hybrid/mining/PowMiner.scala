@@ -1,10 +1,13 @@
 package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef}
-import examples.hybrid.blocks.PowBlock
+import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PowBlock}
+import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.util.Cancellable
+import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.block.Block._
 import scorex.core.settings.Settings
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
@@ -68,6 +71,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
 
     case b: PowBlock =>
       println(s"locally generated block: $b")
+      viewHolderRef ! LocallyGeneratedModifier[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier](b)
 
     case StopMining =>
       log.info("Mining stopped")

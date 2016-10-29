@@ -10,17 +10,17 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 class HLocalInterface(override val viewHolderRef: ActorRef)
   extends LocalInterface[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier] {
 
-  override protected def onStartingPersistentModifierApplication(pmod: HybridPersistentNodeViewModifier): Unit = ???
+  override protected def onStartingPersistentModifierApplication(pmod: HybridPersistentNodeViewModifier): Unit = {}
 
-  override protected def onFailedTransaction(tx: SimpleBoxTransaction): Unit = ???
+  override protected def onFailedTransaction(tx: SimpleBoxTransaction): Unit = {}
 
-  override protected def onFailedModification(mod: HybridPersistentNodeViewModifier): Unit = ???
+  override protected def onFailedModification(mod: HybridPersistentNodeViewModifier): Unit = {]}
 
-  override protected def onSuccessfulTransaction(tx: SimpleBoxTransaction): Unit = ???
+  override protected def onSuccessfulTransaction(tx: SimpleBoxTransaction): Unit = {}
 
-  override protected def onSuccessfulModification(mod: HybridPersistentNodeViewModifier): Unit = ???
+  override protected def onSuccessfulModification(mod: HybridPersistentNodeViewModifier): Unit = {}
 
-  override protected def onNoBetterNeighbour(): Unit = ???
+  override protected def onNoBetterNeighbour(): Unit = {}
 
-  override protected def onBetterNeighbourAppeared(): Unit = ???
+  override protected def onBetterNeighbourAppeared(): Unit = {}
 }
