@@ -211,12 +211,11 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   }
 
   //todo: is it needed?
-  override def openSurfaceIds(): Seq[BlockId] = ???
+  override def openSurfaceIds(): Seq[BlockId] =
+    if(pairCompleted) Seq(bestPowId, bestPosId) else Seq(bestPowId)
 
-  //todo: argument should be ID | Seq[ID]
   override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[HybridPersistentNodeViewModifier]] = ???
 
-  //todo: argument should be ID | Seq[ID]
   override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = ???
 
   override def syncInfo(answer: Boolean): HybridSyncInfo = ???
