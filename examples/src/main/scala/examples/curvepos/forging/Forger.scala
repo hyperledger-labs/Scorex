@@ -77,7 +77,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
 
       val lastBlock = history.lastBlock
       val generators: Set[PublicKey25519Proposition] = wallet.publicKeys
-      lazy val toInclude = state.filterValid(memPool.take(TransactionsInBlock)._1.toSeq)
+      lazy val toInclude = state.filterValid(memPool.take(TransactionsInBlock).toSeq)
 
       val generatedBlocks = generators.flatMap { generator =>
         val hit = calcHit(lastBlock, generator)

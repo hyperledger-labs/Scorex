@@ -43,11 +43,8 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
     putWithoutCheck(txs)
   }
 
-  override def take(limit: Int): (Iterable[SimpleTransaction], SimpleMemPool) = {
-    (unconfTxs.keys.take(limit).flatMap(k => unconfTxs.get(k)), this)
-  }
-
-
+  override def take(limit: Int): Iterable[SimpleTransaction] =
+    unconfTxs.keys.take(limit).flatMap(k => unconfTxs.get(k))
 
   override def remove(tx: SimpleTransaction): SimpleMemPool = filter(tx)
 

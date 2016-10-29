@@ -29,7 +29,7 @@ trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewC
 
   def remove(tx: TX): M
 
-  def take(limit: Int): (Iterable[TX], M)
+  def take(limit: Int): Iterable[TX]
 
   def filter(id: Array[Byte]): M
 
