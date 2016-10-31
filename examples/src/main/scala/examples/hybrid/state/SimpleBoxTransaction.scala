@@ -13,6 +13,7 @@ import scala.util.Try
 import examples.hybrid.state.SimpleBoxTransaction._
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.proof.{Proof, Signature25519}
+import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 
 //a transaction order to destroy boxes associated with (pubkey -> nonce) and create new boxes (pubkey -> nonce)
 // where a nonce is derived from a transaction and also a box index
@@ -52,10 +53,10 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
   //stateless validation
   lazy val valid: Boolean = {
     from.size == signatures.size &&
-    to.forall(_._2 >= 0) &&
-    from.zip(signatures).forall{case ((prop, _), proof) =>
+      to.forall(_._2 >= 0) &&
+      from.zip(signatures).forall { case ((prop, _), proof) =>
         proof.isValid(prop, messageToSign)
-    }
+      }
   }
 }
 
@@ -65,6 +66,18 @@ object SimpleBoxTransaction {
   type Nonce = Long
 
   def nonceFromDigest(digest: Array[Byte]): Nonce = Longs.fromByteArray(digest.take(8))
+
+  def apply(from: IndexedSeq[(PrivateKey25519, Nonce)],
+            to: IndexedSeq[(PublicKey25519Proposition, Value)],
+            fee: Long,
+            timestamp: Long): SimpleBoxTransaction = {
+    val fromPub = from.map { case (pr, n) => pr.publicImage -> n }
+    val undersigned = SimpleBoxTransaction(fromPub, to, IndexedSeq(), fee, timestamp)
+    val msg = undersigned.messageToSign
+    val sigs = from.map { case (priv, _) => PrivateKey25519Companion.sign(priv, msg) }
+
+    new SimpleBoxTransaction(fromPub, to, sigs, fee, timestamp)
+  }
 }
 
 object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBoxTransaction] {
