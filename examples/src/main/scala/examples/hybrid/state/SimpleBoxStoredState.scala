@@ -35,8 +35,6 @@ case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val versio
 
   override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = ???
 
-  private lazy val currentDbVersion = dbVersion(version)
-
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = ???
 
   override def boxOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???

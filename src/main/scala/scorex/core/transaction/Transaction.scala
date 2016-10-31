@@ -24,7 +24,6 @@ abstract class Transaction[P <: Proposition] extends NodeViewModifier {
   val messageToSign: Array[Byte]
 
   override lazy val id: ModifierId = FastCryptographicHash(messageToSign)
-
 }
 
 

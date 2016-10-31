@@ -68,7 +68,7 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
         val oldRecipientBox = boxOf(tx.recipient).headOption
         val newRecipientBox = oldRecipientBox.map { oldB =>
           oldB.copy(nonce = oldB.nonce + 1, value = Math.addExact(oldB.value, tx.amount))
-        }.getOrElse(PublicKey25519NoncedBox(tx.recipient, tx.amount))
+        }.getOrElse(PublicKey25519NoncedBox(tx.recipient, 0L, tx.amount))
         val newSenderBox = oldSenderBox.copy(nonce = oldSenderBox.nonce + 1,
           value = Math.addExact(Math.addExact(oldSenderBox.value, -tx.amount), -tx.fee))
         val toRemove = Set(oldSenderBox) ++ oldRecipientBox
@@ -77,7 +77,7 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
         TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend, tx.fee)
       }
       case genesis: SimplePayment if isEmpty => Try {
-        val toAppend: Set[PublicKey25519NoncedBox] = Set(PublicKey25519NoncedBox(genesis.recipient, genesis.amount))
+        val toAppend: Set[PublicKey25519NoncedBox] = Set(PublicKey25519NoncedBox(genesis.recipient, 0L, genesis.amount))
         TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), toAppend, 0)
       }
       case _ => Failure(new Exception("implementation is needed"))
