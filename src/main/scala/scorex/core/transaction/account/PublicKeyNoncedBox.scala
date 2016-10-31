@@ -1,13 +1,14 @@
 package scorex.core.transaction.account
 
 import com.google.common.primitives.Ints
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 trait PublicKeyNoncedBox[PKP <: PublicKey25519Proposition] extends Box[PKP] {
   val nonce: Int
 
-  lazy val id = proposition.pubKeyBytes ++ Ints.toByteArray(nonce)
+  lazy val id = FastCryptographicHash(proposition.pubKeyBytes ++ Ints.toByteArray(nonce))
 
   lazy val publicKey = proposition
 

@@ -1,11 +1,10 @@
 package examples.hybrid.state
 
 import java.io.File
-
-import com.google.common.primitives.Longs
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
-import io.iohk.iodb.LSMStore
+import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
+import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
 import scorex.core.settings.Settings
@@ -16,11 +15,10 @@ import scorex.core.transaction.state.authenticated.BoxMinimalState
 
 import scala.util.{Success, Try}
 
-
+//todo: alter to have coinbase
 object PowChanges extends StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set())
 
-case class SimpleBoxStoredState(store: LSMStore,
-                           override val version: VersionTag) extends
+case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val version: VersionTag) extends
   BoxMinimalState[PublicKey25519Proposition,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
@@ -29,9 +27,13 @@ case class SimpleBoxStoredState(store: LSMStore,
 
   override type NVCT = SimpleBoxStoredState
 
-  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = ???
 
-  private def dbVersion(ver: VersionTag) = Longs.fromByteArray(ver.take(8))
+  //blockId(state version) -> dbversion index, as IODB uses long int version
+  lazy val dbVersions = metaDb.hashMap("vidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
+
+  private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
+
+  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = ???
 
   private lazy val currentDbVersion = dbVersion(version)
 
@@ -51,19 +53,27 @@ case class SimpleBoxStoredState(store: LSMStore,
     }
   }
 
-  override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleBoxStoredState] = {
-    ???
+  override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
+                            newVersion: VersionTag): Try[SimpleBoxStoredState] = Try {
+    val newDbVersion = store.lastVersion + 1
+    dbVersions.put(newVersion, newDbVersion)
+    val boxIdsToRemove = changes.toRemove.map(_.id).map(ByteArrayWrapper.apply)
+    val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
+
+    store.update(newDbVersion, boxIdsToRemove, boxesToAdd)
+    metaDb.commit()
+    SimpleBoxStoredState(store, metaDb, newVersion)
   }
 
   override def rollbackTo(version: VersionTag): Try[SimpleBoxStoredState] = Try {
     store.rollback(dbVersion(version))
-    new SimpleBoxStoredState(store, version)
+    new SimpleBoxStoredState(store, metaDb, version)
   }
 
   override def companion: NodeViewComponentCompanion = ???
 }
 
-object SimpleBoxStoredState{
+object SimpleBoxStoredState {
   def emptyState(settings: Settings): SimpleBoxStoredState = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
@@ -72,6 +82,15 @@ object SimpleBoxStoredState{
     iFile.mkdirs()
     val stateStorage = new LSMStore(iFile)
 
-    SimpleBoxStoredState(stateStorage, Array.emptyByteArray)
+    val mFile = new File(s"$dataDir/statemeta")
+    mFile.mkdirs()
+
+    val metaDb =
+      DBMaker.fileDB(mFile)
+        .fileMmapEnableIfSupported()
+        .closeOnJvmShutdown()
+        .make()
+
+    SimpleBoxStoredState(stateStorage, metaDb, Array.emptyByteArray)
   }
 }
