@@ -132,7 +132,7 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
             /* below FAILS with error:
                 org.scalatest.exceptions.TestFailedException: -4893054997409295431 was not equal to 9223372036854775807
             */
-            //state.totalBalance shouldBe Long.MaxValue
+            state.totalBalance shouldBe Long.MaxValue
             
             val receiverNewBalance = getBalance(payment.recipient)
             val senderNewBalance = getBalance(payment.sender)
