@@ -1,6 +1,5 @@
 package examples.hybrid.history
 
-import examples.curvepos.SimpleSyncInfo
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.SyncInfo
