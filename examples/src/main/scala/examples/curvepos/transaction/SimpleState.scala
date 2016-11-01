@@ -5,14 +5,16 @@ import java.nio.ByteBuffer
 import examples.curvepos.transaction.SimpleState.EmptyVersion
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
-import scorex.core.transaction.TransactionChanges
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.box.Box
+import scorex.core.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.util.{Failure, Try}
+
+case class TransactionChanges[P <: Proposition, BX <: Box[P]](toRemove: Set[BX], toAppend: Set[BX], minerReward: Long)
 
 case class SimpleState(override val version: VersionTag = EmptyVersion,
                        storage: Map[ByteBuffer, PublicKey25519NoncedBox] = Map()) extends ScorexLogging
@@ -61,7 +63,7 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
   /**
     * A Transaction opens existing boxes and creates new ones
     */
-  override def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+  def changes(transaction: SimpleTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     transaction match {
       case tx: SimplePayment if !isEmpty => Try {
         val oldSenderBox = boxesOf(tx.sender).head

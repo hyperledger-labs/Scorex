@@ -33,11 +33,6 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] ex
 
   def boxesOf(proposition: P): Seq[BX]
 
-  /**
-    * A Transaction opens existing boxes and creates new ones
-    */
-  def changes(transaction: TX): Try[TransactionChanges[P, BX]]
-
   def changes(mod: M): Try[StateChanges[P, BX]]
 
   def applyChanges(changes: StateChanges[P, BX], newVersion: VersionTag): Try[MS]
