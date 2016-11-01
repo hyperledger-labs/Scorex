@@ -11,8 +11,7 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 
-class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[
-  PublicKey25519Proposition,
+class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridPersistentNodeViewModifier] {
 
