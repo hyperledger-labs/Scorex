@@ -48,7 +48,9 @@ case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val versio
   override def changes(mod: HybridPersistentNodeViewModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     mod match {
       case pb: PowBlock => Success(PowChanges)
-      case ps: PosBlock => ???
+      case ps: PosBlock =>
+        ???
+          //ps.transactions.foldLeft()
     }
   }
 
@@ -56,7 +58,7 @@ case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val versio
                             newVersion: VersionTag): Try[SimpleBoxStoredState] = Try {
     val newDbVersion = store.lastVersion + 1
     dbVersions.put(newVersion, newDbVersion)
-    val boxIdsToRemove = changes.toRemove.map(_.id).map(ByteArrayWrapper.apply)
+    val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
     val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
     store.update(newDbVersion, boxIdsToRemove, boxesToAdd)

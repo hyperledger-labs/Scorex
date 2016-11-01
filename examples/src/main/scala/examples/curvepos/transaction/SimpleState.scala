@@ -40,7 +40,7 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
   }
 
   override def applyChanges(change: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleState] = Try {
-    val rmap = change.toRemove.foldLeft(storage) { case (m, b) => m - ByteBuffer.wrap(b.id) }
+    val rmap = change.boxIdsToRemove.foldLeft(storage) { case (m, id) => m - ByteBuffer.wrap(id) }
 
     val amap = change.toAppend.foldLeft(rmap) { case (m, b) =>
       require(b.value >= 0)
@@ -91,8 +91,8 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
     val gen = block.generator
 
     val txChanges = block.txs.map(tx => changes(tx)).map(_.get)
-    val toRemove: Set[PublicKey25519NoncedBox] = txChanges.flatMap(_.toRemove).toSet
-    val toAppendFrom: Set[PublicKey25519NoncedBox] = txChanges.flatMap(_.toAppend).toSet
+    val toRemove = txChanges.flatMap(_.toRemove).map(_.id).toSet
+    val toAppendFrom = txChanges.flatMap(_.toAppend).toSet
     val (generator, withoutGenerator) = toAppendFrom.partition(_.proposition.address == gen.address)
     val generatorBox: PublicKey25519NoncedBox = (generator ++ boxesOf(gen)).headOption match {
       case Some(oldBox) =>
