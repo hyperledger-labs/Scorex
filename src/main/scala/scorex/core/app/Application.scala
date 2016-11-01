@@ -27,7 +27,6 @@ trait Application extends ScorexLogging {
   type P <: Proposition
   type TX <: Transaction[P]
   type PMOD <: PersistentNodeViewModifier[P, TX]
-
   type NVHT <: NodeViewHolder[P, TX, PMOD]
 
   //settings

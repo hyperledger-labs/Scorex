@@ -29,13 +29,13 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.typesafe" % "config" % "1.3.0",
   "com.typesafe" % "ssl-config-akka_2.11" % "0.2.1",
   "com.typesafe" % "ssl-config-core_2.11" % "0.2.1",
-  "com.typesafe.akka" % "akka-actor_2.11" % "2.4.11",
+  "com.typesafe.akka" % "akka-actor_2.11" % "2.4.12",
   "com.typesafe.akka" % "akka-http-core_2.11" % "2.4.11",
   "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.4.11",
   "com.typesafe.akka" % "akka-http-spray-json-experimental_2.11" % "2.4.8",
   "com.typesafe.akka" % "akka-parsing_2.11" % "2.4.11",
   "com.typesafe.akka" % "akka-stream_2.11" % "2.4.11",
-  "com.typesafe.akka" % "akka-testkit_2.11" % "2.4.11",
+  "com.typesafe.akka" % "akka-testkit_2.11" % "2.4.12",
   "com.typesafe.play" % "play-datacommons_2.11" % "2.4.8",
   "com.typesafe.play" % "play-functional_2.11" % "2.4.8",
   "com.typesafe.play" % "play-iteratees_2.11" % "2.4.8",
@@ -46,7 +46,6 @@ dependencyOverrides in ThisBuild ++= Set(
   "io.circe" % "circe-jawn_2.11" % "0.5.4",
   "io.circe" % "circe-numbers_2.11" % "0.5.4",
   "io.circe" % "circe-parser_2.11" % "0.5.4",
-  "io.iohk" % "iodb_2.11" % "1.0-M1-SNAPSHOT",
   "io.netty" % "netty" % "3.10.0.Final",
   "io.spray" % "spray-json_2.11" % "1.3.2",
   "io.swagger" % "swagger-annotations" % "1.5.10",
@@ -98,4 +97,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.5",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH e6ebb34032c87ea909db472e2f46b6d183e857a6
+// LIBRARY_DEPENDENCIES_HASH 9132b2612a1f8fb9308c135230aef8c6b74183f5
