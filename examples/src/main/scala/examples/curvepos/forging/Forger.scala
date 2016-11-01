@@ -54,7 +54,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
                            state: SimpleState,
                            generator: PublicKey25519Proposition): BigInt = {
     val eta = (NetworkTime.time() - lastBlock.timestamp) / 1000 //in seconds
-    val balance = state.boxOf(generator).headOption.map(_.value).getOrElse(0L)
+    val balance = state.boxesOf(generator).headOption.map(_.value).getOrElse(0L)
     BigInt(lastBlock.baseTarget) * eta * balance
   }
 

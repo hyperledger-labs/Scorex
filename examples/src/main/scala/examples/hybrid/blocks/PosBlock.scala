@@ -25,7 +25,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
 
   override type BlockFields = BlockId :: Timestamp :: Seq[SimpleBoxTransaction] :: PublicKey25519Proposition :: Signature25519 :: HNil
 
-  override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = Some(txs)
+  override lazy val transactions: Some[Seq[SimpleBoxTransaction]] = Some(txs)
 
   override lazy val companion = PosBlockCompanion
 

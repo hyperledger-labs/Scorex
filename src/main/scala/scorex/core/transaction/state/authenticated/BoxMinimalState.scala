@@ -39,7 +39,7 @@ trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, B
                 case true => Success(partialSum + box.value)
                 case false => Failure(new Exception(""))
               }
-            case None => Failure(new Exception(""))
+            case None => Failure(new Exception("Box not in the state"))
           }
         }
       }

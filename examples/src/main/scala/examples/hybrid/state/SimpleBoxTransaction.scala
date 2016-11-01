@@ -29,11 +29,11 @@ BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
 
   override type M = SimpleBoxTransaction
 
-  lazy val boxIdsToOpen = from.map { case (prop, nonce) =>
+  lazy val boxIdsToOpen: IndexedSeq[Array[Byte]] = from.map { case (prop, nonce) =>
     PublicKeyNoncedBox.idFromBox(prop, nonce)
   }
 
-  override val unlockers: Traversable[BoxUnlocker[PublicKey25519Proposition]] = boxIdsToOpen.zip(signatures).map {
+  override lazy val unlockers: Traversable[BoxUnlocker[PublicKey25519Proposition]] = boxIdsToOpen.zip(signatures).map {
     case (boxId, signature) =>
       new BoxUnlocker[PublicKey25519Proposition] {
         override val closedBoxId: Array[Byte] = boxId
@@ -41,9 +41,15 @@ BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
       }
   }
 
-  override val newBoxes: Traversable[PublicKey25519NoncedBox] = to.zipWithIndex.map { case ((prop, value), idx) =>
-    val nonce = nonceFromDigest(FastCryptographicHash(prop.pubKeyBytes ++ Ints.toByteArray(idx)
-      ++ Longs.toByteArray(timestamp)))
+  lazy val hashNoNonces = FastCryptographicHash(
+    to.map(_._1.pubKeyBytes).reduce(_ ++ _) ++
+      unlockers.map(_.closedBoxId).reduce(_ ++ _) ++
+      Longs.toByteArray(timestamp) ++
+      Longs.toByteArray(fee)
+  )
+
+  override lazy val newBoxes: Traversable[PublicKey25519NoncedBox] = to.zipWithIndex.map { case ((prop, value), idx) =>
+    val nonce = nonceFromDigest(FastCryptographicHash(prop.pubKeyBytes ++ hashNoNonces ++ Ints.toByteArray(idx)))
     PublicKey25519NoncedBox(prop, nonce, value)
   }
 
@@ -55,6 +61,8 @@ BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
   lazy val valid: Boolean = {
     from.size == signatures.size &&
       to.forall(_._2 >= 0) &&
+      fee >= 0 &&
+      timestamp >= 0 &&
       from.zip(signatures).forall { case ((prop, _), proof) =>
         proof.isValid(prop, messageToSign)
       }
@@ -73,7 +81,10 @@ object SimpleBoxTransaction {
             fee: Long,
             timestamp: Long): SimpleBoxTransaction = {
     val fromPub = from.map { case (pr, n) => pr.publicImage -> n }
-    val undersigned = SimpleBoxTransaction(fromPub, to, IndexedSeq(), fee, timestamp)
+    val fakeSigs = from.map(_ => Signature25519(Array()))
+
+    val undersigned = SimpleBoxTransaction(fromPub, to, fakeSigs, fee, timestamp)
+
     val msg = undersigned.messageToSign
     val sigs = from.map { case (priv, _) => PrivateKey25519Companion.sign(priv, msg) }
 
@@ -93,7 +104,6 @@ object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBox
       m.from.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2)),
       m.to.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2))
     )
-
   }
 
   override def parse(bytes: Array[Byte]): Try[SimpleBoxTransaction] = Try {
@@ -120,4 +130,34 @@ object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBox
     }
     SimpleBoxTransaction(from, to, signatures, fee, timestamp)
   }
+}
+
+
+//todo: for Dmitry - convert into test
+object TxPlayground extends App {
+  val priv1 = PrivateKey25519Companion.generateKeys(Array.fill(32)(0: Byte))
+  val priv2 = PrivateKey25519Companion.generateKeys(Array.fill(32)(1: Byte))
+
+  val from = IndexedSeq(priv1._1 -> 500L, priv2._1 -> 1000L)
+  val to = IndexedSeq(priv2._2 -> 1500L)
+  val fee = 500L
+  val timestamp = System.currentTimeMillis()
+
+  val tx = SimpleBoxTransaction(from, to, fee, timestamp)
+
+  assert(tx.valid)
+
+  val wrongSig = Array.fill(1)(0: Byte) ++ tx.signatures.head.bytes.tail
+  val wrongSigsSer = Seq(wrongSig) ++ tx.signatures.tail.map(_.bytes)
+  val wrongSigs = wrongSigsSer.map(bs => Signature25519(bs)).toIndexedSeq
+
+  val fromPub = IndexedSeq(priv1._2 -> 500L, priv2._2 -> 1000L)
+  val wrongTx = new SimpleBoxTransaction(fromPub, to, wrongSigs, fee, timestamp)
+
+  assert(!wrongTx.valid)
+
+  val wrongFromPub = IndexedSeq(priv1._2 -> 100L, priv2._2 -> 1000L)
+  val wrongTx2 = new SimpleBoxTransaction(wrongFromPub, to, tx.signatures, fee, timestamp)
+
+  assert(!wrongTx2.valid)
 }

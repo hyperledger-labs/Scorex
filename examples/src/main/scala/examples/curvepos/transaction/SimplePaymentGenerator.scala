@@ -29,7 +29,7 @@ class SimplePaymentGenerator(viewHolderRef: ActorRef, localInterfaceRef: ActorRe
     val from = wallet.publicKeys.head
     val fee = Random.nextInt(4) + 1
 
-    val nonce = state.boxOf(from).head.nonce + 1
+    val nonce = state.boxesOf(from).head.nonce + 1
     val time = System.currentTimeMillis()
 
     SimplePayment(from, to, amount, fee, nonce, time)

@@ -8,7 +8,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 trait PublicKeyNoncedBox[PKP <: PublicKey25519Proposition] extends Box[PKP] {
   val nonce: Long
 
-  lazy val id = PublicKeyNoncedBox.idFromBox(proposition, nonce)
+  lazy val id: Array[Byte] = PublicKeyNoncedBox.idFromBox(proposition, nonce)
 
   lazy val publicKey = proposition
 
