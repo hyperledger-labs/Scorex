@@ -1,6 +1,8 @@
 package examples.hybrid.state
 
 import java.io.File
+
+import com.google.common.primitives.Longs
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
@@ -25,6 +27,7 @@ case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val versio
     SimpleBoxStoredState] {
 
   override type NVCT = SimpleBoxStoredState
+  type HPMOD = HybridPersistentNodeViewModifier
 
   //blockId(state version) -> dbversion index, as IODB uses long int version
   lazy val dbVersions = metaDb.hashMap("vidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
@@ -45,12 +48,23 @@ case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val versio
   //there's no an easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: HybridPersistentNodeViewModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+  override def changes(mod: HPMOD):Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     mod match {
       case pb: PowBlock => Success(PowChanges)
       case ps: PosBlock =>
-        ???
-          //ps.transactions.foldLeft()
+        Try {
+          val initial = (Set(): Set[Array[Byte]], Set(): Set[PublicKey25519NoncedBox], 0L)
+
+          val (toRemove: Set[Array[Byte]], toAdd: Set[PublicKey25519NoncedBox], reward) =
+            ps.transactions.map(_.foldLeft(initial) { case ((sr, sa, f), tx) =>
+              (sr ++ tx.boxIdsToOpen.toSet, sa ++ tx.newBoxes.toSet, f + tx.fee)
+            })
+
+          //for PoS forger reward box, we use block Id as a nonce
+          val forgerNonce = Longs.fromByteArray(ps.id.take(8))
+          val forgerBox = PublicKey25519NoncedBox(ps.generator, forgerNonce, reward)
+          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd ++ Set(forgerBox))
+        }
     }
   }
 
