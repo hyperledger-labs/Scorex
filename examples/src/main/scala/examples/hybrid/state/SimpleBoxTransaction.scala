@@ -1,19 +1,20 @@
 package examples.hybrid.state
 
-import com.google.common.primitives.{Ints, Longs}
+import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.hybrid.state.SimpleBoxTransaction._
 import io.circe.Json
 import scorex.core.NodeViewModifierCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.BoxTransaction
+import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.BoxUnlocker
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-
-import scala.util.Try
-import examples.hybrid.state.SimpleBoxTransaction._
-import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
+import scorex.crypto.signatures.Curve25519
+
+import scala.util.Try
 
 //a transaction order to destroy boxes associated with (pubkey -> nonce) and create new boxes (pubkey -> nonce)
 // where a nonce is derived from a transaction and also a box index
@@ -24,7 +25,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
                                 signatures: IndexedSeq[Signature25519],
                                 override val fee: Long,
                                 override val timestamp: Long) extends
-  BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
+BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
 
   override type M = SimpleBoxTransaction
 
@@ -40,9 +41,9 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
       }
   }
 
-
   override val newBoxes: Traversable[PublicKey25519NoncedBox] = to.zipWithIndex.map { case ((prop, value), idx) =>
-    val nonce = nonceFromDigest(FastCryptographicHash(prop.pubKeyBytes ++ id ++ Ints.toByteArray(idx)))
+    val nonce = nonceFromDigest(FastCryptographicHash(prop.pubKeyBytes ++ Ints.toByteArray(idx)
+      ++ Longs.toByteArray(timestamp)))
     PublicKey25519NoncedBox(prop, nonce, value)
   }
 
@@ -82,9 +83,41 @@ object SimpleBoxTransaction {
 
 object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBoxTransaction] {
 
-  //todo: for Dmitry
-  override def bytes(modifier: SimpleBoxTransaction): Array[Byte] = ???
+  override def bytes(m: SimpleBoxTransaction): Array[Byte] = {
+    Bytes.concat(Longs.toByteArray(m.fee),
+      Longs.toByteArray(m.timestamp),
+      Ints.toByteArray(m.signatures.length),
+      Ints.toByteArray(m.from.length),
+      Ints.toByteArray(m.to.length),
+      m.signatures.foldLeft(Array[Byte]())((a, b) => a ++ b.bytes),
+      m.from.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2)),
+      m.to.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2))
+    )
 
-  //todo: for Dmitry
-  override def parse(bytes: Array[Byte]): Try[SimpleBoxTransaction] = ???
+  }
+
+  override def parse(bytes: Array[Byte]): Try[SimpleBoxTransaction] = Try {
+    val fee = Longs.fromByteArray(bytes.slice(0, 8))
+    val timestamp = Longs.fromByteArray(bytes.slice(8, 16))
+    val sigLength = Ints.fromByteArray(bytes.slice(16, 20))
+    val fromLength = Ints.fromByteArray(bytes.slice(20, 24))
+    val toLength = Ints.fromByteArray(bytes.slice(24, 28))
+    val signatures = (0 until sigLength) map { i =>
+      Signature25519(bytes.slice(28 + i * Curve25519.SignatureLength, 28 + (i + 1) * Curve25519.SignatureLength))
+    }
+    val s = 28 + sigLength * Curve25519.SignatureLength
+    val elementLength = 8 + Curve25519.KeyLength
+    val from = (0 until fromLength) map { i =>
+      val pk = bytes.slice(s + i * elementLength, s + (i + 1) * elementLength - 8)
+      val v = Longs.fromByteArray(bytes.slice(s + (i + 1) * elementLength - 8, s + (i + 1) * elementLength))
+      (PublicKey25519Proposition(pk), v)
+    }
+    val s2 = s + fromLength * elementLength
+    val to = (0 until toLength) map { i =>
+      val pk = bytes.slice(s2 + i * elementLength, s2 + (i + 1) * elementLength - 8)
+      val v = Longs.fromByteArray(bytes.slice(s2 + (i + 1) * elementLength - 8, s2 + (i + 1) * elementLength))
+      (PublicKey25519Proposition(pk), v)
+    }
+    SimpleBoxTransaction(from, to, signatures, fee, timestamp)
+  }
 }

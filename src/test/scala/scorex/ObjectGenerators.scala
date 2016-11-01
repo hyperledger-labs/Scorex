@@ -1,6 +1,7 @@
 package scorex
 
 import java.net.{InetAddress, InetSocketAddress}
+
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.ModifierId
@@ -16,6 +17,11 @@ trait ObjectGenerators {
   def genBoundedBytes(minSize: Int, maxSize: Int): Gen[Array[Byte]] = {
     Gen.choose(minSize, maxSize) flatMap { sz => Gen.listOfN(sz, Arbitrary.arbitrary[Byte]).map(_.toArray) }
   }
+
+  def genBytesList(size: Int): Gen[Array[Byte]] = genBoundedBytes(size, size)
+
+  lazy val positiveLongGen: Gen[Long] = Gen.choose(1, Long.MaxValue)
+
 
   lazy val modifierIdGen: Gen[ModifierId] =
     Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte]).map(_.toArray)
@@ -53,6 +59,6 @@ trait ObjectGenerators {
     port <- Gen.choose(0, MaxPort)
   } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
 
-  val propositionGen: Gen[PublicKey25519Proposition] = genBoundedBytes(64, 64)
+  val propositionGen: Gen[PublicKey25519Proposition] = genBytesList(64)
     .map(s => PrivateKey25519Companion.generateKeys(s)._2)
 }

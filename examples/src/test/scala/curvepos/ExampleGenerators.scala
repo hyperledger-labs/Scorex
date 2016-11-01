@@ -11,9 +11,7 @@ trait ExampleGenerators extends ObjectGenerators {
   val wallet = SimpleWallet()
   val genesisAcc = wallet.secrets.head
 
-  val positiveLongGen: Gen[Long] = Gen.choose(1, Long.MaxValue)
-
-  val paymentGen: Gen[SimplePayment] = for {
+  lazy val paymentGen: Gen[SimplePayment] = for {
     sender: PublicKey25519Proposition <- propositionGen
     recipient: PublicKey25519Proposition <- propositionGen
     amount: Long <- positiveLongGen
@@ -23,7 +21,7 @@ trait ExampleGenerators extends ObjectGenerators {
   } yield SimplePayment(sender, recipient, amount, fee, nonce, timestamp)
 
 
-  val blockGenerator: Gen[SimpleBlock] = for {
+  lazy val blockGenerator: Gen[SimpleBlock] = for {
     parentId: BlockId <- genBoundedBytes(Block.BlockIdLength, Block.BlockIdLength)
     timestamp: Long <- Arbitrary.arbitrary[Long]
     baseTarget: Long <- Arbitrary.arbitrary[Long]
