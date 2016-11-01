@@ -133,7 +133,7 @@ object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBox
 }
 
 
-//todo: for Dmitry - convert into test
+//todo: for Am - convert into test
 object TxPlayground extends App {
   val priv1 = PrivateKey25519Companion.generateKeys(Array.fill(32)(0: Byte))
   val priv2 = PrivateKey25519Companion.generateKeys(Array.fill(32)(1: Byte))
