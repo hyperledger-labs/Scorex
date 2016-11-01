@@ -39,7 +39,7 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
   import Util._
   // initialize test
   var state = new SimpleState()
-  def getBalance(p:PublicKey25519Proposition):Long = state.boxOf(p).map(_.value).sum
+  def getBalance(p:PublicKey25519Proposition):Long = state.boxesOf(p).map(_.value).sum
   
   state.totalBalance shouldBe 0
   state.isEmpty shouldBe true
@@ -69,7 +69,7 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
       val senderOldBalance = getBalance(sender)
       val amount = randULong(senderOldBalance.min(10000000000000000L))
       val fee = randULong(senderOldBalance - amount)    
-      val nonce = state.boxOf(sender).head.nonce
+      val nonce = state.boxesOf(sender).head.nonce
       val timestamp = randULong
       val payment = SimplePayment(sender, recipient, amount, fee, nonce, timestamp)    
       val receiverOldBalance = getBalance(payment.recipient)
@@ -114,7 +114,7 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
 
       val amount = randULong(senderOldBalance)
       val fee = randULong(senderOldBalance-amount)    
-      val nonce = state.boxOf(sender).head.nonce
+      val nonce = state.boxesOf(sender).head.nonce
       val timestamp = randULong
       val payment = SimplePayment(sender, recipient, amount, fee, nonce, timestamp)    
 
@@ -166,7 +166,7 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
 
       val amount = randULong(senderOldBalance)
       val fee = randULong(senderOldBalance-amount)    
-      val nonce = state.boxOf(sender).head.nonce
+      val nonce = state.boxesOf(sender).head.nonce
       val timestamp = randULong
       val payment = SimplePayment(sender, recipient, amount, fee, nonce, timestamp)    
 

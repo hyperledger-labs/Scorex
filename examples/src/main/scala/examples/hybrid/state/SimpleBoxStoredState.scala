@@ -43,12 +43,15 @@ case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val versio
       .flatMap(_.toOption)
 
 
-  override def boxOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
+  //there's no an easy way to know boxes associated with a proposition, without an additional index
+  override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
   /**
     * A Transaction opens existing boxes and creates new ones
     */
-  override def changes(transaction: SimpleBoxTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = ???
+  override def changes(transaction: SimpleBoxTransaction): Try[TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+
+  }
 
   override def changes(mod: HybridPersistentNodeViewModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     mod match {

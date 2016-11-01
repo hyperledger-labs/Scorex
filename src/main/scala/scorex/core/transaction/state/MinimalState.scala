@@ -31,7 +31,7 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] ex
 
   def validate(transaction: TX): Try[Unit]
 
-  def boxOf(proposition: P): Seq[BX]
+  def boxesOf(proposition: P): Seq[BX]
 
   /**
     * A Transaction opens existing boxes and creates new ones
