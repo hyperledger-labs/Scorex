@@ -27,15 +27,21 @@ case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val versio
 
   override type NVCT = SimpleBoxStoredState
 
-
   //blockId(state version) -> dbversion index, as IODB uses long int version
   lazy val dbVersions = metaDb.hashMap("vidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
 
   private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
 
-  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = ???
+  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
+    assert(tx.valid)
+  }
 
-  override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = ???
+  override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
+    Option(store.get(ByteArrayWrapper(boxId)))
+      .map(_.data)
+      .map(PublicKey25519NoncedBox.parseBytes)
+      .flatMap(_.toOption)
+
 
   override def boxOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
