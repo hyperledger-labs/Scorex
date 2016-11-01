@@ -25,7 +25,7 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
 
   override def filter(tx: SimpleTransaction): SimpleMemPool = filter(Seq(tx))
 
-  override def filter(txs: Iterable[SimpleTransaction]): SimpleMemPool = {
+  override def filter(txs: Seq[SimpleTransaction]): SimpleMemPool = {
     txs.foreach(tx => unconfTxs.remove(key(tx.id)))
     this
   }

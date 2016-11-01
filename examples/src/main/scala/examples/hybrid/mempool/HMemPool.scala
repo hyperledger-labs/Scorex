@@ -5,6 +5,7 @@ import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.transaction.MemoryPool
 
+import scala.collection.mutable
 import scala.util.{Success, Try}
 
 
@@ -16,13 +17,19 @@ case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTrans
   unconfirmed.get(id)
 
   //get mempool transaction ids not presenting in ids
-  override def notIn(ids: Seq[ModifierId]): Seq[ModifierId] = ???
+  override def notIn(ids: Seq[ModifierId]): Seq[ModifierId] = {
+    val idsM = ids.map(id => new mutable.WrappedArray.ofByte(id))
+    unconfirmed.filter { case (id, tx) =>
+      !idsM.contains(new mutable.WrappedArray.ofByte(id))
+    }.keySet.map(_.toArray).toSeq
+  }
 
-  override def getAll(ids: Seq[ModifierId]): Seq[SimpleBoxTransaction] = ???
+  override def getAll(ids: Seq[ModifierId]): Seq[SimpleBoxTransaction] =
+    ids.flatMap(getById)
 
   //modifiers
   override def put(tx: SimpleBoxTransaction): Try[HMemPool] =
-    Success(HMemPool(unconfirmed + (tx.id -> tx)))
+  Success(HMemPool(unconfirmed + (tx.id -> tx)))
 
   override def put(txs: Iterable[SimpleBoxTransaction]): Try[HMemPool] =
     Success(HMemPool(unconfirmed ++ txs.map(tx => tx.id -> tx)))
@@ -33,13 +40,21 @@ case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTrans
   override def remove(tx: SimpleBoxTransaction): HMemPool =
     HMemPool(unconfirmed - tx.id)
 
-  override def take(limit: Int): Iterable[SimpleBoxTransaction] = ???
+  override def take(limit: Int): Iterable[SimpleBoxTransaction] =
+    unconfirmed.values.toSeq.sortBy(-_.fee).take(limit)
 
-  override def filter(id: Array[Byte]): HMemPool = ???
+  override def filter(id: Array[Byte]): HMemPool = HMemPool(unconfirmed - id)
 
-  override def filter(tx: SimpleBoxTransaction): HMemPool = ???
+  override def filter(tx: SimpleBoxTransaction): HMemPool = filter(tx.id)
 
-  override def filter(txs: Iterable[SimpleBoxTransaction]): HMemPool = ???
+  override def filter(txs: Seq[SimpleBoxTransaction]): HMemPool = {
+    val idsM = txs.map(tx => new mutable.WrappedArray.ofByte(tx.id))
+
+    val newU = unconfirmed.filter { case (id, tx) =>
+      !idsM.contains(new mutable.WrappedArray.ofByte(id))
+    }
+    HMemPool(newU)
+  }
 
   override def companion: NodeViewComponentCompanion = ???
 }

@@ -35,5 +35,5 @@ trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewC
 
   def filter(tx: TX): M
 
-  def filter(txs: Iterable[TX]): M
+  def filter(txs: Seq[TX]): M
 }
