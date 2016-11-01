@@ -5,7 +5,7 @@ import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
 
-case class WalletBox[P <: Proposition](box: Box[P], transactionId: Array[Byte], createdAt: Int, destroyedAt: Option[Int])
+case class WalletBox[P <: Proposition](box: Box[P], transactionId: Array[Byte], createdAt: Long)
 
 case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX, createdAt: Int)
 
@@ -25,7 +25,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P], W <: Wallet[P, TX, W]]
 
   def historyTransactions: Seq[WalletTransaction[P, TX]]
 
-  def historyBoxes: Seq[WalletBox[P]]
+  def boxes(): Seq[WalletBox[P]]
 
   def publicKeys: Set[PI]
 

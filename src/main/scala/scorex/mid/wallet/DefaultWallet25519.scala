@@ -59,7 +59,7 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, TX]] = ???
 
-  override def historyBoxes: Seq[WalletBox[PublicKey25519Proposition]] = ???
+  override def boxes: Seq[WalletBox[PublicKey25519Proposition]] = ???
 
   override def publicKeys: Set[PublicKey25519Proposition] =
     dbSecrets.getKeys.map(PublicKey25519Proposition.apply).toSet

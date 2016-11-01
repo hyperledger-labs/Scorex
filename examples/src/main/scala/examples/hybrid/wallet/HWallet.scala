@@ -12,7 +12,7 @@ import scorex.utils.Random
 import scala.util.Try
 
 
-
+//todo: mapdb
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                         chainTransactions: Map[TransactionId, SimpleBoxTransaction] = Map(),
                         offchainTransactions: Map[TransactionId, SimpleBoxTransaction] = Map(),
@@ -25,11 +25,10 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleBoxTransaction]] = ???
 
-  override def historyBoxes: Seq[WalletBox[PublicKey25519Proposition]] = ???
+  override def boxes(): Seq[WalletBox[PublicKey25519Proposition]] = ???
 
   override def publicKeys: Set[PublicKey25519Proposition] = ???
 
-  //todo: protection?
   override def secrets: Set[PrivateKey25519] = ???
 
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] = ???
