@@ -60,6 +60,6 @@ trait ObjectGenerators {
     port <- Gen.choose(0, MaxPort)
   } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
 
-  val propositionGen: Gen[PublicKey25519Proposition] = genBytesList(Curve25519.KeyLength)
+  lazy val propositionGen: Gen[PublicKey25519Proposition] = genBytesList(Curve25519.KeyLength)
     .map(s => PrivateKey25519Companion.generateKeys(s)._2)
 }

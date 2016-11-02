@@ -62,6 +62,7 @@ object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
     val signature = Signature25519(bytes.slice(position, position + Signature25519.SignatureSize))
     position = position + Signature25519.SignatureSize
 
+    @tailrec
     def parseTxs(acc: Seq[SimpleBoxTransaction] = Seq()): Seq[SimpleBoxTransaction] = {
       if (bytes.length > position) {
         val l = Ints.fromByteArray(bytes.slice(position, position + 4))

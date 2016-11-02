@@ -1,5 +1,6 @@
 package scorex.core.transaction.wallet
 
+import com.google.common.primitives.{Bytes, Longs}
 import scorex.core.NodeViewModifier
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
@@ -10,17 +11,26 @@ import scala.util.Try
 
 case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
 
-//todo: for Dmitry
 object WalletBox {
-  def parse[P <: Proposition, B <: Box[P]](bytes: Array[Byte]): Try[WalletBox[P, B]] = ???
+  def parse[P <: Proposition, B <: Box[P]](bytes: Array[Byte]): Try[WalletBox[P, B]] = Try {
+    val txId = bytes.slice(0, NodeViewModifier.ModifierIdSize)
+    val createdAt = Longs.fromByteArray(
+      bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8))
+    val boxB = bytes.slice(NodeViewModifier.ModifierIdSize + 8, bytes.length)
+    val box: B = ???
+    WalletBox(box, txId, createdAt)
+  }
 
-  def bytes[P <: Proposition, B <: Box[P]](box: WalletBox[P, B]): Array[Byte] = ???
+  def bytes[P <: Proposition, B <: Box[P]](box: WalletBox[P, B]): Array[Byte] = {
+    Bytes.concat(box.transactionId, Longs.toByteArray(box.createdAt), box.box.bytes)
+  }
 }
 
 case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](proposition: P,
                                                                      tx: TX,
                                                                      blockId: Option[NodeViewModifier.ModifierId],
                                                                      createdAt: Long)
+
 //todo: for Dmitry
 object WalletTransaction {
   def parse[P <: Proposition, TX <: Transaction[P]](bytes: Array[Byte]): Try[WalletTransaction[P, TX]] = ???
