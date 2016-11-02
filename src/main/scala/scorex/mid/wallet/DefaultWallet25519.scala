@@ -9,15 +9,14 @@ import scorex.core.NodeViewComponentCompanion
 import scorex.core.crypto.hash.DoubleCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.Transaction
+import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 
 import scala.collection.JavaConversions._
 
-/**
-  * Created by kushti on 28.09.16.
-  */
+
 //todo: HKDF
 // todo: encryption
 case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
@@ -59,7 +58,7 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition]]
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, TX]] = ???
 
-  override def boxes: Seq[WalletBox[PublicKey25519Proposition]] = ???
+  override def boxes: Seq[WalletBox[PublicKey25519Proposition, _ <: PublicKeyNoncedBox[PublicKey25519Proposition]]] = ???
 
   override def publicKeys: Set[PublicKey25519Proposition] =
     dbSecrets.getKeys.map(PublicKey25519Proposition.apply).toSet

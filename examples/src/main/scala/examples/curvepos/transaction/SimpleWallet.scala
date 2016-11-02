@@ -61,7 +61,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleTransaction]] = ???
 
-  override def boxes(): Seq[WalletBox[PublicKey25519Proposition]] = {
+  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     Seq()
   }
 

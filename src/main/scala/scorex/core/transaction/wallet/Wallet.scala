@@ -1,13 +1,33 @@
 package scorex.core.transaction.wallet
 
+import scorex.core.NodeViewModifier
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
 
-case class WalletBox[P <: Proposition](box: Box[P], transactionId: Array[Byte], createdAt: Long)
+import scala.util.Try
 
-case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX, createdAt: Int)
+case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
+
+//todo: for Dmitry
+object WalletBox {
+  def parse[P <: Proposition, B <: Box[P]](bytes: Array[Byte]): Try[WalletBox[P, B]] = ???
+
+  def bytes[P <: Proposition, B <: Box[P]](box: WalletBox[P, B]): Array[Byte] = ???
+}
+
+case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](proposition: P,
+                                                                     tx: TX,
+                                                                     blockId: Option[NodeViewModifier.ModifierId],
+                                                                     createdAt: Long)
+//todo: for Dmitry
+object WalletTransaction {
+  def parse[P <: Proposition, TX <: Transaction[P]](bytes: Array[Byte]): Try[WalletTransaction[P, TX]] = ???
+
+  def bytes[P <: Proposition, TX <: Transaction[P]](box: WalletTransaction[P, TX]): Array[Byte] = ???
+}
+
 
 /**
   * Abstract interface for a wallet
@@ -25,7 +45,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P], W <: Wallet[P, TX, W]]
 
   def historyTransactions: Seq[WalletTransaction[P, TX]]
 
-  def boxes(): Seq[WalletBox[P]]
+  def boxes(): Seq[WalletBox[P, _ <: Box[P]]]
 
   def publicKeys: Set[PI]
 
