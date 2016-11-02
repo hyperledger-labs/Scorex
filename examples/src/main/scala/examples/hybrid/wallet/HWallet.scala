@@ -1,13 +1,16 @@
 package examples.hybrid.wallet
 
+import java.io.File
+
 import com.google.common.primitives.Ints
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.HybridPersistentNodeViewModifier
 import examples.hybrid.state.SimpleBoxTransaction
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import org.mapdb.{DB, Serializer}
+import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
@@ -101,5 +104,24 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 }
 
 object HWallet {
-  def emptyWallet: HWallet = ??? //HWallet()
+
+  def emptyWallet(settings: Settings): HWallet = {
+    val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
+    val dataDir = dataDirOpt.get
+
+    val wFile = new File(s"$dataDir/walletboxes")
+    wFile.mkdirs()
+    val boxesStorage = new LSMStore(wFile)
+
+    val mFile = new File(s"$dataDir/walletmeta")
+    mFile.mkdirs()
+
+    val metaDb =
+      DBMaker.fileDB(mFile)
+        .fileMmapEnableIfSupported()
+        .closeOnJvmShutdown()
+        .make()
+
+    HWallet(settings.walletSeed, boxesStorage, metaDb)
+  }
 }
