@@ -18,7 +18,7 @@ with HybridGenerators {
 
   property("WalletBox serialization") {
     forAll(walletBoxGen) { b: WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox] =>
-      val parsed = WalletBox.parse(WalletBox.bytes(b))(PublicKey25519NoncedBox.parseBytes).get
+      val parsed = WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](WalletBox.bytes(b))(PublicKey25519NoncedBox.parseBytes).get
       WalletBox.bytes(parsed) shouldEqual WalletBox.bytes(b)
     }
   }
