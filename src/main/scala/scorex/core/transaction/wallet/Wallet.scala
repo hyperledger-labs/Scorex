@@ -1,7 +1,7 @@
 package scorex.core.transaction.wallet
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
-import scorex.core.NodeViewModifier
+import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
@@ -83,8 +83,9 @@ object WalletTransaction {
   * @tparam P
   * @tparam TX
   */
-trait Wallet[P <: Proposition, TX <: Transaction[P], W <: Wallet[P, TX, W]]
-  extends Vault[P, TX, W] {
+trait Wallet[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P,TX], W <: Wallet[P, TX, PMOD, W]]
+  extends Vault[P, TX, PMOD, W] {
+  self: W =>
 
   type S <: Secret
   type PI <: ProofOfKnowledgeProposition[S]

@@ -39,7 +39,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   type SI <: SyncInfo
   type HIS <: History[P, TX, PMOD, SI, HIS]
   type MS <: MinimalState[P, _, TX, PMOD, MS]
-  type VL <: Vault[P, TX, VL]
+  type VL <: Vault[P, TX, PMOD, VL]
   type MP <: MemoryPool[TX, MP]
 
 
@@ -81,7 +81,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! signal)
 
   private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
-    val updWallet = vault().scan(tx, offchain = true)
+    val updWallet = vault().scanOffchain(tx)
     memoryPool().put(tx) match {
       case Success(updPool) =>
         nodeView = (history(), minimalState(), updWallet, updPool)
@@ -109,15 +109,15 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           case Success(newMinState) =>
             val rolledBackTxs = maybeRollback.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
 
-            val appliedTxs = maybeRollback.map(rb =>
-              rb.applied.flatMap(_.transactions).flatten).getOrElse(Seq()
-            ) ++ pmod.transactions.getOrElse(Seq())
+            val appliedMods = maybeRollback.map(_.applied).getOrElse(Seq()) ++ Seq(pmod)
+
+            val appliedTxs = appliedMods.flatMap(_.transactions).flatten
 
             val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter(appliedTxs)
 
             val newWallet = maybeRollback
               .map(rb => vault().rollback(rb.to).get) //we consider that vault always able to perform a rollback needed
-              .map(w => w.bulkScan(appliedTxs, offchain = false))
+              .map(w => w.scanPersistent(appliedMods))
               .getOrElse(vault())
 
             log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")

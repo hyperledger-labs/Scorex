@@ -2,8 +2,9 @@ package examples.hybrid.wallet
 
 import com.google.common.primitives.Ints
 import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.hybrid.blocks.HybridPersistentNodeViewModifier
 import examples.hybrid.state.SimpleBoxTransaction
-import io.iohk.iodb.LSMStore
+import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, Serializer}
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
@@ -22,7 +23,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    boxIndexes: LSMStore,
                    metaDb: DB
                   )
-  extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HWallet] {
+  extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HWallet] {
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
@@ -44,6 +45,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   //not implemented intentionally for now
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleBoxTransaction]] = ???
 
+  
   override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = ???
 
   override def publicKeys: Set[PublicKey25519Proposition] =
@@ -55,12 +57,27 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
     Option(secretsMap.get(publicImage.bytes)).map(priv => PrivateKey25519(priv, publicImage.bytes))
 
-  override def scan(tx: SimpleBoxTransaction, offchain: Boolean): HWallet = {
-    val newBoxes = tx.newBoxes
-    ???
+  //we do not process offchain (e.g. by adding them to the wallet)
+  override def scanOffchain(tx: SimpleBoxTransaction): HWallet = this
+
+  override def scanOffchain(txs: Seq[SimpleBoxTransaction]): HWallet = this
+
+
+  override def scanPersistent(modifier: HybridPersistentNodeViewModifier): HWallet = {
+    val txs = modifier.transactions.getOrElse(Seq())
+
+    val newBoxes = txs.flatMap(_.newBoxes.map(box => ByteArrayWrapper(box.id) -> ByteArrayWrapper(box.bytes)))
+    val boxIdsToRemove = txs.flatMap(_.boxIdsToOpen).map(ByteArrayWrapper)
+    val newVersion = boxStore.lastVersion + 1
+
+    boxStore.update(newVersion, boxIdsToRemove, newBoxes)
+
+    dbVersions.put(modifier.id, newVersion)
+
+    metaDb.commit()
+    HWallet(seed, boxStore, boxIndexes, metaDb)
   }
 
-  override def bulkScan(txs: Seq[SimpleBoxTransaction], offchain: Boolean): HWallet = ???
 
   private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
 
