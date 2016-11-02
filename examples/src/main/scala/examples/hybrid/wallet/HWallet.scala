@@ -4,8 +4,10 @@ import java.io.File
 
 import com.google.common.primitives.Ints
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.blocks.HybridPersistentNodeViewModifier
+import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock}
+import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.SimpleBoxTransaction
+import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
@@ -13,6 +15,7 @@ import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 import scorex.utils.Random
@@ -109,13 +112,13 @@ object HWallet {
   def emptyWallet(settings: Settings): HWallet = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
+    new File(dataDir).mkdirs()
 
     val wFile = new File(s"$dataDir/walletboxes")
     wFile.mkdirs()
     val boxesStorage = new LSMStore(wFile)
 
     val mFile = new File(s"$dataDir/walletmeta")
-    mFile.mkdirs()
 
     val metaDb =
       DBMaker.fileDB(mFile)
@@ -125,4 +128,35 @@ object HWallet {
 
     HWallet(settings.walletSeed, boxesStorage, metaDb)
   }
+}
+
+
+//todo: convert to a test
+object WalletPlayground extends App {
+  val settings = new Settings with MiningSettings {
+    override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
+  }
+
+  val w = HWallet.emptyWallet(settings).generateNewSecret().generateNewSecret()
+
+  assert(w.secrets.size == 2)
+
+  val fs = w.secrets.head
+  val ss = w.secrets.tail.head
+
+  val from = IndexedSeq(fs -> 500L, ss -> 1000L)
+  val to = IndexedSeq(ss.publicImage -> 1500L)
+  val fee = 500L
+  val timestamp = System.currentTimeMillis()
+
+  val tx = SimpleBoxTransaction(from, to, fee, timestamp)
+
+  val za = Array.fill(32)(0:Byte)
+
+  val pb = PosBlock(za, System.currentTimeMillis(), Seq(tx), fs.publicImage, Signature25519(za))
+
+  w.scanPersistent(pb)
+
+  println(w.boxes().head)
+
 }

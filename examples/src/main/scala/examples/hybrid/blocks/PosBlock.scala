@@ -27,7 +27,7 @@ Block[PublicKey25519Proposition, SimpleBoxTransaction] {
 
   override type BlockFields = BlockId :: Timestamp :: Seq[SimpleBoxTransaction] :: PublicKey25519Proposition :: Signature25519 :: HNil
 
-  override lazy val transactions: Some[Seq[SimpleBoxTransaction]] = Some(txs)
+  override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = Some(txs)
 
   override lazy val companion = PosBlockCompanion
 
@@ -52,6 +52,8 @@ object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
   }
 
   override def parse(bytes: Array[Version]): Try[PosBlock] = Try {
+    assert(bytes.length <= PosBlock.MaxBlockSize)
+
     val parentId = bytes.slice(0, BlockIdLength)
     var position = BlockIdLength
     val timestamp = Longs.fromByteArray(bytes.slice(position, position + 8))
@@ -78,7 +80,6 @@ object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
 }
 
 object PosBlock {
-  val MaxBlockSize = 65536
-  //64K
+  val MaxBlockSize = 65535          //64K
   val ModifierTypeId = 4: Byte
 }
