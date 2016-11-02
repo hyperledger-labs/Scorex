@@ -1,7 +1,7 @@
 package examples.hybrid.blocks
 
-import com.google.common.primitives.Longs
-import examples.hybrid.state.SimpleBoxTransaction
+import com.google.common.primitives.{Bytes, Ints, Longs}
+import examples.hybrid.state.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Json
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.NodeViewModifierCompanion
@@ -10,6 +10,7 @@ import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.crypto.signatures.Curve25519
 import shapeless.{::, HNil}
 
 import scala.util.Try
@@ -20,7 +21,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
                     generator: PublicKey25519Proposition,
                     signature: Signature25519
                    ) extends HybridPersistentNodeViewModifier with
-  Block[PublicKey25519Proposition, SimpleBoxTransaction] {
+Block[PublicKey25519Proposition, SimpleBoxTransaction] {
   override type M = PosBlock
 
   override type BlockFields = BlockId :: Timestamp :: Seq[SimpleBoxTransaction] :: PublicKey25519Proposition :: Signature25519 :: HNil
@@ -42,14 +43,40 @@ case class PosBlock(override val parentId: BlockId, //PoW block
 }
 
 object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
-  //todo: for Dmitry
-  override def bytes(block: PosBlock): Array[Version] = ???
+  override def bytes(b: PosBlock): Array[Version] = {
+    val txsBytes = b.txs.foldLeft(Array[Byte]()) { (a, b) =>
+      Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
+    }
+    Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.generator.bytes, b.signature.bytes, txsBytes)
+  }
 
-  //todo: for Dmitry
-  override def parse(bytes: Array[Version]): Try[PosBlock] = ???
+  override def parse(bytes: Array[Version]): Try[PosBlock] = Try {
+    val parentId = bytes.slice(0, BlockIdLength)
+    var position = BlockIdLength
+    val timestamp = Longs.fromByteArray(bytes.slice(position, position + 8))
+    position = position + 8
+
+    val generator = PublicKey25519Proposition(bytes.slice(position, position + Curve25519.KeyLength))
+    position = position + Curve25519.KeyLength
+
+    val signature = Signature25519(bytes.slice(position, position + Signature25519.SignatureSize))
+    position = position + Signature25519.SignatureSize
+
+    def parseTxs(acc: Seq[SimpleBoxTransaction] = Seq()): Seq[SimpleBoxTransaction] = {
+      if (bytes.length > position) {
+        val l = Ints.fromByteArray(bytes.slice(position, position + 4))
+        val tx = SimpleBoxTransactionCompanion.parse(bytes.slice(position + 4, position + 4 + l)).get
+        position = position + 4 + l
+        parseTxs(tx +: acc)
+      } else acc
+    }
+    val txs: Seq[SimpleBoxTransaction] = parseTxs()
+    PosBlock(parentId, timestamp, txs, generator, signature)
+  }
 }
 
 object PosBlock {
-  val MaxBlockSize = 65536 //64K
+  val MaxBlockSize = 65536
+  //64K
   val ModifierTypeId = 4: Byte
 }
