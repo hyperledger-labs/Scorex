@@ -7,7 +7,6 @@ import io.iohk.iodb.LSMStore
 import org.mapdb.{DB, Serializer}
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
-import scorex.core.transaction.Transaction._
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
@@ -15,25 +14,23 @@ import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 import scorex.utils.Random
 
 import scala.util.Try
+import scala.collection.JavaConversions._
 
 
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
-                   txStore: LSMStore,
-                   txIndexes: LSMStore,
                    boxStore: LSMStore,
                    boxIndexes: LSMStore,
                    metaDb: DB
                   )
-  extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HWallet]  {
+  extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HWallet] {
+
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
 
-  val chainTransactions: Map[TransactionId, SimpleBoxTransaction] = Map()
-  val offchainTransactions: Map[TransactionId, SimpleBoxTransaction] = Map()
-  val currentBalance: Long = 0
-
   lazy val seedAppendix = metaDb.atomicInteger("seedAppendix", 0).createOrOpen()
   lazy val secretsMap = metaDb.treeMap("secrets", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
+
+  lazy val dbVersions = metaDb.hashMap("versions", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
 
   override def generateNewSecret(): HWallet = {
     val apdx = seedAppendix.incrementAndGet()
@@ -41,18 +38,19 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val (priv, pub) = PrivateKey25519Companion.generateKeys(s)
     secretsMap.put(pub.bytes, priv.bytes)
     metaDb.commit()
-    HWallet(seed, txStore, txIndexes, boxStore, boxIndexes, metaDb)
+    HWallet(seed, boxStore, boxIndexes, metaDb)
   }
 
-  override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleBoxTransaction]] = {
-    ???
-  }
+  //not implemented intentionally for now
+  override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleBoxTransaction]] = ???
 
   override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = ???
 
-  override def publicKeys: Set[PublicKey25519Proposition] = ???
+  override def publicKeys: Set[PublicKey25519Proposition] =
+    secretsMap.keyIterator().map(ba => PublicKey25519Proposition(ba)).toSet
 
-  override def secrets: Set[PrivateKey25519] = ???
+  override def secrets: Set[PrivateKey25519] =
+    secretsMap.iterator.map { case (pubK, privK) => PrivateKey25519(privK, pubK) }.toSet
 
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
     Option(secretsMap.get(publicImage.bytes)).map(priv => PrivateKey25519(priv, publicImage.bytes))
@@ -64,8 +62,12 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def bulkScan(txs: Seq[SimpleBoxTransaction], offchain: Boolean): HWallet = ???
 
-  override def rollback(to: VersionTag): Try[HWallet] = {
-    ???
+  private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
+
+  override def rollback(to: VersionTag): Try[HWallet] = Try {
+    boxStore.rollback(dbVersion(to))
+    boxIndexes.rollback(dbVersion(to))
+    HWallet(seed, boxStore, boxIndexes, metaDb)
   }
 
   override type NVCT = this.type
