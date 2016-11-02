@@ -73,7 +73,6 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def scanOffchain(txs: Seq[SimpleBoxTransaction]): HWallet = this
 
-
   override def scanPersistent(modifier: HybridPersistentNodeViewModifier): HWallet = {
     val txs = modifier.transactions.getOrElse(Seq())
 
@@ -128,6 +127,12 @@ object HWallet {
 
     HWallet(settings.walletSeed, boxesStorage, metaDb)
   }
+
+  //wallet with 10 accounts
+  def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
+    (1 to 10).foldLeft(emptyWallet(settings)) { case (w, _) =>
+      w.generateNewSecret()
+    }.scanPersistent(initialBlock)
 }
 
 
@@ -151,7 +156,7 @@ object WalletPlayground extends App {
 
   val tx = SimpleBoxTransaction(from, to, fee, timestamp)
 
-  val za = Array.fill(32)(0:Byte)
+  val za = Array.fill(32)(0: Byte)
 
   val pb = PosBlock(za, System.currentTimeMillis(), Seq(tx), fs.publicImage, Signature25519(za))
 

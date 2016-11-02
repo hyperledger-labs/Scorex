@@ -5,6 +5,7 @@ import java.io.File
 import com.google.common.primitives.Longs
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
+import examples.hybrid.wallet.HWallet
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
@@ -109,4 +110,7 @@ object SimpleBoxStoredState {
 
     SimpleBoxStoredState(stateStorage, metaDb, Array.emptyByteArray)
   }
+
+  def genesisState(settings: Settings, initialBlock: PosBlock): SimpleBoxStoredState =
+    emptyState(settings).applyModifier(initialBlock).get
 }
