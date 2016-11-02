@@ -3,7 +3,7 @@ package examples.hybrid
 import akka.actor.{ActorRef, Props}
 import examples.hybrid.blocks.HybridPersistentNodeViewModifier
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSpec}
-import examples.hybrid.mining.{MiningSettings, PowMiner}
+import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import scorex.core.api.http.{ApiRoute, UtilsApiRoute}
@@ -37,13 +37,17 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
 
-  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[HLocalInterface], nodeViewHolderRef))
+  lazy val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
+  lazy val forger = actorSystem.actorOf(Props(classOf[PosForger], nodeViewHolderRef))
+
+  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[HLocalInterface], nodeViewHolderRef, miner, forger))
 
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoSpec.type]],
       networkController, nodeViewHolderRef, localInterface, HybridSyncInfoSpec))
 
-  val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
+  //touching lazy val
+  miner
 }
 
 object HybridApp extends App {

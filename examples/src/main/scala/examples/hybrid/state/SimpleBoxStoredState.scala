@@ -93,12 +93,13 @@ object SimpleBoxStoredState {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
 
+    new File(dataDir).mkdirs()
+
     val iFile = new File(s"$dataDir/state")
     iFile.mkdirs()
     val stateStorage = new LSMStore(iFile)
 
     val mFile = new File(s"$dataDir/statemeta")
-    mFile.mkdirs()
 
     val metaDb =
       DBMaker.fileDB(mFile)
