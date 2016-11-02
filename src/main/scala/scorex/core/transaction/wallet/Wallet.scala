@@ -9,7 +9,9 @@ import scorex.core.transaction.state.Secret
 
 import scala.util.Try
 
-case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
+case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long){
+  lazy val bytes = WalletBox.bytes(this)
+}
 
 object WalletBox {
   def parse[P <: Proposition, B <: Box[P]](bytes: Array[Byte])(boxDeserializer: Array[Byte] => Try[B]): Try[WalletBox[P, B]] = Try {

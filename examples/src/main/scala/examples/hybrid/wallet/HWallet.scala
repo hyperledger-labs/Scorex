@@ -20,9 +20,7 @@ import scala.collection.JavaConversions._
 
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    boxStore: LSMStore,
-                   boxIndexes: LSMStore,
-                   metaDb: DB
-                  )
+                   metaDb: DB)
   extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HWallet] {
 
   override type S = PrivateKey25519
@@ -33,20 +31,27 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   lazy val dbVersions = metaDb.hashMap("versions", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
 
+  lazy val boxIds = metaDb.treeSet("ids", Serializer.BYTE_ARRAY).createOrOpen()
+
   override def generateNewSecret(): HWallet = {
     val apdx = seedAppendix.incrementAndGet()
     val s = FastCryptographicHash(seed ++ Ints.toByteArray(apdx))
     val (priv, pub) = PrivateKey25519Companion.generateKeys(s)
     secretsMap.put(pub.bytes, priv.bytes)
     metaDb.commit()
-    HWallet(seed, boxStore, boxIndexes, metaDb)
+    HWallet(seed, boxStore, metaDb)
   }
 
   //not implemented intentionally for now
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleBoxTransaction]] = ???
 
-  
-  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = ???
+  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+    boxIds
+      .flatMap(id => Option(boxStore.get(ByteArrayWrapper(id))))
+      .map(_.data)
+      .map(ba => WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](ba)(PublicKey25519NoncedBox.parseBytes))
+      .map(_.get)
+      .toSeq
 
   override def publicKeys: Set[PublicKey25519Proposition] =
     secretsMap.keyIterator().map(ba => PublicKey25519Proposition(ba)).toSet
@@ -66,7 +71,12 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   override def scanPersistent(modifier: HybridPersistentNodeViewModifier): HWallet = {
     val txs = modifier.transactions.getOrElse(Seq())
 
-    val newBoxes = txs.flatMap(_.newBoxes.map(box => ByteArrayWrapper(box.id) -> ByteArrayWrapper(box.bytes)))
+    val newBoxes = txs.flatMap { tx =>
+      tx.newBoxes.map { box =>
+        boxIds.add(box.id)
+        ByteArrayWrapper(box.id) -> ByteArrayWrapper(WalletBox(box, tx.id, tx.timestamp).bytes)
+      }
+    }
     val boxIdsToRemove = txs.flatMap(_.boxIdsToOpen).map(ByteArrayWrapper)
     val newVersion = boxStore.lastVersion + 1
 
@@ -75,16 +85,14 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     dbVersions.put(modifier.id, newVersion)
 
     metaDb.commit()
-    HWallet(seed, boxStore, boxIndexes, metaDb)
+    HWallet(seed, boxStore, metaDb)
   }
-
 
   private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
 
   override def rollback(to: VersionTag): Try[HWallet] = Try {
     boxStore.rollback(dbVersion(to))
-    boxIndexes.rollback(dbVersion(to))
-    HWallet(seed, boxStore, boxIndexes, metaDb)
+    HWallet(seed, boxStore, metaDb)
   }
 
   override type NVCT = this.type
