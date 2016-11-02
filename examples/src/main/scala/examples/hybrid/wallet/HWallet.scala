@@ -77,7 +77,8 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val newBoxes = txs.flatMap { tx =>
       tx.newBoxes.map { box =>
         boxIds.add(box.id)
-        ByteArrayWrapper(box.id) -> ByteArrayWrapper(WalletBox(box, tx.id, tx.timestamp).bytes)
+        val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id, tx.timestamp)
+        ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
       }
     }
     val boxIdsToRemove = txs.flatMap(_.boxIdsToOpen).map(ByteArrayWrapper)

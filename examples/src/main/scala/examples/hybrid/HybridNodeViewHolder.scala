@@ -30,7 +30,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   override protected def genesisState: (HIS, MS, VL, MP) = (
     HybridHistory.emptyHistory(settings),
     SimpleBoxStoredState.emptyState(settings),
-    HWallet.emptyWallet,
+    HWallet.emptyWallet(settings),
     HMemPool.emptyPool
     )
 
