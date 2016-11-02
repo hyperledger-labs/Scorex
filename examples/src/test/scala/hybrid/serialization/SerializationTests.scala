@@ -1,5 +1,6 @@
 package hybrid.serialization
 
+import examples.hybrid.blocks.PosBlock
 import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.state.SimpleBoxTransaction
 import hybrid.HybridGenerators
@@ -11,6 +12,13 @@ with PropertyChecks
 with GeneratorDrivenPropertyChecks
 with Matchers
 with HybridGenerators {
+
+  property("PosBlock serialization") {
+    forAll(posBlockGen) { b: PosBlock =>
+      val parsed = b.companion.parse(b.bytes).get
+      parsed.bytes shouldEqual b.bytes
+    }
+  }
 
   property("SimpleBoxTransaction serialization") {
     forAll(simpleBoxTransactionGen) { b: SimpleBoxTransaction =>

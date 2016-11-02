@@ -1,10 +1,13 @@
 package hybrid
 
+import examples.hybrid.blocks.PosBlock
 import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.state.SimpleBoxTransaction
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.ObjectGenerators
 import scorex.core.NodeViewModifier
+import scorex.core.block.Block
+import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 
@@ -30,4 +33,11 @@ trait HybridGenerators extends ObjectGenerators {
     to: IndexedSeq[(PublicKey25519Proposition, Long)] <- Gen.listOf(pGen).map(_.toIndexedSeq)
   } yield SimpleBoxTransaction(from, to, signatures, fee, timestamp)
 
+  val posBlockGen: Gen[PosBlock] = for {
+    parentId: BlockId <- genBytesList(Block.BlockIdLength)
+    timestamp: Long <- positiveLongGen
+    txs: Seq[SimpleBoxTransaction] <- Gen.listOf(simpleBoxTransactionGen)
+    generator: PublicKey25519Proposition <- propositionGen
+    signature: Signature25519 <- signatureGen
+  } yield PosBlock(parentId, timestamp, txs, generator, signature)
 }
