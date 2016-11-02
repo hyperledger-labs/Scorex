@@ -17,9 +17,6 @@ import scorex.utils.Random
 import scala.util.Try
 
 
-
-
-
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    txStore: LSMStore,
                    txIndexes: LSMStore,
@@ -60,7 +57,10 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
     Option(secretsMap.get(publicImage.bytes)).map(priv => PrivateKey25519(priv, publicImage.bytes))
 
-  override def scan(tx: SimpleBoxTransaction, offchain: Boolean): HWallet = ???
+  override def scan(tx: SimpleBoxTransaction, offchain: Boolean): HWallet = {
+    val newBoxes = tx.newBoxes
+    ???
+  }
 
   override def bulkScan(txs: Seq[SimpleBoxTransaction], offchain: Boolean): HWallet = ???
 
