@@ -3,7 +3,7 @@ package examples.hybrid
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock}
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
-import examples.hybrid.state.{SimpleBoxStoredState, SimpleBoxTransaction}
+import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
 import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
 import scorex.core.NodeViewModifier.ModifierTypeId
@@ -21,7 +21,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   override type SI = HybridSyncInfo
 
   override type HIS = HybridHistory
-  override type MS = SimpleBoxStoredState
+  override type MS = HBoxStoredState
   override type VL = HWallet
   override type MP = HMemPool
 
@@ -42,7 +42,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     val za = Array.fill(32)(0:Byte)
     val initialBlock = PosBlock(za, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
-    val gs = SimpleBoxStoredState.genesisState(settings, initialBlock)
+    val gs = HBoxStoredState.genesisState(settings, initialBlock)
     val gw = HWallet.genesisWallet(settings, initialBlock)
 
     (HybridHistory.emptyHistory(settings), gs, gw, HMemPool.emptyPool)

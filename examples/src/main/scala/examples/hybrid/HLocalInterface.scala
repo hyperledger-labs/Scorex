@@ -28,7 +28,7 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
     mod match {
       case wb: PowBlock =>
         powMinerRef ! StopMining
-        posForgerRef ! StartForging(wb.id)
+        posForgerRef ! StartForging
 
       case sb: PosBlock =>
         posForgerRef ! StopForging

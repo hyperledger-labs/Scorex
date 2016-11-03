@@ -5,7 +5,6 @@ import java.io.File
 import com.google.common.primitives.Longs
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
-import examples.hybrid.wallet.HWallet
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
@@ -20,14 +19,14 @@ import scala.util.{Success, Try}
 //todo: alter to have coinbase
 object PowChanges extends StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set())
 
-case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val version: VersionTag) extends
+case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: VersionTag) extends
   BoxMinimalState[PublicKey25519Proposition,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
     HybridPersistentNodeViewModifier,
-    SimpleBoxStoredState] {
+    HBoxStoredState] {
 
-  override type NVCT = SimpleBoxStoredState
+  override type NVCT = HBoxStoredState
   type HPMOD = HybridPersistentNodeViewModifier
 
   //blockId(state version) -> dbversion index, as IODB uses long int version
@@ -70,7 +69,7 @@ case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val versio
   }
 
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
-                            newVersion: VersionTag): Try[SimpleBoxStoredState] = Try {
+                            newVersion: VersionTag): Try[HBoxStoredState] = Try {
     val newDbVersion = store.lastVersion + 1
     dbVersions.put(newVersion, newDbVersion)
     val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
@@ -78,19 +77,19 @@ case class SimpleBoxStoredState(store: LSMStore, metaDb: DB, override val versio
 
     store.update(newDbVersion, boxIdsToRemove, boxesToAdd)
     metaDb.commit()
-    SimpleBoxStoredState(store, metaDb, newVersion)
+    HBoxStoredState(store, metaDb, newVersion)
   }
 
-  override def rollbackTo(version: VersionTag): Try[SimpleBoxStoredState] = Try {
+  override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
     store.rollback(dbVersion(version))
-    new SimpleBoxStoredState(store, metaDb, version)
+    new HBoxStoredState(store, metaDb, version)
   }
 
   override def companion: NodeViewComponentCompanion = ???
 }
 
-object SimpleBoxStoredState {
-  def emptyState(settings: Settings): SimpleBoxStoredState = {
+object HBoxStoredState {
+  def emptyState(settings: Settings): HBoxStoredState = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
 
@@ -108,9 +107,9 @@ object SimpleBoxStoredState {
         .closeOnJvmShutdown()
         .make()
 
-    SimpleBoxStoredState(stateStorage, metaDb, Array.emptyByteArray)
+    HBoxStoredState(stateStorage, metaDb, Array.emptyByteArray)
   }
 
-  def genesisState(settings: Settings, initialBlock: PosBlock): SimpleBoxStoredState =
+  def genesisState(settings: Settings, initialBlock: PosBlock): HBoxStoredState =
     emptyState(settings).applyModifier(initialBlock).get
 }

@@ -4,8 +4,9 @@ package examples.hybrid.history
 import java.io.File
 
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock, PowBlockCompanion}
-import examples.hybrid.mining.PowMiner
+import examples.hybrid.mining.{MiningSettings, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
+import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
@@ -138,6 +139,20 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     } else suffixesAfterCommonBlock(blockById(c1h).get.parentId +: winnerChain, blockById(c2h).get.parentId +: loserChain)
   }
 
+  private def writeBlock(b: HybridPersistentNodeViewModifier) = {
+    val typeByte = b match {
+      case _: PowBlock =>
+        PowBlock.ModifierTypeId
+      case _: PosBlock =>
+        PosBlock.ModifierTypeId
+    }
+
+    blocksStorage.update(
+      blocksStorage.lastVersion + 1,
+      Seq(),
+      Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
+  }
+
   /**
     *
     * @param block - block to append
@@ -153,13 +168,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
           blockScores.get(powBlock.parentId): Long
         } else 0L
 
-        //update block storage and the scoring index
+        //update block storage and the scores index
         val blockId = powBlock.id
 
-        blocksStorage.update(
-          blocksStorage.lastVersion + 1,
-          Seq(),
-          Seq(ByteArrayWrapper(blockId) -> ByteArrayWrapper(powBlock.bytes)))
+        writeBlock(powBlock)
 
         val blockScore = score + 1
         blockScores.put(blockId, blockScore)
@@ -201,6 +213,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
           }
         }
         (new HybridHistory(blocksStorage, metaDb), rollbackOpt)
+
+
       case posBlock: PosBlock =>
         checkPoSConsensusRules(posBlock)
 
@@ -209,6 +223,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
         val blockId = posBlock.id
 
         forwardPosLinks.put(powParent, blockId)
+
+        writeBlock(posBlock)
 
         if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
         (new HybridHistory(blocksStorage, metaDb), None) //no rollback ever
@@ -295,4 +311,20 @@ object HybridHistory {
 
     new HybridHistory(blockStorage, metaDb)
   }
+}
+
+
+//todo: convert to a test
+object HistoryPlayground extends App {
+  val settings = new Settings with MiningSettings {
+    override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
+  }
+
+  val b = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L)
+
+  val h = HybridHistory.emptyHistory(settings)
+
+  val h2 = h.append(b).get._1
+
+  assert(h2.blockById(b.id).isDefined)
 }
