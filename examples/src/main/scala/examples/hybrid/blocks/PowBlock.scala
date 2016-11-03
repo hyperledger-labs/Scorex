@@ -64,7 +64,7 @@ object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {
   }
 
   def workDone(id: Array[Byte]): Boolean =
-    BigInt(1, id) < PowMiner.Difficulty
+    id.take(PowMiner.LeadingZeroes).forall(_ == 0)
 }
 
 object PowBlock {

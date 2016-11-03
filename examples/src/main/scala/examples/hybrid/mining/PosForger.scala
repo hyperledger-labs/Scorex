@@ -37,9 +37,9 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
 
-      def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox) = {
+      def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox):Long = {
         val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
-        Longs.fromByteArray(h.take(8))
+        Longs.fromByteArray((0: Byte) +: h.take(7))
       }
 
       val boxes = w.boxes()
@@ -47,8 +47,10 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
       val powBlock = h.bestPowBlock
 
       val hitOpt = boxes.map(_.box).map { box =>
-        box.proposition -> hit(powBlock)(box)
-      }.find(_._2 > PosDifficulty).map { case (gen, _) =>
+        val h = hit(powBlock)(box)
+        println("hit: " + h)
+        (box.proposition, box.value, h)
+      }.find(t => t._3 < t._2 * PosTarget).map { case (gen, _, _) =>
         val txsToInclude = pickTransactions(m, s)
 
         PosBlock(
@@ -73,10 +75,9 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 }
 
 object PosForger {
-  val PosDifficulty = 317429201286551790L
+  val PosTarget = 9429201286L
 
   case object StartForging
 
   case object StopForging
-
 }

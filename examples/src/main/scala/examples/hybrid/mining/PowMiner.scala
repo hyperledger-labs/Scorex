@@ -46,6 +46,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
       cancellableOpt = Some(Cancellable.run() { status =>
         Future {
           var foundBlock: Option[PowBlock] = None
+          var attemps = 0
 
           while (status.nonCancelled && foundBlock.isEmpty) {
             val nonce = Random.nextLong()
@@ -57,7 +58,10 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
               if (b.correctWork) {
                 Some(b)
               } else {
-                println(s"tried: $nonce $ts")
+                attemps = attemps + 1
+                if (attemps % 100 == 99) {
+                  println("100 hashes tried")
+                }
                 None
               }
           }
@@ -83,7 +87,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
 }
 
 object PowMiner extends App {
-  lazy val Difficulty = BigInt(848376755153961272L).pow(4)
+  lazy val LeadingZeroes = 2
 
   lazy val GenesisParentId = Array.fill(32)(1: Byte)
 
@@ -92,4 +96,5 @@ object PowMiner extends App {
   case class StartMining(parentId: BlockId, prevPosId: BlockId)
 
   case object StopMining
+
 }
