@@ -21,7 +21,8 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
       viewHolderRef ! GetCurrentView
 
     case CurrentView(_, _, w: HWallet, _) =>
-      w.boxes()
+      println("boxes: "+w.boxes().size)
+      System.exit(150)
 
     case StopForging =>
       forging = false

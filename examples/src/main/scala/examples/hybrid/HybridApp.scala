@@ -35,10 +35,10 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoSpec)
 
-  override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
+  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
 
-  lazy val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
-  lazy val forger = actorSystem.actorOf(Props(classOf[PosForger], nodeViewHolderRef))
+  val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
+  val forger = actorSystem.actorOf(Props(classOf[PosForger], nodeViewHolderRef))
 
   override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[HLocalInterface], nodeViewHolderRef, miner, forger))
 

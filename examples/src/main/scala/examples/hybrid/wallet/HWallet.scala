@@ -9,7 +9,7 @@ import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import org.mapdb.{DB, DBMaker, Serializer}
+import org.mapdb.{DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
@@ -18,16 +18,25 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
+import scorex.crypto.encode.Base58
 import scorex.utils.Random
 
 import scala.util.Try
 import scala.collection.JavaConversions._
 
 
+//todo: file for MapDB database passed in here, while in other class just a database
+//todo: check and fix
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    boxStore: LSMStore,
-                   metaDb: DB)
+                   metaDbFile: File)
   extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HWallet] {
+
+  lazy val metaDb =
+    DBMaker.fileDB(metaDbFile)
+      .fileMmapEnableIfSupported()
+      .closeOnJvmShutdown()
+      .make()
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
@@ -45,7 +54,8 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val (priv, pub) = PrivateKey25519Companion.generateKeys(s)
     secretsMap.put(pub.bytes, priv.bytes)
     metaDb.commit()
-    HWallet(seed, boxStore, metaDb)
+    metaDb.close()
+    HWallet(seed, boxStore, metaDbFile)
   }
 
   //not implemented intentionally for now
@@ -79,6 +89,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val newBoxes = txs.flatMap { tx =>
       tx.newBoxes.map { box =>
         boxIds.add(box.id)
+        println("box id: " + Base58.encode(box.id))
         val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id, tx.timestamp)
         ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
       }
@@ -91,14 +102,15 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     dbVersions.put(modifier.id, newVersion)
 
     metaDb.commit()
-    HWallet(seed, boxStore, metaDb)
+    metaDb.close()
+    HWallet(seed, boxStore, metaDbFile)
   }
 
   private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
 
   override def rollback(to: VersionTag): Try[HWallet] = Try {
     boxStore.rollback(dbVersion(to))
-    HWallet(seed, boxStore, metaDb)
+    HWallet(seed, boxStore, metaDbFile)
   }
 
   override type NVCT = this.type
@@ -108,7 +120,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
 object HWallet {
 
-  def emptyWallet(settings: Settings): HWallet = {
+  def emptyWallet(settings: Settings, appendix:String): HWallet = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
     new File(dataDir).mkdirs()
@@ -117,22 +129,19 @@ object HWallet {
     wFile.mkdirs()
     val boxesStorage = new LSMStore(wFile)
 
-    val mFile = new File(s"$dataDir/walletmeta")
+    val mFile = new File(s"$dataDir/walletmeta" + appendix)
 
-    val metaDb =
-      DBMaker.fileDB(mFile)
-        .fileMmapEnableIfSupported()
-        .closeOnJvmShutdown()
-        .make()
-
-    HWallet(settings.walletSeed, boxesStorage, metaDb)
+    HWallet(settings.walletSeed, boxesStorage, mFile)
   }
 
-  //wallet with 10 accounts
-  def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
-    (1 to 10).foldLeft(emptyWallet(settings)) { case (w, _) =>
+  def emptyWallet(settings: Settings, appendix:String, accounts: Int): HWallet =
+    (1 to 10).foldLeft(emptyWallet(settings, appendix)) { case (w, _) =>
       w.generateNewSecret()
-    }.scanPersistent(initialBlock)
+    }
+
+  //wallet with 10 accounts and initial data processed
+  def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
+    emptyWallet(settings, "", 10).scanPersistent(initialBlock)
 }
 
 
@@ -142,7 +151,7 @@ object WalletPlayground extends App {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
   }
 
-  val w = HWallet.emptyWallet(settings).generateNewSecret().generateNewSecret()
+  val w = HWallet.emptyWallet(settings, "p").generateNewSecret().generateNewSecret()
 
   assert(w.secrets.size == 2)
 
@@ -160,8 +169,5 @@ object WalletPlayground extends App {
 
   val pb = PosBlock(za, System.currentTimeMillis(), Seq(tx), fs.publicImage, Signature25519(za))
 
-  w.scanPersistent(pb)
-
-  println(w.boxes().head)
-
+  println(w.scanPersistent(pb).boxes().head)
 }

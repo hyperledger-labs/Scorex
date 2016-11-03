@@ -1,6 +1,6 @@
 package examples.hybrid
 
-import examples.hybrid.blocks.HybridPersistentNodeViewModifier
+import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock}
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{SimpleBoxStoredState, SimpleBoxTransaction}
@@ -9,6 +9,9 @@ import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.proof.Signature25519
+
+import scala.util.Random
 
 
 class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey25519Proposition,
@@ -27,12 +30,23 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   /**
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
-  override protected def genesisState: (HIS, MS, VL, MP) = (
-    HybridHistory.emptyHistory(settings),
-    SimpleBoxStoredState.emptyState(settings),
-    HWallet.emptyWallet(settings),
-    HMemPool.emptyPool
-    )
+  override protected def genesisState: (HIS, MS, VL, MP) = {
+    val ew = HWallet.emptyWallet(settings, "e", 10)
+
+    val genesisAccount = ew.secrets.head
+
+    val genesisTxs = ew.publicKeys.map{pubkey =>
+      SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 100000), 0L, 0L)
+    }.toSeq
+
+    val za = Array.fill(32)(0:Byte)
+    val initialBlock = PosBlock(za, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
+
+    val gs = SimpleBoxStoredState.genesisState(settings, initialBlock)
+    val gw = HWallet.genesisWallet(settings, initialBlock)
+
+    (HybridHistory.emptyHistory(settings), gs, gw, HMemPool.emptyPool)
+  }
 
   /**
     * Restore a local view during a node startup. If no any stored view found
