@@ -3,7 +3,8 @@ package examples.hybrid.history
 
 import java.io.File
 
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock, PowBlockCompanion}
+import com.sun.javafx.iio.ImageFormatDescription.Signature
+import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningSettings, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
@@ -15,6 +16,8 @@ import scorex.core.consensus.History
 import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.proof.Signature25519
+import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
 
 import scala.annotation.tailrec
@@ -90,7 +93,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
         case t: Byte if t == PowBlock.ModifierTypeId =>
           PowBlockCompanion.parse(bytes.tail)
         case t: Byte if t == PosBlock.ModifierTypeId =>
-          PowBlockCompanion.parse(bytes.tail)
+          PosBlockCompanion.parse(bytes.tail)
       }).toOption
     }
   }.getOrElse(None)
@@ -327,4 +330,22 @@ object HistoryPlayground extends App {
   val h2 = h.append(b).get._1
 
   assert(h2.blockById(b.id).isDefined)
+
+
+
+  val priv1 = PrivateKey25519Companion.generateKeys(Array.fill(32)(0: Byte))
+  val priv2 = PrivateKey25519Companion.generateKeys(Array.fill(32)(1: Byte))
+
+  val from = IndexedSeq(priv1._1 -> 500L, priv2._1 -> 1000L)
+  val to = IndexedSeq(priv2._2 -> 1500L)
+  val fee = 500L
+  val timestamp = System.currentTimeMillis()
+
+  val tx = SimpleBoxTransaction(from, to, fee, timestamp)
+
+  val posBlock = PosBlock(b.id, 0L, Seq(tx), priv1._2, Signature25519(Array.fill(Signature25519.SignatureSize)(0:Byte)))
+
+  val h3 = h2.append(posBlock).get._1
+
+  assert(h3.blockById(posBlock.id).isDefined)
 }

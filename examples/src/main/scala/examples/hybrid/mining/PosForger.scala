@@ -56,7 +56,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
           System.currentTimeMillis(),
           txsToInclude,
           gen,
-          Signature25519(Array.empty))
+          Signature25519(Array.fill(Signature25519.SignatureSize)(0:Byte)))
       } match {
         case Some(posBlock) =>
           viewHolderRef !
