@@ -3,12 +3,16 @@ package examples.hybrid.mining
 import akka.actor.{Actor, ActorRef}
 import com.google.common.primitives.Longs
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.blocks.PowBlock
+import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
-import examples.hybrid.state.{HBoxStoredState, HBoxStoredState$}
+import examples.hybrid.mempool.HMemPool
+import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
+import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.proof.Signature25519
 import scorex.core.utils.ScorexLogging
 
 
@@ -18,29 +22,50 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
   var forging = false
 
+  val TransactionsPerBlock = 50
+
+  def pickTransactions(memPool: HMemPool, state: HBoxStoredState): Seq[SimpleBoxTransaction] =
+    memPool.take(TransactionsPerBlock).filter { tx =>
+      tx.valid && tx.boxIdsToOpen.map(state.closedBox).forall(_.isDefined)
+    }.toSeq
+
+
   override def receive: Receive = {
     case StartForging =>
       forging = true
       viewHolderRef ! GetCurrentView
 
-    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, _) =>
+    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
 
-      def hit(box:PublicKey25519NoncedBox) = {
-        val h = FastCryptographicHash(box.bytes)  //pwb.bytes ++
+      def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox) = {
+        val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
         Longs.fromByteArray(h.take(8))
       }
 
       val boxes = w.boxes()
-      println("boxes: " + boxes.size)
 
-      val bw = h.bestPowBlock
+      val powBlock = h.bestPowBlock
 
-      boxes.map(_.box).map(hit).foreach{hit =>
-        println("hit: " + hit)
+      val hitOpt = boxes.map(_.box).map { box =>
+        box.proposition -> hit(powBlock)(box)
+      }.find(_._2 > PosDifficulty).map { case (gen, _) =>
+        val txsToInclude = pickTransactions(m, s)
+
+        PosBlock(
+          powBlock.id,
+          System.currentTimeMillis(),
+          txsToInclude,
+          gen,
+          Signature25519(Array.empty))
+      } match {
+        case Some(posBlock) =>
+          viewHolderRef !
+            LocallyGeneratedModifier[PublicKey25519Proposition,
+              SimpleBoxTransaction, HybridPersistentNodeViewModifier](posBlock)
+        case None =>
+          println("stuck")
+          System.exit(150)
       }
-
-
-      System.exit(150)
 
     case StopForging =>
       forging = false
@@ -48,6 +73,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 }
 
 object PosForger {
+  val PosDifficulty = 317429201286551790L
 
   case object StartForging
 
