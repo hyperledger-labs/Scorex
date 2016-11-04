@@ -75,7 +75,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 }
 
 object PosForger {
-  val PosTarget = 9429201286L
+  val PosTarget = 694292012860L
 
   case object StartForging
 

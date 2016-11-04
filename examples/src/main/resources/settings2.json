@@ -12,7 +12,7 @@
   },
   "walletDir": "/tmp/scorex/wallet2",
   "walletPassword": "cookies",
-  "walletSeed": "genesis2",
+  "walletSeed": "helloworld",
   "dataDir": "/tmp/scorex/data2",
   "rpcPort": 9089,
   "rpcAllowed": [],

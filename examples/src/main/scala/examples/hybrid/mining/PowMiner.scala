@@ -64,6 +64,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
                 }
                 None
               }
+            Thread.sleep(100) //10 hashes per second per node
           }
           p.success(foundBlock)
         }
@@ -87,7 +88,8 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
 }
 
 object PowMiner extends App {
-  lazy val LeadingZeroes = 2
+  lazy val MaxTarget = BigInt(1, Array.fill(32)(1:Byte))
+  lazy val Difficulty = 1
 
   lazy val GenesisParentId = Array.fill(32)(1: Byte)
 
@@ -96,5 +98,4 @@ object PowMiner extends App {
   case class StartMining(parentId: BlockId, prevPosId: BlockId)
 
   case object StopMining
-
 }

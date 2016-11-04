@@ -120,7 +120,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
 object HWallet {
 
-  def emptyWallet(settings: Settings, appendix:String): HWallet = {
+  def emptyWallet(settings: Settings, seed: String, appendix: String): HWallet = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
     new File(dataDir).mkdirs()
@@ -131,17 +131,26 @@ object HWallet {
 
     val mFile = new File(s"$dataDir/walletmeta" + appendix)
 
-    HWallet(settings.walletSeed, boxesStorage, mFile)
+    HWallet(Base58.decode(seed).get, boxesStorage, mFile)
   }
 
-  def emptyWallet(settings: Settings, appendix:String, accounts: Int): HWallet =
+  def emptyWallet(settings: Settings, appendix: String): HWallet = {
+    emptyWallet(settings, Base58.encode(settings.walletSeed), appendix)
+  }
+
+  def emptyWallet(settings: Settings, seed: String, appendix: String, accounts: Int): HWallet =
+    (1 to 10).foldLeft(emptyWallet(settings, seed, appendix)) { case (w, _) =>
+      w.generateNewSecret()
+    }
+
+  def emptyWallet(settings: Settings, appendix: String, accounts: Int): HWallet =
     (1 to 10).foldLeft(emptyWallet(settings, appendix)) { case (w, _) =>
       w.generateNewSecret()
     }
 
   //wallet with 10 accounts and initial data processed
   def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
-    emptyWallet(settings, "", 10).scanPersistent(initialBlock)
+  emptyWallet(settings, "", 10).scanPersistent(initialBlock)
 }
 
 

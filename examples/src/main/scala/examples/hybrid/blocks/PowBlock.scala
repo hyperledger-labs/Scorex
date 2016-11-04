@@ -1,7 +1,7 @@
 package examples.hybrid.blocks
 
 import com.google.common.primitives.Longs
-import examples.hybrid.mining.PowMiner
+import examples.hybrid.mining.PowMiner._
 import examples.hybrid.state.SimpleBoxTransaction
 import shapeless.{::, HNil}
 import io.circe.Json
@@ -63,8 +63,10 @@ object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {
     PowBlock(parentId, prevPosId, timestamp, nonce)
   }
 
-  def workDone(id: Array[Byte]): Boolean =
-    id.take(PowMiner.LeadingZeroes).forall(_ == 0)
+  def workDone(id: Array[Byte]): Boolean = {
+    val target = MaxTarget / Difficulty
+    BigInt(1, id) < target
+  }
 }
 
 object PowBlock {

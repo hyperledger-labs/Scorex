@@ -44,7 +44,6 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
       .map(PublicKey25519NoncedBox.parseBytes)
       .flatMap(_.toOption)
 
-
   //there's no an easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
