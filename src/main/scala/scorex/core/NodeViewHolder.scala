@@ -169,8 +169,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         case typeId: Byte if typeId == Transaction.ModifierTypeId =>
           memoryPool().getAll(modifierIds)
         case typeId: Byte =>
-          modifierIds.flatMap(id => history().blockById(id)) //todo: why block by id?
+          modifierIds.flatMap(id => history().blockById(id))
       }
+
+      log.debug("sending out local objs: " + objs.map(_.id).map(Base58.encode))
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
 
@@ -187,12 +189,15 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
         log.info(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
 
+        modifiersCache.find(_._1 sameElements Base58.decode("1dd9Hfg6DFDdaM4BUMq5hP9nm2cWzYS1KmdmTamCYyZ").get).map{ gb =>
+          println("genesis arrived: " + gb)
+        }
+
         var t: Option[(ConnectedPeer, PMOD)] = None
         do {
           t = {
-            val os = history().openSurfaceIds()
             modifiersCache.find { case (mid, (_, pmod)) =>
-              os.exists(_ sameElements pmod.parentId)
+              history().applicable(pmod)
             }.map { t =>
               val res = t._2
               modifiersCache.remove(t._1)
@@ -222,10 +227,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
-      log.debug(s"Comparing remote info with starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
+      log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
       log.debug(s"Local side contains head: ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
 
       val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
+      log.debug("sending extension: " + extensionOpt.getOrElse(Seq()).map(_._2).map(Base58.encode).mkString(","))
 
       sender() ! OtherNodeSyncingStatus(
         remote,

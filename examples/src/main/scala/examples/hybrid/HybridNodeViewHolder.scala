@@ -3,6 +3,7 @@ package examples.hybrid
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
+import examples.hybrid.mining.PowMiner
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
 import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
@@ -41,7 +42,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     }.toSeq
 
     val za = Array.fill(32)(0: Byte)
-    val initialBlock = PosBlock(za, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
+    val initialBlock = PosBlock(PowMiner.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
     val gs = HBoxStoredState.genesisState(settings, initialBlock)
     val gw = HWallet.genesisWallet(settings, initialBlock)

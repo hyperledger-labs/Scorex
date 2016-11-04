@@ -3,6 +3,7 @@ package examples.hybrid
 import akka.actor.ActorRef
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import examples.hybrid.mining.PosForger.{StartForging, StopForging}
+import examples.hybrid.mining.PowMiner
 import examples.hybrid.mining.PowMiner.{StartMining, StopMining}
 import examples.hybrid.state.SimpleBoxTransaction
 import scorex.core.LocalInterface
@@ -10,7 +11,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 //todo: add refs to pow miner / forger to constructor params
 class HLocalInterface(override val viewHolderRef: ActorRef,
-                      powMinerRef : ActorRef,
+                      powMinerRef: ActorRef,
                       posForgerRef: ActorRef)
   extends LocalInterface[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier] {
 
@@ -31,8 +32,10 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
         posForgerRef ! StartForging
 
       case sb: PosBlock =>
-        posForgerRef ! StopForging
-        powMinerRef ! StartMining(sb.parentId, sb.id)
+        if (!(sb.parentId sameElements PowMiner.GenesisParentId)) {
+          posForgerRef ! StopForging
+          powMinerRef ! StartMining(sb.parentId, sb.id)
+        }
     }
   }
 

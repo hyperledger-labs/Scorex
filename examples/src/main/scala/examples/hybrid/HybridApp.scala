@@ -32,7 +32,13 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoSpec)
 
-  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
+  override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
+
+  override val apiRoutes: Seq[ApiRoute] = Seq(
+    UtilsApiRoute(settings),
+    NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
+
+  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
 
   val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
   val forger = actorSystem.actorOf(Props(classOf[PosForger], nodeViewHolderRef))
@@ -43,14 +49,10 @@ class HybridApp(val settingsFilename: String) extends Application {
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoSpec.type]],
       networkController, nodeViewHolderRef, localInterface, HybridSyncInfoSpec))
 
-  override val apiRoutes: Seq[ApiRoute] = Seq(
-    UtilsApiRoute(settings),
-    NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
-
-  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
-
-  //touching lazy val
+  //touching lazy vals
   miner
+  localInterface
+  nodeViewSynchronizer
 }
 
 object HybridApp extends App {

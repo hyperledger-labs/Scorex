@@ -40,6 +40,8 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   def contains(id: BlockId): Boolean = blockById(id).isDefined
 
+  def applicable(block: PM): Boolean = openSurfaceIds().exists(_ sameElements block.parentId)
+
   def blockById(blockId: BlockId): Option[PM]
 
   def blockById(blockId: String): Option[PM] = Base58.decode(blockId).toOption.flatMap(blockById)

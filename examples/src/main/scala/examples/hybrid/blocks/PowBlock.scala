@@ -11,6 +11,7 @@ import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
@@ -42,6 +43,9 @@ case class PowBlock(override val parentId: BlockId,
   override lazy val json: Json = ???
 
   lazy val correctWork = companion.workDone(id)
+
+  override lazy val toString = s"PowBlock(id: ${Base58.encode(id)})" +
+    s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, nonce: $nonce)"
 }
 
 object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {

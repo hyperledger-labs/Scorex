@@ -2,6 +2,7 @@ package examples.hybrid.history
 
 
 import java.io.File
+
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningSettings, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
@@ -17,6 +18,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -72,7 +74,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   }
 
   lazy val pairCompleted: Boolean = {
-    bestPosBlock.parentId sameElements bestPowId
+    !(bestPowBlock.parentId sameElements PowMiner.GenesisParentId) &&
+      (bestPosBlock.parentId sameElements bestPowId)
   }
 
 
@@ -108,11 +111,13 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     //check PoW parent id
     blockById(powBlock.parentId).get
 
-    //check referenced PoS block exists as well
-    val posBlock = blockById(powBlock.prevPosId).get
+    if(!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
+      //check referenced PoS block exists as well
+      val posBlock = blockById(powBlock.prevPosId).get
 
-    //check referenced PoS block points to parent PoW block
-    assert(posBlock.parentId sameElements posBlock.parentId, "ref rule broken")
+      //check referenced PoS block points to parent PoW block
+      assert(posBlock.parentId sameElements posBlock.parentId, "ref rule broken")
+    }
   }
 
   //PoS consensus rules checks, throws exception if anything wrong
@@ -170,7 +175,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
         val score = if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
           checkPowConsensusRules(powBlock)
           blockScores.get(powBlock.parentId): Long
-        } else 0L
+        } else {
+          log.info("Genesis block: " + Base58.encode(powBlock.id))
+          0L
+        }
 
         //update block storage and the scores index
         val blockId = powBlock.id
@@ -241,6 +249,17 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     else if (pairCompleted) Seq(bestPowId, bestPosId)
     else Seq(bestPowId)
 
+  override def applicable(block: HybridPersistentNodeViewModifier): Boolean = {
+    block match {
+      case pwb: PowBlock =>
+        openSurfaceIds().exists(_ sameElements pwb.parentId) &&
+          ((pwb.parentId sameElements PowMiner.GenesisParentId)
+            || openSurfaceIds().exists(_ sameElements pwb.prevPosId))
+      case psb: PosBlock =>
+        openSurfaceIds().exists(_ sameElements psb.parentId)
+    }
+  }
+
   override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[HybridPersistentNodeViewModifier]] = {
     continuationIds(from, size).map(_.map { case (_, mId) =>
       blockById(mId).get
@@ -267,7 +286,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
           toAdd.map(t => collected :+ t).getOrElse(collected) -> toAdd.isDefined
         } else collected -> false
-      }._1.tail
+      }._1
     }
   }
 
