@@ -98,7 +98,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       StartingPersistentModifierApplication[P, TX, PMOD](pmod)
     )
 
-    log.info(s"Apply modifier to nodeViewHolder")
+    log.info(s"Apply modifier to nodeViewHolder: ${Base58.encode(pmod.id)}")
 
     history().append(pmod) match {
       case Success((newHistory, maybeRollback)) =>
@@ -185,7 +185,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             modifiersCache.put(pmod.id, remote -> pmod)
         }
 
-        log.debug(s"Cache before: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+        log.info(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
 
         var t: Option[(ConnectedPeer, PMOD)] = None
         do {
@@ -202,7 +202,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           t.foreach { case (peer, pmod) => pmodModify(pmod, Some(peer)) }
         } while (t.isDefined)
 
-        log.debug(s"Cache after: ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
       }
   }
 

@@ -1,6 +1,6 @@
 package examples.hybrid
 
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock}
+import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
@@ -25,7 +25,8 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   override type VL = HWallet
   override type MP = HMemPool
 
-  override val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] = Map()
+  override val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
+    Map(PosBlock.ModifierTypeId -> PosBlockCompanion, PowBlock.ModifierTypeId -> PowBlockCompanion)
 
   /**
     * Hard-coded initial view all the honest nodes in a network are making progress from.

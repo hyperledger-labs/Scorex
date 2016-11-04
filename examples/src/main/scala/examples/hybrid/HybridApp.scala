@@ -6,7 +6,7 @@ import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSpec}
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
-import scorex.core.api.http.{ApiRoute, UtilsApiRoute}
+import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, UtilsApiRoute}
 import scorex.core.app.{Application, ApplicationVersion}
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
@@ -30,9 +30,6 @@ class HybridApp(val settingsFilename: String) extends Application {
   override type PMOD = HybridPersistentNodeViewModifier
   override type NVHT = HybridNodeViewHolder
 
-  override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings))
-  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute])
-
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoSpec)
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
@@ -45,6 +42,12 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoSpec.type]],
       networkController, nodeViewHolderRef, localInterface, HybridSyncInfoSpec))
+
+  override val apiRoutes: Seq[ApiRoute] = Seq(
+    UtilsApiRoute(settings),
+    NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
+
+  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
 
   //touching lazy val
   miner

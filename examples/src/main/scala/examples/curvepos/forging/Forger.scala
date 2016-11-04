@@ -89,7 +89,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
             val secret: PrivateKey25519 = wallet.secretByPublicImage(generator).get
 
             val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
-            val signature = PrivateKey25519Companion.sign(secret, unsigned.companion.messageToSing(unsigned))
+            val signature = PrivateKey25519Companion.sign(secret, unsigned.companion.messageToSign(unsigned))
             val signedBlock = unsigned.copy(generationSignature = signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
             LocallyGeneratedModifier[PublicKey25519Proposition, SimpleTransaction, SimpleBlock](signedBlock)

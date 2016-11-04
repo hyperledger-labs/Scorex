@@ -9,14 +9,14 @@ import scorex.core.network.message.SyncInfoSpec
 import scala.util.Try
 
 case class HybridSyncInfo(override val answer: Boolean,
-                          lastPowBlockId: ModifierId,
-                          lastPosBlockId: ModifierId
+                          bestPowBlockId: ModifierId,
+                          bestPosBlockId: ModifierId
                          ) extends SyncInfo {
   override def startingPoints: Seq[(ModifierTypeId, ModifierId)] =
-    Seq(PowBlock.ModifierTypeId -> lastPowBlockId,
-      PosBlock.ModifierTypeId -> lastPosBlockId)
+    Seq(PowBlock.ModifierTypeId -> bestPowBlockId,
+      PosBlock.ModifierTypeId -> bestPosBlockId)
 
-  override def bytes: Array[Byte] = ((if (answer) 1: Byte else 0: Byte) +: lastPowBlockId) ++ lastPosBlockId
+  override def bytes: Array[Byte] = ((if (answer) 1: Byte else 0: Byte) +: bestPowBlockId) ++ bestPosBlockId
 }
 
 object HybridSyncInfo {

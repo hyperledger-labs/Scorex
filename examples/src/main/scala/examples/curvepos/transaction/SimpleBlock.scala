@@ -34,7 +34,7 @@ case class SimpleBlock(override val parentId: BlockId,
 
   override lazy val companion = SimpleBlockCompanion
 
-  override lazy val id: BlockId = FastCryptographicHash(companion.messageToSing(this))
+  override lazy val id: BlockId = FastCryptographicHash(companion.messageToSign(this))
 
   override lazy val version: Version = 0: Byte
 
@@ -65,7 +65,7 @@ object SimpleBlock {
 object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
   import SimplePaymentCompanion.TransactionLength
 
-  def messageToSing(block: SimpleBlock): Array[Byte] = {
+  def messageToSign(block: SimpleBlock): Array[Byte] = {
     block.parentId ++
       Longs.toByteArray(block.timestamp) ++
       Array(block.version) ++

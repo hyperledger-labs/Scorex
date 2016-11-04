@@ -2,8 +2,6 @@ package examples.hybrid.history
 
 
 import java.io.File
-
-import com.sun.javafx.iio.ImageFormatDescription.Signature
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningSettings, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
@@ -58,10 +56,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   lazy val currentScore = currentScoreVar.get()
 
   private lazy val bestPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
-  lazy val bestPowId = bestPowIdVar.get()
+  lazy val bestPowId = Option(bestPowIdVar.get()).getOrElse(PowMiner.GenesisParentId)
 
   private lazy val bestPosIdVar = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen()
-  lazy val bestPosId = bestPosIdVar.get()
+  lazy val bestPosId = Option(bestPosIdVar.get()).getOrElse(PowMiner.GenesisParentId)
 
   lazy val bestPowBlock = {
     require(currentScore > 0, "History is empty")
@@ -97,6 +95,9 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
       }).toOption
     }
   }.getOrElse(None)
+
+  override def contains(id: BlockId): Boolean =
+    if (id sameElements PowMiner.GenesisParentId) true else blockById(id).isDefined
 
   //PoW consensus rules checks, work/references
   //throws exception if anything wrong
@@ -183,6 +184,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
           //genesis block
           currentScoreVar.set(blockScore)
           bestPowIdVar.set(blockId)
+          forwardPowLinks.put(powBlock.parentId, blockId)
           None
         } else {
           if (blockScore > currentScore) {
@@ -234,7 +236,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     }
   }
 
-  override def openSurfaceIds(): Seq[BlockId] = if (pairCompleted) Seq(bestPowId, bestPosId) else Seq(bestPowId)
+  override def openSurfaceIds(): Seq[BlockId] =
+    if (isEmpty) Seq(PowMiner.GenesisParentId)
+    else if (pairCompleted) Seq(bestPowId, bestPosId)
+    else Seq(bestPowId)
 
   override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[HybridPersistentNodeViewModifier]] = {
     continuationIds(from, size).map(_.map { case (_, mId) =>
@@ -243,18 +248,26 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   }
 
   override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
-    require(from.length == 1)
     val (modTypeId, modId) = from.head
 
-    blockById(modId).map { _ =>
-      (1 to size).foldLeft(Seq(modTypeId -> modId)) { case (collected, _) =>
-        blockById(collected.last._2).get match {
-          case pb: PowBlock =>
-            collected :+ PosBlock.ModifierTypeId -> forwardPosLinks.get(pb.id)
-          case ps: PosBlock =>
-            collected :+ PowBlock.ModifierTypeId -> forwardPowLinks.get(ps.parentId)
-        }
-      }.tail
+    val startingBlock = if (modId sameElements PowMiner.GenesisParentId) {
+      Option(forwardPowLinks.get(PowMiner.GenesisParentId))
+        .flatMap(blockById)
+    } else blockById(modId)
+
+    startingBlock.map { b =>
+      (1 to size).foldLeft(Seq(modTypeId -> b.id) -> true) { case ((collected, go), _) =>
+        if (go) {
+          val toAdd = blockById(collected.last._2).get match {
+            case pb: PowBlock =>
+              Option(forwardPosLinks.get(pb.id)).map(id => PosBlock.ModifierTypeId -> id)
+            case ps: PosBlock =>
+              Option(forwardPowLinks.get(ps.parentId)).map(id => PowBlock.ModifierTypeId -> id)
+          }
+
+          toAdd.map(t => collected :+ t).getOrElse(collected) -> toAdd.isDefined
+        } else collected -> false
+      }._1.tail
     }
   }
 
@@ -271,11 +284,13 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     //todo: check PoW header correctness, return cheater status for that
     //todo: return cheater status in other cases, e.g. PoW id is a correct PoS id
 
-    blockById(other.lastPowBlockId) match {
+    if (other.bestPowBlockId sameElements PowMiner.GenesisParentId) {
+      HistoryComparisonResult.Younger
+    } else blockById(other.bestPowBlockId) match {
       case Some(pb: PowBlock) =>
         if (pb.id sameElements bestPowId) {
           val prevPosId = pb.prevPosId
-          val otherNext = !(other.lastPosBlockId sameElements prevPosId)
+          val otherNext = !(other.bestPosBlockId sameElements prevPosId)
           val selfNext = !(bestPosId sameElements prevPosId)
 
           (otherNext, selfNext) match {
@@ -289,7 +304,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
               HistoryComparisonResult.Equal
           }
         } else HistoryComparisonResult.Younger
-      case None => HistoryComparisonResult.Older
+      case None =>
+        HistoryComparisonResult.Older
     }
   }
 
@@ -332,7 +348,6 @@ object HistoryPlayground extends App {
   assert(h2.blockById(b.id).isDefined)
 
 
-
   val priv1 = PrivateKey25519Companion.generateKeys(Array.fill(32)(0: Byte))
   val priv2 = PrivateKey25519Companion.generateKeys(Array.fill(32)(1: Byte))
 
@@ -343,7 +358,7 @@ object HistoryPlayground extends App {
 
   val tx = SimpleBoxTransaction(from, to, fee, timestamp)
 
-  val posBlock = PosBlock(b.id, 0L, Seq(tx), priv1._2, Signature25519(Array.fill(Signature25519.SignatureSize)(0:Byte)))
+  val posBlock = PosBlock(b.id, 0L, Seq(tx), priv1._2, Signature25519(Array.fill(Signature25519.SignatureSize)(0: Byte)))
 
   val h3 = h2.append(posBlock).get._1
 
