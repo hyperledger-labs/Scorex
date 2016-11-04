@@ -44,29 +44,34 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
       val boxes = w.boxes()
 
-      val powBlock = h.bestPowBlock
+      //last check on whether to forge at all
+      if (h.pairCompleted) {
+        self ! StopForging
+      } else {
+        val powBlock = h.bestPowBlock
 
-      val hitOpt = boxes.map(_.box).map { box =>
-        val h = hit(powBlock)(box)
-        println("hit: " + h)
-        (box.proposition, box.value, h)
-      }.find(t => t._3 < t._2 * PosTarget).map { case (gen, _, _) =>
-        val txsToInclude = pickTransactions(m, s)
+        boxes.map(_.box).map { box =>
+          val h = hit(powBlock)(box)
+          println("hit: " + h)
+          (box.proposition, box.value, h)
+        }.find(t => t._3 < t._2 * PosTarget).map { case (gen, _, _) =>
+          val txsToInclude = pickTransactions(m, s)
 
-        PosBlock(
-          powBlock.id,
-          System.currentTimeMillis(),
-          txsToInclude,
-          gen,
-          Signature25519(Array.fill(Signature25519.SignatureSize)(0:Byte)))
-      } match {
-        case Some(posBlock) =>
-          viewHolderRef !
-            LocallyGeneratedModifier[PublicKey25519Proposition,
-              SimpleBoxTransaction, HybridPersistentNodeViewModifier](posBlock)
-        case None =>
-          println("stuck")
-          System.exit(150)
+          PosBlock(
+            powBlock.id,
+            System.currentTimeMillis(),
+            txsToInclude,
+            gen,
+            Signature25519(Array.fill(Signature25519.SignatureSize)(0: Byte)))
+        } match {
+          case Some(posBlock) =>
+            viewHolderRef !
+              LocallyGeneratedModifier[PublicKey25519Proposition,
+                SimpleBoxTransaction, HybridPersistentNodeViewModifier](posBlock)
+          case None =>
+            println("stuck")
+            System.exit(150)
+        }
       }
 
     case StopForging =>

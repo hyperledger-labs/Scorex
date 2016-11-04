@@ -15,6 +15,8 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
                       posForgerRef: ActorRef)
   extends LocalInterface[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier] {
 
+  private var block = false
+
   override protected def onStartingPersistentModifierApplication(pmod: HybridPersistentNodeViewModifier): Unit = {}
 
   override protected def onFailedTransaction(tx: SimpleBoxTransaction): Unit = {}
@@ -26,20 +28,31 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
   //stop PoW miner and start PoS forger if PoW block comes
   //stop PoW forger and start PoW miner if PoS block comes
   override protected def onSuccessfulModification(mod: HybridPersistentNodeViewModifier): Unit = {
-    mod match {
-      case wb: PowBlock =>
-        powMinerRef ! StopMining
-        posForgerRef ! StartForging
+    if (!block) {
+      mod match {
+        case wb: PowBlock =>
+          powMinerRef ! StopMining
+          posForgerRef ! StartForging
 
-      case sb: PosBlock =>
-        if (!(sb.parentId sameElements PowMiner.GenesisParentId)) {
-          posForgerRef ! StopForging
-          powMinerRef ! StartMining(sb.parentId, sb.id)
-        }
+        case sb: PosBlock =>
+          if (!(sb.parentId sameElements PowMiner.GenesisParentId)) {
+            posForgerRef ! StopForging
+            powMinerRef ! StartMining
+          }
+      }
     }
   }
 
-  override protected def onNoBetterNeighbour(): Unit = {}
+  //todo: start mining/forging
+  override protected def onNoBetterNeighbour(): Unit = {
+    powMinerRef ! StartMining
+    posForgerRef ! StartForging
+    block = false
+  }
 
-  override protected def onBetterNeighbourAppeared(): Unit = {}
+  override protected def onBetterNeighbourAppeared(): Unit = {
+    powMinerRef ! StopMining
+    posForgerRef ! StopForging
+    block = true
+  }
 }

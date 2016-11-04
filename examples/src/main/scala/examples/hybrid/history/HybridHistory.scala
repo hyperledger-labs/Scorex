@@ -74,8 +74,12 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   }
 
   lazy val pairCompleted: Boolean = {
-    !(bestPowBlock.parentId sameElements PowMiner.GenesisParentId) &&
-      (bestPosBlock.parentId sameElements bestPowId)
+    (bestPowId sameElements PowMiner.GenesisParentId, bestPosId sameElements PowMiner.GenesisParentId) match {
+      case (true, true) => true
+      case (false, true) => false
+      case (false, false) => bestPosBlock.parentId sameElements bestPowId
+      case (true, false) => ??? //shouldn't be
+    }
   }
 
 
@@ -111,7 +115,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     //check PoW parent id
     blockById(powBlock.parentId).get
 
-    if(!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
+    if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
       //check referenced PoS block exists as well
       val posBlock = blockById(powBlock.prevPosId).get
 

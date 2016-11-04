@@ -8,7 +8,7 @@ import akka.pattern.ask
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
-import scorex.core.consensus.History
+import scorex.core.consensus.{History}
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.{GetLocalObjects, ResponseFromLocal}
 import scorex.core.settings.Settings
