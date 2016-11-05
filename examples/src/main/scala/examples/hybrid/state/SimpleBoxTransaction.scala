@@ -55,6 +55,7 @@ BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
 
   override lazy val companion = SimpleBoxTransactionCompanion
 
+  //todo: for Dmitry - implement
   override lazy val json: Json = ???
 
   //stateless validation
