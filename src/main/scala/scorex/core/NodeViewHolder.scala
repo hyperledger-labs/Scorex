@@ -117,8 +117,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
             val newWallet = maybeRollback
               .map(rb => vault().rollback(rb.to).get) //we consider that vault always able to perform a rollback needed
-              .map(w => w.scanPersistent(appliedMods))
               .getOrElse(vault())
+              .scanPersistent(appliedMods)
 
             log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
             nodeView = (newHistory, newMinState, newWallet, newMemPool)

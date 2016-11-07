@@ -29,6 +29,12 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   override val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
     Map(PosBlock.ModifierTypeId -> PosBlockCompanion, PowBlock.ModifierTypeId -> PowBlockCompanion)
 
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    super.preRestart(reason, message)
+    reason.printStackTrace()
+    System.exit(100)
+  }
+
   /**
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */

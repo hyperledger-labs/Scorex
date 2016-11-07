@@ -1,7 +1,7 @@
 package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef}
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PowBlock}
+import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PowBlock, PowBlockCompanion}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
@@ -9,6 +9,7 @@ import examples.hybrid.util.Cancellable
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
@@ -46,65 +47,73 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
       viewHolderRef ! GetCurrentView
 
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
-
-      //last check
-
-      if(!h.pairCompleted) {
-        self ! StopMining
+      val (parentId, prevPosId, brothers) = if (!h.pairCompleted) {
+        //brother
+        log.info(s"Starting brother mining for ${Base58.encode(h.bestPowBlock.parentId)}:${Base58.encode(h.bestPowBlock.parentId)}")
+        val bs = h.bestPowBlock.brothers :+ h.bestPowBlock.header
+        (h.bestPowBlock.parentId, h.bestPowBlock.parentId, bs)
       } else {
-        val parentId = h.bestPowId
-        val prevPosId = h.bestPosId
+        log.info(s"Starting new block mining for ${Base58.encode(h.bestPowId)}:${Base58.encode(h.bestPosId)}")
+        (h.bestPowId, h.bestPosId, Seq()) //new step
+      }
 
-        log.info(s"Starting mining for ${Base58.encode(parentId)}:${Base58.encode(prevPosId)}")
+      val p = Promise[Option[PowBlock]]()
+      cancellableOpt = Some(Cancellable.run() { status =>
+        Future {
+          var foundBlock: Option[PowBlock] = None
+          var attemps = 0
 
-        val p = Promise[Option[PowBlock]]()
-        cancellableOpt = Some(Cancellable.run() { status =>
-          Future {
-            var foundBlock: Option[PowBlock] = None
-            var attemps = 0
+          while (status.nonCancelled && foundBlock.isEmpty) {
+            val nonce = Random.nextLong()
 
-            while (status.nonCancelled && foundBlock.isEmpty) {
-              val nonce = Random.nextLong()
+            val ts = System.currentTimeMillis()
 
-              val ts = System.currentTimeMillis()
-              val b = PowBlock(parentId, prevPosId, ts, nonce, 0, Array.fill(32)(0:Byte), Seq())
+            val bHash = if(brothers.isEmpty) Array.fill(32)(0: Byte)
+            else FastCryptographicHash(PowBlockCompanion.brotherBytes(brothers))
 
-              foundBlock =
-                if (b.correctWork) {
-                  Some(b)
-                } else {
-                  attemps = attemps + 1
-                  if (attemps % 100 == 99) {
-                    println("100 hashes tried")
-                  }
-                  None
+            val b = PowBlock(parentId, prevPosId, ts, nonce, brothers.size, bHash, brothers)
+
+            foundBlock =
+              if (b.correctWork) {
+                Some(b)
+              } else {
+                attemps = attemps + 1
+                if (attemps % 100 == 99) {
+                  println("100 hashes tried")
                 }
-              Thread.sleep(2) //5 hashes per second per node
-            }
-            p.success(foundBlock)
+                None
+              }
+            Thread.sleep(2) //5 hashes per second per node
           }
-        })
-
-        p.future.onComplete { toBlock =>
-          toBlock.getOrElse(None).foreach(block => self ! block)
+          p.success(foundBlock)
         }
+      })
+
+      p.future.onComplete { toBlock =>
+        toBlock.getOrElse(None).foreach(block => self ! block)
       }
 
     case b: PowBlock =>
-      println(s"locally generated block: $b")
+      println(s"locally generated PoW block: $b")
       viewHolderRef ! LocallyGeneratedModifier[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier](b)
 
-    case StopMining =>
-      log.info("Mining stopped")
-      cancellableOpt.foreach(_.cancel())
+    case MineBrother =>
+      log.info("Mining of previous PoW block stopped")
+      cancellableOpt.foreach(_.cancel())  //todo: check status
+
+      context.system.scheduler.scheduleOnce(1.second){
+        if(cancellableOpt.forall(_.status.isCancelled)) viewHolderRef ! GetCurrentView
+        else self ! MineBrother
+      }
 
     case a: Any =>
       log.warn(s"Strange input: $a")
   }
+
 }
 
 object PowMiner extends App {
-  lazy val MaxTarget = BigInt(1, Array.fill(32)(1:Byte))
+  lazy val MaxTarget = BigInt(1, Array.fill(32)(1: Byte))
   lazy val Difficulty = 1
 
   lazy val GenesisParentId = Array.fill(32)(1: Byte)
@@ -113,5 +122,6 @@ object PowMiner extends App {
 
   case object StartMining
 
-  case object StopMining
+  case object MineBrother
+
 }

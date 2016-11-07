@@ -91,16 +91,20 @@ case class PowBlock(override val parentId: BlockId,
 
   override lazy val json: Json = ???
 
-  lazy val brotherBytes = brothers.foldLeft(Array[Byte]()) { case (ba, b) =>
-    ba ++ b.headerBytes
-  }
+  lazy val header = new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
+
+  lazy val brotherBytes = companion.brotherBytes(brothers)
 
   override lazy val toString = s"PowBlock(id: ${Base58.encode(id)})" +
     s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +
-    s"nonce: $nonce, brothers: $brothers)"
+    s"nonce: $nonce, brothers: ($brothersCount -- $brothers))"
 }
 
 object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {
+
+  def brotherBytes(brothers: Seq[PowBlockHeader]): Array[Byte] = brothers.foldLeft(Array[Byte]()) { case (ba, b) =>
+    ba ++ b.headerBytes
+  }
 
   override def bytes(modifier: PowBlock): Array[Byte] =
     modifier.headerBytes ++ modifier.brotherBytes

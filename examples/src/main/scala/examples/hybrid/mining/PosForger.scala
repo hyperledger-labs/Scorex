@@ -65,12 +65,12 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
             Signature25519(Array.fill(Signature25519.SignatureSize)(0: Byte)))
         } match {
           case Some(posBlock) =>
+            println(s"locally generated PoS block: $posBlock")
             viewHolderRef !
               LocallyGeneratedModifier[PublicKey25519Proposition,
                 SimpleBoxTransaction, HybridPersistentNodeViewModifier](posBlock)
           case None =>
-            println("stuck")
-            System.exit(150)
+            (1 to 10).foreach(_ => println("stuck"))
         }
       }
 
@@ -80,7 +80,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 }
 
 object PosForger {
-  val PosTarget = 694292012860L
+  val PosTarget = 114292012800L
 
   case object StartForging
 
