@@ -4,7 +4,7 @@ package examples.hybrid.history
 import java.io.File
 
 import examples.hybrid.blocks._
-import examples.hybrid.mining.{MiningSettings, PowMiner}
+import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
@@ -36,9 +36,19 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     HybridSyncInfo,
     HybridHistory] with ScorexLogging {
 
+  import HybridHistory._
+
   override type NVCT = HybridHistory
 
   require(NodeViewModifier.ModifierIdSize == 32, "32 bytes ids assumed")
+
+  private lazy val powDifficultyVar = metaDb.atomicString("powdiff", PowMiner.Difficulty.toString()).createOrOpen()
+
+  private lazy val posDifficultyVar = metaDb.atomicLong("posdiff", PosForger.InitialDifficuly).createOrOpen()
+
+  lazy val powDifficulty = BigInt(powDifficultyVar.get())
+
+  lazy val posDifficulty = posDifficultyVar.get()
 
   //block -> score correspondence, for now score == height; that's not very secure,
   //see http://bitcoin.stackexchange.com/questions/29742/strongest-vs-longest-chain-and-orphaned-blocks
@@ -80,6 +90,38 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
       case (true, false) => ??? //shouldn't be
     }
 
+
+  //a lot of crimes committed here: .get, .asInstanceOf
+  def lastPowBlocks(count: Int): Seq[PowBlock] =
+  (1 until count).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
+    blockById(bestPowBlock.parentId).get.asInstanceOf[PowBlock] +: blocks
+  }
+
+  //a lot of crimes committed here: .get, .asInstanceOf
+  def lastPosBlocks(count: Int): Seq[PosBlock] =
+  (1 until count).foldLeft(Seq(bestPosBlock)) { case (blocks, _) =>
+    blockById(forwardPosLinks.get(bestPosBlock.parentId)).get.asInstanceOf[PosBlock] +: blocks
+  }
+
+  def recalcDifficulties(): Unit = {
+    val powBlocks = lastPowBlocks(DifficultyRecalcPeriod)
+    val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
+
+    val brothersCount = powBlocks.map(_.brothersCount).sum
+
+    val expectedPeriodTime = (DifficultyRecalcPeriod + brothersCount) * PowMiner.BlockDelay
+
+    val newPowDiff = powDifficulty * expectedPeriodTime / realTime
+
+    val newPosDiff = posDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount)*9/10)
+
+    log.info(s"PoW difficulty changed: old $powDifficulty, new $newPowDiff")
+    log.info(s"PoS difficulty changed: old $posDifficulty, new $newPosDiff")
+
+    powDifficultyVar.set(newPowDiff.toString())
+    posDifficultyVar.set(newPosDiff)
+  }
+
   /**
     * Is there's no history, even genesis block
     *
@@ -107,7 +149,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   //throws exception if anything wrong
   def checkPowConsensusRules(powBlock: PowBlock): Unit = {
     //check work
-    assert(powBlock.correctWork, "work done is incorrent")
+    assert(powBlock.correctWork(powDifficulty), "work done is incorrent")
 
     //check PoW parent id
     blockById(powBlock.parentId).get
@@ -117,7 +159,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
     //check brothers data
     assert(powBlock.brothers.size == powBlock.brothersCount)
-    assert(powBlock.brothers.forall(_.correctWork))
+    assert(powBlock.brothers.forall(_.correctWork(powDifficulty)))
     if (powBlock.brothersCount > 0) {
       assert(FastCryptographicHash(powBlock.brotherBytes) sameElements powBlock.brothersHash)
     }
@@ -135,6 +177,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   def checkPoSConsensusRules(posBlock: PosBlock): Unit = {
     //check PoW block exists
     blockById(posBlock.parentId).get
+
+    //todo: check difficulty
 
     //todo: check signature
 
@@ -180,7 +224,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     */
   override def append(block: HybridPersistentNodeViewModifier):
   Try[(HybridHistory, Option[RollbackTo[HybridPersistentNodeViewModifier]])] = Try {
-    block match {
+    val res = block match {
       case powBlock: PowBlock =>
 
         val currentScore = if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
@@ -263,6 +307,9 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
         if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
         (new HybridHistory(blocksStorage, metaDb), None) //no rollback ever
     }
+    if(currentScoreVar.get() > 0 && currentScoreVar.get() % DifficultyRecalcPeriod == 0) recalcDifficulties()
+    metaDb.commit()
+    res
   }
 
   override def openSurfaceIds(): Seq[BlockId] =
@@ -352,6 +399,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
 
 object HybridHistory {
+  val DifficultyRecalcPeriod = 5
+
   def emptyHistory(settings: Settings): HybridHistory = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
@@ -377,7 +426,7 @@ object HistoryPlayground extends App {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
   }
 
-  val b = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L, 0, Array.fill(32)(0:Byte), Seq())
+  val b = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L, 0, Array.fill(32)(0: Byte), Seq())
 
   val h = HybridHistory.emptyHistory(settings)
 

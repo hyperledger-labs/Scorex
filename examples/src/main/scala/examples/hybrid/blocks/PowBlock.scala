@@ -36,7 +36,7 @@ class PowBlockHeader(
     brothersCount >= 0 &&
       timestamp >= 0
 
-  lazy val correctWork = workDone(id)
+  def correctWork(difficulty: BigInt) = correctWorkDone(id, difficulty)
 
   lazy val id = FastCryptographicHash(headerBytes)
 }
@@ -57,8 +57,8 @@ object PowBlockHeader {
     new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
   }
 
-  def workDone(id: Array[Byte]): Boolean = {
-    val target = MaxTarget / Difficulty
+  def correctWorkDone(id: Array[Byte], difficulty: BigInt): Boolean = {
+    val target = MaxTarget / difficulty
     BigInt(1, id) < target
   }
 }

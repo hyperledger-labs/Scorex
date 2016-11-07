@@ -15,6 +15,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.utils.ScorexLogging
 
+import scala.concurrent.duration._
 
 class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
@@ -37,6 +38,8 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
 
+      val target = MaxTarget / h.posDifficulty
+
       def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox):Long = {
         val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
         Longs.fromByteArray((0: Byte) +: h.take(7))
@@ -52,9 +55,9 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
         boxes.map(_.box).map { box =>
           val h = hit(powBlock)(box)
-          println("hit: " + h)
+          println(s"hit: $h, target $target, target * balance: ${box.value * target}, generated: ${h < box.value * target}")
           (box.proposition, box.value, h)
-        }.find(t => t._3 < t._2 * PosTarget).map { case (gen, _, _) =>
+        }.find(t => t._3 < t._2 * target).map { case (gen, _, _) =>
           val txsToInclude = pickTransactions(m, s)
 
           PosBlock(
@@ -80,7 +83,8 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 }
 
 object PosForger {
-  val PosTarget = 114292012800L
+  val InitialDifficuly = 100000000L
+  val MaxTarget = Long.MaxValue
 
   case object StartForging
 

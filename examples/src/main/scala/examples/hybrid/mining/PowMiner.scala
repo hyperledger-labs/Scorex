@@ -47,6 +47,8 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
       viewHolderRef ! GetCurrentView
 
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
+      val difficulty = h.powDifficulty
+
       val (parentId, prevPosId, brothers) = if (!h.pairCompleted) {
         //brother
         log.info(s"Starting brother mining for ${Base58.encode(h.bestPowBlock.parentId)}:${Base58.encode(h.bestPowBlock.parentId)}")
@@ -74,7 +76,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
             val b = PowBlock(parentId, prevPosId, ts, nonce, brothers.size, bHash, brothers)
 
             foundBlock =
-              if (b.correctWork) {
+              if (b.correctWork(difficulty)) {
                 Some(b)
               } else {
                 attemps = attemps + 1
@@ -109,12 +111,13 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
     case a: Any =>
       log.warn(s"Strange input: $a")
   }
-
 }
 
 object PowMiner extends App {
+  lazy val BlockDelay = 3.seconds.toMillis
+
   lazy val MaxTarget = BigInt(1, Array.fill(32)(1: Byte))
-  lazy val Difficulty = 1
+  lazy val Difficulty = BigInt("1")
 
   lazy val GenesisParentId = Array.fill(32)(1: Byte)
 
