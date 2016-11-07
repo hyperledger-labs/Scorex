@@ -26,8 +26,6 @@ import scala.util.Try
 import scala.collection.JavaConversions._
 
 
-//todo: file for MapDB database passed in here, while in other class just a database
-//todo: check and fix
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    boxStore: LSMStore,
                    metaDb: DB)
