@@ -114,7 +114,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
 }
 
 object PowMiner extends App {
-  lazy val BlockDelay = 3.seconds.toMillis
+  lazy val BlockDelay = 2.seconds.toMillis
 
   lazy val MaxTarget = BigInt(1, Array.fill(32)(1: Byte))
   lazy val Difficulty = BigInt("1")

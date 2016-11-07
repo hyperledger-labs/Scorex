@@ -289,7 +289,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
             None
           }
         }
-
         (new HybridHistory(blocksStorage, metaDb), rollbackOpt)
 
 
@@ -305,9 +304,11 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
         writeBlock(posBlock)
 
         if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
+
+        //recalc difficulties
+        if(currentScoreVar.get() > 0 && currentScoreVar.get() % DifficultyRecalcPeriod == 0) recalcDifficulties()
         (new HybridHistory(blocksStorage, metaDb), None) //no rollback ever
     }
-    if(currentScoreVar.get() > 0 && currentScoreVar.get() % DifficultyRecalcPeriod == 0) recalcDifficulties()
     metaDb.commit()
     res
   }
