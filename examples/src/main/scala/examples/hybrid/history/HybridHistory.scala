@@ -232,9 +232,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
             }
           } else if (blockScore == currentScoreVar.get() &&
             (bestPowBlock.parentId sameElements powBlock.parentId) &&
-            (bestPowBlock.parentId sameElements powBlock.parentId)
+            (bestPowBlock.parentId sameElements powBlock.parentId) &&
+            (bestPowBlock.brothersCount < powBlock.brothersCount)
           ) {
-            //handle brother - replace current best PoW block with a brother
+            //handle younger brother - replace current best PoW block with a brother
             val replacedBlock = bestPowBlock
             bestPowIdVar.set(blockId)
             forwardPowLinks.put(powBlock.parentId, blockId)
