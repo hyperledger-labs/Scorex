@@ -67,7 +67,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
               val nonce = Random.nextLong()
 
               val ts = System.currentTimeMillis()
-              val b = PowBlock(parentId, prevPosId, ts, nonce)
+              val b = PowBlock(parentId, prevPosId, ts, nonce, 0, Array.fill(32)(0:Byte), Seq())
 
               foundBlock =
                 if (b.correctWork) {

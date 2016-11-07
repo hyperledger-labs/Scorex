@@ -13,6 +13,7 @@ import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
@@ -39,7 +40,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
   require(NodeViewModifier.ModifierIdSize == 32, "32 bytes ids assumed")
 
-
   //block -> score correspondence, for now score == height; that's not very secure,
   //see http://bitcoin.stackexchange.com/questions/29742/strongest-vs-longest-chain-and-orphaned-blocks
   lazy val blockScores = metaDb.hashMap("hidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
@@ -55,7 +55,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
   //for now score = chain length; that's not very secure, see link above
   private lazy val currentScoreVar = metaDb.atomicLong("score").createOrOpen()
-  lazy val currentScore = currentScoreVar.get()
 
   private lazy val bestPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
   lazy val bestPowId = Option(bestPowIdVar.get()).getOrElse(PowMiner.GenesisParentId)
@@ -64,31 +63,29 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   lazy val bestPosId = Option(bestPosIdVar.get()).getOrElse(PowMiner.GenesisParentId)
 
   lazy val bestPowBlock = {
-    require(currentScore > 0, "History is empty")
+    require(currentScoreVar.get() > 0, "History is empty")
     blockById(bestPowId).get.asInstanceOf[PowBlock]
   }
 
   lazy val bestPosBlock = {
-    require(currentScore > 0, "History is empty")
+    require(currentScoreVar.get() > 0, "History is empty")
     blockById(bestPosId).get.asInstanceOf[PosBlock]
   }
 
-  lazy val pairCompleted: Boolean = {
+  lazy val pairCompleted: Boolean =
     (bestPowId sameElements PowMiner.GenesisParentId, bestPosId sameElements PowMiner.GenesisParentId) match {
       case (true, true) => true
       case (false, true) => false
       case (false, false) => bestPosBlock.parentId sameElements bestPowId
       case (true, false) => ??? //shouldn't be
     }
-  }
-
 
   /**
     * Is there's no history, even genesis block
     *
     * @return
     */
-  override def isEmpty: Boolean = currentScore <= 0
+  override def isEmpty: Boolean = currentScoreVar.get() <= 0
 
   override def blockById(blockId: BlockId): Option[HybridPersistentNodeViewModifier] = Try {
     Option(blocksStorage.get(ByteArrayWrapper(blockId))).flatMap { bw =>
@@ -114,6 +111,16 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
     //check PoW parent id
     blockById(powBlock.parentId).get
+
+    //some check for header fields
+    assert(powBlock.headerValid)
+
+    //check brothers data
+    assert(powBlock.brothers.size == powBlock.brothersCount)
+    assert(powBlock.brothers.forall(_.correctWork))
+    if (powBlock.brothersCount > 0) {
+      assert(FastCryptographicHash(powBlock.brotherBytes) sameElements powBlock.brothersHash)
+    }
 
     if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
       //check referenced PoS block exists as well
@@ -176,7 +183,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
     block match {
       case powBlock: PowBlock =>
 
-        val score = if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
+        val currentScore = if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
           checkPowConsensusRules(powBlock)
           blockScores.get(powBlock.parentId): Long
         } else {
@@ -189,7 +196,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
         writeBlock(powBlock)
 
-        val blockScore = score + 1
+        val blockScore = currentScore + 1
         blockScores.put(blockId, blockScore)
 
         val rollbackOpt: Option[RollbackTo[HybridPersistentNodeViewModifier]] = if (powBlock.parentId sameElements PowMiner.GenesisParentId) {
@@ -199,7 +206,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
           forwardPowLinks.put(powBlock.parentId, blockId)
           None
         } else {
-          if (blockScore > currentScore) {
+          if (blockScore > currentScoreVar.get()) {
             //check for chain switching
             if (!(powBlock.parentId sameElements bestPowId)) {
               val (newSuffix, oldSuffix) = suffixesAfterCommonBlock(Seq(powBlock.parentId), Seq(bestPowBlock.parentId, bestPowId))
@@ -207,7 +214,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
               val throwBlocks = oldSuffix.tail.map(id => blockById(id).get)
               val applyBlocks = newSuffix.tail.map(id => blockById(id).get)
-
 
               oldSuffix.foreach(forwardPowLinks.remove)
               (0 until newSuffix.size - 1).foreach { idx =>
@@ -224,11 +230,21 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
               forwardPowLinks.put(powBlock.parentId, blockId)
               None
             }
+          } else if (blockScore == currentScoreVar.get() &&
+            (bestPowBlock.parentId sameElements powBlock.parentId) &&
+            (bestPowBlock.parentId sameElements powBlock.parentId)
+          ) {
+            //handle brother - replace current best PoW block with a brother
+            val replacedBlock = bestPowBlock
+            bestPowIdVar.set(blockId)
+            forwardPowLinks.put(powBlock.parentId, blockId)
+            Some(RollbackTo(powBlock.prevPosId, Seq(replacedBlock), Seq(powBlock)))
           } else {
             forwardPowLinks.put(powBlock.parentId, blockId)
             None
           }
         }
+
         (new HybridHistory(blocksStorage, metaDb), rollbackOpt)
 
 
@@ -256,11 +272,9 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   override def applicable(block: HybridPersistentNodeViewModifier): Boolean = {
     block match {
       case pwb: PowBlock =>
-        openSurfaceIds().exists(_ sameElements pwb.parentId) &&
-          ((pwb.parentId sameElements PowMiner.GenesisParentId)
-            || openSurfaceIds().exists(_ sameElements pwb.prevPosId))
+        contains(pwb.parentId) && contains(pwb.prevPosId)
       case psb: PosBlock =>
-        openSurfaceIds().exists(_ sameElements psb.parentId)
+        contains(psb.parentId)
     }
   }
 
@@ -362,7 +376,7 @@ object HistoryPlayground extends App {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
   }
 
-  val b = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L)
+  val b = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L, 0, Array.fill(32)(0:Byte), Seq())
 
   val h = HybridHistory.emptyHistory(settings)
 
