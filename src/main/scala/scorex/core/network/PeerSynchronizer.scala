@@ -43,7 +43,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
         .mapTo[Seq[InetSocketAddress]]
         .foreach { peers =>
           val msg = Message(PeersSpec, Right(peers), None)
-          networkControllerRef ! SendToNetwork(msg, SendToChosen(Seq(remote)))
+          networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(remote)))
         }
 
     case nonsense: Any => log.warn(s"PeerSynchronizer: got something strange $nonsense")

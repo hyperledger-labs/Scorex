@@ -3,30 +3,33 @@ package scorex.core.network
 import akka.actor.{Actor, ActorRef}
 import scorex.core.NodeViewHolder._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.consensus.SyncInfo
+import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.serialization.ScorexKryoPool
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.{NodeViewHolder, NodeViewModifier}
+import scorex.core.utils.ScorexLogging
+import scorex.core.{LocalInterface, NodeViewHolder, NodeViewModifier}
+import scorex.crypto.encode.Base58
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 /**
   * A middle layer between a node view holder(NodeViewHolder) and a network
   *
-  * @param networkControllerRef
-  * @param viewHolderRef
-  * @param syncInfoSpec
-  * @tparam P
-  * @tparam TX
-  * @tparam SIS
   */
 class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoSpec[SI]]
-(networkControllerRef: ActorRef, viewHolderRef: ActorRef, syncInfoSpec: SIS, pool: ScorexKryoPool) extends Actor {
+(networkControllerRef: ActorRef,
+ viewHolderRef: ActorRef,
+ localInterfaceRef: ActorRef,
+ syncInfoSpec: SIS,
+ pool: ScorexKryoPool) extends Actor with ScorexLogging {
 
+  import History.HistoryComparisonResult._
   import NodeViewSynchronizer._
   import scorex.core.NodeViewModifier._
 
@@ -34,10 +37,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //against objects sent
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
 
-
-  private val seniors = mutable.Set[ConnectedPeer]()
-
-  private val juniors = mutable.Set[ConnectedPeer]()
+  private val seniors = mutable.Set[String]()
+  private val juniors = mutable.Set[String]()
+  private val equals = mutable.Set[String]()
 
   override def preStart(): Unit = {
     //register as a handler for some types of messages
@@ -49,18 +51,18 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.FailedPersistentModifier,
       NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.SuccessfulPersistentModifier,
-
-      NodeViewHolder.EventType.OtherNodeSyncingStatus
+      NodeViewHolder.EventType.SuccessfulPersistentModifier
     )
     viewHolderRef ! Subscribe(events)
+
+    context.system.scheduler.schedule(2.seconds, 15.seconds)(self ! GetLocalSyncInfo)
   }
 
   private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
     if (source.isEmpty) {
       val data = m.modifierTypeId -> Seq(m.id -> pool.toBytesWithoutClass(m)).toMap
       val msg = Message(ModifiersSpec, Right(data), None)
-      networkControllerRef ! SendToNetwork(msg, Broadcast)
+      //  networkControllerRef ! SendToNetwork(msg, Broadcast) todo: uncomment, send only inv to equals
     }
 
   private def viewHolderEvents: Receive = {
@@ -73,6 +75,17 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case SuccessfulModification(mod, source) => sendModifierIfLocal(mod, source)
   }
 
+  private def getLocalSyncInfo: Receive = {
+    case GetLocalSyncInfo =>
+      viewHolderRef ! NodeViewHolder.GetSyncInfo
+  }
+
+  //sending out sync message to a random peer
+  private def syncSend: Receive = {
+    case CurrentSyncInfo(syncInfo: SI) =>
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToRandom)
+  }
+
 
   //sync info is coming from another node
   private def processSync: Receive = {
@@ -80,6 +93,49 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       if spec.messageCode == syncInfoSpec.messageCode =>
 
       viewHolderRef ! OtherNodeSyncingInfo(remote, syncData)
+  }
+
+  //view holder is telling other node status
+  private def processSyncStatus: Receive = {
+    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI, extOpt) =>
+      if (!remoteSyncInfo.answer) {
+        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(localSyncInfo), None), SendToRandom)
+      }
+
+      val seniorsBefore = seniors.size
+
+      val remoteHost = remote.socketAddress.getAddress.getHostAddress
+
+      seniors.remove(remoteHost)
+      juniors.remove(remoteHost)
+      equals.remove(remoteHost)
+
+      status match {
+        case Older =>
+          seniors.add(remoteHost)
+
+        case Younger =>
+          juniors.add(remoteHost)
+          assert(extOpt.isDefined)
+          val ext = extOpt.get
+          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
+            case (mid, mods) =>
+              networkControllerRef ! SendToNetwork(Message(InvSpec, Right(mid -> mods), None), SendToPeer(remote))
+          }
+
+        case Equal =>
+          equals.add(remoteHost)
+      }
+
+      val seniorsAfter = seniors.size
+
+      if (seniorsBefore > 0 && seniorsAfter == 0) {
+        localInterfaceRef ! LocalInterface.NoBetterNeighbour
+      }
+
+      if (seniorsBefore == 0 && seniorsAfter > 0) {
+        localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
+      }
   }
 
   //object ids coming from other node
@@ -106,19 +162,24 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       val typeId = data._1
       val modifiers = data._2
 
-      val modIds = modifiers.keySet
-
       val askedIds = asked.getOrElse(typeId, mutable.Set())
-      val filteredIds = askedIds.diff(modIds)
 
-      if (askedIds.size - modIds.size == filteredIds.size) {
-        val msg = ModifiersFromRemote(remote, data._1, modifiers.valuesIterator.toSeq)
-        viewHolderRef ! msg
-        asked.put(typeId, filteredIds)
-      } else {
-        //remote peer has sent some object not requested -> ban!
-        //todo: ban a peer
-      }
+      log.info(s"Got modifiers with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+      log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+
+      val fm = modifiers.flatMap { case (mid, mod) =>
+        if (askedIds.exists(id => id sameElements mid)) {
+          askedIds.retain(id => !(id sameElements mid))
+          Some(mod)
+        } else {
+          None
+          //todo: remote peer has sent some object not requested -> ban?
+        }
+      }.toSeq
+
+      asked.put(typeId, askedIds)
+      val msg = ModifiersFromRemote(remote, data._1, fm)
+      viewHolderRef ! msg
   }
 
   //local node sending object ids to remote
@@ -129,8 +190,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         val msg = Message(RequestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
-      val newids = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds
-      asked.put(modifierTypeId, newids)
+      val newIds = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds
+      asked.put(modifierTypeId, newIds)
   }
 
   //local node sending out objects requested to remote
@@ -145,16 +206,23 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   }
 
   override def receive: Receive =
-    processSync orElse
+    getLocalSyncInfo orElse
+      syncSend orElse
+      processSync orElse
+      processSyncStatus orElse
       processInv orElse
       modifiersReq orElse
       requestFromLocal orElse
       responseFromLocal orElse
       modifiersFromRemote orElse
-      viewHolderEvents
+      viewHolderEvents orElse {
+      case a: Any => log.error("Strange input: " + a)
+    }
 }
 
 object NodeViewSynchronizer {
+
+  case object GetLocalSyncInfo
 
   case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 

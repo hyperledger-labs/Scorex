@@ -17,7 +17,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                         chainTransactions: Map[TransactionId, SimpleTransaction] = Map(),
                         offchainTransactions: Map[TransactionId, SimpleTransaction] = Map(),
                         currentBalance: Long = 0)
-  extends Wallet[PublicKey25519Proposition, SimpleTransaction, SimpleWallet] {
+  extends Wallet[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleWallet] {
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
 
@@ -35,12 +35,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     if (publicImage.address == secret.publicImage.address) Some(secret) else None
   }
 
-  /**
-    * Only one secret is supported so this method always returns unmodified wallet
-    *
-    * @return
-    */
-  override def generateNewSecret(): SimpleWallet = SimpleWallet(Random.randomBytes(PrivKeyLength))
+  override def generateNewSecret(): SimpleWallet = throw new Error("Only one secret is supported")
 
   override def secrets: Set[S] = Set(secret)
 
@@ -48,31 +43,35 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def publicKeys: Set[PI] = Set(secret.publicImage)
 
-  override def scan(tx: SimpleTransaction, offchain: Boolean): SimpleWallet = tx match {
+  override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleTransaction]] = ???
+
+  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = Seq()
+
+  override def scanOffchain(tx: SimpleTransaction): SimpleWallet = tx match {
     case sp: SimplePayment =>
       if ((sp.sender.bytes sameElements pubKeyBytes) || (sp.recipient.bytes sameElements pubKeyBytes)) {
-        if (offchain) {
-          SimpleWallet(seed, chainTransactions, offchainTransactions + (sp.id -> sp), currentBalance)
-        } else {
-          val ct = chainTransactions + (sp.id -> sp)
-          val oct = offchainTransactions - sp.id
-          val cb = if (sp.recipient.bytes sameElements pubKeyBytes) {
-            currentBalance + sp.amount
-          } else currentBalance - sp.amount
-          SimpleWallet(seed, ct, oct, cb)
-        }
+        SimpleWallet(seed, chainTransactions, offchainTransactions + (sp.id -> sp), currentBalance)
       } else this
   }
 
-  override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleTransaction]] = ???
+  override def scanOffchain(txs: Seq[SimpleTransaction]): SimpleWallet =
+    txs.foldLeft(this) { case (wallet, tx) => wallet.scanOffchain(tx) }
 
-  override def historyBoxes: Seq[WalletBox[PublicKey25519Proposition]] = {
-    Seq()
+  override def scanPersistent(modifier: SimpleBlock): SimpleWallet = {
+    modifier.transactions.map(_.foldLeft(this) { case (w, tx) =>
+      tx match {
+        case sp: SimplePayment =>
+          if ((sp.sender.bytes sameElements pubKeyBytes) || (sp.recipient.bytes sameElements pubKeyBytes)) {
+            val ct = w.chainTransactions + (sp.id -> sp)
+            val oct = w.offchainTransactions - sp.id
+            val cb = if (sp.recipient.bytes sameElements pubKeyBytes) {
+              w.currentBalance + sp.amount
+            } else w.currentBalance - sp.amount
+            SimpleWallet(seed, ct, oct, cb)
+          } else w
+      }
+    }).getOrElse(this)
   }
-
-  override def bulkScan(txs: Seq[SimpleTransaction], offchain: Boolean): SimpleWallet =
-    txs.foldLeft(this) { case(wallet, tx) => wallet.scan(tx, offchain)}
-
 
   override def companion: NodeViewComponentCompanion = ???
 }

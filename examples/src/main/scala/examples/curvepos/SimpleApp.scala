@@ -1,17 +1,15 @@
 package examples.curvepos
 
 import akka.actor.{ActorRef, Props}
-import examples.curvepos.forging.Forger.StartMining
 import examples.curvepos.forging.{Forger, ForgerSettings}
-import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction, SimpleWallet}
+import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import io.circe
-import scorex.core.api.http.{ApiRoute, UtilsApiRoute}
+import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, UtilsApiRoute}
 import scorex.core.app.{Application, ApplicationVersion}
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.wallet.Wallet
 
 import scala.reflect.runtime.universe._
 
@@ -35,19 +33,22 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override type NVHT = SimpleNodeViewHolder
 
-  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
-  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute])
-  override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings))
-  override val wallet: Wallet[P, TX, _] = SimpleWallet()
+  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(SimpleSyncInfoSpec)
 
-  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder]))
-  override lazy val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
-      networkController, nodeViewHolderRef, SimpleSyncInfoSpec))
-  override lazy val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef))
+  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder], settings))
 
   val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))
-  forger ! StartMining
+
+  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef,
+    forger))
+
+  override val nodeViewSynchronizer: ActorRef =
+    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
+      networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoSpec))
+
+  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
+  override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings),
+    NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
 
 }
 

@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 
 import io.circe.Json
 import io.circe.parser.parse
+import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
@@ -92,6 +93,11 @@ trait Settings extends ScorexLogging {
   }
 
   lazy val walletSeed = settingsJSON.get("walletSeed").flatMap(_.asString).flatMap(s => Base58.decode(s).toOption)
+    .getOrElse {
+      val generated = scorex.utils.Random.randomBytes(PrivKeyLength)
+      log.warn("No wallet seed provided: generated new one:" + Base58.encode(generated))
+      generated
+    }
 
   lazy val apiKeyHash = settingsJSON.get("apiKeyHash").flatMap(_.asString).flatMap(s => Base58.decode(s).toOption)
 

@@ -2,9 +2,10 @@ package examples.curvepos
 
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
-import scorex.core.NodeViewComponentCompanion
+import scorex.core.{NodeViewModifier, NodeViewComponentCompanion}
+import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
-import scorex.core.consensus.{BlockChain, SyncInfo}
+import scorex.core.consensus.BlockChain
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 
@@ -25,6 +26,7 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   override def blockById(blockId: BlockId): Option[SimpleBlock] =
     blocks.find(_._1.sameElements(blockId)).map(_._2)
 
+  //todo: check PoS data in a block
   override def append(block: SimpleBlock): Try[(SimpleBlockchain, Option[RollbackTo[SimpleBlock]])] = synchronized {
     val blockId = block.id
     val parentId = block.parentId
@@ -33,21 +35,31 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
       val h = height() + 1
       val newChain = SimpleBlockchain(blockIds + (h -> blockId), blocks + (blockId -> block))
       Success(newChain, None)
-    } else Failure(new Exception(s"Last block id is ${Base58.encode(blockIds.last._2)}, " +
-      s"expected ${Base58.encode(parentId)}}"))
+    } else {
+      val e = new Exception(s"Last block id is ${Base58.encode(blockIds.last._2)}, expected ${Base58.encode(parentId)}}")
+      Failure(e)
+    }
   }
 
   //todo: should be ID | Seq[ID]
-  override def openSurface(): Seq[BlockId] = Seq(blocks.last._1)
+  override def openSurfaceIds(): Seq[BlockId] = Seq(blockIds(height()))
 
   //todo: argument should be ID | Seq[ID]
-  override def continuation(from: Seq[BlockId], size: Int): Seq[SimpleBlock] =
-    continuationIds(from, size).map(blockById).map(_.get)
+  override def continuation(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[SimpleBlock]] =
+  continuationIds(from, size).map(_.map(_._2).map(blockById).map(_.get))
 
   //todo: argument should be ID | Seq[ID]
-  override def continuationIds(from: Seq[BlockId], size: Int): Seq[BlockId] = {
+  override def continuationIds(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[(ModifierTypeId, BlockId)]] = {
     require(from.size == 1)
-    blocks.dropWhile(t => !t._1.sameElements(from.head)).take(size).keys.toSeq
+    require(from.head._1 == SimpleBlock.ModifierTypeId)
+
+    val fromId = from.head._2
+
+    blockIds.find(_._2 sameElements fromId).map { case (fromHeight, _) =>
+      (fromHeight + 1).to(fromHeight + size)
+        .flatMap(blockIds.get)
+        .map(id => SimpleBlock.ModifierTypeId -> id)
+    }
   }
 
   /**
@@ -79,13 +91,14 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   override def children(blockId: BlockId): Seq[SimpleBlock] =
     heightOf(blockId).map(_ + 1).flatMap(blockAt).toSeq
 
-  override def syncInfo: SimpleSyncInfo = SimpleSyncInfo(chainScore())
+  override def syncInfo(answer: Boolean = false): SimpleSyncInfo =
+    SimpleSyncInfo(answer, lastBlock.id, chainScore())
 
   override def compare(other: SimpleSyncInfo): HistoryComparisonResult.Value = {
-    val local = syncInfo.score
+    val local = syncInfo().score
     val remote = other.score
     if (local < remote) HistoryComparisonResult.Older
-    else if(local == remote) HistoryComparisonResult.Equal
+    else if (local == remote) HistoryComparisonResult.Equal
     else HistoryComparisonResult.Younger
   }
 }

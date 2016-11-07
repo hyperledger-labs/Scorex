@@ -27,13 +27,10 @@ trait Application extends ScorexLogging {
   type P <: Proposition
   type TX <: Transaction[P]
   type PMOD <: PersistentNodeViewModifier[P, TX]
-
   type NVHT <: NodeViewHolder[P, TX, PMOD]
 
   //settings
   implicit val settings: Settings
-
-  val wallet: Wallet[P, TX, _]
 
   //api
   val apiRoutes: Seq[ApiRoute]
@@ -62,7 +59,7 @@ trait Application extends ScorexLogging {
   val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
     applicationName, appVersion), "networkController")
 
-  val nodeViewSynchronizer:ActorRef  //actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, ]], networkController, nodeViewHolderRef, ))
+  val nodeViewSynchronizer: ActorRef
 
   val localInterface: ActorRef
 
@@ -73,10 +70,9 @@ trait Application extends ScorexLogging {
   def run() {
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
+    log.debug(s"RPC is allowed at 0.0.0.0:${settings.rpcPort}")
 
     Http().bindAndHandle(combinedRoute, "0.0.0.0", settings.rpcPort)
-
-    //historySynchronizer ! scorex.block.Block.genesis[P, TX, CD](settings.genesisTimestamp)
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {

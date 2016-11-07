@@ -1,7 +1,8 @@
 package scorex.core
 
 import com.typesafe.config.ConfigFactory
-import scorex.core.serialization.BytesSerializable
+import scorex.core.NodeViewModifier.ModifierId
+import scorex.core.serialization.{JsonSerializable, BytesSerializable}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 
@@ -26,6 +27,7 @@ trait NodeViewModifier {
   * are of the some length fixed with the ModifierIdSize constant
   */
 object NodeViewModifier {
+
   type ModifierTypeId = Byte
   type ModifierId = Array[Byte]
 
@@ -39,6 +41,8 @@ trait NodeViewModifierCompanion[M <: NodeViewModifier] {
 }
 
 trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]] extends NodeViewModifier {
+
+  def parentId: ModifierId
 
   // with Dotty is would be Seq[TX] | Nothing
   def transactions: Option[Seq[TX]]

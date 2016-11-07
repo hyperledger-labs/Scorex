@@ -16,10 +16,8 @@ case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKn
 
   override def toString: String = address
 
-  def verify(message: Array[Byte], signature: Array[Byte]): Boolean =
-    Curve25519.verify(signature, message, pubKeyBytes)
+  def verify(message: Array[Byte], signature: Array[Byte]): Boolean = Curve25519.verify(signature, message, pubKeyBytes)
 }
-
 
 object PublicKey25519Proposition {
   val AddressVersion: Byte = 1

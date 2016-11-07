@@ -33,8 +33,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   private val hash = FastCryptographicHash
 
 
-  val InterBlocksDelay = 15
-  //in seconds
+  val InterBlocksDelay = 15 //in seconds
   val blockGenerationDelay = 500.millisecond
 
   override def preStart(): Unit = {
@@ -56,7 +55,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
                            state: SimpleState,
                            generator: PublicKey25519Proposition): BigInt = {
     val eta = (NetworkTime.time() - lastBlock.timestamp) / 1000 //in seconds
-    val balance = state.boxOf(generator).headOption.map(_.value).getOrElse(0L)
+    val balance = state.boxesOf(generator).headOption.map(_.value).getOrElse(0L)
     BigInt(lastBlock.baseTarget) * eta * balance
   }
 
@@ -79,7 +78,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
 
       val lastBlock = history.lastBlock
       val generators: Set[PublicKey25519Proposition] = wallet.publicKeys
-      lazy val toInclude = state.filterValid(memPool.take(TransactionsInBlock)._1.toSeq)
+      lazy val toInclude = state.filterValid(memPool.take(TransactionsInBlock).toSeq)
 
       val generatedBlocks = generators.flatMap { generator =>
         val hit = calcHit(lastBlock, generator)

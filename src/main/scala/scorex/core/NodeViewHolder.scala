@@ -2,7 +2,7 @@ package scorex.core
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
-import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
@@ -12,6 +12,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.encode.Base58
 
 import scala.collection.mutable
 import scala.util.{Failure, Success}
@@ -38,7 +39,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   type SI <: SyncInfo
   type HIS <: History[P, TX, PMOD, SI, HIS]
   type MS <: MinimalState[P, _, TX, PMOD, MS]
-  type VL <: Vault[P, TX, VL]
+  type VL <: Vault[P, TX, PMOD, VL]
   type MP <: MemoryPool[TX, MP]
 
 
@@ -48,6 +49,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   val networkChunkSize = 100 //todo: make configurable?
 
+  //todo: make configurable limited size
+  private val modifiersCache = mutable.Map[ModifierId, (ConnectedPeer, PMOD)]()
 
   //mutable private node view instance
   private var nodeView: NodeView = restoreState().getOrElse(genesisState)
@@ -78,7 +81,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! signal)
 
   private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
-    val updWallet = vault().scan(tx, offchain = true)
+    val updWallet = vault().scanOffchain(tx)
     memoryPool().put(tx) match {
       case Success(updPool) =>
         nodeView = (history(), minimalState(), updWallet, updPool)
@@ -89,12 +92,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
-  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]) = {
+  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]): Unit = {
     notifySubscribers(
       EventType.StartingPersistentModifierApplication,
       StartingPersistentModifierApplication[P, TX, PMOD](pmod)
     )
-    log.info(s"Apply modifier to nodeViewHolder.")
+
+    log.info(s"Apply modifier to nodeViewHolder: ${Base58.encode(pmod.id)}")
 
     history().append(pmod) match {
       case Success((newHistory, maybeRollback)) =>
@@ -105,37 +109,30 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           case Success(newMinState) =>
             val rolledBackTxs = maybeRollback.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
 
-            val appliedTxs = maybeRollback.map(rb =>
-              rb.applied.flatMap(_.transactions).flatten).getOrElse(Seq()
-            ) ++ pmod.transactions.getOrElse(Seq())
+            val appliedMods = maybeRollback.map(_.applied).getOrElse(Seq()) ++ Seq(pmod)
+
+            val appliedTxs = appliedMods.flatMap(_.transactions).flatten
 
             val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter(appliedTxs)
 
             val newWallet = maybeRollback
               .map(rb => vault().rollback(rb.to).get) //we consider that vault always able to perform a rollback needed
-              .map(w => w.bulkScan(appliedTxs, offchain = false))
+              .map(w => w.scanPersistent(appliedMods))
               .getOrElse(vault())
 
+            log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
             nodeView = (newHistory, newMinState, newWallet, newMemPool)
             notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
 
           case Failure(e) =>
-            log.warn(s"Can`t apply persistent modifier (id: ${pmod.id}, contents: $pmod) to minimal state", e)
+            log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
             notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
         }
 
       case Failure(e) =>
-        log.warn(s"Can`t apply persistent modifier (id: ${pmod.id}, contents: $pmod) to history", e)
+        log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to history, reason: ${e.getMessage}", e)
         notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
     }
-  }
-
-  private def modify[MOD <: NodeViewModifier](m: MOD, source: Option[ConnectedPeer]): Unit = m match {
-    case (tx: TX@unchecked) if m.modifierTypeId == Transaction.TransactionModifierId =>
-      txModify(tx, source)
-
-    case pmod: PMOD@unchecked =>
-      pmodModify(pmod, source)
   }
 
   def apis: Seq[ApiRoute] = Seq(
@@ -157,10 +154,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def compareViews: Receive = {
     case CompareViews(sid, modifierTypeId, modifierIds) =>
       val ids = modifierTypeId match {
-        case typeId: Byte if typeId == Transaction.TransactionModifierId =>
+        case typeId: Byte if typeId == Transaction.ModifierTypeId =>
           memoryPool().notIn(modifierIds)
         case _ =>
-          history().continuationIds(modifierIds, networkChunkSize)
+          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
       }
 
       sender() ! NodeViewSynchronizer.RequestFromLocal(sid, modifierTypeId, ids)
@@ -169,40 +166,85 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
       val objs: Seq[NodeViewModifier] = modifierTypeId match {
-        case typeId: Byte if typeId == Transaction.TransactionModifierId =>
+        case typeId: Byte if typeId == Transaction.ModifierTypeId =>
           memoryPool().getAll(modifierIds)
         case typeId: Byte =>
-          modifierIds.flatMap(id => history().blockById(id)) //todo: why block by id?
+          modifierIds.flatMap(id => history().blockById(id))
       }
+
+      log.debug("sending out local objs: " + objs.map(_.id).map(Base58.encode))
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
 
   private def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
       modifierCompanions.get(modifierTypeId) foreach { companion =>
-        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach(m =>
-          modify(m, Some(remote))
-        )
+        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach {
+          case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
+            txModify(tx, Some(remote))
+
+          case pmod: PMOD@unchecked =>
+            modifiersCache.put(pmod.id, remote -> pmod)
+        }
+
+        log.info(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+
+        modifiersCache.find(_._1 sameElements Base58.decode("1dd9Hfg6DFDdaM4BUMq5hP9nm2cWzYS1KmdmTamCYyZ").get).map{ gb =>
+          println("genesis arrived: " + gb)
+        }
+
+        var t: Option[(ConnectedPeer, PMOD)] = None
+        do {
+          t = {
+            modifiersCache.find { case (mid, (_, pmod)) =>
+              history().applicable(pmod)
+            }.map { t =>
+              val res = t._2
+              modifiersCache.remove(t._1)
+              res
+            }
+          }
+          t.foreach { case (peer, pmod) => pmodModify(pmod, Some(peer)) }
+        } while (t.isDefined)
+
+        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
       }
   }
 
   private def processLocallyGeneratedModifiers: Receive = {
     case lt: LocallyGeneratedTransaction[P, TX] =>
-      modify(lt.tx, None)
+      txModify(lt.tx, None)
 
     case lm: LocallyGeneratedModifier[P, TX, PMOD] =>
-      modify(lm.pmod, None)
+      log.info(s"Got locally generated modifier: ${Base58.encode(lm.pmod.id)}")
+      pmodModify(lm.pmod, None)
   }
 
-  private def viewGetters: Receive = {
+  private def getCurrentInfo: Receive = {
     case GetCurrentView =>
       sender() ! CurrentView(history(), minimalState(), vault(), memoryPool())
   }
 
   private def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
-      val otherStatus = history().compare(syncInfo)
+      log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
+      log.debug(s"Local side contains head: ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
 
+      val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
+      log.debug("sending extension: " + extensionOpt.getOrElse(Seq()).map(_._2).map(Base58.encode).mkString(","))
+
+      sender() ! OtherNodeSyncingStatus(
+        remote,
+        history().compare(syncInfo),
+        syncInfo,
+        history().syncInfo(true),
+        extensionOpt
+      )
+  }
+
+  private def getSyncInfo: Receive = {
+    case GetSyncInfo =>
+      sender() ! CurrentSyncInfo(history().syncInfo(false))
   }
 
   override def receive: Receive =
@@ -211,7 +253,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       readLocalObjects orElse
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
-      viewGetters orElse {
+      getCurrentInfo orElse
+      getSyncInfo orElse
+      compareSyncInfo orElse {
       case a: Any => log.error("Strange input: " + a)
     }
 }
@@ -219,7 +263,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 object NodeViewHolder {
 
-  object GetCurrentView
+  case object GetSyncInfo
+
+  case class CurrentSyncInfo[SI <: SyncInfo](syncInfo: SyncInfo)
+
+  case object GetCurrentView
 
   object EventType extends Enumeration {
     //finished modifier application, successful of failed
@@ -230,9 +278,6 @@ object NodeViewHolder {
 
     //starting persistent modifier application. The application could be slow
     val StartingPersistentModifierApplication = Value(5)
-
-    //
-    val OtherNodeSyncingStatus = Value(6)
   }
 
   //a command to subscribe for events
@@ -240,7 +285,11 @@ object NodeViewHolder {
 
   trait NodeViewHolderEvent
 
-  case class OtherNodeSyncingStatus(peer: ConnectedPeer, status: History.HistoryComparisonResult.Value)
+  case class OtherNodeSyncingStatus[SI <: SyncInfo](peer: ConnectedPeer,
+                                                    status: History.HistoryComparisonResult.Value,
+                                                    remoteSyncInfo: SI,
+                                                    localSyncInfo: SI,
+                                                    extension: Option[Seq[(ModifierTypeId, ModifierId)]])
 
   //node view holder starting persistent modifier application
   case class StartingPersistentModifierApplication[

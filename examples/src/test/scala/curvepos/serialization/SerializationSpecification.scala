@@ -19,7 +19,7 @@ with ExampleGenerators {
   }
 
   property("SimpleBlock serialization roundtrip") {
-    checkSerialization[SimpleBlock](blockGen, classOf[SimpleBlock])
+    checkSerialization[SimpleBlock](blockGenerator, classOf[SimpleBlock])
   }
 
   def checkSerialization[T](gen: Gen[T], cls: Class[T], check: (T, T) => Unit = (o1: T, o2: T) => o1 shouldBe o2) = {

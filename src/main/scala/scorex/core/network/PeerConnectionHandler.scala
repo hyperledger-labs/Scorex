@@ -21,7 +21,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
   import shapeless.syntax.typeable._
 
   override def equals(obj: scala.Any): Boolean =
-    obj.cast[ConnectedPeer].exists(_.socketAddress == this.socketAddress)
+    obj.cast[ConnectedPeer].exists(_.socketAddress.getAddress.getHostAddress == this.socketAddress.getAddress.getHostAddress)
 }
 
 
@@ -72,14 +72,14 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef,
   private var handshakeGot = false
   private var handshakeSent = false
 
-  private object HandshakeCheck
+  private object HandshakeDone
 
   private def handshake: Receive = ({
     case h: Handshake =>
       connection ! Write(ByteString(serializer.toBytesWithoutClass(h)))
       log.info(s"Handshake sent to $remote")
       handshakeSent = true
-      self ! HandshakeCheck
+      if (handshakeGot && handshakeSent) self ! HandshakeDone
 
     case Received(data) =>
       serializer.fromBytes(data.toArray, classOf[Handshake]) match {
@@ -88,18 +88,16 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef,
           log.info(s"Got a Handshake from $remote")
           connection ! ResumeReading
           handshakeGot = true
-          self ! HandshakeCheck
+          if (handshakeGot && handshakeSent) self ! HandshakeDone
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
           //todo: blacklist?
           connection ! Close
       }
 
-    case HandshakeCheck =>
-      if (handshakeGot && handshakeSent) {
-        connection ! ResumeReading
-        context become workingCycle
-      }
+    case HandshakeDone =>
+      connection ! ResumeReading
+      context become workingCycle
   }: Receive) orElse processErrors(CommunicationState.AwaitingHandshake.toString)
 
 

@@ -1,6 +1,6 @@
 {
   "p2p": {
-    "bindAddress": "0.0.0.0",
+    "bindAddress": "127.0.0.1",
     "upnp": false,
     "upnpGatewayTimeout": 7000,
     "upnpDiscoverTimeout": 3000,
@@ -12,16 +12,12 @@
   },
   "walletDir": "/tmp/scorex/wallet",
   "walletPassword": "cookies",
+  "walletSeed": "genesis",
   "dataDir": "/tmp/scorex/data",
   "rpcPort": 9085,
   "rpcAllowed": [],
   "maxRollback": 100,
   "offlineGeneration": true,
   "blockGenerationDelay": 0,
-  "genesisTimestamp": 1460952000000,
-  "perma": {
-    "treeDir": "/tmp/scorex/data/tree/",
-    "authDataStorage": "permatree.db"
-  },
   "cors": false
 }

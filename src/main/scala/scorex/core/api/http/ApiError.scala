@@ -12,11 +12,10 @@ object ApiError {
 
   implicit def encodeToJson(err: ApiError): Json = err.asJson
 
-  def json(t: Throwable): Json = ApiError(0, t.getMessage)
-
   val unknown: Json = ApiError(0, "Error is unknown")
   val wrongJson: Json = ApiError(1, "Failed to parse json message")
   val apiKeyNotValid: Json = ApiError(2, "Provided API key is not correct")
+  def failure(e: Throwable): Json = ApiError(3, "Exception " + e)
   val invalidSignature: Json = ApiError(101, "Invalid signature")
   val invalidAddress: Json = ApiError(102, "Invalid address")
   val invalidSeed: Json = ApiError(103, "Invalid seed")

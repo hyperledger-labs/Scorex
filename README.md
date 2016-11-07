@@ -3,6 +3,13 @@ Scorex 2 - The modular blockchain framework [![Build Status](http://23.94.190.22
 
 [![Join the chat at https://gitter.im/input-output-hk/Scorex](https://badges.gitter.im/input-output-hk/Scorex.svg)](https://gitter.im/input-output-hk/Scorex?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+Scorex and Scorex 2
+-------------------
+
+It is experimental an still raw new major release of the Scorex. Previous
+version with documentation etc could be found at [https://github.com/input-output-hk/Scorex](https://github.com/input-output-hk/Scorex).
+
+
 Motivation
 ----------
 
@@ -23,26 +30,18 @@ Features
 --------
 
 * Compact, functional code
-* Modular design
+* Modular design with fine granularity
 * Scala language
-* Two 100% Proof-of-Stake consensus algos out of the closedBox, Nxt-like and Qora-like. One algo could be replaced
-with an another with just one line of code edited.
-* Additional consensus module Proof-of-Work consensus algo is available as [separate module](https://github.com/ScorexProject/Permacoin-consensus)
-* Simplest transactional model
 * Asynchronous network layer on top of TCP
 * JSON API
 * Command line client for the JSON API
-* Cryptographic primitives externalized into [separate scrypto framework](https://github.com/ScorexProject/scrypto)
+* Cryptographic primitives externalized into [separate scrypto framework](https://github.com/input-output-hk/scrypto)
+* Few examples out-of-box
 
-Getting Started
----------------
+Documentation
+-------------
 
-* [Quick start guide](https://github.com/ScorexProject/Scorex/wiki/Getting-started)
-* [Documentation](https://github.com/ScorexProject/Scorex/wiki)
-* [Example project](https://github.com/ScorexProject/Lagonaki)
-* [Additional consensus module](https://github.com/ScorexProject/Permacoin-consensus)
-* [CI](http://23.94.190.226:8080/job/scorex/)
-* [Releases](https://github.com/ScorexProject/Scorex/releases)
+[Please refer to the tutorial.](https://github.com/ScorexFoundation/ScorexTutorial)
 
 Command-Line Client
 -------------------
@@ -53,36 +52,11 @@ Some examples of CLI commands:
  * GET blocks/first
  * POST payment {"amount":400, "fee":1, "sender":"2kx3DyWJpYYfLErWpRMLHwkL1ZGyKHAPNKr","recipient":"Y2BXLjiAhPUMSo8iBbDEhv81VwKnytTXsH"}
 
-More reading
-------------
-
-Besides of [documentation](https://github.com/ScorexProject/Scorex/wiki) there are other resources describing Scorex:
-
-Articles:
-
-[The Architecture Of A Cryptocurrency](docs/articles/components.md)
-
-[On the Way to a Modular Cryptocurrency, Part 1: Generic Block Structure](docs/articles/modular1.md)
-
-[On the Way to a Modular Cryptocurrency, Part 2: Stackable API](docs/articles/modular2.md)
-
-[On Private Blockchains, Technically](docs/artices/private-chains.md)
-
-Readmes:
-
-[Scorex-Basics Sub-Module](scorex-basics/README.md)
-
-Others:
-
-[API Description](docs/API.md)
-
-Please join our mail-list: [https://groups.io/g/scorex-dev](https://groups.io/g/scorex-dev) .
-
 
 Contributions
 -------------
 
-Contributions are welcome! Please take a look into [issues](https://github.com/ConsensusResearch/Scorex-Lagonaki/issues).
+Contributions are welcome! Please take a look into [issues](https://github.com/ScorexFoundation/ScorexTutorial/issues).
  Testing codebase is very small at the moment, so writing a test is not just good for start, but useful as well.
 
 License
