@@ -5,7 +5,7 @@ import examples.hybrid.mining.PowMiner._
 import examples.hybrid.state.SimpleBoxTransaction
 import shapeless.{::, HNil}
 import io.circe.Json
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.{NodeViewModifier, NodeViewModifierCompanion}
 import scorex.core.block.Block
 import scorex.core.block.Block._
@@ -36,7 +36,9 @@ class PowBlockHeader(
     brothersCount >= 0 &&
       timestamp >= 0
 
-  lazy val correctWork = workDone(headerBytes)
+  lazy val correctWork = workDone(id)
+
+  lazy val id = FastCryptographicHash(headerBytes)
 }
 
 object PowBlockHeader {
@@ -73,8 +75,6 @@ case class PowBlock(override val parentId: BlockId,
     with Block[PublicKey25519Proposition, SimpleBoxTransaction] {
 
   override type M = PowBlock
-
-  override lazy val id = FastCryptographicHash(headerBytes)
 
   override lazy val companion = PowBlockCompanion
 
