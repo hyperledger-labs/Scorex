@@ -5,8 +5,7 @@ import examples.hybrid.state.SimpleBoxTransaction
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.Signature25519
-import scorex.core.transaction.state.PrivateKey25519Companion
+import scorex.core.transaction.state.PrivateKey25519
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
@@ -35,9 +34,9 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
   }
 
   def generate(wallet: HWallet): Try[SimpleBoxTransaction] = Try {
-    val from: IndexedSeq[(PublicKey25519Proposition, Long)] = wallet.boxes()
+    val from: IndexedSeq[(PrivateKey25519, Long)] = wallet.boxes()
       .filter(p => Random.nextBoolean()).map { b =>
-      (b.box.proposition, b.box.value)
+      (wallet.secretByPublicImage(b.box.proposition).get, b.box.value)
     }.toIndexedSeq
     var canSend = from.map(_._2).sum
 
@@ -50,15 +49,7 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
 
     val fee: Long = from.map(_._2).sum - to.map(_._2).sum
     val timestamp = System.currentTimeMillis()
-    val unsigned = SimpleBoxTransaction(from, to, IndexedSeq(), fee, timestamp)
-
-    val message: Array[Byte] = unsigned.messageToSign
-
-    val signatures: IndexedSeq[Signature25519] = from.map { p =>
-      val sec = wallet.secretByPublicImage(p._1).get
-      PrivateKey25519Companion.sign(sec, message)
-    }
-    unsigned.copy(signatures = signatures).ensuring(_.valid)
+    SimpleBoxTransaction(from, to, fee, timestamp)
   }
 
 }
