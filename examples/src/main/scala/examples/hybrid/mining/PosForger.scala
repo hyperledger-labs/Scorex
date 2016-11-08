@@ -25,9 +25,12 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
   val TransactionsPerBlock = 50
 
   def pickTransactions(memPool: HMemPool, state: HBoxStoredState): Seq[SimpleBoxTransaction] =
-    memPool.take(TransactionsPerBlock).filter { tx =>
-      tx.valid && tx.boxIdsToOpen.map(state.closedBox).forall(_.isDefined)
-    }.toSeq
+    memPool.take(TransactionsPerBlock).foldLeft(Seq[SimpleBoxTransaction]()) { case (collected, tx) =>
+      if (tx.valid &&
+        tx.boxIdsToOpen.map(state.closedBox).forall(_.isDefined) &&
+        tx.boxIdsToOpen.forall(id => !collected.flatMap(_.boxIdsToOpen).exists(_ sameElements id))) collected :+ tx
+      else collected
+    }
 
 
   override def receive: Receive = {
@@ -39,7 +42,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
       val target = MaxTarget / h.posDifficulty
 
-      def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox):Long = {
+      def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
         val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
         Longs.fromByteArray((0: Byte) +: h.take(7))
       }
@@ -90,4 +93,5 @@ object PosForger {
   case object StartForging
 
   case object StopForging
+
 }

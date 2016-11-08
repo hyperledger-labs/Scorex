@@ -437,7 +437,6 @@ object HistoryPlayground extends App {
 
   assert(h2.blockById(b.id).isDefined)
 
-
   val priv1 = PrivateKey25519Companion.generateKeys(Array.fill(32)(0: Byte))
   val priv2 = PrivateKey25519Companion.generateKeys(Array.fill(32)(1: Byte))
 

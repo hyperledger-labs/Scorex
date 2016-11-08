@@ -84,6 +84,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     val updWallet = vault().scanOffchain(tx)
     memoryPool().put(tx) match {
       case Success(updPool) =>
+        log.debug(s"Unconfirmed transaction $tx added to the mempool")
         nodeView = (history(), minimalState(), updWallet, updPool)
         notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx, source))
 

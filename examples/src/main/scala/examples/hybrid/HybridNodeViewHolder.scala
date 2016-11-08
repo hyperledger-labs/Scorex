@@ -43,8 +43,10 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
 
     val genesisAccount = ew.secrets.head
 
-    val genesisTxs = ew.publicKeys.map { pubkey =>
-      SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 100000), 0L, 0L)
+    val genesisTxs = ew.publicKeys.flatMap { pubkey =>
+      Seq(SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 100000), 0L, 0L),
+          SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 200000), 0L, 0L),
+          SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 300000), 0L, 0L))
     }.toSeq
 
     val za = Array.fill(32)(0: Byte)
@@ -52,6 +54,8 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
 
     val gs = HBoxStoredState.genesisState(settings, initialBlock)
     val gw = HWallet.genesisWallet(settings, initialBlock)
+
+    gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))
 
     (HybridHistory.emptyHistory(settings), gs, gw, HMemPool.emptyPool)
   }

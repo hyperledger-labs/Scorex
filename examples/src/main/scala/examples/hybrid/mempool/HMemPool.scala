@@ -4,13 +4,14 @@ import examples.hybrid.state.SimpleBoxTransaction
 import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.transaction.MemoryPool
+import scorex.core.utils.ScorexLogging
 
 import scala.collection.mutable
 import scala.util.{Success, Try}
 
 
 case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTransaction])
-  extends MemoryPool[SimpleBoxTransaction, HMemPool] {
+  extends MemoryPool[SimpleBoxTransaction, HMemPool] with ScorexLogging {
   override type NVCT = HMemPool
 
   //getters

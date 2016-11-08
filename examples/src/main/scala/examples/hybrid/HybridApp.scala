@@ -58,8 +58,8 @@ class HybridApp(val settingsFilename: String) extends Application {
   nodeViewSynchronizer
 
   //todo :fix
-  val generator: ActorRef = actorSystem.actorOf(Props(classOf[SimpleBoxTransactionGenerator], nodeViewHolderRef))
-  generator ! StartGeneration(FiniteDuration(10, SECONDS))
+  //val generator: ActorRef = actorSystem.actorOf(Props(classOf[SimpleBoxTransactionGenerator], nodeViewHolderRef))
+  //generator ! StartGeneration(FiniteDuration(10, SECONDS))
 }
 
 object HybridApp extends App {

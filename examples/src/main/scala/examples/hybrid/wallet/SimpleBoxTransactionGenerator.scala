@@ -43,7 +43,7 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
 
     val to: IndexedSeq[(PublicKey25519Proposition, Long)] = wallet.publicKeys
       .filter(p => Random.nextBoolean()).map { p =>
-      val amount = Random.nextLong() % canSend
+      val amount = Random.nextInt(canSend.toInt - 1).toLong % canSend
       canSend = canSend - amount
       (p, amount)
     }.toIndexedSeq
