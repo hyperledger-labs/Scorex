@@ -15,7 +15,6 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.utils.ScorexLogging
 
-import scala.concurrent.duration._
 
 class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
@@ -69,6 +68,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
         } match {
           case Some(posBlock) =>
             println(s"locally generated PoS block: $posBlock")
+            forging = false
             viewHolderRef !
               LocallyGeneratedModifier[PublicKey25519Proposition,
                 SimpleBoxTransaction, HybridPersistentNodeViewModifier](posBlock)

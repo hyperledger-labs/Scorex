@@ -35,7 +35,7 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
 
   def generate(wallet: HWallet): Try[SimpleBoxTransaction] = Try {
     val from: IndexedSeq[(PrivateKey25519, Long)] = wallet.boxes()
-      .filter(p => Random.nextBoolean()).map { b =>
+      .filter(p => Random.nextInt(5) < 2).map { b =>
       (wallet.secretByPublicImage(b.box.proposition).get, b.box.value)
     }.toIndexedSeq
     var canSend = from.map(_._2).sum
@@ -47,15 +47,14 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
       (p, amount)
     }.toIndexedSeq
 
+    println(s"Generated a transaction with ${from.size} inputs, ${to.size} outputs")
+
     val fee: Long = from.map(_._2).sum - to.map(_._2).sum
     val timestamp = System.currentTimeMillis()
     SimpleBoxTransaction(from, to, fee, timestamp)
   }
-
 }
 
 object SimpleBoxTransactionGenerator {
-
   case class StartGeneration(delay: FiniteDuration)
-
 }

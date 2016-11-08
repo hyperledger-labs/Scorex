@@ -59,7 +59,7 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   //todo :fix
 //  val generator: ActorRef = actorSystem.actorOf(Props(classOf[SimpleBoxTransactionGenerator], nodeViewHolderRef))
-//  generator ! StartGeneration(FiniteDuration(1, SECONDS))
+//  generator ! StartGeneration(FiniteDuration(10, SECONDS))
 }
 
 object HybridApp extends App {
