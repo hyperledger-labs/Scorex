@@ -2,6 +2,7 @@ package examples.hybrid.history
 
 
 import java.io.File
+import java.util.Date
 
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
@@ -94,13 +95,13 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   //a lot of crimes committed here: .get, .asInstanceOf
   def lastPowBlocks(count: Int): Seq[PowBlock] =
   (1 until count).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
-    blockById(bestPowBlock.parentId).get.asInstanceOf[PowBlock] +: blocks
+    blockById(blocks.head.parentId).get.asInstanceOf[PowBlock] +: blocks
   }
 
   //a lot of crimes committed here: .get, .asInstanceOf
   def lastPosBlocks(count: Int): Seq[PosBlock] =
   (1 until count).foldLeft(Seq(bestPosBlock)) { case (blocks, _) =>
-    blockById(forwardPosLinks.get(bestPosBlock.parentId)).get.asInstanceOf[PosBlock] +: blocks
+    blockById(forwardPosLinks.get(blocks.head.parentId)).get.asInstanceOf[PosBlock] +: blocks
   }
 
   def recalcDifficulties(): Unit = {
@@ -109,11 +110,11 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
     val brothersCount = powBlocks.map(_.brothersCount).sum
 
-    val expectedPeriodTime = (DifficultyRecalcPeriod + brothersCount) * PowMiner.BlockDelay
+    val expectedTime = (DifficultyRecalcPeriod + brothersCount) * PowMiner.BlockDelay
 
-    val newPowDiff = powDifficulty * expectedPeriodTime / realTime
+    val newPowDiff = (powDifficulty * expectedTime / realTime).max(BigInt(1L))
 
-    val newPosDiff = posDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount)*9/10)
+    val newPosDiff = posDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount)*8/10)
 
     log.info(s"PoW difficulty changed: old $powDifficulty, new $newPowDiff")
     log.info(s"PoS difficulty changed: old $posDifficulty, new $newPosDiff")
@@ -310,6 +311,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
         (new HybridHistory(blocksStorage, metaDb), None) //no rollback ever
     }
     metaDb.commit()
+    log.info(s"History: block appended, new score is ${currentScoreVar.get()}")
     res
   }
 
@@ -400,7 +402,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
 
 object HybridHistory {
-  val DifficultyRecalcPeriod = 5
+  val DifficultyRecalcPeriod = 20
 
   def emptyHistory(settings: Settings): HybridHistory = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
