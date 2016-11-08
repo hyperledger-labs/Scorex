@@ -45,6 +45,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
       }
 
       val boxes = w.boxes()
+      println(s"${boxes.size} stakeholding outputs")
 
       //last check on whether to forge at all
       if (h.pairCompleted) {

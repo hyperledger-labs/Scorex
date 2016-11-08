@@ -9,7 +9,8 @@ import scala.collection.mutable
 import scala.util.{Success, Try}
 
 
-case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTransaction]) extends MemoryPool[SimpleBoxTransaction, HMemPool] {
+case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTransaction])
+  extends MemoryPool[SimpleBoxTransaction, HMemPool] {
   override type NVCT = HMemPool
 
   //getters

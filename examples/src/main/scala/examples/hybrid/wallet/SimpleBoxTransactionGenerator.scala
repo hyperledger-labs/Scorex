@@ -27,9 +27,10 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
 
       generate(wallet) match {
         case Success(tx) =>
+          println(s"Local tx with with ${tx.from.size} inputs, ${tx.to.size} outputs")
           viewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
         case Failure(e) =>
-          e.printStackTrace()
+          //e.printStackTrace()
       }
   }
 
@@ -46,8 +47,6 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
       canSend = canSend - amount
       (p, amount)
     }.toIndexedSeq
-
-    println(s"Generated a transaction with ${from.size} inputs, ${to.size} outputs")
 
     val fee: Long = from.map(_._2).sum - to.map(_._2).sum
     val timestamp = System.currentTimeMillis()

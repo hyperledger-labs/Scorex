@@ -99,7 +99,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
                   }
                   None
                 }
-              Thread.sleep(2) //500 hashes per second per node
+              Thread.sleep(5) //200 hashes per second per node
             }
             p.success(foundBlock)
           }
@@ -124,7 +124,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
 }
 
 object PowMiner extends App {
-  lazy val BlockDelay = 5.seconds.toMillis
+  lazy val BlockDelay = 6.seconds.toMillis
 
   lazy val MaxTarget = BigInt(1, Array.fill(32)(Byte.MinValue))
   lazy val Difficulty = BigInt("5")
