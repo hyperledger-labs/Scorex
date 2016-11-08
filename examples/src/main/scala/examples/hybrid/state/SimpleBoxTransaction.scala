@@ -68,6 +68,12 @@ BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
         proof.isValid(prop, messageToSign)
       }
   }
+
+  override lazy val messageToSign: Array[Byte] =
+    newBoxes.map(_.bytes).reduce(_ ++ _) ++
+      boxIdsToOpen.reduce(_ ++ _) ++
+      Longs.toByteArray(timestamp) ++
+      Longs.toByteArray(fee)
 }
 
 
