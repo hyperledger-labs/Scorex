@@ -94,7 +94,7 @@ case class PowBlock(override val parentId: BlockId,
   lazy val header = new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
 
 //  lazy val brotherBytes = companion.brotherBytes(brothers)
-  lazy val brotherBytes = ???
+  lazy val brotherBytes:Array[Byte] = ???
 
   override lazy val toString = s"PowBlock(id: ${Base58.encode(id)})" +
     s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +

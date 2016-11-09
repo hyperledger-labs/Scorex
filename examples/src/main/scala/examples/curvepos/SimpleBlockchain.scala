@@ -2,10 +2,10 @@ package examples.curvepos
 
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
-import scorex.core.{NodeViewModifier, NodeViewComponentCompanion}
+import scorex.core.NodeViewComponentCompanion
 import scorex.core.NodeViewModifier.ModifierTypeId
-import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
 import scorex.core.consensus.BlockChain
+import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 
@@ -46,7 +46,7 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
 
   //todo: argument should be ID | Seq[ID]
   override def continuation(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[SimpleBlock]] =
-  continuationIds(from, size).map(_.map(_._2).map(blockById).map(_.get))
+    continuationIds(from, size).map(_.map(_._2).map(blockById).map(_.get))
 
   //todo: argument should be ID | Seq[ID]
   override def continuationIds(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[(ModifierTypeId, BlockId)]] = {

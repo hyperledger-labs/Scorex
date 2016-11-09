@@ -7,6 +7,7 @@ import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -45,12 +46,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   type NodeView = (HIS, MS, VL, MP)
 
-  val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]]
+  val modifierToClass: Map[ModifierTypeId, Class[_]]
 
   val networkChunkSize = 100 //todo: make configurable?
 
   //todo: make configurable limited size
   private val modifiersCache = mutable.Map[ModifierId, (ConnectedPeer, PMOD)]()
+  protected val serializer: ScorexKryoPool
 
   //mutable private node view instance
   private var nodeView: NodeView = restoreState().getOrElse(genesisState)
@@ -179,8 +181,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
-      modifierCompanions.get(modifierTypeId) foreach { companion =>
-        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach {
+      modifierToClass.get(modifierTypeId) foreach { cl =>
+        remoteObjects.flatMap(r => serializer.fromBytes(r, cl).toOption).foreach {
           case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
             txModify(tx, Some(remote))
 
@@ -188,11 +190,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             modifiersCache.put(pmod.id, remote -> pmod)
         }
 
-        log.info(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
 
-        modifiersCache.find(_._1 sameElements Base58.decode("1dd9Hfg6DFDdaM4BUMq5hP9nm2cWzYS1KmdmTamCYyZ").get).map{ gb =>
-          println("genesis arrived: " + gb)
-        }
+        log.info(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
 
         var t: Option[(ConnectedPeer, PMOD)] = None
         do {

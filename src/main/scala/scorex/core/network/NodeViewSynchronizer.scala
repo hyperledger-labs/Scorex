@@ -27,7 +27,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
  viewHolderRef: ActorRef,
  localInterfaceRef: ActorRef,
  syncInfoSpec: SIS,
- pool: ScorexKryoPool) extends Actor with ScorexLogging {
+ serializer: ScorexKryoPool) extends Actor with ScorexLogging {
 
   import History.HistoryComparisonResult._
   import NodeViewSynchronizer._
@@ -60,7 +60,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
     if (source.isEmpty) {
-      val data = m.modifierTypeId -> Seq(m.id -> pool.toBytesWithoutClass(m)).toMap
+      val data = m.modifierTypeId -> Seq(m.id -> serializer.toBytesWithoutClass(m)).toMap
       val msg = Message(ModifiersSpec, Right(data), None)
       //  networkControllerRef ! SendToNetwork(msg, Broadcast) todo: uncomment, send only inv to equals
     }
@@ -116,11 +116,14 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
         case Younger =>
           juniors.add(remoteHost)
-          assert(extOpt.isDefined)
-          val ext = extOpt.get
-          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
-            case (mid, mods) =>
-              networkControllerRef ! SendToNetwork(Message(InvSpec, Right(mid -> mods), None), SendToPeer(remote))
+          extOpt match {
+            case Some(ext) =>
+              ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
+                case (mid, mods) =>
+                  networkControllerRef ! SendToNetwork(Message(InvSpec, Right(mid -> mods), None), SendToPeer(remote))
+              }
+            case None =>
+              log.warn("ExtOpt should be defined for younger node")
           }
 
         case Equal =>
@@ -199,7 +202,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case ResponseFromLocal(peer, typeId, modifiers: Seq[NodeViewModifier]) =>
       if (modifiers.nonEmpty) {
         val modType = modifiers.head.modifierTypeId
-        val m = modType -> modifiers.map(m => m.id -> pool.toBytesWithoutClass(m)).toMap
+        val m = modType -> modifiers.map(m => m.id -> serializer.toBytesWithoutClass(m)).toMap
         val msg = Message(ModifiersSpec, Right(m), None)
         peer.handlerRef ! msg
       }

@@ -5,6 +5,7 @@ import io.circe.Json
 import io.circe.syntax._
 import scorex.core.block.Block
 import scorex.core.block.Block._
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 import shapeless.{::, HNil}
@@ -26,7 +27,7 @@ case class SimpleBlock(override val parentId: BlockId,
 
   override lazy val transactions: Option[Seq[SimpleTransaction]] = Some(txs)
 
-  override lazy val id: BlockId = ???
+  override lazy val id: BlockId = FastCryptographicHash(generationSignature)
 
   override lazy val version: Version = 0: Byte
 

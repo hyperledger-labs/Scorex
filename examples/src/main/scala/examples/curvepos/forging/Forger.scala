@@ -6,21 +6,23 @@ import examples.curvepos.transaction._
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.utils.{ScorexLogging, NetworkTime}
+import scorex.core.utils.{NetworkTime, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util.{Failure, Try}
 
 trait ForgerSettings extends Settings {
   lazy val offlineGeneration = settingsJSON.get("offlineGeneration").flatMap(_.asBoolean).getOrElse(false)
 }
 
-class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Actor with ScorexLogging {
+class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings, serializer: ScorexKryoPool) extends Actor
+with ScorexLogging {
 
   import Forger._
 
@@ -33,7 +35,8 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   private val hash = FastCryptographicHash
 
 
-  val InterBlocksDelay = 15 //in seconds
+  val InterBlocksDelay = 15
+  //in seconds
   val blockGenerationDelay = 500.millisecond
 
   override def preStart(): Unit = {
@@ -90,11 +93,15 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
             val secret: PrivateKey25519 = wallet.secretByPublicImage(generator).get
 
             val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
-            val signature:Signature25519 = ???
-//            val signature = PrivateKey25519Companion.sign(secret, unsigned.companion.messageToSing(unsigned))
+            val signature: Signature25519 =
+              PrivateKey25519Companion.sign(secret, serializer.toBytesWithoutClass(unsigned))
             val signedBlock = unsigned.copy(generationSignature = signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
             LocallyGeneratedModifier[PublicKey25519Proposition, SimpleTransaction, SimpleBlock](signedBlock)
+          }.recoverWith{
+            case e =>
+              log.warn("Failed to create block", e)
+              Failure(e)
           }.toOption
         } else {
           None
