@@ -10,28 +10,31 @@ import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.serialization.{ScorexKryoPool, ScorexRegistrar}
 
+import scala.reflect.ClassTag
+
 class SerializationSpecification extends PropSpec with GeneratorDrivenPropertyChecks with Matchers
 with ExampleGenerators {
 
   private val pool = new ScorexKryoPool(new ScorexRegistrar, new CurveposRegistrar)
 
   property("SimplePayment serialization roundtrip") {
-    checkSerialization[SimplePayment](paymentGen, classOf[SimplePayment])
+    checkSerialization[SimplePayment](paymentGen)
   }
 
   property("SimpleBlock serialization roundtrip") {
-    checkSerialization[SimpleBlock](blockGenerator, classOf[SimpleBlock])
+    checkSerialization[SimpleBlock](blockGenerator)
   }
 
   property("SimpleSyncInfo serialization roundtrip") {
-    checkSerialization[SimpleSyncInfo](simpleSyncInfoGenerator, classOf[SimpleSyncInfo], emptyCheck[SimpleSyncInfo])
+    checkSerialization[SimpleSyncInfo](simpleSyncInfoGenerator, emptyCheck[SimpleSyncInfo])
   }
+
   def emptyCheck[T](o1: T, o2: T): Unit = {}
 
-  def checkSerialization[T](gen: Gen[T], cls: Class[T], check: (T, T) => Unit = (o1: T, o2: T) => o1 shouldBe o2) = {
+  def checkSerialization[T: ClassTag](gen: Gen[T], check: (T, T) => Unit = (o1: T, o2: T) => o1 shouldBe o2) = {
     forAll(gen) { obj: T =>
       val bytes = pool.toBytesWithoutClass(obj)
-      val obj2 = pool.fromBytes(bytes, cls).get
+      val obj2 = pool.fromBytes[T](bytes).get
       check(obj2, obj)
       val bytes2 = pool.toBytesWithoutClass(obj2)
       bytes shouldEqual bytes2
