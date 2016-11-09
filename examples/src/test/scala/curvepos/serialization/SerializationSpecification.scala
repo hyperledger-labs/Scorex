@@ -2,6 +2,7 @@ package curvepos.serialization
 
 
 import curvepos.ExampleGenerators
+import examples.curvepos.SimpleSyncInfo
 import examples.curvepos.serialization.CurveposRegistrar
 import examples.curvepos.transaction.{SimpleBlock, SimplePayment}
 import org.scalacheck.Gen
@@ -21,6 +22,11 @@ with ExampleGenerators {
   property("SimpleBlock serialization roundtrip") {
     checkSerialization[SimpleBlock](blockGenerator, classOf[SimpleBlock])
   }
+
+  property("SimpleSyncInfo serialization roundtrip") {
+    checkSerialization[SimpleSyncInfo](simpleSyncInfoGenerator, classOf[SimpleSyncInfo], emptyCheck[SimpleSyncInfo])
+  }
+  def emptyCheck[T](o1: T, o2: T): Unit = {}
 
   def checkSerialization[T](gen: Gen[T], cls: Class[T], check: (T, T) => Unit = (o1: T, o2: T) => o1 shouldBe o2) = {
     forAll(gen) { obj: T =>

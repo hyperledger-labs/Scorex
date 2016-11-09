@@ -4,10 +4,10 @@ import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.{Input, Output}
 import examples.curvepos.transaction.{SimpleBlock, SimplePayment}
 import scorex.core.block.Block
-import scorex.core.serialization.NullableSerializer
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
-class SimpleBlockSerializer extends NullableSerializer[SimpleBlock] {
+class SimpleBlockSerializer extends ScorexSerializer[SimpleBlock] {
   override def write(kryo: Kryo, output: Output, block: SimpleBlock): Unit = {
     output.writeBytes(block.parentId)
     output.writeLong(block.timestamp)

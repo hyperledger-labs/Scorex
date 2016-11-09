@@ -4,7 +4,7 @@ import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.{Input, Output}
 import scorex.core.app.ApplicationVersion
 
-class ApplicationVersionSerializer extends NullableSerializer[ApplicationVersion] {
+class ApplicationVersionSerializer extends ScorexSerializer[ApplicationVersion] {
   override def write(kryo: Kryo, output: Output, version: ApplicationVersion): Unit = {
     output.writeInt(version.firstDigit)
     output.writeInt(version.secondDigit)

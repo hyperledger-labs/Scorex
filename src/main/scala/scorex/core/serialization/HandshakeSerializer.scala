@@ -7,7 +7,7 @@ import com.esotericsoftware.kryo.io.{Input, Output}
 import scorex.core.app.ApplicationVersion
 import scorex.core.network.Handshake
 
-class HandshakeSerializer extends NullableSerializer[Handshake] {
+class HandshakeSerializer extends ScorexSerializer[Handshake] {
   private val PortValueLength: Int = 4
 
   override def write(kryo: Kryo, output: Output, handshake: Handshake): Unit = {

@@ -3,7 +3,7 @@ package scorex.core.serialization
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.{Input, Output}
 
-class ByteLengthUtf8StringSerializer extends NullableSerializer[String] {
+class ByteLengthUtf8StringSerializer extends ScorexSerializer[String] {
 
   private val DefaultCharset: String = "UTF-8"
 

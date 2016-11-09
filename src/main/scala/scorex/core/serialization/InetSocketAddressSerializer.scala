@@ -5,7 +5,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.esotericsoftware.kryo.{Kryo, Serializer}
 
-class InetSocketAddressSerializer extends NullableSerializer[InetSocketAddress] {
+class InetSocketAddressSerializer extends ScorexSerializer[InetSocketAddress] {
 
   private val PortValueLength: Int = 4
 

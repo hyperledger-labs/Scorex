@@ -2,6 +2,7 @@ package examples.curvepos.serialization
 
 import com.esotericsoftware.kryo.Kryo
 import com.twitter.chill.IKryoRegistrar
+import examples.curvepos.SimpleSyncInfo
 import examples.curvepos.transaction.{SimpleBlock, SimplePayment}
 
 
@@ -11,6 +12,7 @@ class CurveposRegistrar extends IKryoRegistrar {
     k.setReferences(false)
     k.register(classOf[SimplePayment], new SimplePaymentSerializer)
     k.register(classOf[SimpleBlock], new SimpleBlockSerializer)
+    k.register(classOf[SimpleSyncInfo], new SimpleSyncInfoSerializer)
   }
 }
 

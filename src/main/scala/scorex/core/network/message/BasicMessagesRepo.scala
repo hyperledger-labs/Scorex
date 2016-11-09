@@ -9,6 +9,7 @@ import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message._
+import scorex.core.serialization.ScorexKryoPool
 
 import scala.util.Try
 
@@ -20,14 +21,11 @@ object BasicMsgDataTypes {
 
 import scorex.core.network.message.BasicMsgDataTypes._
 
-class SyncInfoSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) extends MessageSpec[SI] {
+class SyncInfoSpec[SI <: SyncInfo](protected val serializer: ScorexKryoPool, protected val c: Class[SI])
+  extends KryoMessageSpec[SI] {
 
   override val messageCode: MessageCode = 65: Byte
   override val messageName: String = "Sync"
-
-  override def deserializeData(bytes: Array[Byte]): Try[SI] = deserializer(bytes)
-
-  override def serializeData(data: SI): Array[Byte] = data.bytes
 }
 
 object InvSpec extends MessageSpec[InvData] {

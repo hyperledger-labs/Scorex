@@ -3,6 +3,8 @@ package scorex.core.serialization
 import com.twitter.chill._
 
 import scala.util.Try
+import scala.reflect.ClassTag
+import scala.reflect._
 
 class ScorexKryoPool(registrars: IKryoRegistrar*) {
 
