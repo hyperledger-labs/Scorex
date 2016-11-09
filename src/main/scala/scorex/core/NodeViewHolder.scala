@@ -138,13 +138,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
-  def apis: Seq[ApiRoute] = Seq(
-    genesisState._1,
-    genesisState._2,
-    genesisState._3,
-    genesisState._4
-  ).map(_.companion.api)
-
   private def handleSubscribe: Receive = {
     case NodeViewHolder.Subscribe(events) =>
       events.foreach { evt =>

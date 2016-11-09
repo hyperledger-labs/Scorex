@@ -3,7 +3,6 @@ package examples.curvepos.transaction
 import java.nio.ByteBuffer
 
 import examples.curvepos.transaction.SimpleState.EmptyVersion
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
@@ -48,8 +47,6 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
     }
     SimpleState(newVersion, amap)
   }
-
-  override def companion: NodeViewComponentCompanion = ???
 
   override type NVCT = SimpleState
 

@@ -2,7 +2,6 @@ package examples.curvepos
 
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.consensus.BlockChain
 import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
@@ -70,8 +69,6 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   override def chainScore(): BigInt = blocks.map(ib => score(ib._2)).sum
 
   override type NVCT = SimpleBlockchain
-
-  override def companion: NodeViewComponentCompanion = null
 
   override def score(block: SimpleBlock): Score = BigInt("18446744073709551616") / block.baseTarget
 

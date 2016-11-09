@@ -1,17 +1,14 @@
 package examples.curvepos.transaction
 
-import scorex.core.NodeViewComponentCompanion
-import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
+import scorex.core.transaction.Transaction.TransactionId
+import scorex.core.transaction.box.proposition.Constants25519.PrivKeyLength
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 import scorex.crypto.signatures.Curve25519
 import scorex.utils.Random
 
 import scala.util.Try
-import Constants25519.PrivKeyLength
-import scorex.core.transaction.Transaction
-
-import Transaction.TransactionId
 
 case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                         chainTransactions: Map[TransactionId, SimpleTransaction] = Map(),
@@ -73,5 +70,4 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     }).getOrElse(this)
   }
 
-  override def companion: NodeViewComponentCompanion = ???
 }

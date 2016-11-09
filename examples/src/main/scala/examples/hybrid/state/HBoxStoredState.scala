@@ -9,7 +9,6 @@ import examples.hybrid.mining.MiningSettings
 import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -88,7 +87,6 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     new HBoxStoredState(store, metaDb, version)
   }
 
-  override def companion: NodeViewComponentCompanion = ???
 }
 
 object HBoxStoredState {

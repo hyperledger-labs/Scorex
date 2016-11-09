@@ -10,7 +10,6 @@ import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
@@ -22,15 +21,15 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.utils.Random
 
-import scala.util.Try
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    boxStore: LSMStore,
                    metaDb: DB)
   extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HWallet]
-    with ScorexLogging {
+  with ScorexLogging {
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
@@ -109,8 +108,6 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   }
 
   override type NVCT = this.type
-
-  override def companion: NodeViewComponentCompanion = ???
 }
 
 object HWallet {
@@ -152,7 +149,7 @@ object HWallet {
 
   //wallet with 10 accounts and initial data processed
   def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
-  emptyWallet(settings, "", 10).scanPersistent(initialBlock)
+    emptyWallet(settings, "", 10).scanPersistent(initialBlock)
 }
 
 

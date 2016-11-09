@@ -1,7 +1,7 @@
 package examples.hybrid.mempool
 
 import examples.hybrid.state.SimpleBoxTransaction
-import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
+import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.transaction.MemoryPool
 import scorex.core.utils.ScorexLogging
@@ -16,7 +16,7 @@ case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTrans
 
   //getters
   override def getById(id: ModifierId): Option[SimpleBoxTransaction] =
-  unconfirmed.get(id)
+    unconfirmed.get(id)
 
   //get mempool transaction ids not presenting in ids
   override def notIn(ids: Seq[ModifierId]): Seq[ModifierId] = {
@@ -31,7 +31,7 @@ case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTrans
 
   //modifiers
   override def put(tx: SimpleBoxTransaction): Try[HMemPool] =
-  Success(HMemPool(unconfirmed + (tx.id -> tx)))
+    Success(HMemPool(unconfirmed + (tx.id -> tx)))
 
   override def put(txs: Iterable[SimpleBoxTransaction]): Try[HMemPool] =
     Success(HMemPool(unconfirmed ++ txs.map(tx => tx.id -> tx)))
@@ -57,8 +57,6 @@ case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTrans
     }
     HMemPool(newU)
   }
-
-  override def companion: NodeViewComponentCompanion = ???
 }
 
 
