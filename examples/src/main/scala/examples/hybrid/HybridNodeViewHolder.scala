@@ -39,14 +39,17 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
   override protected def genesisState: (HIS, MS, VL, MP) = {
-    val ew = HWallet.emptyWallet(settings, "genesis", "e", 10)
+    val ew = HWallet.emptyWallet(settings, "genesis", "e", 500)
 
     val genesisAccount = ew.secrets.head
 
     val genesisTxs = ew.publicKeys.flatMap { pubkey =>
-      Seq(SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 100000), 0L, 0L),
-          SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 200000), 0L, 0L),
-          SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 300000), 0L, 0L))
+      (1 to 10).map(_ =>
+        SimpleBoxTransaction(
+          IndexedSeq(genesisAccount -> Random.nextLong()),
+          IndexedSeq(pubkey -> (100L + Random.nextInt(100000))),
+          0L,
+          0L))
     }.toSeq
 
     val za = Array.fill(32)(0: Byte)

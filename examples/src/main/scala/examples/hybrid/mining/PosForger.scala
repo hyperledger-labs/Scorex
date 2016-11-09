@@ -56,13 +56,15 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
       } else {
         val powBlock = h.bestPowBlock
 
-        boxes.map(_.box).map { box =>
+        val sucessfulHits = boxes.map(_.box).map { box =>
           val h = hit(powBlock)(box)
-          println(s"hit: $h, target $target, target * balance: ${box.value * target}, generated: ${h < box.value * target}")
           (box.proposition, box.value, h)
-        }.find(t => t._3 < t._2 * target).map { case (gen, _, _) =>
-          val txsToInclude = pickTransactions(m, s)
+        }.filter(t => t._3 < t._2 * target)
 
+        log.info(s"Successful hits: ${sucessfulHits.size}")
+
+        sucessfulHits.headOption.map { case (gen, _, _) =>
+          val txsToInclude = pickTransactions(m, s)
           PosBlock(
             powBlock.id,
             System.currentTimeMillis(),
@@ -81,17 +83,17 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
         }
       }
 
+
     case StopForging =>
       forging = false
   }
 }
 
 object PosForger {
-  val InitialDifficuly = 100000000L
+  val InitialDifficuly = 200000000L
   val MaxTarget = Long.MaxValue
 
   case object StartForging
 
   case object StopForging
-
 }

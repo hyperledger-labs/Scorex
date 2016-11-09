@@ -2,8 +2,6 @@ package examples.hybrid.history
 
 
 import java.io.File
-import java.util.Date
-
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
