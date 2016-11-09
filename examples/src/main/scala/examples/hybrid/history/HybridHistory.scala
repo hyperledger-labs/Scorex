@@ -399,16 +399,23 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 }
 
 
-object HybridHistory {
-  val DifficultyRecalcPeriod = 20
+object HybridHistory extends ScorexLogging {
+  val DifficultyRecalcPeriod = 256
 
-  def emptyHistory(settings: Settings): HybridHistory = {
+  def readOrGenerate(settings: Settings): HybridHistory = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
 
     val iFile = new File(s"$dataDir/blocks")
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile)
+
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run(): Unit = {
+        log.info("Closing block storage...")
+        blockStorage.close()
+      }
+    })
 
     val metaDb =
       DBMaker.fileDB(s"$dataDir/hidx")
@@ -429,7 +436,7 @@ object HistoryPlayground extends App {
 
   val b = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L, 0, Array.fill(32)(0: Byte), Seq())
 
-  val h = HybridHistory.emptyHistory(settings)
+  val h = HybridHistory.readOrGenerate(settings)
 
   val h2 = h.append(b).get._1
 

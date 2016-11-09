@@ -83,14 +83,13 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
         }
       }
 
-
     case StopForging =>
       forging = false
   }
 }
 
 object PosForger {
-  val InitialDifficuly = 200000000L
+  val InitialDifficuly = 488281250L
   val MaxTarget = Long.MaxValue
 
   case object StartForging

@@ -92,7 +92,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
 }
 
 object HBoxStoredState {
-  def emptyState(settings: Settings): HBoxStoredState = {
+  def readOrGenerate(settings: Settings): HBoxStoredState = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
 
@@ -101,6 +101,12 @@ object HBoxStoredState {
     val iFile = new File(s"$dataDir/state")
     iFile.mkdirs()
     val stateStorage = new LSMStore(iFile)
+
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run(): Unit = {
+        stateStorage.close()
+      }
+    })
 
     val mFile = new File(s"$dataDir/statemeta")
 
@@ -114,7 +120,7 @@ object HBoxStoredState {
   }
 
   def genesisState(settings: Settings, initialBlock: PosBlock): HBoxStoredState =
-    emptyState(settings).applyModifier(initialBlock).get
+    readOrGenerate(settings).applyModifier(initialBlock).get
 }
 
 
@@ -124,7 +130,7 @@ object HStatePlayground extends App {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
   }
 
-  val s0 = HBoxStoredState.emptyState(settings)
+  val s0 = HBoxStoredState.readOrGenerate(settings)
 
   val b = PublicKey25519NoncedBox(PublicKey25519Proposition(Array.fill(32)(0:Byte)), 10000L, 500L)
 

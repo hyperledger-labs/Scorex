@@ -39,7 +39,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
   override protected def genesisState: (HIS, MS, VL, MP) = {
-    val ew = HWallet.emptyWallet(settings, "genesis", "e", 500)
+    val ew = HWallet.readOrGenerate(settings, "genesis", "e", 500)
 
     val genesisAccount = ew.secrets.head
 
@@ -60,13 +60,23 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
 
     gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))
 
-    (HybridHistory.emptyHistory(settings), gs, gw, HMemPool.emptyPool)
+    (HybridHistory.readOrGenerate(settings), gs, gw, HMemPool.emptyPool)
   }
 
   /**
     * Restore a local view during a node startup. If no any stored view found
     * (e.g. if it is a first launch of a node) None is to be returned
     */
-  //todo: restore state from database
-  override def restoreState(): Option[(HIS, MS, VL, MP)] = None
+  override def restoreState(): Option[(HIS, MS, VL, MP)] = {
+    if(HWallet.exists(settings)) {
+      /*
+      todo: commented due to a bug in IODB, uncomment after fix
+      Some((
+        HybridHistory.readOrGenerate(settings),
+        HBoxStoredState.readOrGenerate(settings),
+        HWallet.readOrGenerate(settings),
+        HMemPool.emptyPool))*/
+      None
+    } else None
+  }
 }
