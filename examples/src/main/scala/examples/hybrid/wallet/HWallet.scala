@@ -9,7 +9,7 @@ import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import org.mapdb.{DBMaker, Serializer}
+import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
@@ -18,6 +18,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.utils.Random
 
@@ -25,18 +26,11 @@ import scala.util.Try
 import scala.collection.JavaConversions._
 
 
-//todo: file for MapDB database passed in here, while in other class just a database
-//todo: check and fix
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    boxStore: LSMStore,
-                   metaDbFile: File)
-  extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HWallet] {
-
-  lazy val metaDb =
-    DBMaker.fileDB(metaDbFile)
-      .fileMmapEnableIfSupported()
-      .closeOnJvmShutdown()
-      .make()
+                   metaDb: DB)
+  extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HWallet]
+    with ScorexLogging {
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
@@ -54,8 +48,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val (priv, pub) = PrivateKey25519Companion.generateKeys(s)
     secretsMap.put(pub.bytes, priv.bytes)
     metaDb.commit()
-    metaDb.close()
-    HWallet(seed, boxStore, metaDbFile)
+    HWallet(seed, boxStore, metaDb)
   }
 
   //not implemented intentionally for now
@@ -84,6 +77,8 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   override def scanOffchain(txs: Seq[SimpleBoxTransaction]): HWallet = this
 
   override def scanPersistent(modifier: HybridPersistentNodeViewModifier): HWallet = {
+    log.debug(s"Applying modifier to wallet: ${Base58.encode(modifier.id)}")
+
     val txs = modifier.transactions.getOrElse(Seq())
 
     val newBoxes = txs.flatMap { tx =>
@@ -102,15 +97,15 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     dbVersions.put(modifier.id, newVersion)
 
     metaDb.commit()
-    metaDb.close()
-    HWallet(seed, boxStore, metaDbFile)
+    HWallet(seed, boxStore, metaDb)
   }
 
   private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
 
   override def rollback(to: VersionTag): Try[HWallet] = Try {
+    log.debug(s"Rolling back wallet to: ${Base58.encode(to)}")
     boxStore.rollback(dbVersion(to))
-    HWallet(seed, boxStore, metaDbFile)
+    HWallet(seed, boxStore, metaDb)
   }
 
   override type NVCT = this.type
@@ -131,7 +126,14 @@ object HWallet {
 
     val mFile = new File(s"$dataDir/walletmeta" + appendix)
 
-    HWallet(Base58.decode(seed).get, boxesStorage, mFile)
+
+    lazy val metaDb =
+      DBMaker.fileDB(mFile)
+        .fileMmapEnableIfSupported()
+        .closeOnJvmShutdown()
+        .make()
+
+    HWallet(Base58.decode(seed).get, boxesStorage, metaDb)
   }
 
   def emptyWallet(settings: Settings, appendix: String): HWallet = {

@@ -10,6 +10,7 @@ import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 import shapeless.{::, HNil}
 
@@ -39,6 +40,9 @@ Block[PublicKey25519Proposition, SimpleBoxTransaction] {
     FastCryptographicHash(parentId ++ Longs.toByteArray(timestamp) ++ generator.pubKeyBytes)
 
   override def json: Json = ???
+
+  override def toString = s"PosBlock(parentId: ${Base58.encode(parentId)}, timestamp: $timestamp. transactions: $txs," +
+    s"generator: ${Base58.encode(generator.bytes)}, signature: ${Base58.encode(signature.bytes)})"
 }
 
 object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {

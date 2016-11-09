@@ -25,9 +25,12 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
   val TransactionsPerBlock = 50
 
   def pickTransactions(memPool: HMemPool, state: HBoxStoredState): Seq[SimpleBoxTransaction] =
-    memPool.take(TransactionsPerBlock).filter { tx =>
-      tx.valid && tx.boxIdsToOpen.map(state.closedBox).forall(_.isDefined)
-    }.toSeq
+    memPool.take(TransactionsPerBlock).foldLeft(Seq[SimpleBoxTransaction]()) { case (collected, tx) =>
+      if (tx.valid &&
+        tx.boxIdsToOpen.map(state.closedBox).forall(_.isDefined) &&
+        tx.boxIdsToOpen.forall(id => !collected.flatMap(_.boxIdsToOpen).exists(_ sameElements id))) collected :+ tx
+      else collected
+    }
 
 
   override def receive: Receive = {
@@ -37,13 +40,16 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
 
-      def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox):Long = {
+      val target = MaxTarget / h.posDifficulty
+
+      def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
 //        val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
         val h: Array[Byte] = ???
         Longs.fromByteArray((0: Byte) +: h.take(7))
       }
 
       val boxes = w.boxes()
+      println(s"${boxes.size} stakeholding outputs")
 
       //last check on whether to forge at all
       if (h.pairCompleted) {
@@ -53,9 +59,9 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
         boxes.map(_.box).map { box =>
           val h = hit(powBlock)(box)
-          println("hit: " + h)
+          println(s"hit: $h, target $target, target * balance: ${box.value * target}, generated: ${h < box.value * target}")
           (box.proposition, box.value, h)
-        }.find(t => t._3 < t._2 * PosTarget).map { case (gen, _, _) =>
+        }.find(t => t._3 < t._2 * target).map { case (gen, _, _) =>
           val txsToInclude = pickTransactions(m, s)
 
           PosBlock(
@@ -66,12 +72,13 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
             Signature25519(Array.fill(Signature25519.SignatureSize)(0: Byte)))
         } match {
           case Some(posBlock) =>
+            println(s"locally generated PoS block: $posBlock")
+            forging = false
             viewHolderRef !
               LocallyGeneratedModifier[PublicKey25519Proposition,
                 SimpleBoxTransaction, HybridPersistentNodeViewModifier](posBlock)
           case None =>
-            println("stuck")
-            System.exit(150)
+            (1 to 10).foreach(_ => println("stuck"))
         }
       }
 
@@ -81,9 +88,11 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 }
 
 object PosForger {
-  val PosTarget = 694292012860L
+  val InitialDifficuly = 100000000L
+  val MaxTarget = Long.MaxValue
 
   case object StartForging
 
   case object StopForging
+
 }

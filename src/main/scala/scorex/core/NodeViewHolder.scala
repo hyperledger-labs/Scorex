@@ -84,6 +84,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     val updWallet = vault().scanOffchain(tx)
     memoryPool().put(tx) match {
       case Success(updPool) =>
+        log.debug(s"Unconfirmed transaction $tx added to the mempool")
         nodeView = (history(), minimalState(), updWallet, updPool)
         notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx, source))
 
@@ -117,15 +118,15 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
             val newWallet = maybeRollback
               .map(rb => vault().rollback(rb.to).get) //we consider that vault always able to perform a rollback needed
-              .map(w => w.scanPersistent(appliedMods))
               .getOrElse(vault())
+              .scanPersistent(appliedMods)
 
             log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
             nodeView = (newHistory, newMinState, newWallet, newMemPool)
             notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
 
           case Failure(e) =>
-            log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
+            log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state")
             notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
         }
 

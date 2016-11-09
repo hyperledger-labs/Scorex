@@ -20,7 +20,7 @@ case class PublicKey25519NoncedBox(
 object PublicKey25519NoncedBox extends BytesParseable[PublicKey25519NoncedBox] {
   override def parseBytes(bytes: Array[Byte]): Try[PublicKey25519NoncedBox] = Try {
     val pk = PublicKey25519Proposition(bytes.take(32))
-    val nonce = Ints.fromByteArray(bytes.slice(32, 40))
+    val nonce = Longs.fromByteArray(bytes.slice(32, 40))
     val value = Longs.fromByteArray(bytes.slice(40, 48))
     PublicKey25519NoncedBox(pk, nonce, value)
   }

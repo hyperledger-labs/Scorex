@@ -5,6 +5,8 @@ import examples.hybrid.blocks.HybridPersistentNodeViewModifier
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSpec}
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
+import examples.hybrid.wallet.SimpleBoxTransactionGenerator
+import examples.hybrid.wallet.SimpleBoxTransactionGenerator.StartGeneration
 import io.circe
 import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, UtilsApiRoute}
 import scorex.core.app.{Application, ApplicationVersion}
@@ -13,6 +15,7 @@ import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
+import scala.concurrent.duration._
 import scala.reflect.runtime.universe._
 
 class HybridApp(val settingsFilename: String) extends Application {
@@ -53,6 +56,10 @@ class HybridApp(val settingsFilename: String) extends Application {
   miner
   localInterface
   nodeViewSynchronizer
+
+  //todo :fix
+  //val generator: ActorRef = actorSystem.actorOf(Props(classOf[SimpleBoxTransactionGenerator], nodeViewHolderRef))
+  //generator ! StartGeneration(FiniteDuration(10, SECONDS))
 }
 
 object HybridApp extends App {

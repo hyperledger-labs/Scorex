@@ -29,6 +29,12 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   override val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
     Map(PosBlock.ModifierTypeId -> PosBlockCompanion, PowBlock.ModifierTypeId -> PowBlockCompanion)
 
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    super.preRestart(reason, message)
+    reason.printStackTrace()
+    System.exit(100)
+  }
+
   /**
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
@@ -37,8 +43,10 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
 
     val genesisAccount = ew.secrets.head
 
-    val genesisTxs = ew.publicKeys.map { pubkey =>
-      SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 100000), 0L, 0L)
+    val genesisTxs = ew.publicKeys.flatMap { pubkey =>
+      Seq(SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 100000), 0L, 0L),
+          SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 200000), 0L, 0L),
+          SimpleBoxTransaction(IndexedSeq(genesisAccount -> Random.nextLong()), IndexedSeq(pubkey -> 300000), 0L, 0L))
     }.toSeq
 
     val za = Array.fill(32)(0: Byte)
@@ -46,6 +54,8 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
 
     val gs = HBoxStoredState.genesisState(settings, initialBlock)
     val gw = HWallet.genesisWallet(settings, initialBlock)
+
+    gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))
 
     (HybridHistory.emptyHistory(settings), gs, gw, HMemPool.emptyPool)
   }
