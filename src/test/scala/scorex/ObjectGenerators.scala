@@ -29,28 +29,29 @@ trait ObjectGenerators {
   lazy val positiveLongGen: Gen[Long] = Gen.choose(1, Long.MaxValue)
 
 
-  lazy val modifierIdGen: Gen[ModifierId] =
-    Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte]).map(_.toArray)
+  lazy val modifierIdGen: Gen[ModifierId] = genBytesList(NodeViewModifier.ModifierIdSize)
 
   lazy val invDataGen: Gen[InvData] = for {
     modifierTypeId: Byte <- Arbitrary.arbitrary[Byte]
-    modifierIds: Seq[Array[Byte]] <- Gen.nonEmptyListOf(modifierIdGen) if modifierIds.nonEmpty
-  } yield modifierTypeId -> modifierIds
+    modifierIds: Seq[Array[Byte]] <- Gen.nonEmptyListOf(modifierIdGen)
+  } yield InvData(modifierTypeId, modifierIds)
 
   lazy val modifierWithIdGen: Gen[(ModifierId, Array[Byte])] = for {
     id <- modifierIdGen
     mod <- nonEmptyBytesGen
   } yield id -> mod
 
-  lazy val modifiersGen: Gen[ModifiersData] = for {
+  lazy val modifiersDataGen: Gen[ModifiersData] = for {
     modifierTypeId: Byte <- Arbitrary.arbitrary[Byte]
-    modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
-  } yield modifierTypeId -> modifiers
+    modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen)
+  } yield ModifiersData(modifierTypeId, modifiers)
 
   lazy val inetAddressGen: Gen[InetSocketAddress] = for {
     port <- Gen.choose(1, 0xFFFF)
     address <- sizedBytesGen(4)
   } yield new InetSocketAddress(InetAddress.getByAddress(address), port)
+
+  lazy val peersDataGen: Gen[PeersData] = Gen.listOf(inetAddressGen).map(p => PeersData(p))
 
   lazy val inetAddressOptGen: Gen[Option[InetSocketAddress]] = Gen.option(inetAddressGen)
 

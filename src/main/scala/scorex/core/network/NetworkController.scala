@@ -37,7 +37,8 @@ class NetworkController(settings: Settings,
 
   val peerManager = context.system.actorOf(Props(classOf[PeerManager], settings, self))
 
-  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], self, peerManager), "PeerSynchronizer")
+  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], self, peerManager, serializer),
+    "PeerSynchronizer")
 
   private implicit val system = context.system
 
@@ -113,10 +114,10 @@ class NetworkController(settings: Settings,
 
   def businessLogic: Receive = {
     //a message coming in from another peer
-    case Message(spec, Left(msgBytes), Some(remote)) =>
+    case Message(spec, Left(msgBytes), Some(remote), serializer) =>
       val msgId = spec.messageCode
 
-      spec.deserializeData(msgBytes) match {
+      serializer.fromBytes(msgBytes, spec.c) match {
         case Success(content) =>
           messageHandlers.find(_._1.contains(msgId)).map(_._2) match {
             case Some(handler) =>

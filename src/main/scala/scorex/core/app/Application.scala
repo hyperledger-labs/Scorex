@@ -53,7 +53,7 @@ trait Application extends ScorexLogging {
       ModifiersSpec
     )
 
-  lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs)
+  lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs, serializer)
 
   val nodeViewHolderRef: ActorRef
 

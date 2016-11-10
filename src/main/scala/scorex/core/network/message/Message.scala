@@ -3,23 +3,28 @@ package scorex.core.network.message
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.crypto.hash.FastCryptographicHash._
 import scorex.core.network.ConnectedPeer
-import scorex.core.serialization.BytesSerializable
+import scorex.core.serialization.{ScorexKryoPool, BytesSerializable}
 
 import scala.util.{Success, Try}
 
 case class Message[Content](spec: MessageSpec[Content],
                             input: Either[Array[Byte], Content],
-                            source: Option[ConnectedPeer]) extends BytesSerializable {
+                            source: Option[ConnectedPeer],
+                            serializer: ScorexKryoPool) extends BytesSerializable {
 
   import Message.{ChecksumLength, MAGIC}
 
   lazy val dataBytes = input match {
     case Left(db) => db
-    case Right(d) => spec.serializeData(d)
+    case Right(d) =>
+      println("===")
+      println(d)
+      println(spec)
+      serializer.toBytesWithoutClass(d)
   }
 
   lazy val data: Try[Content] = input match {
-    case Left(db) => spec.deserializeData(db)
+    case Left(db) => serializer.fromBytes(db, spec.c)
     case Right(d) => Success(d)
   }
 
