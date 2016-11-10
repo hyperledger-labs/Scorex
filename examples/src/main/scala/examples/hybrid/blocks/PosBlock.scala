@@ -42,7 +42,7 @@ Block[PublicKey25519Proposition, SimpleBoxTransaction] {
   override def json: Json = ???
 
   override def toString = s"PosBlock(parentId: ${Base58.encode(parentId)}, timestamp: $timestamp. transactions: $txs," +
-    s"generator: ${Base58.encode(generator.bytes)}, signature: ${Base58.encode(signature.bytes)})"
+    s"generator: ${Base58.encode(generator.bytes)}, signature: ${Base58.encode(signature.signature)})"
 }
 
 object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {

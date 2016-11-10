@@ -99,7 +99,7 @@ object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBox
       Ints.toByteArray(m.signatures.length),
       Ints.toByteArray(m.from.length),
       Ints.toByteArray(m.to.length),
-      m.signatures.foldLeft(Array[Byte]())((a, b) => a ++ b.bytes),
+      m.signatures.foldLeft(Array[Byte]())((a, b) => a ++ b.signature),
       m.from.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2)),
       m.to.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2))
     )
@@ -146,8 +146,8 @@ object TxPlayground extends App {
 
   assert(tx.valid)
 
-  val wrongSig = Array.fill(1)(0: Byte) ++ tx.signatures.head.bytes.tail
-  val wrongSigsSer = Seq(wrongSig) ++ tx.signatures.tail.map(_.bytes)
+  val wrongSig = Array.fill(1)(0: Byte) ++ tx.signatures.head.signature.tail
+  val wrongSigsSer = Seq(wrongSig) ++ tx.signatures.tail.map(_.signature)
   val wrongSigs = wrongSigsSer.map(bs => Signature25519(bs)).toIndexedSeq
 
   val fromPub = IndexedSeq(priv1._2 -> 500L, priv2._2 -> 1000L)

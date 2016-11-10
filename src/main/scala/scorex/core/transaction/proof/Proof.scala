@@ -1,6 +1,5 @@
 package scorex.core.transaction.proof
 
-import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
 
@@ -11,7 +10,7 @@ import scorex.core.transaction.state.Secret
   * A proof is non-interactive and thus serializable
   */
 
-trait Proof[P <: Proposition] extends BytesSerializable {
+trait Proof[P <: Proposition] {
   def isValid(proposition: P, message: Array[Byte]): Boolean
 }
 
