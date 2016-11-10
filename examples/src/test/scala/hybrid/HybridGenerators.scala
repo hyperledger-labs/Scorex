@@ -1,7 +1,7 @@
 package hybrid
 
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.blocks.PosBlock
+import examples.hybrid.blocks.{PosBlock, PowBlock, PowBlockHeader}
 import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.state.SimpleBoxTransaction
 import org.scalacheck.{Arbitrary, Gen}
@@ -9,6 +9,7 @@ import scorex.ObjectGenerators
 import scorex.core.NodeViewModifier
 import scorex.core.block.Block
 import scorex.core.block.Block._
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.wallet.WalletBox
@@ -43,6 +44,28 @@ trait HybridGenerators extends ObjectGenerators {
     generator: PublicKey25519Proposition <- propositionGen
     signature: Signature25519 <- signatureGen
   } yield PosBlock(parentId, timestamp, txs, generator, signature)
+
+
+  lazy val powHeaderGen: Gen[PowBlockHeader] = for {
+    parentId: BlockId <- genBytesList(Block.BlockIdLength)
+    prevPosId: BlockId <- genBytesList(Block.BlockIdLength)
+    timestamp: Long <- positiveLongGen
+    nonce: Long <- positiveLongGen
+    brothersCount: Byte <- positiveByteGen
+    brothersHash: Array[Byte] <- genBytesList(FastCryptographicHash.DigestSize)
+  } yield new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
+
+  lazy val powBlockGen: Gen[PowBlock] = for {
+    parentId: BlockId <- genBytesList(Block.BlockIdLength)
+    prevPosId: BlockId <- genBytesList(Block.BlockIdLength)
+    timestamp: Long <- positiveLongGen
+    nonce: Long <- positiveLongGen
+    brothersCount: Byte <- positiveByteGen
+    brothersHash: Array[Byte] <- genBytesList(FastCryptographicHash.DigestSize)
+    brothers <- Gen.listOfN(brothersCount, powHeaderGen)
+  } yield new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, brothers)
+
+
 
   lazy val noncedBoxGen: Gen[PublicKey25519NoncedBox] = for {
     proposition <- propositionGen

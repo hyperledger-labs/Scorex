@@ -39,6 +39,10 @@ class PowBlockHeader(
   def correctWork(difficulty: BigInt) = correctWorkDone(id, difficulty)
 
   lazy val id = FastCryptographicHash(headerBytes)
+
+  override lazy val toString = s"PowBlockHeader(id: ${Base58.encode(id)})" +
+    s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +
+    s"nonce: $nonce)"
 }
 
 object PowBlockHeader {
@@ -117,7 +121,7 @@ object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {
           case ((brothers, position), _) =>
             val bBytes = bytes.slice(position, position + PowBlockHeader.PowHeaderSize)
 
-            (PowBlockHeader.parse(headerBytes).get +: brothers,
+            (brothers :+ PowBlockHeader.parse(bBytes).get,
               position + PowBlockHeader.PowHeaderSize)
         }
         PowBlock(

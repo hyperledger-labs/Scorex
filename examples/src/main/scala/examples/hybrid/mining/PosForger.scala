@@ -97,7 +97,7 @@ object PosForger extends ScorexLogging {
 
     log.info(s"Successful hits: ${sucessfulHits.size}")
 
-    val record = s"${boxes.size}, $target, $sucessfulHits"
+    val record = s"${boxes.size}, $target, ${sucessfulHits.size}"
     FileFunctions.append("/home/kushti/posdata.csv", record)
 
     sucessfulHits.headOption.map { case (gen, _, _) =>

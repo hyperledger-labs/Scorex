@@ -10,10 +10,12 @@ import com.google.common.primitives.Ints
 import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
+import scorex.core.settings.Settings
 import scorex.core.utils.ScorexLogging
 
-import scala.util.{Failure, Success}
-
+import scala.concurrent.duration._
+import scala.util.{Failure, Random, Success}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef) {
 
@@ -28,7 +30,8 @@ case object Ack extends Event
 
 
 //todo: timeout on Ack waiting
-case class PeerConnectionHandler(networkControllerRef: ActorRef,
+case class PeerConnectionHandler(settings: Settings,
+                                 networkControllerRef: ActorRef,
                                  peerManager: ActorRef,
                                  messagesHandler: MessageHandler,
                                  connection: ActorRef,
@@ -101,9 +104,19 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef,
 
   def workingCycleLocalInterface: Receive = {
     case msg: message.Message[_] =>
-      val bytes = msg.bytes
-      log.info("Send message " + msg.spec + " to " + remote)
-      connection ! Write(ByteString(Ints.toByteArray(bytes.length) ++ bytes))
+      def sendOutMessage() {
+        val bytes = msg.bytes
+        log.info("Send message " + msg.spec + " to " + remote)
+        connection ! Write(ByteString(Ints.toByteArray(bytes.length) ++ bytes))
+      }
+
+      //simulating network delays
+      settings.addedMaxDelay match {
+        case Some(delay) =>
+          context.system.scheduler.scheduleOnce(Random.nextInt(delay).millis)(sendOutMessage())
+        case None =>
+          sendOutMessage()
+      }
 
     case Blacklist =>
       log.info(s"Going to blacklist " + remote)

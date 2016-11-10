@@ -9,11 +9,12 @@
     "knownPeers": [
       "127.0.0.1:9084"
     ],
+    "addedMaxDelay": 1000,
     "maxConnections": 10
   },
   "walletDir": "/tmp/scorex/wallet2",
-  "walletPassword": "cookies",
-  "walletSeed": "helloworld",
+  "walletPassword": "cookies2",
+  "walletSeed": "helloworld2",
   "dataDir": "/tmp/scorex/data2",
   "logDir": "/tmp/scorex/log2",
   "rpcPort": 9089,

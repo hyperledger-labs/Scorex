@@ -1,7 +1,7 @@
 package hybrid.serialization
 
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.blocks.PosBlock
+import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.state.SimpleBoxTransaction
 import hybrid.HybridGenerators
@@ -26,6 +26,16 @@ with HybridGenerators {
   property("PosBlock serialization") {
     forAll(posBlockGen) { b: PosBlock =>
       val parsed = b.companion.parse(b.bytes).get
+      parsed.bytes shouldEqual b.bytes
+    }
+  }
+
+  property("PowBlock serialization") {
+    forAll(powBlockGen) { b: PowBlock =>
+      val parsed = b.companion.parse(b.bytes).get
+      assert(parsed.brothersCount == b.brothersCount)
+      assert(parsed.brothersHash sameElements b.brothersHash)
+      assert(parsed.brothers.headOption.map(ph => ph.brothersHash sameElements b.brothers.head.brothersHash).getOrElse(true))
       parsed.bytes shouldEqual b.bytes
     }
   }

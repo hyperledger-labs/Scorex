@@ -23,6 +23,8 @@ trait ObjectGenerators {
 
   lazy val positiveLongGen: Gen[Long] = Gen.choose(1, Long.MaxValue)
 
+  lazy val positiveByteGen: Gen[Byte] = Gen.choose(1, Byte.MaxValue)
+
 
   lazy val modifierIdGen: Gen[ModifierId] =
     Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte]).map(_.toArray)

@@ -419,7 +419,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
 
 object HybridHistory extends ScorexLogging {
-  val DifficultyRecalcPeriod = 256
+  val DifficultyRecalcPeriod = 20
 
   def readOrGenerate(settings: Settings): HybridHistory = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")

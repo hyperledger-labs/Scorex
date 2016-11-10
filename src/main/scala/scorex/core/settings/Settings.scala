@@ -41,10 +41,10 @@ trait Settings extends ScorexLogging {
   }
 
   private def folderOpt(settingName: String) = {
-      val res = settingsJSON.get(settingName).flatMap(_.asString)
-      res.foreach(folder => new File(folder).mkdirs())
-      require(res.isEmpty || new File(res.get).exists())
-      res
+    val res = settingsJSON.get(settingName).flatMap(_.asString)
+    res.foreach(folder => new File(folder).mkdirs())
+    require(res.isEmpty || new File(res.get).exists())
+    res
   }
 
   lazy val dataDirOpt = folderOpt("dataDir")
@@ -57,6 +57,10 @@ trait Settings extends ScorexLogging {
   lazy val p2pSettings = settingsJSON("p2p").asObject.get.toMap
 
   lazy val nodeNonce: Long = (Random.nextInt(1000) + 1000) * Random.nextInt(1000) + Random.nextInt(1000)
+
+  lazy val addedMaxDelay: Option[Int] = p2pSettings.get("addedMaxDelay").flatMap(_.asNumber).flatMap(_.toInt).map { i =>
+    if (i == 0) None else Some(i)
+  }.getOrElse(None)
 
   lazy val nodeName = p2pSettings.get("nodeName").flatMap(_.asString)
     .getOrElse(Random.nextPrintableChar().toString + nodeNonce)

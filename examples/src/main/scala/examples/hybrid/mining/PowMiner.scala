@@ -110,7 +110,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
 }
 
 object PowMiner extends App {
-  lazy val HashesPerSecond = 50
+  lazy val HashesPerSecond = 20
 
   lazy val BlockDelay = 8.seconds.toMillis
 

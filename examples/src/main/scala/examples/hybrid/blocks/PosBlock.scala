@@ -56,7 +56,7 @@ object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
   }
 
   override def parse(bytes: Array[Version]): Try[PosBlock] = Try {
-    assert(bytes.length <= PosBlock.MaxBlockSize)
+//    assert(bytes.length <= PosBlock.MaxBlockSize)
 
     val parentId = bytes.slice(0, BlockIdLength)
     var position = BlockIdLength
