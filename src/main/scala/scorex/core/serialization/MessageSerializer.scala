@@ -2,10 +2,7 @@ package scorex.core.serialization
 
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.{Input, Output}
-import com.google.common.primitives.{Ints, Bytes}
-import scorex.core.NodeViewModifier
 import scorex.core.crypto.hash.FastCryptographicHash._
-import scorex.core.network.message.BasicMsgDataTypes.InvData
 import scorex.core.network.message.Message
 import scorex.core.network.message.Message._
 
