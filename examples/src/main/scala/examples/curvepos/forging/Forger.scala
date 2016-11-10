@@ -40,7 +40,8 @@ with ScorexLogging {
   val blockGenerationDelay = 500.millisecond
 
   override def preStart(): Unit = {
-    if (forging) context.system.scheduler.scheduleOnce(1.second)(self ! Forge)
+    NetworkTime.time()
+    if (forging) context.system.scheduler.scheduleOnce(1.second)(self ! StartMining)
   }
 
   private def bounded(value: BigInt, min: BigInt, max: BigInt): BigInt =
@@ -56,8 +57,9 @@ with ScorexLogging {
 
   protected def calcTarget(lastBlock: SimpleBlock,
                            state: SimpleState,
-                           generator: PublicKey25519Proposition): BigInt = {
-    val eta = (NetworkTime.time() - lastBlock.timestamp) / 1000 //in seconds
+                           generator: PublicKey25519Proposition,
+                           currentTime: Long): BigInt = {
+    val eta = (currentTime - lastBlock.timestamp) / 1000 //in seconds
     val balance = state.boxesOf(generator).headOption.map(_.value).getOrElse(0L)
     BigInt(lastBlock.baseTarget) * eta * balance
   }
@@ -84,11 +86,11 @@ with ScorexLogging {
       lazy val toInclude = state.filterValid(memPool.take(TransactionsInBlock).toSeq)
 
       val generatedBlocks = generators.flatMap { generator =>
+        val timestamp = NetworkTime.time()
         val hit = calcHit(lastBlock, generator)
-        val target = calcTarget(lastBlock, state, generator)
+        val target = calcTarget(lastBlock, state, generator, timestamp)
         if (hit < target) {
           Try {
-            val timestamp = NetworkTime.time()
             val bt = calcBaseTarget(lastBlock, timestamp)
             val secret: PrivateKey25519 = wallet.secretByPublicImage(generator).get
 
@@ -98,7 +100,7 @@ with ScorexLogging {
             val signedBlock = unsigned.copy(generationSignature = signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
             LocallyGeneratedModifier[PublicKey25519Proposition, SimpleTransaction, SimpleBlock](signedBlock)
-          }.recoverWith{
+          }.recoverWith {
             case e =>
               log.warn("Failed to create block", e)
               Failure(e)
