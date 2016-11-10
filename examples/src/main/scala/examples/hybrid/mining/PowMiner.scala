@@ -148,7 +148,7 @@ object PowMiner extends App {
       } else {
         None
       }
-    Thread.sleep(1000 / HashesPerSecond) //20 hashes per second per node
+    Thread.sleep(1000 / hashesPerSecond)
     foundBlock
   }
 }

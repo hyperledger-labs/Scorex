@@ -1,4 +1,5 @@
 {
+  "name": "node1",
   "p2p": {
     "bindAddress": "127.0.0.1",
     "upnp": false,
@@ -14,6 +15,7 @@
   "walletPassword": "cookies",
   "walletSeed": "genesis",
   "dataDir": "/tmp/scorex/data",
+  "logDir": "/tmp/scorex/log",
   "rpcPort": 9085,
   "rpcAllowed": [],
   "maxRollback": 100,

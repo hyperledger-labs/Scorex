@@ -7,18 +7,23 @@ import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBl
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
+import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.utils.ScorexLogging
 
 
-class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
+class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
   import PosForger._
+
+  val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
+  val dataDir = dataDirOpt.get
 
   var forging = false
 
@@ -68,7 +73,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 }
 
 object PosForger extends ScorexLogging {
-  val InitialDifficuly = 488281250L
+  val InitialDifficuly = 588281250L
   val MaxTarget = Long.MaxValue
 
   case object StartForging
@@ -91,6 +96,9 @@ object PosForger extends ScorexLogging {
     }.filter(t => t._3 < t._2 * target)
 
     log.info(s"Successful hits: ${sucessfulHits.size}")
+
+    val record = s"${boxes.size}, $target, $sucessfulHits"
+    FileFunctions.append("/home/kushti/posdata.csv", record)
 
     sucessfulHits.headOption.map { case (gen, _, _) =>
       PosBlock(

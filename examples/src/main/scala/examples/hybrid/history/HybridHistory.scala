@@ -2,9 +2,11 @@ package examples.hybrid.history
 
 
 import java.io.File
+
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
+import examples.hybrid.util.FileFunctions
 import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
@@ -28,7 +30,7 @@ import scala.util.Try
   * we store all the blocks, even if they are not in a main chain
   */
 //todo: add some versioned field to the class
-class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
+class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[String])
   extends History[PublicKey25519Proposition,
     SimpleBoxTransaction,
     HybridPersistentNodeViewModifier,
@@ -66,6 +68,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   private lazy val currentScoreVar = metaDb.atomicLong("score").createOrOpen()
 
   lazy val powHeight = currentScoreVar.get()
+
+  lazy val orphanCountVar = metaDb.atomicLong("orphans", 0L).createOrOpen()
 
   private lazy val bestPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
   lazy val bestPowId = Option(bestPowIdVar.get()).getOrElse(PowMiner.GenesisParentId)
@@ -114,7 +118,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
 
     val newPowDiff = (powDifficulty * expectedTime / realTime).max(BigInt(1L))
 
-    val newPosDiff = posDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount)*8/10)
+    val newPosDiff = posDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * 8 / 10)
 
     log.info(s"PoW difficulty changed: old $powDifficulty, new $newPowDiff")
     log.info(s"PoS difficulty changed: old $posDifficulty, new $newPosDiff")
@@ -255,6 +259,14 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
             //check for chain switching
             if (!(powBlock.parentId sameElements bestPowId)) {
               val (newSuffix, oldSuffix) = suffixesAfterCommonBlock(Seq(powBlock.parentId), Seq(bestPowBlock.parentId, bestPowId))
+
+              //decrement
+              orphanCountVar.addAndGet(oldSuffix.size - newSuffix.size)
+              logDirOpt.foreach { logDir =>
+                val record = s"${oldSuffix.size}, ${currentScoreVar.get}"
+                FileFunctions.append(logDir + "/forkdepth.csv", record)
+              }
+
               val rollbackPoint = newSuffix.head
 
               val throwBlocks = oldSuffix.tail.map(id => blockById(id).get)
@@ -286,11 +298,16 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
             forwardPowLinks.put(powBlock.parentId, blockId)
             Some(RollbackTo(powBlock.prevPosId, Seq(replacedBlock), Seq(powBlock)))
           } else {
+            orphanCountVar.incrementAndGet()
             forwardPowLinks.put(powBlock.parentId, blockId)
             None
           }
         }
-        (new HybridHistory(blocksStorage, metaDb), rollbackOpt)
+        logDirOpt.foreach { logDir =>
+          val record = s"${orphanCountVar.get()}, ${currentScoreVar.get}"
+          FileFunctions.append(logDir + "/orphans.csv", record)
+        }
+        (new HybridHistory(blocksStorage, metaDb, logDirOpt), rollbackOpt)
 
 
       case posBlock: PosBlock =>
@@ -307,8 +324,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
         if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
 
         //recalc difficulties
-        if(currentScoreVar.get() > 0 && currentScoreVar.get() % DifficultyRecalcPeriod == 0) recalcDifficulties()
-        (new HybridHistory(blocksStorage, metaDb), None) //no rollback ever
+        if (currentScoreVar.get() > 0 && currentScoreVar.get() % DifficultyRecalcPeriod == 0) recalcDifficulties()
+        (new HybridHistory(blocksStorage, metaDb, logDirOpt), None) //no rollback ever
     }
     metaDb.commit()
     log.info(s"History: block appended, new score is ${currentScoreVar.get()}")
@@ -425,7 +442,8 @@ object HybridHistory extends ScorexLogging {
         .closeOnJvmShutdown()
         .make()
 
-    new HybridHistory(blockStorage, metaDb)
+    val logDirOpt = settings.logDirOpt
+    new HybridHistory(blockStorage, metaDb, logDirOpt)
   }
 }
 

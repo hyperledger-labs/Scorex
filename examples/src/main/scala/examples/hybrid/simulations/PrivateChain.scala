@@ -2,11 +2,12 @@ package examples.hybrid.simulations
 
 import java.io.FileWriter
 
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
+import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
+import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import io.circe
 import scorex.core.block.Block.BlockId
@@ -17,7 +18,7 @@ import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
 import scala.reflect.io.Path
-import scala.util.Random
+import scala.util.{Random, Try}
 
 /**
   * Private chain attack simulation
@@ -90,8 +91,11 @@ object PrivateChain extends App with ScorexLogging {
     var firstId: BlockId = null
 
     do {
-      val b: HybridPersistentNodeViewModifier = if (history.isEmpty || history.pairCompleted) {
-        generatePow(history, brother = false, hashesPerSecond)
+      if (history.isEmpty || history.pairCompleted) {
+        val b = generatePow(history, brother = false, hashesPerSecond)
+        if (history.isEmpty) firstId = b.id
+        history = history.append(b).get._1
+        Thread.sleep(15)
       } else {
 
         val target = PosForger.MaxTarget / history.posDifficulty
@@ -107,12 +111,10 @@ object PrivateChain extends App with ScorexLogging {
               posStep()
           }
         }
-        posStep()
+        val b = posStep()
+        history = history.append(b).get._1
+        Thread.sleep(15)
       }
-
-      if (history.isEmpty) firstId = b.id
-
-      history = history.append(b).get._1
     } while (!(history.powHeight == 10 && history.pairCompleted))
 
     history.bestPosBlock.timestamp - history.blockById(firstId).get.asInstanceOf[PowBlock].timestamp
@@ -120,29 +122,32 @@ object PrivateChain extends App with ScorexLogging {
 
   val experiments = 2
 
-  val honestHashesPerSecond = 10
+  val honestHashesPerSecond = 50
 
-  val honestAvg = (1 to experiments).map{_ =>
+  val honestAvg = (1 to experiments).map { _ =>
     timeSpent(100, honestHashesPerSecond)
   }.sum / experiments.toDouble
 
   println("avg honest time = " + honestAvg)
 
-  (5 to 100).foreach{adversarialStakePercent =>
-    (10 to 1000).foreach{advHashesPerSecond =>
-      val advSuccess = (1 to experiments).map { _ =>
-        if(timeSpent(adversarialStakePercent, advHashesPerSecond) < honestAvg) 1 else 0
-      }.sum / experiments.toDouble
+  def experiment(adversarialStakePercent: Int, advHashesPerSecond: Int): Try[Unit] = Try {
+    val advSuccess = (1 to experiments).map { _ =>
+      val advTime = timeSpent(adversarialStakePercent, advHashesPerSecond)
+      println(s"times: adversarial: $advTime, honest: $honestAvg")
+      if (advTime < honestAvg) 1 else 0
+    }.sum
 
-      val fw = new FileWriter("/tmp/test.txt", true)
-      try {
-        fw.write(s"$adversarialStakePercent, ${advHashesPerSecond / honestHashesPerSecond.toDouble}, $advSuccess\n")
-      }
-      finally fw.close()
-    }
+    val row = s"$adversarialStakePercent, ${advHashesPerSecond / honestHashesPerSecond.toDouble}, $advSuccess"
+    println(s"Got data row: $row")
+    FileFunctions.append("/home/kushti/test.csv", row)
   }
 
+  (1 to 10).foreach { asp5 =>
+    val adversarialStakePercent = asp5 * 5
+    (1 to 7).foreach { ahp =>
+      val advHashesPerSecond = ahp * honestHashesPerSecond
+      experiment(adversarialStakePercent, advHashesPerSecond)
+        .getOrElse(experiment(adversarialStakePercent, advHashesPerSecond))
+    }
+  }
 }
-
-
-//10725 - 100 - 100
