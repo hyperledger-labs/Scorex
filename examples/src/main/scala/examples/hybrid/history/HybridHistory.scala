@@ -65,6 +65,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB)
   //for now score = chain length; that's not very secure, see link above
   private lazy val currentScoreVar = metaDb.atomicLong("score").createOrOpen()
 
+  lazy val powHeight = currentScoreVar.get()
+
   private lazy val bestPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
   lazy val bestPowId = Option(bestPowIdVar.get()).getOrElse(PowMiner.GenesisParentId)
 

@@ -42,12 +42,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
       val target = MaxTarget / h.posDifficulty
 
-      def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
-        val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
-        Longs.fromByteArray((0: Byte) +: h.take(7))
-      }
-
-      val boxes = w.boxes()
+      val boxes = w.boxes().map(_.box)
       println(s"${boxes.size} stakeholding outputs")
 
       //last check on whether to forge at all
@@ -55,23 +50,7 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
         self ! StopForging
       } else {
         val powBlock = h.bestPowBlock
-
-        val sucessfulHits = boxes.map(_.box).map { box =>
-          val h = hit(powBlock)(box)
-          (box.proposition, box.value, h)
-        }.filter(t => t._3 < t._2 * target)
-
-        log.info(s"Successful hits: ${sucessfulHits.size}")
-
-        sucessfulHits.headOption.map { case (gen, _, _) =>
-          val txsToInclude = pickTransactions(m, s)
-          PosBlock(
-            powBlock.id,
-            System.currentTimeMillis(),
-            txsToInclude,
-            gen,
-            Signature25519(Array.fill(Signature25519.SignatureSize)(0: Byte)))
-        } match {
+        posIteration(powBlock, boxes, pickTransactions(m, s), target) match {
           case Some(posBlock) =>
             println(s"locally generated PoS block: $posBlock")
             forging = false
@@ -88,11 +67,38 @@ class PosForger(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
   }
 }
 
-object PosForger {
+object PosForger extends ScorexLogging {
   val InitialDifficuly = 488281250L
   val MaxTarget = Long.MaxValue
 
   case object StartForging
 
   case object StopForging
+
+  def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
+    val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
+    Longs.fromByteArray((0: Byte) +: h.take(7))
+  }
+
+  def posIteration(powBlock: PowBlock,
+                   boxes: Seq[PublicKey25519NoncedBox],
+                   txsToInclude: Seq[SimpleBoxTransaction],
+                   target: Long
+                  ): Option[PosBlock] = {
+    val sucessfulHits = boxes.map { box =>
+      val h = hit(powBlock)(box)
+      (box.proposition, box.value, h)
+    }.filter(t => t._3 < t._2 * target)
+
+    log.info(s"Successful hits: ${sucessfulHits.size}")
+
+    sucessfulHits.headOption.map { case (gen, _, _) =>
+      PosBlock(
+        powBlock.id,
+        System.currentTimeMillis(),
+        txsToInclude,
+        gen,
+        Signature25519(Array.fill(Signature25519.SignatureSize)(0: Byte)))
+    }
+  }
 }
