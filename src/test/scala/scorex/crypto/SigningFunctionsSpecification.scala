@@ -24,17 +24,4 @@ with Matchers {
       }
     }
   }
-
-  property("PrivateKey25519Companion serialization") {
-    forAll() { (seed: Array[Byte], message: Array[Byte]) =>
-      val priv = PrivateKey25519Companion.generateKeys(seed)._1
-      val parsed = PrivateKey25519Companion.parseBytes(PrivateKey25519Companion.keyPairBytes(priv))
-
-      parsed.isSuccess shouldBe true
-      parsed.get._2.address shouldBe priv.publicImage.address
-      PrivateKey25519Companion.sign(parsed.get._1, message)
-        .isValid(priv.publicImage, message) shouldBe true
-    }
-  }
-
 }

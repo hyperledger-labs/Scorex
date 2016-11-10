@@ -45,7 +45,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val apdx = seedAppendix.incrementAndGet()
     val s = FastCryptographicHash(seed ++ Ints.toByteArray(apdx))
     val (priv, pub) = PrivateKey25519Companion.generateKeys(s)
-    secretsMap.put(pub.bytes, priv.bytes)
+    secretsMap.put(pub.bytes, priv.privKeyBytes)
     metaDb.commit()
     HWallet(seed, boxStore, metaDb)
   }
