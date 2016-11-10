@@ -7,6 +7,7 @@ import com.twitter.chill.IKryoRegistrar
 import scorex.core.app.ApplicationVersion
 import scorex.core.network.Handshake
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.network.message.Message
 
 class ScorexRegistrar extends IKryoRegistrar {
   override def apply(k: Kryo): Unit = {
@@ -19,6 +20,7 @@ class ScorexRegistrar extends IKryoRegistrar {
     k.register(classOf[PeersData], new PeersDataSerializer)
     k.register(classOf[InvData], new InvDataSerializer)
     k.register(classOf[ModifiersData], new ModifiersDataSerializer)
+    k.register(classOf[Message[_]], new MessageSerializer)
   }
 }
 

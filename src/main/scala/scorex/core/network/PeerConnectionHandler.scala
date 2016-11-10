@@ -103,7 +103,7 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef,
 
   def workingCycleLocalInterface: Receive = {
     case msg: message.Message[_] =>
-      val bytes = msg.bytes
+      val bytes = serializer.toBytesWithoutClass(msg)
       log.info("Send message " + msg.spec + " to " + remote)
       connection ! Write(ByteString(Ints.toByteArray(bytes.length) ++ bytes))
 

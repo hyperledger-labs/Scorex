@@ -26,7 +26,7 @@ case class MessageHandler(specs: Seq[MessageSpec[_]], serializer: ScorexKryoPool
 
     val msgCode = bytes.get
 
-    val length = bytes.getInt
+    val length = bytes.getShort
     assert(length >= 0, "Data length is negative!")
 
     val msgData: Array[Byte] = length > 0 match {

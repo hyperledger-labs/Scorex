@@ -10,10 +10,7 @@ import scala.util.{Success, Try}
 case class Message[Content](spec: MessageSpec[Content],
                             input: Either[Array[Byte], Content],
                             source: Option[ConnectedPeer],
-                            serializer: ScorexKryoPool) extends BytesSerializable {
-
-  import Message.{ChecksumLength, MAGIC}
-
+                            serializer: ScorexKryoPool) {
   lazy val dataBytes = input match {
     case Left(db) => db
     case Right(d) => serializer.toBytesWithoutClass(d)
@@ -22,17 +19,6 @@ case class Message[Content](spec: MessageSpec[Content],
   lazy val data: Try[Content] = input match {
     case Left(db) => serializer.fromBytes(db, spec.c)
     case Right(d) => Success(d)
-  }
-
-  lazy val dataLength: Int = dataBytes.length
-
-  lazy val bytes: Array[Byte] = {
-    val dataWithChecksum = if (dataLength > 0) {
-      val checksum = hash(dataBytes).take(ChecksumLength)
-      Bytes.concat(checksum, dataBytes)
-    } else dataBytes //empty array
-
-    MAGIC ++ Array(spec.messageCode) ++ Ints.toByteArray(dataLength) ++ dataWithChecksum
   }
 }
 
