@@ -16,11 +16,7 @@ case class Message[Content](spec: MessageSpec[Content],
 
   lazy val dataBytes = input match {
     case Left(db) => db
-    case Right(d) =>
-      println("===")
-      println(d)
-      println(spec)
-      serializer.toBytesWithoutClass(d)
+    case Right(d) => serializer.toBytesWithoutClass(d)
   }
 
   lazy val data: Try[Content] = input match {
