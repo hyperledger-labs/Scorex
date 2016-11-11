@@ -91,47 +91,6 @@ object SimpleBoxTransaction {
   }
 }
 
-object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBoxTransaction] {
-
-  override def bytes(m: SimpleBoxTransaction): Array[Byte] = {
-    Bytes.concat(Longs.toByteArray(m.fee),
-      Longs.toByteArray(m.timestamp),
-      Ints.toByteArray(m.signatures.length),
-      Ints.toByteArray(m.from.length),
-      Ints.toByteArray(m.to.length),
-      m.signatures.foldLeft(Array[Byte]())((a, b) => a ++ b.signature),
-      m.from.foldLeft(Array[Byte]())((a, b) => a ++ b._1.pubKeyBytes ++ Longs.toByteArray(b._2)),
-      m.to.foldLeft(Array[Byte]())((a, b) => a ++ b._1.pubKeyBytes ++ Longs.toByteArray(b._2))
-    )
-  }
-
-  override def parse(bytes: Array[Byte]): Try[SimpleBoxTransaction] = Try {
-    val fee = Longs.fromByteArray(bytes.slice(0, 8))
-    val timestamp = Longs.fromByteArray(bytes.slice(8, 16))
-    val sigLength = Ints.fromByteArray(bytes.slice(16, 20))
-    val fromLength = Ints.fromByteArray(bytes.slice(20, 24))
-    val toLength = Ints.fromByteArray(bytes.slice(24, 28))
-    val signatures = (0 until sigLength) map { i =>
-      Signature25519(bytes.slice(28 + i * Curve25519.SignatureLength, 28 + (i + 1) * Curve25519.SignatureLength))
-    }
-    val s = 28 + sigLength * Curve25519.SignatureLength
-    val elementLength = 8 + Curve25519.KeyLength
-    val from = (0 until fromLength) map { i =>
-      val pk = bytes.slice(s + i * elementLength, s + (i + 1) * elementLength - 8)
-      val v = Longs.fromByteArray(bytes.slice(s + (i + 1) * elementLength - 8, s + (i + 1) * elementLength))
-      (PublicKey25519Proposition(pk), v)
-    }
-    val s2 = s + fromLength * elementLength
-    val to = (0 until toLength) map { i =>
-      val pk = bytes.slice(s2 + i * elementLength, s2 + (i + 1) * elementLength - 8)
-      val v = Longs.fromByteArray(bytes.slice(s2 + (i + 1) * elementLength - 8, s2 + (i + 1) * elementLength))
-      (PublicKey25519Proposition(pk), v)
-    }
-    SimpleBoxTransaction(from, to, signatures, fee, timestamp)
-  }
-}
-
-
 //todo: for Am - convert into test
 object TxPlayground extends App {
   val priv1 = PrivateKey25519Companion.generateKeys(Array.fill(32)(0: Byte))

@@ -64,8 +64,7 @@ object Block {
 }
 
 //TODO remove ???
-trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
-  extends NodeViewModifierCompanion[B] {
+trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]] {
 
   def isValid(block: B): Boolean
 

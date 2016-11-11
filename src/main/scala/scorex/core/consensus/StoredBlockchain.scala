@@ -18,9 +18,11 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
   extends BlockChain[P, TX, B, SI, SBT] with ScorexLogging {
   self: SBT =>
 
+  protected val blockClass: Class[B]
+
   val dataFolderOpt: Option[String]
 
-  val pool: ScorexKryoPool
+  val serializer: ScorexKryoPool
 
   val blockCompanion: BlockCompanion[P, TX, B]
 
@@ -33,7 +35,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
     if (signatures.size() > 0) database.rollback()
 
     def writeBlock(height: Int, block: B): Try[Unit] = Try {
-      blocks.put(height, pool.toBytes(block))
+      blocks.put(height, serializer.toBytes(block))
       scoreMap.put(height, chainScore() + score(block))
       signatures.put(height, block.id)
       database.commit()
@@ -44,7 +46,7 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
         .toOption
         .flatten
         .flatMap { b =>
-          blockCompanion.parse(b) match {
+          serializer.fromBytes(b, blockClass) match {
             case Failure(e) =>
               log.error("Failed to parse block.", e)
               None

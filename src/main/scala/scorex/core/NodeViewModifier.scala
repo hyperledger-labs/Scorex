@@ -33,12 +33,6 @@ object NodeViewModifier {
   val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(32)
 }
 
-trait NodeViewModifierCompanion[M <: NodeViewModifier] {
-  def bytes(modifier: M): Array[Byte]
-
-  def parse(bytes: Array[Byte]): Try[M]
-}
-
 trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]] extends NodeViewModifier {
 
   def parentId: ModifierId
