@@ -1,10 +1,9 @@
 package examples.hybrid.state
 
-import com.google.common.primitives.{Bytes, Ints, Longs}
+import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.state.SimpleBoxTransaction._
 import io.circe.Json
-import scorex.core.NodeViewModifierCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
@@ -12,9 +11,6 @@ import scorex.core.transaction.box.BoxUnlocker
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.crypto.signatures.Curve25519
-
-import scala.util.Try
 
 //a transaction order to destroy boxes associated with (pubkey -> nonce) and create new boxes (pubkey -> nonce)
 // where a nonce is derived from a transaction and also a box index

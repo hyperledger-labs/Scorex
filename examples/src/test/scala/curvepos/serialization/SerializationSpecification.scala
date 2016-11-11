@@ -9,6 +9,8 @@ import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.serialization.{ScorexKryoPool, ScorexRegistrar}
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.wallet.WalletBox
 
 import scala.reflect.ClassTag
 
@@ -31,6 +33,11 @@ with ExampleGenerators {
 
   property("PublicKey25519NoncedBox serialization roundtrip") {
     checkSerialization[PublicKey25519NoncedBox](publicKey25519NoncedBoxGen, emptyCheck[PublicKey25519NoncedBox])
+  }
+
+  property("WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox] serialization roundtrip") {
+    checkSerialization[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]](walletBoxGen,
+      emptyCheck[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]])
   }
 
 

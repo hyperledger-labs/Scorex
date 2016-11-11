@@ -9,7 +9,9 @@ import scorex.ObjectGenerators
 import scorex.core.network.Handshake
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.serialization.{ScorexKryoPool, ScorexRegistrar}
+import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.wallet.WalletBox
 
 class SerializationSpecification extends PropSpec with GeneratorDrivenPropertyChecks with Matchers
 with ObjectGenerators {
@@ -19,6 +21,7 @@ with ObjectGenerators {
   property("ModifiersData serialization roundtrip") {
         checkSerialization[ModifiersData](modifiersDataGen, classOf[ModifiersData], emptyCheck[ModifiersData])
   }
+
 
   property("ByteLengthUtf8StringSerializer test") {
     checkSerialization[String](Arbitrary.arbitrary[String].suchThat(_.length < 80), classOf[String])

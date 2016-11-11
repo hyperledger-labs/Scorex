@@ -1,30 +1,31 @@
 package scorex.core.transaction.wallet
 
-import com.google.common.primitives.{Bytes, Ints, Longs}
-import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
+import com.google.common.primitives.{Ints, Longs}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
+import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 
 import scala.util.Try
 
-case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long){
-  lazy val bytes = WalletBox.bytes(this)
-}
+case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
 
 object WalletBox {
-  def parse[P <: Proposition, B <: Box[P]](bytes: Array[Byte])(boxDeserializer: Array[Byte] => Try[B]): Try[WalletBox[P, B]] = ??? /*Try {
-    val txId = bytes.slice(0, NodeViewModifier.ModifierIdSize)
-    val createdAt = Longs.fromByteArray(
-      bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8))
-    val boxB = bytes.slice(NodeViewModifier.ModifierIdSize + 8, bytes.length)
-    boxDeserializer(boxB).map(box => WalletBox[P, B](box, txId, createdAt))
-  }.flatten*/
+  def parse[P <: Proposition, B <: Box[P]](bytes: Array[Byte])(boxDeserializer: Array[Byte] => Try[B]): Try[WalletBox[P, B]] = ???
 
-  def bytes[P <: Proposition, B <: Box[P]](box: WalletBox[P, B]): Array[Byte] = ???/*{
-    Bytes.concat(box.transactionId, Longs.toByteArray(box.createdAt), box.box.bytes)
-  }*/
+  /*Try {
+     val txId = bytes.slice(0, NodeViewModifier.ModifierIdSize)
+     val createdAt = Longs.fromByteArray(
+       bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8))
+     val boxB = bytes.slice(NodeViewModifier.ModifierIdSize + 8, bytes.length)
+     boxDeserializer(boxB).map(box => WalletBox[P, B](box, txId, createdAt))
+   }.flatten*/
+
+  def bytes[P <: Proposition, B <: Box[P]](box: WalletBox[P, B]): Array[Byte] = {
+//      Bytes.concat(box.transactionId, Longs.toByteArray(box.createdAt), box.box.bytes)
+    ???
+    }
 }
 
 case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](proposition: P,
@@ -62,7 +63,7 @@ object WalletTransaction {
     val createdAt = Longs.fromByteArray(bytes.slice(pos, pos + 8))
 
 
-    WalletTransaction[P, TX](propTry.get, txTry.get,blockIdOpt, createdAt)
+    WalletTransaction[P, TX](propTry.get, txTry.get, blockIdOpt, createdAt)
   }
 
   //TODO not used
@@ -87,7 +88,7 @@ object WalletTransaction {
   * @tparam P
   * @tparam TX
   */
-trait Wallet[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P,TX], W <: Wallet[P, TX, PMOD, W]]
+trait Wallet[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX], W <: Wallet[P, TX, PMOD, W]]
   extends Vault[P, TX, PMOD, W] {
   self: W =>
 

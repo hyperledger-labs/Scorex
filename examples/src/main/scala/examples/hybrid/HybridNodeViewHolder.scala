@@ -6,9 +6,9 @@ import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.PowMiner
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
-import scorex.core.serialization.ScorexKryoPool
-import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
+import scorex.core.NodeViewHolder
 import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519

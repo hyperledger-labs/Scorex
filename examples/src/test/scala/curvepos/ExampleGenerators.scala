@@ -7,7 +7,9 @@ import scorex.ObjectGenerators
 import scorex.core.NodeViewModifier
 import scorex.core.block.Block
 import scorex.core.block.Block._
+import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.wallet.WalletBox
 
 trait ExampleGenerators extends ObjectGenerators {
   val wallet = SimpleWallet()
@@ -37,6 +39,12 @@ trait ExampleGenerators extends ObjectGenerators {
     nonce <- positiveLongGen
     value <- positiveLongGen
   } yield PublicKey25519NoncedBox(prop, nonce, value)
+
+  lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
+    box: PublicKey25519NoncedBox <- publicKey25519NoncedBoxGen
+    transactionId: Array[Byte] <- modifierIdGen
+    createdAt: Long <- positiveLongGen
+  } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, transactionId, createdAt)
 
   lazy val simpleSyncInfoGenerator: Gen[SimpleSyncInfo] = for {
     ans <- Arbitrary.arbitrary[Boolean]

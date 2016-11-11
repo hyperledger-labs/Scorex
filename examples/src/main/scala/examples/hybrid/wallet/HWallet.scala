@@ -60,7 +60,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     boxIds
       .flatMap(id => Option(boxStore.get(ByteArrayWrapper(id))))
       .map(_.data)
-      .map(ba => WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](ba)(???))
+      .map(ba => serializer.fromBytes(ba, classOf[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]]))
       .map(_.get)
       .toSeq
 
@@ -88,7 +88,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
         boxIds.add(box.id)
         println("box id: " + Base58.encode(box.id))
         val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id, tx.timestamp)
-        ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
+        ByteArrayWrapper(box.id) -> ByteArrayWrapper(serializer.toBytes(wb))
       }
     }
     val boxIdsToRemove = txs.flatMap(_.boxIdsToOpen).map(ByteArrayWrapper)

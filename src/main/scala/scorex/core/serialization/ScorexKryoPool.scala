@@ -13,7 +13,7 @@ class ScorexKryoPool(registrars: IKryoRegistrar*) {
 
   def fromBytes[T](bytes: Array[Byte], c: Class[T]): Try[T] = Try(pool.fromBytes(bytes, c))
 
-  def fromBytes[T: ClassTag](bytes: Array[Byte]): Try[T] = fromBytes(bytes, getClass[T])
+  def fromBytes[T: ClassTag](bytes: Array[Byte]): Try[T] = fromBytes(bytes, getClassFromClassTag[T])
 
   def toBytes[T](o: T): Array[Byte] = pool.toBytesWithoutClass(o)
 
@@ -21,10 +21,6 @@ class ScorexKryoPool(registrars: IKryoRegistrar*) {
     val cores = Runtime.getRuntime.availableProcessors
     val GUESS_THREADS_PER_CORE = 4
     GUESS_THREADS_PER_CORE * cores
-  }
-
-  private def getClass[T: ClassTag]: Class[T] = {
-    classTag[T].runtimeClass.asInstanceOf[Class[T]]
   }
 
 }
