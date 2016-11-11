@@ -47,10 +47,10 @@ with ObjectGenerators {
 
   def checkSerialization[T](gen: Gen[T], cls: Class[T], check: (T, T) => Unit = (o1: T, o2: T) => o1 shouldBe o2) = {
     forAll(gen) { obj: T =>
-      val bytes = pool.toBytesWithoutClass(obj)
+      val bytes = pool.toBytes(obj)
       val obj2 = pool.fromBytes(bytes, cls).get
       check(obj2, obj)
-      val bytes2 = pool.toBytesWithoutClass(obj2)
+      val bytes2 = pool.toBytes(obj2)
       bytes shouldEqual bytes2
     }
   }

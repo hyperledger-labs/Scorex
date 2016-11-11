@@ -13,7 +13,7 @@ case class Message[Content](spec: MessageSpec[Content],
                             serializer: ScorexKryoPool) {
   lazy val dataBytes = input match {
     case Left(db) => db
-    case Right(d) => serializer.toBytesWithoutClass(d)
+    case Right(d) => serializer.toBytes(d)
   }
 
   lazy val data: Try[Content] = input match {

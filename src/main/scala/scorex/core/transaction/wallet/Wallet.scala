@@ -14,17 +14,17 @@ case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array
 }
 
 object WalletBox {
-  def parse[P <: Proposition, B <: Box[P]](bytes: Array[Byte])(boxDeserializer: Array[Byte] => Try[B]): Try[WalletBox[P, B]] = Try {
+  def parse[P <: Proposition, B <: Box[P]](bytes: Array[Byte])(boxDeserializer: Array[Byte] => Try[B]): Try[WalletBox[P, B]] = ??? /*Try {
     val txId = bytes.slice(0, NodeViewModifier.ModifierIdSize)
     val createdAt = Longs.fromByteArray(
       bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8))
     val boxB = bytes.slice(NodeViewModifier.ModifierIdSize + 8, bytes.length)
     boxDeserializer(boxB).map(box => WalletBox[P, B](box, txId, createdAt))
-  }.flatten
+  }.flatten*/
 
-  def bytes[P <: Proposition, B <: Box[P]](box: WalletBox[P, B]): Array[Byte] = {
+  def bytes[P <: Proposition, B <: Box[P]](box: WalletBox[P, B]): Array[Byte] = ???/*{
     Bytes.concat(box.transactionId, Longs.toByteArray(box.createdAt), box.box.bytes)
-  }
+  }*/
 }
 
 case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](proposition: P,

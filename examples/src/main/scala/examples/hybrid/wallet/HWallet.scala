@@ -11,6 +11,7 @@ import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -33,6 +34,8 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
+
+  val serializer: ScorexKryoPool = ???
 
   lazy val seedAppendix = metaDb.atomicInteger("seedAppendix", 0).createOrOpen()
   lazy val secretsMap = metaDb.treeMap("secrets", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
@@ -57,7 +60,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     boxIds
       .flatMap(id => Option(boxStore.get(ByteArrayWrapper(id))))
       .map(_.data)
-      .map(ba => WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](ba)(PublicKey25519NoncedBox.parseBytes))
+      .map(ba => WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](ba)(???))
       .map(_.get)
       .toSeq
 

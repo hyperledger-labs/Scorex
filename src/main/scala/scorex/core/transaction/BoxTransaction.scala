@@ -12,11 +12,13 @@ abstract class BoxTransaction[P <: Proposition, BX <: Box[P]] extends Transactio
   val unlockers: Traversable[BoxUnlocker[P]]
   val newBoxes: Traversable[BX]
 
-  lazy val messageToSign: Array[Byte] =
+  lazy val messageToSign: Array[Byte] = ???
+/*
     newBoxes.map(_.bytes).reduce(_ ++ _) ++
       unlockers.map(_.closedBoxId).reduce(_ ++ _) ++
       Longs.toByteArray(timestamp) ++
       Longs.toByteArray(fee)
+*/
 
   override lazy val id: ModifierId = FastCryptographicHash(messageToSign)
 

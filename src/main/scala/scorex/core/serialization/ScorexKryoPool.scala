@@ -15,7 +15,7 @@ class ScorexKryoPool(registrars: IKryoRegistrar*) {
 
   def fromBytes[T: ClassTag](bytes: Array[Byte]): Try[T] = fromBytes(bytes, getClass[T])
 
-  def toBytesWithoutClass[T](o: T): Array[Byte] = pool.toBytesWithoutClass(o)
+  def toBytes[T](o: T): Array[Byte] = pool.toBytesWithoutClass(o)
 
   private def guessThreads: Int = {
     val cores = Runtime.getRuntime.availableProcessors

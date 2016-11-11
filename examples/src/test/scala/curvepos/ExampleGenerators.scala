@@ -1,7 +1,7 @@
 package curvepos
 
 import examples.curvepos.SimpleSyncInfo
-import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleTransaction, SimpleWallet}
+import examples.curvepos.transaction._
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.ObjectGenerators
 import scorex.core.NodeViewModifier
@@ -31,6 +31,12 @@ trait ExampleGenerators extends ObjectGenerators {
     generator: PublicKey25519Proposition <- propositionGen
     txs: Seq[SimpleTransaction] <- Gen.listOf(paymentGen)
   } yield new SimpleBlock(parentId, timestamp, generationSignature, baseTarget, generator, txs)
+
+  lazy val publicKey25519NoncedBoxGen: Gen[PublicKey25519NoncedBox] = for {
+    prop <- propositionGen
+    nonce <- positiveLongGen
+    value <- positiveLongGen
+  } yield PublicKey25519NoncedBox(prop, nonce, value)
 
   lazy val simpleSyncInfoGenerator: Gen[SimpleSyncInfo] = for {
     ans <- Arbitrary.arbitrary[Boolean]

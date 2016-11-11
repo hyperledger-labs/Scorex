@@ -96,7 +96,7 @@ with ScorexLogging {
 
             val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
             val signature: Signature25519 =
-              PrivateKey25519Companion.sign(secret, serializer.toBytesWithoutClass(unsigned))
+              PrivateKey25519Companion.sign(secret, serializer.toBytes(unsigned))
             val signedBlock = unsigned.copy(generationSignature = signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
             LocallyGeneratedModifier[PublicKey25519Proposition, SimpleTransaction, SimpleBlock](signedBlock)

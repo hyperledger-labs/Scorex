@@ -76,7 +76,7 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef,
 
   private def handshake: Receive = ({
     case h: Handshake =>
-      connection ! Write(ByteString(serializer.toBytesWithoutClass(h)))
+      connection ! Write(ByteString(serializer.toBytes(h)))
       log.info(s"Handshake sent to $remote")
       handshakeSent = true
       if (handshakeGot && handshakeSent) self ! HandshakeDone
@@ -103,7 +103,7 @@ case class PeerConnectionHandler(networkControllerRef: ActorRef,
 
   def workingCycleLocalInterface: Receive = {
     case msg: message.Message[_] =>
-      val bytes = serializer.toBytesWithoutClass(msg)
+      val bytes = serializer.toBytes(msg)
       log.info("Send message " + msg.spec + " to " + remote)
       connection ! Write(ByteString(Ints.toByteArray(bytes.length) ++ bytes))
 

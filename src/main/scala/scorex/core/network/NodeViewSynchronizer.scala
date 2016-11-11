@@ -59,7 +59,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
     if (source.isEmpty) {
-      val data = ModifiersData(m.modifierTypeId, Seq(m.id -> serializer.toBytesWithoutClass(m)).toMap)
+      val data = ModifiersData(m.modifierTypeId, Seq(m.id -> serializer.toBytes(m)).toMap)
       val msg = Message(ModifiersSpec, Right(data), None, serializer)
       //  networkControllerRef ! SendToNetwork(msg, Broadcast) todo: uncomment, send only inv to equals
     }
@@ -202,7 +202,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case ResponseFromLocal(peer, typeId, modifiers: Seq[NodeViewModifier]) =>
       if (modifiers.nonEmpty) {
         val modType = modifiers.head.modifierTypeId
-        val m = ModifiersData(modType, modifiers.map(m => m.id -> serializer.toBytesWithoutClass(m)).toMap)
+        val m = ModifiersData(modType, modifiers.map(m => m.id -> serializer.toBytes(m)).toMap)
         val msg = Message(ModifiersSpec, Right(m), None, serializer)
         peer.handlerRef ! msg
       }
