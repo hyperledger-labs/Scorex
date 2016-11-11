@@ -1,6 +1,5 @@
 package scorex.core.transaction.box
 
-import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.box.proposition.Proposition
 
 /**

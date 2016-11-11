@@ -1,9 +1,7 @@
 package scorex.core.network.message
 
-import com.google.common.primitives.{Bytes, Ints}
-import scorex.core.crypto.hash.FastCryptographicHash._
 import scorex.core.network.ConnectedPeer
-import scorex.core.serialization.{ScorexKryoPool, BytesSerializable}
+import scorex.core.serialization.ScorexKryoPool
 
 import scala.util.{Success, Try}
 

@@ -2,7 +2,6 @@ package scorex.core
 
 import com.typesafe.config.ConfigFactory
 import scorex.core.NodeViewModifier.ModifierId
-import scorex.core.serialization.{JsonSerializable, BytesSerializable}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 
