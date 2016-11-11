@@ -28,6 +28,7 @@ trait SecretCompanion[S <: Secret] {
 
   def sign(secret: S, message: Array[Byte]): PR
 
+  //TODO not used
   def verify(message: Array[Byte], publicImage: PK, proof: PR): Boolean
 
   def generateKeys(randomSeed: Array[Byte]): (S, PK)
@@ -57,7 +58,7 @@ object PrivateKey25519Companion extends SecretCompanion[PrivateKey25519] {
     Signature25519(Curve25519.sign(secret.privKeyBytes, message))
 
   override def verify(message: Array[Byte], publicImage: PublicKey25519Proposition, proof: Signature25519): Boolean =
-    Curve25519.verify(proof.signature, message, publicImage.bytes)
+    proof.isValid(publicImage, message)
 
   override def generateKeys(randomSeed: Array[Byte]): (PrivateKey25519, PublicKey25519Proposition) = {
     val pair = Curve25519.createKeyPair(randomSeed)

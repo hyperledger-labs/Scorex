@@ -46,7 +46,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def scanOffchain(tx: SimpleTransaction): SimpleWallet = tx match {
     case sp: SimplePayment =>
-      if ((sp.sender.bytes sameElements pubKeyBytes) || (sp.recipient.bytes sameElements pubKeyBytes)) {
+      if ((sp.sender.pubKeyBytes sameElements pubKeyBytes) || (sp.recipient.pubKeyBytes sameElements pubKeyBytes)) {
         SimpleWallet(seed, chainTransactions, offchainTransactions + (sp.id -> sp), currentBalance)
       } else this
   }
@@ -58,10 +58,10 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     modifier.transactions.map(_.foldLeft(this) { case (w, tx) =>
       tx match {
         case sp: SimplePayment =>
-          if ((sp.sender.bytes sameElements pubKeyBytes) || (sp.recipient.bytes sameElements pubKeyBytes)) {
+          if ((sp.sender.pubKeyBytes sameElements pubKeyBytes) || (sp.recipient.pubKeyBytes sameElements pubKeyBytes)) {
             val ct = w.chainTransactions + (sp.id -> sp)
             val oct = w.offchainTransactions - sp.id
-            val cb = if (sp.recipient.bytes sameElements pubKeyBytes) {
+            val cb = if (sp.recipient.pubKeyBytes sameElements pubKeyBytes) {
               w.currentBalance + sp.amount
             } else w.currentBalance - sp.amount
             SimpleWallet(seed, ct, oct, cb)

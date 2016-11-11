@@ -1,22 +1,28 @@
 package scorex.core.transaction.box.proposition
 
-import scorex.crypto.encode.Base58
 import scorex.core.crypto.hash.FastCryptographicHash._
-import scorex.crypto.signatures.Curve25519
 import scorex.core.transaction.state.PrivateKey25519
+import scorex.crypto.encode.Base58
+import scorex.crypto.signatures.Curve25519
 
 import scala.util.{Failure, Success, Try}
 
 case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKnowledgeProposition[PrivateKey25519] {
+
   import PublicKey25519Proposition._
 
   lazy val address: String = Base58.encode((AddressVersion +: pubKeyBytes) ++ calcCheckSum(pubKeyBytes))
 
-  lazy val bytes = pubKeyBytes
-
   override def toString: String = address
 
   def verify(message: Array[Byte], signature: Array[Byte]): Boolean = Curve25519.verify(signature, message, pubKeyBytes)
+
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case PublicKey25519Proposition(pub) => pub sameElements pubKeyBytes
+    case _ => false
+  }
+
+  override def hashCode(): Int = (BigInt(pubKeyBytes) % Int.MaxValue).toInt
 }
 
 object PublicKey25519Proposition {

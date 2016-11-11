@@ -100,8 +100,8 @@ object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBox
       Ints.toByteArray(m.from.length),
       Ints.toByteArray(m.to.length),
       m.signatures.foldLeft(Array[Byte]())((a, b) => a ++ b.signature),
-      m.from.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2)),
-      m.to.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2))
+      m.from.foldLeft(Array[Byte]())((a, b) => a ++ b._1.pubKeyBytes ++ Longs.toByteArray(b._2)),
+      m.to.foldLeft(Array[Byte]())((a, b) => a ++ b._1.pubKeyBytes ++ Longs.toByteArray(b._2))
     )
   }
 

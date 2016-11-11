@@ -8,6 +8,7 @@ import scorex.core.app.ApplicationVersion
 import scorex.core.network.Handshake
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.Message
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 class ScorexRegistrar extends IKryoRegistrar {
   override def apply(k: Kryo): Unit = {
@@ -21,6 +22,7 @@ class ScorexRegistrar extends IKryoRegistrar {
     k.register(classOf[InvData], new InvDataSerializer)
     k.register(classOf[ModifiersData], new ModifiersDataSerializer)
     k.register(classOf[Message[_]], new MessageSerializer)
+    k.register(classOf[PublicKey25519Proposition], new PublicKey25519PropositionSerializer)
   }
 }
 

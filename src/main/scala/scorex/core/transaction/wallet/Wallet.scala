@@ -34,6 +34,7 @@ case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](proposition
 
 //todo: for Dmitry
 object WalletTransaction {
+  //TODO not used
   def parse[P <: Proposition, TX <: Transaction[P]](bytes: Array[Byte])
                                                    (propDeserializer: Array[Byte] => Try[P],
                                                     txDeserializer: Array[Byte] => Try[TX]
@@ -64,8 +65,9 @@ object WalletTransaction {
     WalletTransaction[P, TX](propTry.get, txTry.get,blockIdOpt, createdAt)
   }
 
+  //TODO not used
   def bytes[P <: Proposition, TX <: Transaction[P]](wt: WalletTransaction[P, TX]): Array[Byte] = {
-    val propBytes = wt.proposition.bytes
+    val propBytes: Array[Byte] = ???
     val txBytes: Array[Byte] = ???
     val bIdBytes = wt.blockId.map(id => Array(1: Byte) ++ id).getOrElse(Array(0: Byte))
 

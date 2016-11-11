@@ -45,7 +45,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val apdx = seedAppendix.incrementAndGet()
     val s = FastCryptographicHash(seed ++ Ints.toByteArray(apdx))
     val (priv, pub) = PrivateKey25519Companion.generateKeys(s)
-    secretsMap.put(pub.bytes, priv.privKeyBytes)
+    secretsMap.put(pub.pubKeyBytes, priv.privKeyBytes)
     metaDb.commit()
     HWallet(seed, boxStore, metaDb)
   }
@@ -68,7 +68,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     secretsMap.iterator.map { case (pubK, privK) => PrivateKey25519(privK, pubK) }.toSet
 
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
-    Option(secretsMap.get(publicImage.bytes)).map(priv => PrivateKey25519(priv, publicImage.bytes))
+    Option(secretsMap.get(publicImage.pubKeyBytes)).map(priv => PrivateKey25519(priv, publicImage.pubKeyBytes))
 
   //we do not process offchain (e.g. by adding them to the wallet)
   override def scanOffchain(tx: SimpleBoxTransaction): HWallet = this

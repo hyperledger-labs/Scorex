@@ -10,7 +10,7 @@ import scorex.crypto.signatures.Curve25519
 case class Signature25519(signature: Array[Byte]) extends ProofOfKnowledge[PrivateKey25519, PublicKey25519Proposition] {
 
   override def isValid(proposition: PublicKey25519Proposition, message: Array[Byte]): Boolean =
-    Curve25519.verify(signature, message, proposition.bytes)
+    Curve25519.verify(signature, message, proposition.pubKeyBytes)
 }
 
 object Signature25519 {

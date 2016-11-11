@@ -9,6 +9,7 @@ import scorex.ObjectGenerators
 import scorex.core.network.Handshake
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.serialization.{ScorexKryoPool, ScorexRegistrar}
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 class SerializationSpecification extends PropSpec with GeneratorDrivenPropertyChecks with Matchers
 with ObjectGenerators {
@@ -36,6 +37,10 @@ with ObjectGenerators {
 
   property("InvData serialization roundtrip") {
     checkSerialization[InvData](invDataGen, classOf[InvData], emptyCheck[InvData])
+  }
+
+  property("PublicKey25519Proposition serialization roundtrip") {
+    checkSerialization[PublicKey25519Proposition](propositionGen, classOf[PublicKey25519Proposition])
   }
 
   def emptyCheck[T](o1: T, o2: T): Unit = {}
