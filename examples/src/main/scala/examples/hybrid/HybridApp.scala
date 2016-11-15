@@ -47,7 +47,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
 
   val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
-  val forger = actorSystem.actorOf(Props(classOf[PosForger], nodeViewHolderRef))
+  val forger = actorSystem.actorOf(Props(classOf[PosForger], settings, nodeViewHolderRef))
 
   override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[HLocalInterface], nodeViewHolderRef, miner, forger))
 
@@ -61,8 +61,8 @@ class HybridApp(val settingsFilename: String) extends Application {
   nodeViewSynchronizer
 
   //todo :fix
-  //val generator: ActorRef = actorSystem.actorOf(Props(classOf[SimpleBoxTransactionGenerator], nodeViewHolderRef))
-  //generator ! StartGeneration(FiniteDuration(10, SECONDS))
+  val generator: ActorRef = actorSystem.actorOf(Props(classOf[SimpleBoxTransactionGenerator], nodeViewHolderRef))
+  generator ! StartGeneration(FiniteDuration(10, SECONDS))
 }
 
 object HybridApp extends App {

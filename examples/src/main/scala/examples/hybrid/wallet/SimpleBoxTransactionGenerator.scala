@@ -1,7 +1,7 @@
 package examples.hybrid.wallet
 
 import akka.actor.{Actor, ActorRef}
-import examples.hybrid.state.SimpleBoxTransaction
+import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -22,24 +22,24 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
     case StartGeneration(duration) =>
       context.system.scheduler.schedule(duration, duration, viewHolderRef, GetCurrentView)
 
-    case CurrentView(_, _, wallet: HWallet, _) =>
-      if (wallet.secrets.size < 5) wallet.generateNewSecret()
-
+    case CurrentView(_, state: HBoxStoredState, wallet: HWallet, _) =>
       generate(wallet) match {
         case Success(tx) =>
           println(s"Local tx with with ${tx.from.size} inputs, ${tx.to.size} outputs")
           viewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
         case Failure(e) =>
-          //e.printStackTrace()
+          e.printStackTrace()
       }
   }
 
   def generate(wallet: HWallet): Try[SimpleBoxTransaction] = Try {
-    val from: IndexedSeq[(PrivateKey25519, Long)] = wallet.boxes()
-      .filter(p => Random.nextInt(5) < 2).map { b =>
-      (wallet.secretByPublicImage(b.box.proposition).get, b.box.value)
+    val from: IndexedSeq[(PrivateKey25519, Long, Long)] = wallet.boxes()
+      .filter(p => Random.nextBoolean())
+      .take(wallet.publicKeys.size / 2 - 1)
+      .map { b =>
+      (wallet.secretByPublicImage(b.box.proposition).get, b.box.nonce, b.box.value)
     }.toIndexedSeq
-    var canSend = from.map(_._2).sum
+    var canSend = from.map(_._3).sum
 
     val to: IndexedSeq[(PublicKey25519Proposition, Long)] = wallet.publicKeys
       .filter(p => Random.nextBoolean()).map { p =>
@@ -48,9 +48,9 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
       (p, amount)
     }.toIndexedSeq
 
-    val fee: Long = from.map(_._2).sum - to.map(_._2).sum
+    val fee: Long = from.map(_._3).sum - to.map(_._2).sum
     val timestamp = System.currentTimeMillis()
-    SimpleBoxTransaction(from, to, fee, timestamp)
+    SimpleBoxTransaction(from.map(t=> t._1 -> t._2), to, fee, timestamp)
   }
 }
 

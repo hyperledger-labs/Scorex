@@ -20,11 +20,11 @@ import scala.util.{Success, Try}
 object PowChanges extends StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set())
 
 case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: VersionTag, serializer: ScorexKryoPool) extends
-BoxMinimalState[PublicKey25519Proposition,
-  PublicKey25519NoncedBox,
-  SimpleBoxTransaction,
-  HybridPersistentNodeViewModifier,
-  HBoxStoredState] {
+  BoxMinimalState[PublicKey25519Proposition,
+    PublicKey25519NoncedBox,
+    SimpleBoxTransaction,
+    HybridPersistentNodeViewModifier,
+    HBoxStoredState] {
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridPersistentNodeViewModifier
@@ -88,7 +88,7 @@ BoxMinimalState[PublicKey25519Proposition,
 }
 
 object HBoxStoredState {
-  def emptyState(settings: Settings, serializer: ScorexKryoPool): HBoxStoredState = {
+  def readOrGenerate(settings: Settings): HBoxStoredState = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
 
@@ -97,6 +97,12 @@ object HBoxStoredState {
     val iFile = new File(s"$dataDir/state")
     iFile.mkdirs()
     val stateStorage = new LSMStore(iFile)
+
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run(): Unit = {
+        stateStorage.close()
+      }
+    })
 
     val mFile = new File(s"$dataDir/statemeta")
 
@@ -109,8 +115,8 @@ object HBoxStoredState {
     HBoxStoredState(stateStorage, metaDb, Array.emptyByteArray, serializer)
   }
 
-  def genesisState(settings: Settings, initialBlock: PosBlock, serializer: ScorexKryoPool): HBoxStoredState =
-    emptyState(settings, serializer).applyModifier(initialBlock).get
+  def genesisState(settings: Settings, initialBlock: PosBlock): HBoxStoredState =
+    readOrGenerate(settings).applyModifier(initialBlock).get
 }
 
 
@@ -121,7 +127,7 @@ object HStatePlayground extends App {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
   }
 
-  val s0 = HBoxStoredState.emptyState(settings)
+  val s0 = HBoxStoredState.readOrGenerate(settings)
 
   val b = PublicKey25519NoncedBox(PublicKey25519Proposition(Array.fill(32)(0:Byte)), 10000L, 500L)
 

@@ -40,12 +40,16 @@ trait Settings extends ScorexLogging {
     f.exists()
   }
 
-  lazy val dataDirOpt = {
-    val res = settingsJSON.get("dataDir").flatMap(_.asString)
-    res.foreach(folder => new File(folder).mkdirs())
-    require(res.isEmpty || new File(res.get).exists())
-    res
+  private def folderOpt(settingName: String) = {
+      val res = settingsJSON.get(settingName).flatMap(_.asString)
+      res.foreach(folder => new File(folder).mkdirs())
+      require(res.isEmpty || new File(res.get).exists())
+      res
   }
+
+  lazy val dataDirOpt = folderOpt("dataDir")
+
+  lazy val logDirOpt = folderOpt("logDir")
 
   //p2p
   lazy val DefaultPort = 9084

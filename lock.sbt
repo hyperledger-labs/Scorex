@@ -22,7 +22,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.fasterxml.jackson.module" % "jackson-module-jaxb-annotations" % "2.4.5",
   "com.fasterxml.jackson.module" % "jackson-module-scala_2.11" % "2.4.2",
   "com.github.mpilquist" % "simulacrum_2.11" % "0.8.0",
-  "com.github.swagger-akka-http" % "swagger-akka-http_2.11" % "0.7.2",
+  "com.github.swagger-akka-http" % "swagger-akka-http_2.11" % "0.7.3",
   "com.google.code.findbugs" % "annotations" % "2.0.1",
   "com.google.code.findbugs" % "jsr305" % "2.0.1",
   "com.google.guava" % "guava" % "19.0",
@@ -38,7 +38,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.typesafe.akka" % "akka-actor_2.11" % "2.4.12",
   "com.typesafe.akka" % "akka-http-core_2.11" % "2.4.11",
   "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.4.11",
-  "com.typesafe.akka" % "akka-http-spray-json-experimental_2.11" % "2.4.8",
+  "com.typesafe.akka" % "akka-http-spray-json-experimental_2.11" % "2.4.10",
   "com.typesafe.akka" % "akka-parsing_2.11" % "2.4.11",
   "com.typesafe.akka" % "akka-stream_2.11" % "2.4.11",
   "com.typesafe.akka" % "akka-testkit_2.11" % "2.4.12",
@@ -52,6 +52,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "io.circe" % "circe-jawn_2.11" % "0.5.4",
   "io.circe" % "circe-numbers_2.11" % "0.5.4",
   "io.circe" % "circe-parser_2.11" % "0.5.4",
+  "io.iohk" % "iodb_2.11" % "1.0-M1-SNAPSHOT",
   "io.netty" % "netty" % "3.10.0.Final",
   "io.spray" % "spray-json_2.11" % "1.3.2",
   "io.swagger" % "swagger-annotations" % "1.5.10",
@@ -89,7 +90,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang.modules" % "scala-xml_2.11" % "1.0.2",
   "org.scala-sbt" % "test-interface" % "1.0",
   "org.scala-stm" % "scala-stm_2.11" % "0.7",
-  "org.scalacheck" % "scalacheck_2.11" % "1.12.5",
+  "org.scalacheck" % "scalacheck_2.11" % "1.12.6",
   "org.scalactic" % "scalactic_2.11" % "2.3.0-SNAP2",
   "org.scalatest" % "scalatest_2.11" % "2.3.0-SNAP2",
   "org.scoverage" % "scalac-scoverage-plugin_2.11" % "1.1.1",
@@ -105,4 +106,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.5",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH 1142abb9a77f9e0f43fa19daacda939f730569a2
+// LIBRARY_DEPENDENCIES_HASH f4f1577ac92d93bc9d8540aef454addde1428259

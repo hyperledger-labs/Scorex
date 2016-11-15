@@ -86,7 +86,6 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val newBoxes = txs.flatMap { tx =>
       tx.newBoxes.map { box =>
         boxIds.add(box.id)
-        println("box id: " + Base58.encode(box.id))
         val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id, tx.timestamp)
         ByteArrayWrapper(box.id) -> ByteArrayWrapper(serializer.toBytes(wb))
       }
@@ -115,7 +114,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
 object HWallet {
 
-  def emptyWallet(settings: Settings, seed: String, appendix: String): HWallet = {
+  def readOrGenerate(settings: Settings, seed: String, appendix: String): HWallet = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
     new File(dataDir).mkdirs()
@@ -124,8 +123,13 @@ object HWallet {
     wFile.mkdirs()
     val boxesStorage = new LSMStore(wFile)
 
-    val mFile = new File(s"$dataDir/walletmeta" + appendix)
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run(): Unit = {
+        boxesStorage.close()
+      }
+    })
 
+    val mFile = new File(s"$dataDir/walletmeta" + appendix)
 
     lazy val metaDb =
       DBMaker.fileDB(mFile)
@@ -136,23 +140,32 @@ object HWallet {
     HWallet(Base58.decode(seed).get, boxesStorage, metaDb)
   }
 
-  def emptyWallet(settings: Settings, appendix: String): HWallet = {
-    emptyWallet(settings, Base58.encode(settings.walletSeed), appendix)
+  def readOrGenerate(settings: Settings, appendix: String): HWallet = {
+    readOrGenerate(settings, Base58.encode(settings.walletSeed), appendix)
   }
 
-  def emptyWallet(settings: Settings, seed: String, appendix: String, accounts: Int): HWallet =
-    (1 to 10).foldLeft(emptyWallet(settings, seed, appendix)) { case (w, _) =>
+  def readOrGenerate(settings: Settings, seed: String, appendix: String, accounts: Int): HWallet =
+    (1 to 10).foldLeft(readOrGenerate(settings, seed, appendix)) { case (w, _) =>
       w.generateNewSecret()
     }
 
-  def emptyWallet(settings: Settings, appendix: String, accounts: Int): HWallet =
-    (1 to 10).foldLeft(emptyWallet(settings, appendix)) { case (w, _) =>
+  def readOrGenerate(settings: Settings, appendix: String, accounts: Int): HWallet =
+    (1 to 10).foldLeft(readOrGenerate(settings, appendix)) { case (w, _) =>
       w.generateNewSecret()
     }
+
+  def exists(settings: Settings): Boolean = {
+    val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
+    val dataDir = dataDirOpt.get
+    new File(s"$dataDir/walletmeta").exists()
+  }
+
+  def readOrGenerate(settings: Settings): HWallet =
+    readOrGenerate(settings, "", 10)
 
   //wallet with 10 accounts and initial data processed
   def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
-    emptyWallet(settings, "", 10).scanPersistent(initialBlock)
+    readOrGenerate(settings).scanPersistent(initialBlock)
 }
 
 
@@ -162,7 +175,7 @@ object WalletPlayground extends App {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
   }
 
-  val w = HWallet.emptyWallet(settings, "p").generateNewSecret().generateNewSecret()
+  val w = HWallet.readOrGenerate(settings, "p").generateNewSecret().generateNewSecret()
 
   assert(w.secrets.size == 2)
 
