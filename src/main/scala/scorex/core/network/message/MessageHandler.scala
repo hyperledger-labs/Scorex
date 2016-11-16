@@ -4,12 +4,13 @@ import java.nio.ByteBuffer
 
 import scorex.core.crypto.hash.FastCryptographicHash._
 import scorex.core.network.ConnectedPeer
+import scorex.core.serialization.ScorexKryoPool
 
 import scala.language.existentials
 import scala.util.Try
 
 
-case class MessageHandler(specs: Seq[MessageSpec[_]]) {
+case class MessageHandler(specs: Seq[MessageSpec[_]], serializer: ScorexKryoPool) {
 
   import Message._
 
@@ -25,7 +26,7 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
 
     val msgCode = bytes.get
 
-    val length = bytes.getInt
+    val length = bytes.getShort
     assert(length >= 0, "Data length is negative!")
 
     val msgData: Array[Byte] = length > 0 match {
@@ -50,6 +51,6 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
 
     val spec = specsMap.get(msgCode).ensuring(_.isDefined, s"No message handler found for $msgCode").get
 
-    Message(spec, Left(msgData), sourceOpt)
+    Message(spec, Left(msgData), sourceOpt, serializer)
   }
 }

@@ -1,15 +1,17 @@
 package examples.curvepos
 
 import examples.curvepos.transaction.{SimplePayment, _}
+import scorex.core.NodeViewHolder
 import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
+import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
 import scorex.crypto.encode.Base58
 
 import scala.util.{Failure, Success}
 
-class SimpleNodeViewHolder(settings: Settings)
+class SimpleNodeViewHolder(settings: Settings, protected val serializer: ScorexKryoPool)
   extends NodeViewHolder[PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {
 
   override type SI = SimpleSyncInfo
@@ -19,8 +21,8 @@ class SimpleNodeViewHolder(settings: Settings)
   override type VL = SimpleWallet
   override type MP = SimpleMemPool
 
-  override lazy val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
-    Map(SimpleBlock.ModifierTypeId -> SimpleBlockCompanion)
+  override val modifierToClass: Map[ModifierTypeId, Class[_]] =
+    Map(SimpleBlock.ModifierTypeId -> classOf[SimpleBlock], Transaction.ModifierTypeId -> classOf[SimplePayment])
 
   override def restoreState(): Option[(HIS, MS, VL, MP)] = None
 

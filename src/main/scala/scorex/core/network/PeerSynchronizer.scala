@@ -6,9 +6,11 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
-import scorex.core.network.message.{PeersSpec, GetPeersSpec, Message}
+import scorex.core.network.message.BasicMsgDataTypes.PeersData
+import scorex.core.network.message.{GetPeersSpec, Message, PeersSpec}
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.RandomPeers
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.utils.ScorexLogging
 import shapeless.syntax.typeable._
 
@@ -16,7 +18,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 
-class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef) extends ViewSynchronizer with ScorexLogging {
+class PeerSynchronizer(val networkControllerRef: ActorRef,
+                       peerManager: ActorRef,
+                       serializer: ScorexKryoPool) extends ViewSynchronizer with ScorexLogging {
 
   private implicit val timeout = Timeout(5.seconds)
 
@@ -25,7 +29,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
   override def preStart: Unit = {
     super.preStart()
 
-    val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
+    val msg = Message[Unit](GetPeersSpec, Right(Unit), None, serializer)
     val stn = NetworkController.SendToNetwork(msg, SendToRandom)
     context.system.scheduler.schedule(2.seconds, 10.seconds)(networkControllerRef ! stn)
   }
@@ -42,7 +46,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
       (peerManager ? RandomPeers(3))
         .mapTo[Seq[InetSocketAddress]]
         .foreach { peers =>
-          val msg = Message(PeersSpec, Right(peers), None)
+          val msg = Message(PeersSpec, Right(PeersData(peers)), None, serializer)
           networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(remote)))
         }
 

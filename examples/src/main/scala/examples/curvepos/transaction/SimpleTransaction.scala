@@ -1,14 +1,11 @@
 package examples.curvepos.transaction
 
-import com.google.common.primitives.Longs
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifierCompanion
-import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
+import scorex.core.NodeViewModifier.ModifierId
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.Transaction
-import scorex.crypto.encode.Base58
-
-import scala.util.Try
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 sealed trait SimpleTransaction extends Transaction[PublicKey25519Proposition]
 
@@ -23,39 +20,20 @@ case class SimplePayment(sender: PublicKey25519Proposition,
   override type M = SimplePayment
 
   override lazy val json: Json = Map(
-    "sender" -> Base58.encode(sender.pubKeyBytes).asJson,
-    "recipient" -> Base58.encode(recipient.pubKeyBytes).asJson,
+    "sender" -> sender.toString.asJson,
+    "recipient" -> recipient.toString.asJson,
     "amount" -> amount.asJson,
     "fee" -> fee.asJson,
     "nonce" -> nonce.asJson,
     "timestamp" -> timestamp.asJson
   ).asJson
 
-  override lazy val messageToSign: Array[Byte] = id
+  override def id: ModifierId = FastCryptographicHash(sender.address + nonce)
 
-  override lazy val companion = SimplePaymentCompanion
-}
-
-object SimplePaymentCompanion extends NodeViewModifierCompanion[SimplePayment] {
-  val TransactionLength: Int = 2 * Constants25519.PubKeyLength + 32
-
-  override def bytes(m: SimplePayment): Array[Byte] = {
-    m.sender.bytes ++
-      m.recipient.bytes ++
-      Longs.toByteArray(m.amount) ++
-      Longs.toByteArray(m.fee) ++
-      Longs.toByteArray(m.nonce) ++
-      Longs.toByteArray(m.timestamp)
-  }.ensuring(_.length == TransactionLength)
-
-  override def parse(bytes: Array[Byte]): Try[SimplePayment] = Try {
-    val sender = PublicKey25519Proposition(bytes.slice(0, Constants25519.PubKeyLength))
-    val recipient = PublicKey25519Proposition(bytes.slice(Constants25519.PubKeyLength, 2 * Constants25519.PubKeyLength))
-    val s = 2 * Constants25519.PubKeyLength
-    val amount = Longs.fromByteArray(bytes.slice(s, s + 8))
-    val fee = Longs.fromByteArray(bytes.slice(s + 8, s + 16))
-    val nonce = Longs.fromByteArray(bytes.slice(s + 16, s + 24))
-    val timestamp = Longs.fromByteArray(bytes.slice(s + 24, s + 32))
-    SimplePayment(sender, recipient, amount, fee, nonce, timestamp)
+  override def equals(obj: Any): Boolean = obj match {
+    case acc: SimplePayment => acc.id sameElements this.id
+    case _ => false
   }
+
+  override def hashCode(): Int = (BigInt(id) % Int.MaxValue).toInt
 }

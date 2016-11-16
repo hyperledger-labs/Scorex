@@ -5,12 +5,10 @@ import java.io.File
 import com.google.common.primitives.Longs
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
-import examples.hybrid.mining.MiningSettings
-import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.block.StateChanges
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
@@ -21,12 +19,15 @@ import scala.util.{Success, Try}
 //todo: alter to have coinbase
 object PowChanges extends StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set())
 
-case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: VersionTag) extends
-  BoxMinimalState[PublicKey25519Proposition,
-    PublicKey25519NoncedBox,
-    SimpleBoxTransaction,
-    HybridPersistentNodeViewModifier,
-    HBoxStoredState] {
+case class HBoxStoredState(store: LSMStore,
+                           metaDb: DB,
+                           override val version: VersionTag,
+                           serializer: ScorexKryoPool) extends
+BoxMinimalState[PublicKey25519Proposition,
+  PublicKey25519NoncedBox,
+  SimpleBoxTransaction,
+  HybridPersistentNodeViewModifier,
+  HBoxStoredState] {
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridPersistentNodeViewModifier
@@ -42,8 +43,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = {
     val res = Option(store.get(ByteArrayWrapper(boxId)))
-      .map(_.data)
-      .map(PublicKey25519NoncedBox.parseBytes)
+      .map(record => serializer.fromBytes(record.data, classOf[PublicKey25519NoncedBox]))
       .flatMap(_.toOption)
     res
   }
@@ -51,7 +51,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
   //there's no an easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: HPMOD):Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+  override def changes(mod: HPMOD): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     mod match {
       case pb: PowBlock => Success(PowChanges)
       case ps: PosBlock =>
@@ -76,23 +76,22 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     val newDbVersion = store.lastVersion + 1
     dbVersions.put(newVersion, newDbVersion)
     val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
-    val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
+    val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(serializer.toBytes(b)))
 
     store.update(newDbVersion, boxIdsToRemove, boxesToAdd)
     metaDb.commit()
-    HBoxStoredState(store, metaDb, newVersion)
+    HBoxStoredState(store, metaDb, newVersion, serializer)
   }
 
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
     store.rollback(dbVersion(version))
-    new HBoxStoredState(store, metaDb, version)
+    new HBoxStoredState(store, metaDb, version, serializer)
   }
 
-  override def companion: NodeViewComponentCompanion = ???
 }
 
 object HBoxStoredState {
-  def readOrGenerate(settings: Settings): HBoxStoredState = {
+  def readOrGenerate(settings: Settings, serializer: ScorexKryoPool): HBoxStoredState = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
 
@@ -116,15 +115,16 @@ object HBoxStoredState {
         .closeOnJvmShutdown()
         .make()
 
-    HBoxStoredState(stateStorage, metaDb, Array.emptyByteArray)
+    new HBoxStoredState(stateStorage, metaDb, Array.emptyByteArray, serializer)
   }
 
-  def genesisState(settings: Settings, initialBlock: PosBlock): HBoxStoredState =
-    readOrGenerate(settings).applyModifier(initialBlock).get
+  def genesisState(settings: Settings, initialBlock: PosBlock, serializer: ScorexKryoPool): HBoxStoredState =
+    readOrGenerate(settings, serializer).applyModifier(initialBlock).get
 }
 
 
 //todo: convert to tests
+/*
 object HStatePlayground extends App {
   val settings = new Settings with MiningSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
@@ -139,4 +139,4 @@ object HStatePlayground extends App {
   val s1 = s0.applyChanges(c, Array.fill(32)(0: Byte)).get
 
   assert(s1.closedBox(b.id).isDefined)
-}
+}*/

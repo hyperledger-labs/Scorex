@@ -3,15 +3,15 @@ package examples.hybrid.blocks
 import com.google.common.primitives.{Ints, Longs}
 import examples.hybrid.mining.PowMiner._
 import examples.hybrid.state.SimpleBoxTransaction
-import shapeless.{::, HNil}
 import io.circe.Json
+import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.ModifierTypeId
-import scorex.core.{NodeViewModifier, NodeViewModifierCompanion}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
+import shapeless.{::, HNil}
 
 import scala.util.Try
 
@@ -22,6 +22,7 @@ class PowBlockHeader(
                       val nonce: Long,
                       val brothersCount: Int,
                       val brothersHash: Array[Byte]) {
+
   import PowBlockHeader._
 
   lazy val headerBytes =
@@ -71,12 +72,10 @@ case class PowBlock(override val parentId: BlockId,
                     override val brothersHash: Array[Byte],
                     brothers: Seq[PowBlockHeader])
   extends PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
-    with HybridPersistentNodeViewModifier
-    with Block[PublicKey25519Proposition, SimpleBoxTransaction] {
+  with HybridPersistentNodeViewModifier
+  with Block[PublicKey25519Proposition, SimpleBoxTransaction] {
 
   override type M = PowBlock
-
-  override lazy val companion = PowBlockCompanion
 
   override type BlockFields = BlockId :: BlockId :: Block.Timestamp :: Long :: HNil
 
@@ -87,29 +86,32 @@ case class PowBlock(override val parentId: BlockId,
 
   override lazy val modifierTypeId: ModifierTypeId = PowBlock.ModifierTypeId
 
+  //  override lazy val id: ModifierId = ???
+
   override lazy val blockFields: BlockFields = parentId :: prevPosId :: timestamp :: nonce :: HNil
 
   override lazy val json: Json = ???
 
   lazy val header = new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
 
-  lazy val brotherBytes = companion.brotherBytes(brothers)
+  //  lazy val brotherBytes = companion.brotherBytes(brothers)
+  lazy val brotherBytes: Array[Byte] = ???
 
   override lazy val toString = s"PowBlock(id: ${Base58.encode(id)})" +
     s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +
     s"nonce: $nonce, brothers: ($brothersCount -- $brothers))"
 }
 
-object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {
+object PowBlockCompanion {
 
   def brotherBytes(brothers: Seq[PowBlockHeader]): Array[Byte] = brothers.foldLeft(Array[Byte]()) { case (ba, b) =>
     ba ++ b.headerBytes
   }
 
-  override def bytes(modifier: PowBlock): Array[Byte] =
+  def bytes(modifier: PowBlock): Array[Byte] =
     modifier.headerBytes ++ modifier.brotherBytes
 
-  override def parse(bytes: Array[Byte]): Try[PowBlock] = {
+  def parse(bytes: Array[Byte]): Try[PowBlock] = {
     val headerBytes = bytes.slice(0, PowBlockHeader.PowHeaderSize)
     PowBlockHeader.parse(headerBytes).flatMap { header =>
       Try {

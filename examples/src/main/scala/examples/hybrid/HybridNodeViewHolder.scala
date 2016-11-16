@@ -6,8 +6,9 @@ import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.PowMiner
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
-import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
+import scorex.core.NodeViewHolder
 import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
@@ -26,8 +27,11 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   override type VL = HWallet
   override type MP = HMemPool
 
-  override val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
-    Map(PosBlock.ModifierTypeId -> PosBlockCompanion, PowBlock.ModifierTypeId -> PowBlockCompanion)
+//  override val modifierToClass: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
+//    Map(PosBlock.ModifierTypeId -> PosBlockCompanion, PowBlock.ModifierTypeId -> PowBlockCompanion)
+
+  override val modifierToClass: Map[ModifierTypeId, Class[_]] = ???
+  override protected val serializer: ScorexKryoPool = ???
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     super.preRestart(reason, message)
@@ -55,7 +59,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     val za = Array.fill(32)(0: Byte)
     val initialBlock = PosBlock(PowMiner.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
-    val gs = HBoxStoredState.genesisState(settings, initialBlock)
+    val gs = HBoxStoredState.genesisState(settings, initialBlock, serializer)
     val gw = HWallet.genesisWallet(settings, initialBlock)
 
     gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))

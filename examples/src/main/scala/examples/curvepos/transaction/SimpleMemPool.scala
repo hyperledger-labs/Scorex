@@ -1,6 +1,5 @@
 package examples.curvepos.transaction
 
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.transaction.MemoryPool
 
@@ -57,8 +56,6 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
   }
 
   override def getAll(ids: Seq[ModifierId]): Seq[SimpleTransaction] = unconfTxs.values.toSeq
-
-  override def companion: NodeViewComponentCompanion = ???
 
   override type NVCT = SimpleMemPool
 }

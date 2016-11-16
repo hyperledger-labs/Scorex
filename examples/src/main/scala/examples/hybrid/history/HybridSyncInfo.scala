@@ -16,7 +16,7 @@ case class HybridSyncInfo(override val answer: Boolean,
     Seq(PowBlock.ModifierTypeId -> bestPowBlockId,
       PosBlock.ModifierTypeId -> bestPosBlockId)
 
-  override def bytes: Array[Byte] = ((if (answer) 1: Byte else 0: Byte) +: bestPowBlockId) ++ bestPosBlockId
+//  override def bytes: Array[Byte] = ((if (answer) 1: Byte else 0: Byte) +: bestPowBlockId) ++ bestPosBlockId
 }
 
 object HybridSyncInfo {
@@ -28,4 +28,4 @@ object HybridSyncInfo {
   }
 }
 
-object HybridSyncInfoSpec extends SyncInfoSpec[HybridSyncInfo](HybridSyncInfo.parse)
+object HybridSyncInfoSpec extends SyncInfoSpec[HybridSyncInfo](???, ???)

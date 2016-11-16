@@ -10,6 +10,7 @@ import akka.util.Timeout
 import scorex.core.app.ApplicationVersion
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.core.network.peer.PeerManager
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.utils.ScorexLogging
 
@@ -18,8 +19,8 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.existentials
-import scala.util.{Failure, Success, Try}
 import scala.reflect.runtime.universe.TypeTag
+import scala.util.{Failure, Success, Try}
 
 /**
   * Control all network interaction
@@ -29,13 +30,15 @@ class NetworkController(settings: Settings,
                         messageHandler: MessageHandler,
                         upnp: UPnP,
                         agentName: String,
-                        appVersion: ApplicationVersion) extends Actor with ScorexLogging {
+                        appVersion: ApplicationVersion,
+                        serializer: ScorexKryoPool) extends Actor with ScorexLogging {
 
   import NetworkController._
 
   val peerManager = context.system.actorOf(Props(classOf[PeerManager], settings, self))
 
-  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], self, peerManager), "PeerSynchronizer")
+  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], self, peerManager, serializer),
+    "PeerSynchronizer")
 
   private implicit val system = context.system
 
@@ -111,10 +114,10 @@ class NetworkController(settings: Settings,
 
   def businessLogic: Receive = {
     //a message coming in from another peer
-    case Message(spec, Left(msgBytes), Some(remote)) =>
+    case Message(spec, Left(msgBytes), Some(remote), serializer) =>
       val msgId = spec.messageCode
 
-      spec.deserializeData(msgBytes) match {
+      serializer.fromBytes(msgBytes, spec.c) match {
         case Success(content) =>
           messageHandlers.find(_._1.contains(msgId)).map(_._2) match {
             case Some(handler) =>
@@ -142,8 +145,8 @@ class NetworkController(settings: Settings,
 
     case c@Connected(remote, local) =>
       val connection = sender()
-      val handler =
-        context.actorOf(Props(classOf[PeerConnectionHandler], self, peerManager, messageHandler, connection, remote))
+      val handler = context.actorOf(Props(classOf[PeerConnectionHandler], self, peerManager, messageHandler, connection,
+        remote, serializer))
       connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
       val newPeer = ConnectedPeer(remote, handler)
       newPeer.handlerRef ! handshakeTemplate.copy(time = System.currentTimeMillis() / 1000)
@@ -189,4 +192,5 @@ object NetworkController {
   case class ConnectTo(address: InetSocketAddress)
 
   case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
+
 }

@@ -1,8 +1,5 @@
 package scorex.core.block
 
-import scorex.crypto.encode.Base58
-import scorex.core.serialization.{BytesSerializable, JsonSerializable}
-
 
 /**
   * ConsensusData is about data to be stored into a block header, and be used in order to verify

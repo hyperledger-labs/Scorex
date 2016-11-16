@@ -16,32 +16,36 @@ with GeneratorDrivenPropertyChecks
 with Matchers
 with HybridGenerators {
 
-  property("WalletBox serialization") {
-    forAll(walletBoxGen) { b: WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox] =>
-      val parsed = WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](WalletBox.bytes(b))(PublicKey25519NoncedBox.parseBytes).get
-      WalletBox.bytes(parsed) shouldEqual WalletBox.bytes(b)
+  ???
+  /*
+    property("WalletBox serialization") {
+      forAll(walletBoxGen) { b: WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox] =>
+        val parsed = WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](WalletBox.bytes(b))(PublicKey25519NoncedBox.parseBytes).get
+        WalletBox.bytes(parsed) shouldEqual WalletBox.bytes(b)
+      }
     }
-  }
 
-  property("PosBlock serialization") {
-    forAll(posBlockGen) { b: PosBlock =>
-      val parsed = b.companion.parse(b.bytes).get
-      parsed.bytes shouldEqual b.bytes
-    }
-  }
 
-  property("SimpleBoxTransaction serialization") {
-    forAll(simpleBoxTransactionGen) { b: SimpleBoxTransaction =>
-      val parsed = b.companion.parse(b.bytes).get
-      parsed.bytes shouldEqual b.bytes
+    property("PosBlock serialization") {
+      forAll(posBlockGen) { b: PosBlock =>
+        val parsed = b.companion.parse(b.bytes).get
+        parsed.bytes shouldEqual b.bytes
+      }
     }
-  }
 
-  property("HybridSyncInfo serialization") {
-    forAll(hybridSyncInfoGen) { b: HybridSyncInfo =>
-      val parsed = HybridSyncInfo.parse(b.bytes).get
-      parsed.bytes shouldEqual b.bytes
+    property("SimpleBoxTransaction serialization") {
+      forAll(simpleBoxTransactionGen) { b: SimpleBoxTransaction =>
+        val parsed = b.companion.parse(b.bytes).get
+        parsed.bytes shouldEqual b.bytes
+      }
     }
-  }
+
+    property("HybridSyncInfo serialization") {
+      forAll(hybridSyncInfoGen) { b: HybridSyncInfo =>
+        val parsed = HybridSyncInfo.parse(b.bytes).get
+        parsed.bytes shouldEqual b.bytes
+      }
+    }
+  */
 
 }

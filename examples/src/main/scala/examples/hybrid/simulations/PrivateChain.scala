@@ -1,7 +1,5 @@
 package examples.hybrid.simulations
 
-import java.io.FileWriter
-
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
@@ -11,6 +9,7 @@ import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import io.circe
 import scorex.core.block.Block.BlockId
+import scorex.core.serialization.{ScorexKryoPool, ScorexRegistrar}
 import scorex.core.settings.Settings
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.utils.ScorexLogging
@@ -26,6 +25,7 @@ import scala.util.{Random, Try}
 object PrivateChain extends App with ScorexLogging {
   def genesisState() = {
     val ew = HWallet.readOrGenerate(settings, "genesis", "e", 500)
+    val serializer: ScorexKryoPool = new ScorexKryoPool(new ScorexRegistrar)
 
     val genesisAccount = ew.secrets.head
 
@@ -41,7 +41,7 @@ object PrivateChain extends App with ScorexLogging {
     val za = Array.fill(32)(0: Byte)
     val initialBlock = PosBlock(PowMiner.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
-    val gs = HBoxStoredState.genesisState(settings, initialBlock)
+    val gs = HBoxStoredState.genesisState(settings, initialBlock, serializer)
     val gw = HWallet.genesisWallet(settings, initialBlock)
 
     gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))

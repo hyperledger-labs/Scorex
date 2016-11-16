@@ -81,7 +81,8 @@ object PosForger extends ScorexLogging {
   case object StopForging
 
   def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
-    val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
+    //    val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
+    val h: Array[Byte] = ???
     Longs.fromByteArray((0: Byte) +: h.take(7))
   }
 

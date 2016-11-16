@@ -1,11 +1,15 @@
 package curvepos
 
-import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleTransaction, SimpleWallet}
+import examples.curvepos.SimpleSyncInfo
+import examples.curvepos.transaction._
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.ObjectGenerators
+import scorex.core.NodeViewModifier
 import scorex.core.block.Block
 import scorex.core.block.Block._
+import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.wallet.WalletBox
 
 trait ExampleGenerators extends ObjectGenerators {
   val wallet = SimpleWallet()
@@ -22,13 +26,31 @@ trait ExampleGenerators extends ObjectGenerators {
 
 
   lazy val blockGenerator: Gen[SimpleBlock] = for {
-    parentId: BlockId <- genBoundedBytes(Block.BlockIdLength, Block.BlockIdLength)
+    parentId: BlockId <- genBytesList(Block.BlockIdLength)
     timestamp: Long <- Arbitrary.arbitrary[Long]
     baseTarget: Long <- Arbitrary.arbitrary[Long]
-    generationSignature <- genBoundedBytes(64, 64)
+    generationSignature <- genBytesList(64)
     generator: PublicKey25519Proposition <- propositionGen
     txs: Seq[SimpleTransaction] <- Gen.listOf(paymentGen)
   } yield new SimpleBlock(parentId, timestamp, generationSignature, baseTarget, generator, txs)
+
+  lazy val publicKey25519NoncedBoxGen: Gen[PublicKey25519NoncedBox] = for {
+    prop <- propositionGen
+    nonce <- positiveLongGen
+    value <- positiveLongGen
+  } yield PublicKey25519NoncedBox(prop, nonce, value)
+
+  lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
+    box: PublicKey25519NoncedBox <- publicKey25519NoncedBoxGen
+    transactionId: Array[Byte] <- modifierIdGen
+    createdAt: Long <- positiveLongGen
+  } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, transactionId, createdAt)
+
+  lazy val simpleSyncInfoGenerator: Gen[SimpleSyncInfo] = for {
+    ans <- Arbitrary.arbitrary[Boolean]
+    score <- Arbitrary.arbitrary[BigInt]
+    mid <- genBytesList(NodeViewModifier.ModifierIdSize)
+  } yield SimpleSyncInfo(ans, mid, score)
 
   val genesisBlock: SimpleBlock = {
 

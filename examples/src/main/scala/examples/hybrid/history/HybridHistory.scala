@@ -10,7 +10,7 @@ import examples.hybrid.util.FileFunctions
 import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
-import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
+import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
@@ -98,15 +98,15 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
   //a lot of crimes committed here: .get, .asInstanceOf
   def lastPowBlocks(count: Int): Seq[PowBlock] =
-  (1 until count).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
-    blockById(blocks.head.parentId).get.asInstanceOf[PowBlock] +: blocks
-  }
+    (1 until count).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
+      blockById(blocks.head.parentId).get.asInstanceOf[PowBlock] +: blocks
+    }
 
   //a lot of crimes committed here: .get, .asInstanceOf
   def lastPosBlocks(count: Int): Seq[PosBlock] =
-  (1 until count).foldLeft(Seq(bestPosBlock)) { case (blocks, _) =>
-    blockById(forwardPosLinks.get(blocks.head.parentId)).get.asInstanceOf[PosBlock] +: blocks
-  }
+    (1 until count).foldLeft(Seq(bestPosBlock)) { case (blocks, _) =>
+      blockById(forwardPosLinks.get(blocks.head.parentId)).get.asInstanceOf[PosBlock] +: blocks
+    }
 
   def recalcDifficulties(): Unit = {
     val powBlocks = lastPowBlocks(DifficultyRecalcPeriod)
@@ -216,10 +216,13 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         PosBlock.ModifierTypeId
     }
 
-    blocksStorage.update(
-      blocksStorage.lastVersion + 1,
-      Seq(),
-      Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
+    /*
+        blocksStorage.update(
+          blocksStorage.lastVersion + 1,
+          Seq(),
+          Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
+    */
+    ???
   }
 
   /**
@@ -413,8 +416,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         HistoryComparisonResult.Older
     }
   }
-
-  override def companion: NodeViewComponentCompanion = ???
 }
 
 

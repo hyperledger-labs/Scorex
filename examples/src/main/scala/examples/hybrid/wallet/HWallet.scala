@@ -10,8 +10,8 @@ import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -22,18 +22,20 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.utils.Random
 
-import scala.util.Try
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    boxStore: LSMStore,
                    metaDb: DB)
   extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HWallet]
-    with ScorexLogging {
+  with ScorexLogging {
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
+
+  val serializer: ScorexKryoPool = ???
 
   lazy val seedAppendix = metaDb.atomicInteger("seedAppendix", 0).createOrOpen()
   lazy val secretsMap = metaDb.treeMap("secrets", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
@@ -46,7 +48,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val apdx = seedAppendix.incrementAndGet()
     val s = FastCryptographicHash(seed ++ Ints.toByteArray(apdx))
     val (priv, pub) = PrivateKey25519Companion.generateKeys(s)
-    secretsMap.put(pub.bytes, priv.bytes)
+    secretsMap.put(pub.pubKeyBytes, priv.privKeyBytes)
     metaDb.commit()
     HWallet(seed, boxStore, metaDb)
   }
@@ -58,7 +60,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     boxIds
       .flatMap(id => Option(boxStore.get(ByteArrayWrapper(id))))
       .map(_.data)
-      .map(ba => WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](ba)(PublicKey25519NoncedBox.parseBytes))
+      .map(ba => serializer.fromBytes(ba, classOf[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]]))
       .map(_.get)
       .toSeq
 
@@ -69,7 +71,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     secretsMap.iterator.map { case (pubK, privK) => PrivateKey25519(privK, pubK) }.toSet
 
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
-    Option(secretsMap.get(publicImage.bytes)).map(priv => PrivateKey25519(priv, publicImage.bytes))
+    Option(secretsMap.get(publicImage.pubKeyBytes)).map(priv => PrivateKey25519(priv, publicImage.pubKeyBytes))
 
   //we do not process offchain (e.g. by adding them to the wallet)
   override def scanOffchain(tx: SimpleBoxTransaction): HWallet = this
@@ -85,7 +87,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
       tx.newBoxes.map { box =>
         boxIds.add(box.id)
         val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id, tx.timestamp)
-        ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
+        ByteArrayWrapper(box.id) -> ByteArrayWrapper(serializer.toBytes(wb))
       }
     }
     val boxIdsToRemove = txs.flatMap(_.boxIdsToOpen).map(ByteArrayWrapper)
@@ -108,8 +110,6 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   }
 
   override type NVCT = this.type
-
-  override def companion: NodeViewComponentCompanion = ???
 }
 
 object HWallet {

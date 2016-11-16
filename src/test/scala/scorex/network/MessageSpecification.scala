@@ -16,7 +16,7 @@ class MessageSpecification extends PropSpec
   with GeneratorDrivenPropertyChecks
   with Matchers
   with ObjectGenerators {
-
+/*
   property("InvData should remain the same after serialization/deserialization") {
     forAll(invDataGen) { data: InvData =>
       whenever(data._2.length < InvSpec.MaxObjects) {
@@ -74,5 +74,5 @@ class MessageSpecification extends PropSpec
         ModifiersSpec.serializeData(data) shouldEqual bytes
       }
     }
-  }
+  }*/
 }

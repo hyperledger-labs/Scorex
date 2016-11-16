@@ -6,20 +6,23 @@ import examples.curvepos.transaction._
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.utils.{ScorexLogging, NetworkTime}
+import scorex.core.utils.{NetworkTime, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util.{Failure, Try}
 
 trait ForgerSettings extends Settings {
   lazy val offlineGeneration = settingsJSON.get("offlineGeneration").flatMap(_.asBoolean).getOrElse(false)
 }
 
-class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Actor with ScorexLogging {
+class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings, serializer: ScorexKryoPool) extends Actor
+with ScorexLogging {
 
   import Forger._
 
@@ -32,11 +35,13 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   private val hash = FastCryptographicHash
 
 
-  val InterBlocksDelay = 15 //in seconds
+  val InterBlocksDelay = 15
+  //in seconds
   val blockGenerationDelay = 500.millisecond
 
   override def preStart(): Unit = {
-    if (forging) context.system.scheduler.scheduleOnce(1.second)(self ! Forge)
+    NetworkTime.time()
+    if (forging) context.system.scheduler.scheduleOnce(1.second)(self ! StartMining)
   }
 
   private def bounded(value: BigInt, min: BigInt, max: BigInt): BigInt =
@@ -52,14 +57,15 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
 
   protected def calcTarget(lastBlock: SimpleBlock,
                            state: SimpleState,
-                           generator: PublicKey25519Proposition): BigInt = {
-    val eta = (NetworkTime.time() - lastBlock.timestamp) / 1000 //in seconds
+                           generator: PublicKey25519Proposition,
+                           currentTime: Long): BigInt = {
+    val eta = (currentTime - lastBlock.timestamp) / 1000 //in seconds
     val balance = state.boxesOf(generator).headOption.map(_.value).getOrElse(0L)
     BigInt(lastBlock.baseTarget) * eta * balance
   }
 
   private def calcGeneratorSignature(lastBlock: SimpleBlock, generator: PublicKey25519Proposition) =
-    hash(lastBlock.generationSignature ++ generator.pubKeyBytes)
+    hash(lastBlock.generationSignature ++ serializer.toBytes(generator))
 
   private def calcHit(lastBlock: SimpleBlock, generator: PublicKey25519Proposition): BigInt =
     BigInt(1, calcGeneratorSignature(lastBlock, generator).take(8))
@@ -80,19 +86,24 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
       lazy val toInclude = state.filterValid(memPool.take(TransactionsInBlock).toSeq)
 
       val generatedBlocks = generators.flatMap { generator =>
+        val timestamp = NetworkTime.time()
         val hit = calcHit(lastBlock, generator)
-        val target = calcTarget(lastBlock, state, generator)
+        val target = calcTarget(lastBlock, state, generator, timestamp)
         if (hit < target) {
           Try {
-            val timestamp = NetworkTime.time()
             val bt = calcBaseTarget(lastBlock, timestamp)
             val secret: PrivateKey25519 = wallet.secretByPublicImage(generator).get
 
             val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
-            val signature = PrivateKey25519Companion.sign(secret, unsigned.companion.messageToSign(unsigned))
+            val signature: Signature25519 =
+              PrivateKey25519Companion.sign(secret, serializer.toBytes(unsigned))
             val signedBlock = unsigned.copy(generationSignature = signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
             LocallyGeneratedModifier[PublicKey25519Proposition, SimpleTransaction, SimpleBlock](signedBlock)
+          }.recoverWith {
+            case e =>
+              log.warn("Failed to create block", e)
+              Failure(e)
           }.toOption
         } else {
           None

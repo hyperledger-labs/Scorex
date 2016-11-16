@@ -30,7 +30,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 (implicit val context: ActorRefFactory) extends ApiRoute {
 
   override val route = pathPrefix("nodeView") {
-    openSurface ~ persistentModifierById
+    openSurface
   }
 
   type PM <: PersistentNodeViewModifier[P, TX]
@@ -55,6 +55,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     }
   }
 
+/*
 
   @Path("/persistentModifier/{id}")
   @ApiOperation(value = "Persistent modifier by id", notes = "Persistent modifier by id", httpMethod = "GET")
@@ -90,4 +91,5 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
       }
     }
   }
+*/
 }

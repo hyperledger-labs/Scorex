@@ -2,12 +2,14 @@ package examples.curvepos
 
 import akka.actor.{ActorRef, Props}
 import examples.curvepos.forging.{Forger, ForgerSettings}
+import examples.curvepos.serialization.CurveposRegistrar
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import io.circe
 import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, UtilsApiRoute}
 import scorex.core.app.{Application, ApplicationVersion}
 import scorex.core.network.NodeViewSynchronizer
-import scorex.core.network.message.MessageSpec
+import scorex.core.network.message.{SyncInfoSpec, MessageSpec}
+import scorex.core.serialization.{ScorexRegistrar, ScorexKryoPool}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
@@ -23,6 +25,8 @@ class SimpleApp(val settingsFilename: String) extends Application {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 
+  override val serializer: ScorexKryoPool = new ScorexKryoPool(new ScorexRegistrar, new CurveposRegistrar)
+
   override lazy val applicationName: String = "SimpleApp"
 
   override lazy val appVersion: ApplicationVersion = ApplicationVersion(0, 1, 0)
@@ -33,18 +37,21 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override type NVHT = SimpleNodeViewHolder
 
-  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(SimpleSyncInfoSpec)
+  lazy val simpleSyncInfoSpec = new SyncInfoSpec[SimpleSyncInfo](serializer, classOf[SimpleSyncInfo])
 
-  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder], settings))
+  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(simpleSyncInfoSpec)
 
-  val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))
+  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder], settings,
+    serializer))
+
+  val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings, serializer))
 
   override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef,
     forger))
 
   override val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
-      networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoSpec))
+    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, simpleSyncInfoSpec.type]],
+      networkController, nodeViewHolderRef, localInterface, simpleSyncInfoSpec, serializer))
 
   override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings),

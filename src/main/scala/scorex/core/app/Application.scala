@@ -3,15 +3,15 @@ package scorex.core.app
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.api.http.{ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
-import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.wallet.Wallet
 import scorex.core.transaction.Transaction
+import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
+import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.runtime.universe.Type
@@ -36,6 +36,7 @@ trait Application extends ScorexLogging {
   val apiRoutes: Seq[ApiRoute]
   val apiTypes: Seq[Type]
 
+  val serializer: ScorexKryoPool
   protected implicit lazy val actorSystem = ActorSystem(applicationName)
 
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
@@ -52,12 +53,12 @@ trait Application extends ScorexLogging {
       ModifiersSpec
     )
 
-  lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs)
+  lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs, serializer)
 
   val nodeViewHolderRef: ActorRef
 
-  val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
-    applicationName, appVersion), "networkController")
+  lazy val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
+    applicationName, appVersion, serializer), "networkController")
 
   val nodeViewSynchronizer: ActorRef
 

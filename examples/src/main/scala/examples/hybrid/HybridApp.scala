@@ -12,6 +12,7 @@ import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, UtilsApiRoute}
 import scorex.core.app.{Application, ApplicationVersion}
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
+import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
@@ -22,6 +23,8 @@ class HybridApp(val settingsFilename: String) extends Application {
   implicit lazy val settings = new Settings with MiningSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
+
+  override val serializer: ScorexKryoPool = ???
 
   override lazy val applicationName: String = "2-Hop"
 
