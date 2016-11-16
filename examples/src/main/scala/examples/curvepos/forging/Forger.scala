@@ -65,7 +65,7 @@ with ScorexLogging {
   }
 
   private def calcGeneratorSignature(lastBlock: SimpleBlock, generator: PublicKey25519Proposition) =
-    hash(lastBlock.generationSignature ++ generator.pubKeyBytes)
+    hash(lastBlock.generationSignature ++ serializer.toBytes(generator))
 
   private def calcHit(lastBlock: SimpleBlock, generator: PublicKey25519Proposition): BigInt =
     BigInt(1, calcGeneratorSignature(lastBlock, generator).take(8))

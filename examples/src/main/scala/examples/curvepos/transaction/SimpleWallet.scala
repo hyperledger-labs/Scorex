@@ -26,10 +26,10 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     PrivateKey25519(pair._1, pair._2)
   }
 
-  private val pubKeyBytes = secret.publicKeyBytes
+  private val address = secret.publicImage.address
 
   override def secretByPublicImage(publicImage: PI): Option[S] = {
-    if (publicImage.address == secret.publicImage.address) Some(secret) else None
+    if (publicImage.address == address) Some(secret) else None
   }
 
   override def generateNewSecret(): SimpleWallet = throw new Error("Only one secret is supported")
@@ -46,7 +46,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def scanOffchain(tx: SimpleTransaction): SimpleWallet = tx match {
     case sp: SimplePayment =>
-      if ((sp.sender.pubKeyBytes sameElements pubKeyBytes) || (sp.recipient.pubKeyBytes sameElements pubKeyBytes)) {
+      if ((sp.sender.address == address) || (sp.recipient.address == address)) {
         SimpleWallet(seed, chainTransactions, offchainTransactions + (sp.id -> sp), currentBalance)
       } else this
   }
@@ -58,10 +58,10 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     modifier.transactions.map(_.foldLeft(this) { case (w, tx) =>
       tx match {
         case sp: SimplePayment =>
-          if ((sp.sender.pubKeyBytes sameElements pubKeyBytes) || (sp.recipient.pubKeyBytes sameElements pubKeyBytes)) {
+          if ((sp.sender.address == address) || (sp.recipient.address == address)) {
             val ct = w.chainTransactions + (sp.id -> sp)
             val oct = w.offchainTransactions - sp.id
-            val cb = if (sp.recipient.pubKeyBytes sameElements pubKeyBytes) {
+            val cb = if (sp.recipient.address == address) {
               w.currentBalance + sp.amount
             } else w.currentBalance - sp.amount
             SimpleWallet(seed, ct, oct, cb)

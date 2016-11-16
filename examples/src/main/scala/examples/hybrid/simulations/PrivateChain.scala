@@ -1,7 +1,5 @@
 package examples.hybrid.simulations
 
-import java.io.FileWriter
-
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
@@ -11,7 +9,7 @@ import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import io.circe
 import scorex.core.block.Block.BlockId
-import scorex.core.serialization.{ScorexRegistrar, ScorexKryoPool}
+import scorex.core.serialization.{ScorexKryoPool, ScorexRegistrar}
 import scorex.core.settings.Settings
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.utils.ScorexLogging

@@ -40,7 +40,7 @@ case class SimpleBlock(override val parentId: BlockId,
     "timestamp" -> timestamp.asJson,
     "generationSignature" -> Base58.encode(generationSignature).asJson,
     "baseTarget" -> baseTarget.asJson,
-    "generator" -> Base58.encode(generator.pubKeyBytes).asJson,
+    "generator" -> generator.toString.asJson,
     "txs" -> txs.map(_.json).asJson
   ).asJson
 

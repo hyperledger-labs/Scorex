@@ -3,9 +3,9 @@ package examples.curvepos.transaction
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.ModifierId
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.crypto.encode.Base58
 
 sealed trait SimpleTransaction extends Transaction[PublicKey25519Proposition]
 
@@ -20,16 +20,15 @@ case class SimplePayment(sender: PublicKey25519Proposition,
   override type M = SimplePayment
 
   override lazy val json: Json = Map(
-    "sender" -> Base58.encode(sender.pubKeyBytes).asJson,
-    "recipient" -> Base58.encode(recipient.pubKeyBytes).asJson,
+    "sender" -> sender.toString.asJson,
+    "recipient" -> recipient.toString.asJson,
     "amount" -> amount.asJson,
     "fee" -> fee.asJson,
     "nonce" -> nonce.asJson,
     "timestamp" -> timestamp.asJson
   ).asJson
 
-  //TODO ???
-  override def id: ModifierId = sender.pubKeyBytes
+  override def id: ModifierId = FastCryptographicHash(sender.address + nonce)
 
   override def equals(obj: Any): Boolean = obj match {
     case acc: SimplePayment => acc.id sameElements this.id
