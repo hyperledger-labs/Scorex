@@ -62,7 +62,7 @@ trait Settings extends ScorexLogging {
     if (i == 0) None else Some(i)
   }.getOrElse(None)
 
-  lazy val nodeName = p2pSettings.get("nodeName").flatMap(_.asString)
+  lazy val nodeName = p2pSettings.get("name").flatMap(_.asString)
     .getOrElse(Random.nextPrintableChar().toString + nodeNonce)
 
   lazy val localOnly = p2pSettings.get("localOnly").flatMap(_.asBoolean).getOrElse(false)

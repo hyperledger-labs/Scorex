@@ -1,13 +1,14 @@
 {
-  "name": "node4",
   "p2p": {
+    "name": "node4",
     "bindAddress": "127.0.0.4",
     "upnp": false,
     "upnpGatewayTimeout": 7000,
     "upnpDiscoverTimeout": 3000,
     "port": 9094,
     "knownPeers": [
-      "127.0.0.1:9084"
+      "127.0.0.1:9084",
+      "127.0.0.3:9092"
     ],
     "addedMaxDelay": 500,
     "maxConnections": 10

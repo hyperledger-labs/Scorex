@@ -44,16 +44,16 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
     }
   }
 
-  //todo: start mining/forging
   override protected def onNoBetterNeighbour(): Unit = {
     powMinerRef ! StartMining
     posForgerRef ! StartForging
     block = false
   }
 
+  //todo: check
   override protected def onBetterNeighbourAppeared(): Unit = {
-    powMinerRef ! StopMining
-    posForgerRef ! StopForging
-    block = true
+    //powMinerRef ! StopMining
+    //posForgerRef ! StopForging
+    //block = true
   }
 }

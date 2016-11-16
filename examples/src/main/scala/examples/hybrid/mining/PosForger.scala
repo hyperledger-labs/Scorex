@@ -81,7 +81,7 @@ object PosForger extends ScorexLogging {
   case object StopForging
 
   def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
-    val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
+    val h = FastCryptographicHash(pwb.bytes ++   box.bytes)
     Longs.fromByteArray((0: Byte) +: h.take(7))
   }
 
@@ -97,8 +97,8 @@ object PosForger extends ScorexLogging {
 
     log.info(s"Successful hits: ${sucessfulHits.size}")
 
-    val record = s"${boxes.size}, $target, ${sucessfulHits.size}"
-    FileFunctions.append("/home/kushti/posdata.csv", record)
+    //val record = s"${boxes.size}, $target, ${sucessfulHits.size}"
+    //FileFunctions.append("/home/kushti/posdata.csv", record)
 
     sucessfulHits.headOption.map { case (gen, _, _) =>
       PosBlock(

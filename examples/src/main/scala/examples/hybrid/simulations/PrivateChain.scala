@@ -142,9 +142,9 @@ object PrivateChain extends App with ScorexLogging {
     FileFunctions.append("/home/kushti/test.csv", row)
   }
 
-  (1 to 10).foreach { asp5 =>
+  (1 to 3).foreach { asp5 =>
     val adversarialStakePercent = asp5 * 5
-    (1 to 7).foreach { ahp =>
+    (8 to 10).foreach { ahp =>
       val advHashesPerSecond = ahp * honestHashesPerSecond
       experiment(adversarialStakePercent, advHashesPerSecond)
         .getOrElse(experiment(adversarialStakePercent, advHashesPerSecond))

@@ -1,4 +1,4 @@
-name := "scorex-basics"
+name := "scorex-examples"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
