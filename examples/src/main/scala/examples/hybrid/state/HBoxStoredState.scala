@@ -19,12 +19,15 @@ import scala.util.{Success, Try}
 //todo: alter to have coinbase
 object PowChanges extends StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set())
 
-case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: VersionTag, serializer: ScorexKryoPool) extends
-  BoxMinimalState[PublicKey25519Proposition,
-    PublicKey25519NoncedBox,
-    SimpleBoxTransaction,
-    HybridPersistentNodeViewModifier,
-    HBoxStoredState] {
+case class HBoxStoredState(store: LSMStore,
+                           metaDb: DB,
+                           override val version: VersionTag,
+                           serializer: ScorexKryoPool) extends
+BoxMinimalState[PublicKey25519Proposition,
+  PublicKey25519NoncedBox,
+  SimpleBoxTransaction,
+  HybridPersistentNodeViewModifier,
+  HBoxStoredState] {
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridPersistentNodeViewModifier
@@ -88,7 +91,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
 }
 
 object HBoxStoredState {
-  def readOrGenerate(settings: Settings): HBoxStoredState = {
+  def readOrGenerate(settings: Settings, serializer: ScorexKryoPool): HBoxStoredState = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
 
@@ -112,11 +115,11 @@ object HBoxStoredState {
         .closeOnJvmShutdown()
         .make()
 
-    HBoxStoredState(stateStorage, metaDb, Array.emptyByteArray, serializer)
+    new HBoxStoredState(stateStorage, metaDb, Array.emptyByteArray, serializer)
   }
 
-  def genesisState(settings: Settings, initialBlock: PosBlock): HBoxStoredState =
-    readOrGenerate(settings).applyModifier(initialBlock).get
+  def genesisState(settings: Settings, initialBlock: PosBlock, serializer: ScorexKryoPool): HBoxStoredState =
+    readOrGenerate(settings, serializer).applyModifier(initialBlock).get
 }
 
 

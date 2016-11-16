@@ -328,11 +328,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
         //recalc difficulties
         if (currentScoreVar.get() > 0 && currentScoreVar.get() % DifficultyRecalcPeriod == 0) recalcDifficulties()
-<<<<<<< HEAD
-        (new HybridHistory(blocksStorage, metaDb), None) //no rollback ever
-=======
         (new HybridHistory(blocksStorage, metaDb, logDirOpt), None) //no rollback ever
->>>>>>> c77afcccb0540a91b97fabef4e8d8b24ac26767c
     }
     metaDb.commit()
     log.info(s"History: block appended, new score is ${currentScoreVar.get()}")
