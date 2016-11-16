@@ -15,10 +15,10 @@ import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.crypto.sign.PrivateKey25519Companion
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
-import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 

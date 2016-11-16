@@ -1,6 +1,6 @@
 package scorex.core.transaction.box.proposition
 
-import scorex.core.transaction.state.Secret
+import scorex.core.crypto.Secret
 
 trait Proposition
 

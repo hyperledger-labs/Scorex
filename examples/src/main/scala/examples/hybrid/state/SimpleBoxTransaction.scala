@@ -5,12 +5,12 @@ import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.state.SimpleBoxTransaction._
 import io.circe.Json
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.crypto.sign.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.BoxUnlocker
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.{Proof, Signature25519}
-import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 
 //a transaction order to destroy boxes associated with (pubkey -> nonce) and create new boxes (pubkey -> nonce)
 // where a nonce is derived from a transaction and also a box index
@@ -21,7 +21,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
                                 signatures: IndexedSeq[Signature25519],
                                 override val fee: Long,
                                 override val timestamp: Long) extends
-BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
+  BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
 
   override type M = SimpleBoxTransaction
 

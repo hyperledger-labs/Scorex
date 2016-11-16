@@ -4,8 +4,8 @@ import akka.actor.{Actor, ActorRef}
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
+import scorex.core.crypto.sign.PrivateKey25519
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PrivateKey25519
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration

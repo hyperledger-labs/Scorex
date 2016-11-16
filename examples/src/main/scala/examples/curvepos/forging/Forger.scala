@@ -6,11 +6,11 @@ import examples.curvepos.transaction._
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.crypto.sign.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
-import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.{NetworkTime, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -22,7 +22,7 @@ trait ForgerSettings extends Settings {
 }
 
 class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings, serializer: ScorexKryoPool) extends Actor
-with ScorexLogging {
+  with ScorexLogging {
 
   import Forger._
 
@@ -95,8 +95,7 @@ with ScorexLogging {
             val secret: PrivateKey25519 = wallet.secretByPublicImage(generator).get
 
             val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
-            val signature: Signature25519 =
-              PrivateKey25519Companion.sign(secret, serializer.toBytes(unsigned))
+            val signature: Signature25519 = PrivateKey25519Companion.sign(secret, serializer.toBytes(unsigned))
             val signedBlock = unsigned.copy(generationSignature = signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
             LocallyGeneratedModifier[PublicKey25519Proposition, SimpleTransaction, SimpleBlock](signedBlock)

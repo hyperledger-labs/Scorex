@@ -1,10 +1,10 @@
 package scorex.core.transaction.wallet
 
 import com.google.common.primitives.{Ints, Longs}
+import scorex.core.crypto.Secret
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
-import scorex.core.transaction.state.Secret
 import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 
 import scala.util.Try

@@ -19,10 +19,11 @@ import examples.curvepos.transaction.SimplePayment
 import examples.curvepos.transaction.SimpleState
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
+import scorex.core.crypto.sign.PrivateKey25519Companion
+
 import scala.util.Failure
 import scala.util.Success
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PrivateKey25519Companion
 
 //import scala.util.{Failure, Success}
 

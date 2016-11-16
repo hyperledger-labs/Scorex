@@ -11,12 +11,12 @@ import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.crypto.sign.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.serialization.ScorexKryoPool
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
-import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -30,7 +30,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    boxStore: LSMStore,
                    metaDb: DB)
   extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HWallet]
-  with ScorexLogging {
+    with ScorexLogging {
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
@@ -165,7 +165,7 @@ object HWallet {
 
   //wallet with 10 accounts and initial data processed
   def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
-    readOrGenerate(settings).scanPersistent(initialBlock)
+  readOrGenerate(settings).scanPersistent(initialBlock)
 }
 
 

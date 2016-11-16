@@ -6,11 +6,11 @@ import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.app.ApplicationVersion
+import scorex.core.crypto.sign.PrivateKey25519Companion
 import scorex.core.network.Handshake
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.transaction.wallet.WalletBox
 import scorex.crypto.signatures.Curve25519
 import scorex.crypto.signatures.Curve25519._

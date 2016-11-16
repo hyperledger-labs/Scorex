@@ -7,11 +7,11 @@ import org.mapdb.serializer.SerializerByteArray
 import org.mapdb.{DBMaker, HTreeMap}
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.crypto.hash.DoubleCryptographicHash
+import scorex.core.crypto.sign.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.settings.Settings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 
 import scala.collection.JavaConversions._
@@ -66,7 +66,7 @@ PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
 
   //todo: protection?
   override def secrets: Set[PrivateKey25519] =
-    dbSecrets.getEntries.map(e => PrivateKey25519(e.getValue, e.getKey)).toSet
+  dbSecrets.getEntries.map(e => PrivateKey25519(e.getValue, e.getKey)).toSet
 
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
     Option(dbSecrets.get(publicImage))

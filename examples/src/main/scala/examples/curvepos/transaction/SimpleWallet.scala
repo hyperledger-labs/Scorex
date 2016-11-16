@@ -1,9 +1,9 @@
 package examples.curvepos.transaction
 
+import scorex.core.crypto.sign.PrivateKey25519
 import scorex.core.transaction.Transaction.TransactionId
 import scorex.core.transaction.box.proposition.Constants25519.PrivKeyLength
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 import scorex.crypto.signatures.Curve25519
 import scorex.utils.Random

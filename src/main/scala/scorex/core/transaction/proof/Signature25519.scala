@@ -1,7 +1,7 @@
 package scorex.core.transaction.proof
 
+import scorex.core.crypto.sign.PrivateKey25519
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.signatures.Curve25519
 
 /**
