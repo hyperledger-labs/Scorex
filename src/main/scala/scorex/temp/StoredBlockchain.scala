@@ -1,6 +1,5 @@
 package scorex.core.consensus
 
-import org.h2.mvstore.{MVMap, MVStore}
 import scorex.core.block.{Block, BlockCompanion}
 import scorex.core.consensus.History.{BlockId, RollbackTo}
 import scorex.core.transaction.Transaction
@@ -10,6 +9,7 @@ import scorex.core.utils.ScorexLogging
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
+/*
 /**
   * If no datafolder provided, blockchain lives in RAM (useful for tests)
   */
@@ -118,3 +118,4 @@ trait StoredBlockchain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]
     heightOf(blockId).flatMap(h => blockAt(h + 1)).toSeq
 }
 
+*/

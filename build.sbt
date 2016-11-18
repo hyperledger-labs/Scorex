@@ -43,7 +43,7 @@ val testingDependencies = Seq(
 //todo: leave mapdb only
 libraryDependencies ++= Seq(
   "org.mapdb" % "mapdb" % "3.+",
-  "com.h2database" % "h2-mvstore" % "1.4.192",
+ // "com.h2database" % "h2-mvstore" % "1.4.192",
   "com.chuusai" %% "shapeless" % "2.+",
   "org.consensusresearch" %% "scrypto" % "1.2.0-RC3"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies

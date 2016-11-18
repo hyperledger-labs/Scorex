@@ -2,7 +2,7 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import org.h2.mvstore.{MVMap, MVStore}
+import org.mapdb.{DBMaker, HTreeMap, Serializer}
 import scorex.core.settings.Settings
 
 import scala.collection.JavaConversions._
@@ -10,12 +10,14 @@ import scala.collection.JavaConversions._
 class PeerDatabaseImpl(settings: Settings, filename: Option[String]) extends PeerDatabase {
 
   val database = filename match {
-    case Some(file) => new MVStore.Builder().fileName(file).compress().open()
-    case None => new MVStore.Builder().open()
+    case Some(file) => DBMaker.fileDB(file).make()
+    case None => DBMaker.memoryDB().make()
   }
 
-  private val whitelistPersistence: MVMap[InetSocketAddress, PeerInfo] = database.openMap("whitelist")
-  private val blacklist: MVMap[String, Long] = database.openMap("blacklist")
+  private val whitelistPersistence = database.hashMap("whitelist", Serializer.JAVA, Serializer.JAVA).createOrOpen()
+    .asInstanceOf[HTreeMap[InetSocketAddress, PeerInfo]]
+
+  private val blacklist = database.hashMap("blacklist", Serializer.STRING, Serializer.LONG).createOrOpen()
 
   private lazy val ownNonce = settings.nodeNonce
 
