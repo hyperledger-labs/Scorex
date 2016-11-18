@@ -1,8 +1,8 @@
-package scorex.core.consensus.mining
+package scorex.temp.mining
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.NodeViewHolder
-import scorex.core.consensus.mining.Miner._
+import scorex.temp.mining.Miner._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
