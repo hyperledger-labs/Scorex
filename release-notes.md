@@ -4,3 +4,4 @@
 * Wallet interface
 * MvStore dependency removed
 * StoredBlockchain trait removed
+* ViewSynchronizer trait removed
