@@ -13,7 +13,7 @@ import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.History
-import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
+import scorex.core.consensus.History.{HistoryComparisonResult, RollbackTo}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -134,7 +134,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     */
   override def isEmpty: Boolean = currentScoreVar.get() <= 0
 
-  override def blockById(blockId: BlockId): Option[HybridPersistentNodeViewModifier] = Try {
+  override def blockById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier] = Try {
     Option(blocksStorage.get(ByteArrayWrapper(blockId))).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
@@ -147,7 +147,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     }
   }.getOrElse(None)
 
-  override def contains(id: BlockId): Boolean =
+  override def contains(id: ModifierId): Boolean =
     if (id sameElements PowMiner.GenesisParentId) true else blockById(id).isDefined
 
   //PoW consensus rules checks, work/references
@@ -197,7 +197,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   //for parameters, ids are going from genesis to current block
 
   @tailrec
-  private def suffixesAfterCommonBlock(winnerChain: Seq[BlockId], loserChain: Seq[BlockId]): (Seq[BlockId], Seq[BlockId]) = {
+  private def suffixesAfterCommonBlock(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
     val c1h = winnerChain.head
     val c2h = loserChain.head
 
@@ -332,7 +332,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     res
   }
 
-  override def openSurfaceIds(): Seq[BlockId] =
+  override def openSurfaceIds(): Seq[ModifierId] =
     if (isEmpty) Seq(PowMiner.GenesisParentId)
     else if (pairCompleted) Seq(bestPowId, bestPosId)
     else Seq(bestPowId)

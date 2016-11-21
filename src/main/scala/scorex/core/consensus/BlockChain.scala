@@ -2,7 +2,6 @@ package scorex.core.consensus
 
 import scorex.core.NodeViewModifier._
 import scorex.core.block.Block
-import scorex.core.consensus.History.BlockId
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
@@ -33,7 +32,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
     */
   def heightOf(block: B): Option[Int] = heightOf(block.id)
 
-  def heightOf(blockId: BlockId): Option[Int]
+  def heightOf(blockId: ModifierId): Option[Int]
 
   def confirmations(block: B): Option[Int] = heightOf(block).map(height() - _)
 
@@ -42,10 +41,10 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
     */
   def lastBlock: B = lastBlocks(1).head
 
-  def lastBlockIds(howMany: Int): Seq[BlockId] = lastBlocks(howMany).map(_.id)
+  def lastBlockIds(howMany: Int): Seq[ModifierId] = lastBlocks(howMany).map(_.id)
 
   //just last block id
-  override def openSurfaceIds(): scala.Seq[BlockId] = lastBlockIds(1)
+  override def openSurfaceIds(): scala.Seq[ModifierId] = lastBlockIds(1)
 
   //todo: argument should be ID | Seq[ID]
   override def continuationIds(openSurface: Seq[(ModifierTypeId, ModifierId)], size: Int):
@@ -66,7 +65,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   /**
     * Average delay in milliseconds between last blockNum blocks starting from block
     */
-  def averageDelay(blockId: BlockId, blockNum: Int): Try[Long] = Try {
+  def averageDelay(blockId: ModifierId, blockNum: Int): Try[Long] = Try {
     val block = blockById(blockId).get
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
   }
@@ -86,12 +85,12 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   /**
     * Return howMany blocks starting from parentSignature
     */
-  def lookForward(parentSignature: BlockId, howMany: Int): Seq[BlockId] =
+  def lookForward(parentSignature: ModifierId, howMany: Int): Seq[ModifierId] =
   heightOf(parentSignature).map { h =>
     (h + 1).to(Math.min(height(), h + howMany: Int)).flatMap(blockAt).map(_.id)
   }.getOrElse(Seq())
 
-  def children(blockId: BlockId): Seq[B]
+  def children(blockId: ModifierId): Seq[B]
 
   lazy val genesisBlock: B = blockAt(1).get
 
