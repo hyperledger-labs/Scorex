@@ -54,25 +54,23 @@ trait Application extends ScorexLogging {
   lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs)
 
   val nodeViewHolderRef: ActorRef
+  val nodeViewSynchronizer: ActorRef
+  val localInterface: ActorRef
 
   val networkController = actorSystem.actorOf(Props(classOf[NetworkController], settings, messagesHandler, upnp,
     applicationName, appVersion), "networkController")
 
-  val nodeViewSynchronizer: ActorRef
-
-  val localInterface: ActorRef
-
-  implicit val materializer = ActorMaterializer()
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
 
 
-  def run() {
+  def run(): Unit = {
     require(applicationName.length <= ApplicationNameLimit)
 
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
     log.debug(s"RPC is allowed at 0.0.0.0:${settings.rpcPort}")
 
+    implicit val materializer = ActorMaterializer()
     Http().bindAndHandle(combinedRoute, "0.0.0.0", settings.rpcPort)
 
     //on unexpected shutdown
