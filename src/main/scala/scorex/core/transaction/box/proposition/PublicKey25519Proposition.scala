@@ -10,7 +10,9 @@ import scala.util.{Failure, Success, Try}
 case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKnowledgeProposition[PrivateKey25519] {
   import PublicKey25519Proposition._
 
-  lazy val address: String = Base58.encode((AddressVersion +: pubKeyBytes) ++ calcCheckSum(pubKeyBytes))
+  private def bytesWithVersion: Array[Byte] = AddressVersion +: pubKeyBytes
+
+  lazy val address: String = Base58.encode(bytesWithVersion ++ calcCheckSum(bytesWithVersion))
 
   lazy val bytes = pubKeyBytes
 
