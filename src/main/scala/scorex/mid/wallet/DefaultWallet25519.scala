@@ -15,6 +15,7 @@ import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 
 //todo: HKDF
@@ -53,13 +54,9 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition],
     new DefaultWallet25519[TX, PMOD](settings)
   }
 
-  override def scanOffchain(tx: TX): DefaultWallet25519[TX, PMOD] = ???
-
-  override def scanOffchain(txs: Seq[TX]): DefaultWallet25519[TX, PMOD] = ???
-
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, TX]] = ???
 
-  override def boxes: Seq[WalletBox[PublicKey25519Proposition, _ <: PublicKeyNoncedBox[PublicKey25519Proposition]]] = ???
+  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, _ <: PublicKeyNoncedBox[PublicKey25519Proposition]]] = ???
 
   override def publicKeys: Set[PublicKey25519Proposition] =
     dbSecrets.getKeys.map(PublicKey25519Proposition.apply).toSet
@@ -78,5 +75,9 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition],
 
   override def scanPersistent(modifier: PMOD): DefaultWallet25519[TX, PMOD] = ???
 
-  def rollback(to: VersionTag) = ??? //todo: fix
+  override def scanOffchain(tx: TX): DefaultWallet25519[TX, PMOD] = ???
+
+  override def scanOffchain(txs: Seq[TX]): DefaultWallet25519[TX, PMOD] = ???
+
+  def rollback(to: VersionTag): Try[DefaultWallet25519[TX, PMOD]] = ??? //todo: fix
 }
