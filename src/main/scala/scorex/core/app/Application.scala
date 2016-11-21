@@ -9,7 +9,6 @@ import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.wallet.Wallet
 import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
 
@@ -17,17 +16,17 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.runtime.universe.Type
 
 trait Application extends ScorexLogging {
-  val ApplicationNameLimit = 50
-
-  val applicationName: String
-
-  //redefine it as lazy val
-  def appVersion: ApplicationVersion
 
   type P <: Proposition
   type TX <: Transaction[P]
   type PMOD <: PersistentNodeViewModifier[P, TX]
   type NVHT <: NodeViewHolder[P, TX, PMOD]
+
+  val ApplicationNameLimit = 50
+
+  val applicationName: String
+
+  val appVersion: ApplicationVersion
 
   //settings
   implicit val settings: Settings
@@ -68,6 +67,8 @@ trait Application extends ScorexLogging {
 
 
   def run() {
+    require(applicationName.length <= ApplicationNameLimit)
+
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
     log.debug(s"RPC is allowed at 0.0.0.0:${settings.rpcPort}")
