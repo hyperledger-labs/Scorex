@@ -21,6 +21,8 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] ex
 
   def version: VersionTag
 
+  def validate(transaction: TX): Try[Unit]
+
   def isValid(tx: TX): Boolean = validate(tx).isSuccess
 
   def areValid(txs: Seq[TX]): Boolean = txs.forall(isValid)
@@ -28,8 +30,6 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] ex
   def filterValid(txs: Seq[TX]): Seq[TX] = txs.filter(isValid)
 
   def closedBox(boxId: Array[Byte]): Option[BX]
-
-  def validate(transaction: TX): Try[Unit]
 
   def boxesOf(proposition: P): Seq[BX]
 
