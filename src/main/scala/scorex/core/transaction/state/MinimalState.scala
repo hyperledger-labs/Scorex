@@ -1,7 +1,6 @@
 package scorex.core.transaction.state
 
 import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier}
-import scorex.core.block.StateChanges
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction._
@@ -14,9 +13,10 @@ import MinimalState.VersionTag
   */
 
 trait MinimalState[P <: Proposition,
-BX <: Box[P],
-TX <: Transaction[P],
-M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
+  BX <: Box[P],
+  TX <: Transaction[P],
+  M <: PersistentNodeViewModifier[P, TX],
+  MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
   self: MS =>
 
   def version: VersionTag
