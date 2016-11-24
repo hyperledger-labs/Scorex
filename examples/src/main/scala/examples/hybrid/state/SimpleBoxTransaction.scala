@@ -16,7 +16,7 @@ import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
 
-//a transaction order to destroy boxes associated with (pubkey -> nonce) and create new boxes (pubkey -> nonce)
+//A transaction orders to destroy boxes associated with (pubkey -> nonce) and create new boxes (pubkey -> nonce)
 // where a nonce is derived from a transaction and also a box index
 
 // WARNING!: the scheme is not provably secure to replay attacks etc

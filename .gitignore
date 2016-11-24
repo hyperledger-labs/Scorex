@@ -24,3 +24,5 @@ Dockerfile
 
 # for temporary experiments
 sheet.scala
+examples/src/main/scala/examples/sigmastate/
+examples/lib/
