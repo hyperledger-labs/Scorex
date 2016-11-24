@@ -32,7 +32,6 @@ case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](proposition
                                                                      blockId: Option[NodeViewModifier.ModifierId],
                                                                      createdAt: Long)
 
-//todo: for Dmitry
 object WalletTransaction {
   def parse[P <: Proposition, TX <: Transaction[P]](bytes: Array[Byte])
                                                    (propDeserializer: Array[Byte] => Try[P],
@@ -69,12 +68,8 @@ object WalletTransaction {
     val txBytes = wt.tx.bytes
     val bIdBytes = wt.blockId.map(id => Array(1: Byte) ++ id).getOrElse(Array(0: Byte))
 
-    Ints.toByteArray(propBytes.length) ++
-      propBytes ++
-      Ints.toByteArray(txBytes.length) ++
-      txBytes ++
-      bIdBytes ++
-      Longs.toByteArray(wt.createdAt)
+    Bytes.concat(Ints.toByteArray(propBytes.length), propBytes, Ints.toByteArray(txBytes.length), txBytes, bIdBytes,
+      Longs.toByteArray(wt.createdAt))
   }
 }
 
