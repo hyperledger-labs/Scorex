@@ -167,31 +167,3 @@ object HWallet {
   def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
     readOrGenerate(settings).scanPersistent(initialBlock)
 }
-
-
-//todo: convert to a test
-object WalletPlayground extends App {
-  val settings = new Settings with MiningSettings {
-    override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
-  }
-
-  val w = HWallet.readOrGenerate(settings, "p").generateNewSecret().generateNewSecret()
-
-  assert(w.secrets.size == 2)
-
-  val fs = w.secrets.head
-  val ss = w.secrets.tail.head
-
-  val from = IndexedSeq(fs -> 500L, ss -> 1000L)
-  val to = IndexedSeq(ss.publicImage -> 1500L)
-  val fee = 500L
-  val timestamp = System.currentTimeMillis()
-
-  val tx = SimpleBoxTransaction(from, to, fee, timestamp)
-
-  val za = Array.fill(32)(0: Byte)
-
-  val pb = PosBlock(za, System.currentTimeMillis(), Seq(tx), fs.publicImage, Signature25519(za))
-
-  println(w.scanPersistent(pb).boxes().head)
-}

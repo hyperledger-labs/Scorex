@@ -6,11 +6,14 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
+import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
 case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long){
   lazy val bytes = WalletBox.bytes(this)
+
+  override def toString: String = s"WalletBox($box, ${Base58.encode(transactionId)}, $createdAt)"
 }
 
 object WalletBox {
