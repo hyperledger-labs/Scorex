@@ -37,17 +37,7 @@ trait Block[P <: Proposition, TX <: Transaction[P]]
 
   def encodedId: String = Base58.encode(id)
 
-  /* = (version +: Longs.toByteArray(timestamp)) ++ arrayWithSize(consensusData.bytes) ++
-     arrayWithSize(transactionalData.bytes)*/
-
   def json: Json
-
-  /* = Map(
-     "version" -> version.toString.asJson,
-     "timestamp" -> timestamp.asJson,
-     "consensusData" -> consensusData.json,
-     "transactionalData" -> transactionalData.json
-   ).asJson */
 
   def timestamp: Timestamp
 
@@ -77,6 +67,4 @@ trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
     * @return blocks' producers
     */
   def producers(block: B, history: History[P, TX, B, _, _]): Seq[P]
-
-  val MaxRollback: Int
 }

@@ -41,8 +41,6 @@ class ApiClient(settings: Settings) {
       }
 
       val result = Source.fromInputStream(stream).mkString("")
-      //      TODO ???
-      //      Try(Json.parse(result)).map(_.toString)
       Try(result)
     }.flatten match {
       case Success(result) => result
