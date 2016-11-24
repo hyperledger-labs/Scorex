@@ -28,6 +28,7 @@ SI <: SyncInfo,
 HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   import History._
+  import NodeViewModifier.ModifierId
 
   /**
     * Is there's no history, even genesis block
@@ -36,13 +37,13 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
     */
   def isEmpty: Boolean
 
-  def contains(block: PM): Boolean = contains(block.id)
+  def contains(persistentModifier: PM): Boolean = contains(persistentModifier.id)
 
-  def contains(id: BlockId): Boolean = blockById(id).isDefined
+  def contains(id: ModifierId): Boolean = blockById(id).isDefined
 
   def applicable(block: PM): Boolean = openSurfaceIds().exists(_ sameElements block.parentId)
 
-  def blockById(blockId: BlockId): Option[PM]
+  def blockById(blockId: ModifierId): Option[PM]
 
   def blockById(blockId: String): Option[PM] = Base58.decode(blockId).toOption.flatMap(blockById)
 
@@ -50,7 +51,7 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   //todo: is it needed?
   //todo: output should be ID | Seq[ID]
-  def openSurfaceIds(): Seq[BlockId]
+  def openSurfaceIds(): Seq[ModifierId]
 
   //todo: argument should be ID | Seq[ID]
   def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[PM]]
@@ -70,7 +71,6 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 }
 
 object History {
-  type BlockId = NodeViewModifier.ModifierId
 
   object HistoryComparisonResult extends Enumeration {
     val Equal = Value(1)
@@ -78,6 +78,5 @@ object History {
     val Older = Value(3)
   }
 
-  case class RollbackTo[PM <: PersistentNodeViewModifier[_, _]](to: BlockId, thrown: Seq[PM], applied: Seq[PM])
-
+  case class RollbackTo[PM <: PersistentNodeViewModifier[_, _]](to: ModifierId, thrown: Seq[PM], applied: Seq[PM])
 }

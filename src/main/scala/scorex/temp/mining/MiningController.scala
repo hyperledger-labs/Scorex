@@ -1,11 +1,11 @@
-package scorex.core.consensus.mining
+package scorex.temp.mining
 
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.NodeViewHolder
-import scorex.core.consensus.mining.MiningController._
-import scorex.core.consensus.mining.Miner._
+import scorex.temp.mining.MiningController._
+import scorex.temp.mining.Miner._
 import scorex.core.settings.Settings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition

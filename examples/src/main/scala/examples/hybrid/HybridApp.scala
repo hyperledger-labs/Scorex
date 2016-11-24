@@ -19,19 +19,19 @@ import scala.concurrent.duration._
 import scala.reflect.runtime.universe._
 
 class HybridApp(val settingsFilename: String) extends Application {
+
+  override type P = PublicKey25519Proposition
+  override type TX = SimpleBoxTransaction
+  override type PMOD = HybridPersistentNodeViewModifier
+  override type NVHT = HybridNodeViewHolder
+
   implicit lazy val settings = new Settings with MiningSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 
   override lazy val applicationName: String = "2-Hop"
 
-  //redefine it as lazy val
-  override def appVersion: ApplicationVersion = ApplicationVersion(0, 1, 1)
-
-  override type P = PublicKey25519Proposition
-  override type TX = SimpleBoxTransaction
-  override type PMOD = HybridPersistentNodeViewModifier
-  override type NVHT = HybridNodeViewHolder
+  override lazy val appVersion: ApplicationVersion = ApplicationVersion(0, 1, 1)
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoSpec)
 

@@ -3,8 +3,8 @@ package scorex.core.network
 import akka.actor.{ActorRef, Props}
 import scorex.core.NodeViewHolder
 import scorex.core.block._
-import scorex.core.consensus.mining.MiningController
-import scorex.core.consensus.mining.MiningController._
+import scorex.temp.mining.MiningController
+import scorex.temp.mining.MiningController._
 import scorex.crypto.encode.Base58
 import scorex.core.network.NetworkController.DataFromPeer
 import scorex.core.network.ScoreObserver.{ConsideredValue, GetScore, UpdateScore}

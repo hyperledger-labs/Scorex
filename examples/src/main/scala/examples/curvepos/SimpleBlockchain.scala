@@ -2,16 +2,16 @@ package examples.curvepos
 
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
-import scorex.core.{NodeViewModifier, NodeViewComponentCompanion}
-import scorex.core.NodeViewModifier.ModifierTypeId
-import scorex.core.consensus.History.{BlockId, HistoryComparisonResult, RollbackTo}
+import scorex.core.NodeViewComponentCompanion
+import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.consensus.History.{HistoryComparisonResult, RollbackTo}
 import scorex.core.consensus.BlockChain
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 
 import scala.util.{Failure, Success, Try}
 
-case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[BlockId, SimpleBlock] = Map())
+case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: Map[ModifierId, SimpleBlock] = Map())
   extends BlockChain[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleSyncInfo, SimpleBlockchain] {
 
   import BlockChain.Score
@@ -23,7 +23,7 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
     */
   override def isEmpty: Boolean = blocks.isEmpty
 
-  override def blockById(blockId: BlockId): Option[SimpleBlock] =
+  override def blockById(blockId: ModifierId): Option[SimpleBlock] =
     blocks.find(_._1.sameElements(blockId)).map(_._2)
 
   //todo: check PoS data in a block
@@ -42,14 +42,14 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   }
 
   //todo: should be ID | Seq[ID]
-  override def openSurfaceIds(): Seq[BlockId] = Seq(blockIds(height()))
+  override def openSurfaceIds(): Seq[ModifierId] = Seq(blockIds(height()))
 
   //todo: argument should be ID | Seq[ID]
-  override def continuation(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[SimpleBlock]] =
+  override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[SimpleBlock]] =
   continuationIds(from, size).map(_.map(_._2).map(blockById).map(_.get))
 
   //todo: argument should be ID | Seq[ID]
-  override def continuationIds(from: Seq[(ModifierTypeId, BlockId)], size: Int): Option[Seq[(ModifierTypeId, BlockId)]] = {
+  override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
     require(from.size == 1)
     require(from.head._1 == SimpleBlock.ModifierTypeId)
 
@@ -80,7 +80,7 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
     */
   override def height(): Height = blocks.size
 
-  override def heightOf(blockId: BlockId): Option[Height] =
+  override def heightOf(blockId: ModifierId): Option[Height] =
     blockIds.find(_._2 sameElements blockId).map(_._1)
 
   override def discardBlock(): Try[SimpleBlockchain] = ???
@@ -88,7 +88,7 @@ case class SimpleBlockchain(blockIds: Map[Height, BlockId] = Map(), blocks: Map[
   override def blockAt(height: Height): Option[SimpleBlock] =
     blockIds.get(height).flatMap(blocks.get)
 
-  override def children(blockId: BlockId): Seq[SimpleBlock] =
+  override def children(blockId: ModifierId): Seq[SimpleBlock] =
     heightOf(blockId).map(_ + 1).flatMap(blockAt).toSeq
 
   override def syncInfo(answer: Boolean = false): SimpleSyncInfo =

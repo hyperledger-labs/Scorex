@@ -1,4 +1,4 @@
-package scorex.core.block
+package scorex.core.transaction.state
 
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition

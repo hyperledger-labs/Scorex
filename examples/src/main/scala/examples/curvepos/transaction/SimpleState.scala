@@ -4,10 +4,9 @@ import java.nio.ByteBuffer
 
 import examples.curvepos.transaction.SimpleState.EmptyVersion
 import scorex.core.NodeViewComponentCompanion
-import scorex.core.block.StateChanges
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
-import scorex.core.transaction.state.MinimalState
+import scorex.core.transaction.state.{MinimalState, StateChanges}
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58

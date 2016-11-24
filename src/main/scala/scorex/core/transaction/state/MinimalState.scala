@@ -1,7 +1,6 @@
 package scorex.core.transaction.state
 
 import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier}
-import scorex.core.block.StateChanges
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction._
@@ -14,12 +13,15 @@ import MinimalState.VersionTag
   */
 
 trait MinimalState[P <: Proposition,
-BX <: Box[P],
-TX <: Transaction[P],
-M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
+  BX <: Box[P],
+  TX <: Transaction[P],
+  M <: PersistentNodeViewModifier[P, TX],
+  MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
   self: MS =>
 
   def version: VersionTag
+
+  def validate(transaction: TX): Try[Unit]
 
   def isValid(tx: TX): Boolean = validate(tx).isSuccess
 
@@ -28,8 +30,6 @@ M <: PersistentNodeViewModifier[P, TX], MS <: MinimalState[P, BX, TX, M, MS]] ex
   def filterValid(txs: Seq[TX]): Seq[TX] = txs.filter(isValid)
 
   def closedBox(boxId: Array[Byte]): Option[BX]
-
-  def validate(transaction: TX): Try[Unit]
 
   def boxesOf(proposition: P): Seq[BX]
 

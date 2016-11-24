@@ -1,13 +1,11 @@
 package scorex.core.api.client
 
-import java.io.{BufferedReader, InputStreamReader}
 import java.net.{HttpURLConnection, URL}
 
 import io.circe
-import play.libs.Json
 import scorex.core.settings.Settings
 
-import scala.io.StdIn
+import scala.io.{Source, StdIn}
 import scala.util.{Failure, Success, Try}
 
 
@@ -42,11 +40,10 @@ class ApiClient(settings: Settings) {
         case _ => connection.getErrorStream
       }
 
-      val isReader = new InputStreamReader(stream)
-      val br = new BufferedReader(isReader)
-      val result = br.readLine()
-
-      Try(Json.parse(result)).map(_.toString)
+      val result = Source.fromInputStream(stream).mkString("")
+      //      TODO ???
+      //      Try(Json.parse(result)).map(_.toString)
+      Try(result)
     }.flatten match {
       case Success(result) => result
       case Failure(e) =>
