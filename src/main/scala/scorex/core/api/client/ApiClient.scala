@@ -3,7 +3,6 @@ package scorex.core.api.client
 import java.net.{HttpURLConnection, URL}
 
 import io.circe
-import play.libs.Json
 import scorex.core.settings.Settings
 
 import scala.io.{Source, StdIn}
@@ -42,8 +41,9 @@ class ApiClient(settings: Settings) {
       }
 
       val result = Source.fromInputStream(stream).mkString("")
-
-      Try(Json.parse(result)).map(_.toString)
+      //      TODO ???
+      //      Try(Json.parse(result)).map(_.toString)
+      Try(result)
     }.flatten match {
       case Success(result) => result
       case Failure(e) =>
