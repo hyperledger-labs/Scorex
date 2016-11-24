@@ -35,7 +35,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
   private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
 
   override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
-    assert(tx.valid)
+    assert(tx.isValid)
   }
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = {

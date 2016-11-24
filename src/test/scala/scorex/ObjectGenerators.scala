@@ -8,7 +8,7 @@ import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.app.ApplicationVersion
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PrivateKey25519Companion
+import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.crypto.signatures.Curve25519
 
 trait ObjectGenerators {
@@ -62,6 +62,8 @@ trait ObjectGenerators {
     port <- Gen.choose(0, MaxPort)
   } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
 
-  lazy val propositionGen: Gen[PublicKey25519Proposition] = genBytesList(Curve25519.KeyLength)
-    .map(s => PrivateKey25519Companion.generateKeys(s)._2)
+  lazy val key25519Gen: Gen[(PrivateKey25519, PublicKey25519Proposition)] = genBytesList(Curve25519.KeyLength)
+    .map(s => PrivateKey25519Companion.generateKeys(s))
+
+  lazy val propositionGen: Gen[PublicKey25519Proposition] = key25519Gen.map(_._2)
 }

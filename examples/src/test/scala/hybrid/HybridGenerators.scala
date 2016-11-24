@@ -12,6 +12,7 @@ import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.transaction.wallet.WalletBox
 
 trait HybridGenerators extends ObjectGenerators {
@@ -29,13 +30,17 @@ trait HybridGenerators extends ObjectGenerators {
     long <- positiveLongGen
   } yield (prop, long)
 
+  lazy val privGen: Gen[(PrivateKey25519, Long)] = for {
+    prop <- key25519Gen.map(_._1)
+    long <- positiveLongGen
+  } yield (prop, long)
+
   lazy val simpleBoxTransactionGen: Gen[SimpleBoxTransaction] = for {
     fee <- positiveLongGen
     timestamp <- positiveLongGen
-    signatures: IndexedSeq[Signature25519] <- Gen.listOf(signatureGen).map(_.toIndexedSeq)
-    from: IndexedSeq[(PublicKey25519Proposition, Long)] <- Gen.listOf(pGen).map(_.toIndexedSeq)
-    to: IndexedSeq[(PublicKey25519Proposition, Long)] <- Gen.listOf(pGen).map(_.toIndexedSeq)
-  } yield SimpleBoxTransaction(from, to, signatures, fee, timestamp)
+    from: IndexedSeq[(PrivateKey25519, Long)] <- Gen.nonEmptyListOf(privGen).map(_.toIndexedSeq)
+    to: IndexedSeq[(PublicKey25519Proposition, Long)] <- Gen.nonEmptyListOf(pGen).map(_.toIndexedSeq)
+  } yield SimpleBoxTransaction(from, to, fee, timestamp)
 
   lazy val posBlockGen: Gen[PosBlock] = for {
     parentId: BlockId <- genBytesList(Block.BlockIdLength)
@@ -64,7 +69,6 @@ trait HybridGenerators extends ObjectGenerators {
     brothersHash: Array[Byte] <- genBytesList(FastCryptographicHash.DigestSize)
     brothers <- Gen.listOfN(brothersCount, powHeaderGen)
   } yield new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, brothers)
-
 
 
   lazy val noncedBoxGen: Gen[PublicKey25519NoncedBox] = for {
