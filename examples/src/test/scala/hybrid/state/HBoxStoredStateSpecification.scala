@@ -30,8 +30,7 @@ class HBoxStoredStateSpecification extends PropSpec
 
       state = state.applyChanges(c, Array.fill(32)(0: Byte)).get
 
-      assert(state.closedBox(b.id).isDefined)
-
+      state.closedBox(b.id).isDefined shouldBe true
     }
   }
 
