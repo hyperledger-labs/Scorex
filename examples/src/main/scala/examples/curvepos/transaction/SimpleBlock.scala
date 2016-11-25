@@ -5,10 +5,10 @@ import examples.curvepos.transaction.SimpleBlock._
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.ModifierTypeId
-import scorex.core.NodeViewModifierCompanion
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 import shapeless.{::, HNil}
@@ -32,9 +32,9 @@ case class SimpleBlock(override val parentId: BlockId,
 
   override lazy val transactions: Option[Seq[SimpleTransaction]] = Some(txs)
 
-  override lazy val companion = SimpleBlockCompanion
+  override lazy val serializer = SimpleBlockCompanion
 
-  override lazy val id: BlockId = FastCryptographicHash(companion.messageToSign(this))
+  override lazy val id: BlockId = FastCryptographicHash(serializer.messageToSign(this))
 
   override lazy val version: Version = 0: Byte
 
@@ -62,7 +62,7 @@ object SimpleBlock {
   type BaseTarget = Long
 }
 
-object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
+object SimpleBlockCompanion extends Serializer[SimpleBlock] {
   import SimplePaymentCompanion.TransactionLength
 
   def messageToSign(block: SimpleBlock): Array[Byte] = {
@@ -89,7 +89,7 @@ object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
     }
   }
 
-  override def parse(bytes: Array[ModifierTypeId]): Try[SimpleBlock] = Try {
+  override def parseBytes(bytes: Array[ModifierTypeId]): Try[SimpleBlock] = Try {
     val parentId = bytes.slice(0, Block.BlockIdLength)
     val timestamp = Longs.fromByteArray(bytes.slice(Block.BlockIdLength, Block.BlockIdLength + 8))
     val version = bytes.slice(Block.BlockIdLength + 8, Block.BlockIdLength + 9).head
@@ -102,7 +102,7 @@ object SimpleBlockCompanion extends NodeViewModifierCompanion[SimpleBlock] {
     val s2 = s1 + 36
     val txs = (0 until cnt) map { i =>
       val bt = bytes.slice(s2 + TransactionLength * i, s2 + TransactionLength * (i + 1))
-      SimplePaymentCompanion.parse(bt).get
+      SimplePaymentCompanion.parseBytes(bt).get
     }
     SimpleBlock(parentId, timestamp, generationSignature, baseTarget, generator, txs)
   }

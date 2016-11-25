@@ -1,11 +1,13 @@
 package scorex.core.transaction.state
 
+import com.google.common.primitives.Bytes
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
-import scorex.core.serialization.BytesSerializable
+import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.box._
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, PublicKey25519Proposition}
 import scorex.core.transaction.proof.{ProofOfKnowledge, Signature25519}
+
 import scala.util.Try
 
 trait Secret extends BytesSerializable {
@@ -43,6 +45,17 @@ case class PrivateKey25519(privKeyBytes: Array[Byte], publicKeyBytes: Array[Byte
   override lazy val bytes: Array[Byte] = privKeyBytes
 
   override lazy val publicImage: PublicKey25519Proposition = PublicKey25519Proposition(publicKeyBytes)
+  override type M = PrivateKey25519
+
+  override def serializer: Serializer[PrivateKey25519] = PrivateKey25519Serializer
+}
+
+object PrivateKey25519Serializer extends Serializer[PrivateKey25519] {
+  override def bytes(obj: PrivateKey25519): Array[Byte] = Bytes.concat(obj.privKeyBytes, obj.publicKeyBytes)
+
+  override def parseBytes(bytes: Array[Byte]): Try[PrivateKey25519] = Try{
+    PrivateKey25519(bytes.slice(0, 32), bytes.slice(32, 64))
+  }
 }
 
 object PrivateKey25519Companion extends SecretCompanion[PrivateKey25519] {
@@ -67,12 +80,4 @@ object PrivateKey25519Companion extends SecretCompanion[PrivateKey25519] {
     val secret: PrivateKey25519 = PrivateKey25519(pair._1, pair._2)
     secret -> secret.publicImage
   }
-
-  def parseBytes(bytes: Array[Byte]): Try[(PrivateKey25519, PublicKey25519Proposition)] = Try {
-    val privKey = PrivateKey25519(bytes.slice(0, 32), bytes.slice(32, 64))
-    privKey -> privKey.publicImage
-  }
-
-  def keyPairBytes(priv: PrivateKey25519): Array[Byte] =
-    priv.bytes ++ priv.publicImage.bytes
 }

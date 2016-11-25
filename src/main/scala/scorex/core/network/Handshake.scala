@@ -3,9 +3,8 @@ package scorex.core.network
 import java.net.{InetAddress, InetSocketAddress}
 
 import com.google.common.primitives.{Ints, Longs}
-import scorex.core.app.ApplicationVersion
-import scorex.core.serialization.{BytesParseable, BytesSerializable}
-import scorex.core.utils.ScorexLogging
+import scorex.core.app.{ApplicationVersion, ApplicationVersionSerializer}
+import scorex.core.serialization.{BytesSerializable, Serializer}
 
 import scala.util.Try
 
@@ -20,26 +19,32 @@ case class Handshake(applicationName: String,
   require(Option(applicationName).isDefined)
   require(Option(applicationVersion).isDefined)
 
-  lazy val bytes: Array[Byte] = {
-    val anb = applicationName.getBytes
+  override type M = Handshake
 
-    val fab = declaredAddress.map { isa =>
+  override def serializer: Serializer[Handshake] = HandshakeSerializer
+}
+
+object HandshakeSerializer extends Serializer[Handshake] {
+
+  override def bytes(obj: Handshake): Array[Byte] = {
+    val anb = obj.applicationName.getBytes
+
+    val fab = obj.declaredAddress.map { isa =>
       isa.getAddress.getAddress ++ Ints.toByteArray(isa.getPort)
     }.getOrElse(Array[Byte]())
 
-    val nodeNameBytes = nodeName.getBytes
+    val nodeNameBytes = obj.nodeName.getBytes
 
     Array(anb.size.toByte) ++ anb ++
-      applicationVersion.bytes ++
+      obj.applicationVersion.bytes ++
       Array(nodeNameBytes.size.toByte) ++ nodeNameBytes ++
-      Longs.toByteArray(nodeNonce) ++
+      Longs.toByteArray(obj.nodeNonce) ++
       Ints.toByteArray(fab.length) ++ fab ++
-      Longs.toByteArray(time)
-  }
-}
+      Longs.toByteArray(obj.time)
 
-object Handshake extends ScorexLogging with BytesParseable[Handshake] {
-  def parseBytes(bytes: Array[Byte]): Try[Handshake] = Try {
+  }
+
+  override def parseBytes(bytes: Array[Byte]): Try[Handshake] = Try {
     var position = 0
     val appNameSize = bytes.head
     require(appNameSize > 0)
@@ -49,8 +54,9 @@ object Handshake extends ScorexLogging with BytesParseable[Handshake] {
     val an = new String(bytes.slice(position, position + appNameSize))
     position += appNameSize
 
-    val av = ApplicationVersion.parseBytes(bytes.slice(position, position + ApplicationVersion.SerializedVersionLength)).get
-    position += ApplicationVersion.SerializedVersionLength
+    val av = ApplicationVersionSerializer.parseBytes(
+      bytes.slice(position, position + ApplicationVersionSerializer.SerializedVersionLength)).get
+    position += ApplicationVersionSerializer.SerializedVersionLength
 
     val nodeNameSize = bytes.slice(position, position + 1).head
     position += 1

@@ -14,8 +14,8 @@ with ExampleGenerators {
 
   property("Payment serialization") {
     forAll(paymentGen) { b: SimplePayment =>
-      val companion = b.companion
-      val recovered = companion.parse(companion.bytes(b)).get
+      val companion = b.serializer
+      val recovered = companion.parseBytes(companion.bytes(b)).get
       companion.bytes(b) shouldEqual companion.bytes(recovered)
 
       companion.bytes(recovered).length shouldEqual SimplePaymentCompanion.TransactionLength

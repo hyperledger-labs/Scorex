@@ -6,10 +6,11 @@ import examples.hybrid.state.SimpleBoxTransaction
 import shapeless.{::, HNil}
 import io.circe.Json
 import scorex.core.NodeViewModifier.ModifierTypeId
-import scorex.core.{NodeViewModifier, NodeViewModifierCompanion}
+import scorex.core.NodeViewModifier
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 
@@ -80,7 +81,7 @@ case class PowBlock(override val parentId: BlockId,
 
   override type M = PowBlock
 
-  override lazy val companion = PowBlockCompanion
+  override lazy val serializer = PowBlockCompanion
 
   override type BlockFields = BlockId :: BlockId :: Block.Timestamp :: Long :: HNil
 
@@ -97,14 +98,14 @@ case class PowBlock(override val parentId: BlockId,
 
   lazy val header = new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
 
-  lazy val brotherBytes = companion.brotherBytes(brothers)
+  lazy val brotherBytes = serializer.brotherBytes(brothers)
 
   override lazy val toString = s"PowBlock(id: ${Base58.encode(id)})" +
     s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +
     s"nonce: $nonce, brothers: ($brothersCount -- $brothers))"
 }
 
-object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {
+object PowBlockCompanion extends Serializer[PowBlock] {
 
   def brotherBytes(brothers: Seq[PowBlockHeader]): Array[Byte] = brothers.foldLeft(Array[Byte]()) { case (ba, b) =>
     ba ++ b.headerBytes
@@ -113,7 +114,7 @@ object PowBlockCompanion extends NodeViewModifierCompanion[PowBlock] {
   override def bytes(modifier: PowBlock): Array[Byte] =
     modifier.headerBytes ++ modifier.brotherBytes
 
-  override def parse(bytes: Array[Byte]): Try[PowBlock] = {
+  override def parseBytes(bytes: Array[Byte]): Try[PowBlock] = {
     val headerBytes = bytes.slice(0, PowBlockHeader.PowHeaderSize)
     PowBlockHeader.parse(headerBytes).flatMap { header =>
       Try {

@@ -5,9 +5,7 @@ import java.io.File
 import com.google.common.primitives.Ints
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock}
-import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.SimpleBoxTransaction
-import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
@@ -15,15 +13,14 @@ import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.utils.Random
 
-import scala.util.Try
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
@@ -165,5 +162,5 @@ object HWallet {
 
   //wallet with 10 accounts and initial data processed
   def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
-    readOrGenerate(settings).scanPersistent(initialBlock)
+  readOrGenerate(settings).scanPersistent(initialBlock)
 }

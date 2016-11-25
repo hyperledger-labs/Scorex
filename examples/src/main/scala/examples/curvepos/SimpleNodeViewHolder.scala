@@ -2,9 +2,10 @@ package examples.curvepos
 
 import examples.curvepos.transaction.{SimplePayment, _}
 import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.serialization.Serializer
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
+import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
 
 import scala.util.{Failure, Success}
@@ -19,7 +20,7 @@ class SimpleNodeViewHolder(settings: Settings)
   override type VL = SimpleWallet
   override type MP = SimpleMemPool
 
-  override lazy val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
+  override lazy val modifierCompanions: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
     Map(SimpleBlock.ModifierTypeId -> SimpleBlockCompanion)
 
   override def restoreState(): Option[(HIS, MS, VL, MP)] = None

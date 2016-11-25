@@ -4,8 +4,8 @@ import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.state.SimpleBoxTransaction._
 import io.circe.Json
-import scorex.core.NodeViewModifierCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.serialization.Serializer
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.BoxUnlocker
@@ -53,7 +53,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     PublicKey25519NoncedBox(prop, nonce, value)
   }
 
-  override lazy val companion = SimpleBoxTransactionCompanion
+  override lazy val serializer = SimpleBoxTransactionCompanion
 
   //todo: for Dmitry - implement
   override lazy val json: Json = ???
@@ -93,7 +93,7 @@ object SimpleBoxTransaction {
   }
 }
 
-object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBoxTransaction] {
+object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {
 
   override def bytes(m: SimpleBoxTransaction): Array[Byte] = {
     Bytes.concat(Longs.toByteArray(m.fee),
@@ -107,7 +107,7 @@ object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBox
     )
   }
 
-  override def parse(bytes: Array[Byte]): Try[SimpleBoxTransaction] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[SimpleBoxTransaction] = Try {
     val fee = Longs.fromByteArray(bytes.slice(0, 8))
     val timestamp = Longs.fromByteArray(bytes.slice(8, 16))
     val sigLength = Ints.fromByteArray(bytes.slice(16, 20))

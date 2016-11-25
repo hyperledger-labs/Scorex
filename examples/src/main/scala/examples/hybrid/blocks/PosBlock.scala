@@ -4,10 +4,10 @@ import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.hybrid.state.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Json
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.NodeViewModifierCompanion
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.crypto.encode.Base58
@@ -30,7 +30,7 @@ Block[PublicKey25519Proposition, SimpleBoxTransaction] {
 
   override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = Some(txs)
 
-  override lazy val companion = PosBlockCompanion
+  override lazy val serializer = PosBlockCompanion
 
   override lazy val version: Version = 0: Byte
 
@@ -47,7 +47,7 @@ Block[PublicKey25519Proposition, SimpleBoxTransaction] {
     s"generator: ${Base58.encode(generator.bytes)}, signature: ${Base58.encode(signature.bytes)})"
 }
 
-object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
+object PosBlockCompanion extends Serializer[PosBlock] {
   override def bytes(b: PosBlock): Array[Version] = {
     val txsBytes = b.txs.foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
@@ -55,7 +55,7 @@ object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
     Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.generator.bytes, b.signature.bytes, txsBytes)
   }
 
-  override def parse(bytes: Array[Version]): Try[PosBlock] = Try {
+  override def parseBytes(bytes: Array[Version]): Try[PosBlock] = Try {
 //    assert(bytes.length <= PosBlock.MaxBlockSize)
 
     val parentId = bytes.slice(0, BlockIdLength)
@@ -73,7 +73,7 @@ object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
     def parseTxs(acc: Seq[SimpleBoxTransaction] = Seq()): Seq[SimpleBoxTransaction] = {
       if (bytes.length > position) {
         val l = Ints.fromByteArray(bytes.slice(position, position + 4))
-        val tx = SimpleBoxTransactionCompanion.parse(bytes.slice(position + 4, position + 4 + l)).get
+        val tx = SimpleBoxTransactionCompanion.parseBytes(bytes.slice(position + 4, position + 4 + l)).get
         position = position + 4 + l
         parseTxs(tx +: acc)
       } else acc

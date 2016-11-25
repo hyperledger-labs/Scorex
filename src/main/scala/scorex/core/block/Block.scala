@@ -1,11 +1,11 @@
 package scorex.core.block
 
 import io.circe.Json
-import scorex.core.{NodeViewModifier, NodeViewModifierCompanion, PersistentNodeViewModifier}
+import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.consensus.History
 import scorex.crypto.encode.Base58
-import scorex.core.serialization.JsonSerializable
+import scorex.core.serialization.{JsonSerializable, Serializer}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction._
 import shapeless.HList
@@ -54,7 +54,7 @@ object Block {
 }
 
 trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
-  extends NodeViewModifierCompanion[B] {
+  extends Serializer[B] {
 
   def isValid(block: B): Boolean
 

@@ -2,14 +2,13 @@ package scorex.crypto
 
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.transaction.state.PrivateKey25519Companion
-
+import scorex.core.transaction.state.{PrivateKey25519Companion, PrivateKey25519Serializer}
 
 
 class SigningFunctionsSpecification extends PropSpec
-with PropertyChecks
-with GeneratorDrivenPropertyChecks
-with Matchers {
+  with PropertyChecks
+  with GeneratorDrivenPropertyChecks
+  with Matchers {
 
   property("PrivateKey25519Companion generates valid keypair") {
     forAll() { (seed1: Array[Byte], message1: Array[Byte], seed2: Array[Byte], message2: Array[Byte]) =>
@@ -28,11 +27,11 @@ with Matchers {
   property("PrivateKey25519Companion serialization") {
     forAll() { (seed: Array[Byte], message: Array[Byte]) =>
       val priv = PrivateKey25519Companion.generateKeys(seed)._1
-      val parsed = PrivateKey25519Companion.parseBytes(PrivateKey25519Companion.keyPairBytes(priv))
+      val parsed = PrivateKey25519Serializer.parseBytes(PrivateKey25519Serializer.bytes(priv))
 
       parsed.isSuccess shouldBe true
-      parsed.get._2.address shouldBe priv.publicImage.address
-      PrivateKey25519Companion.sign(parsed.get._1, message)
+      parsed.get.publicImage.address shouldBe priv.publicImage.address
+      PrivateKey25519Companion.sign(parsed.get, message)
         .isValid(priv.publicImage, message) shouldBe true
     }
   }

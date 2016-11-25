@@ -30,7 +30,7 @@ with ObjectGenerators {
         whenever(appName.nonEmpty) {
 
           val h1 = Handshake(appName, av, nodeName, nonce, None, time)
-          val hr1 = Handshake.parseBytes(h1.bytes).get
+          val hr1: Handshake = HandshakeSerializer.parseBytes(h1.bytes).get
           hr1.applicationName should be(h1.applicationName)
           hr1.applicationVersion should be(h1.applicationVersion)
           hr1.declaredAddress should be(h1.declaredAddress)
@@ -38,7 +38,7 @@ with ObjectGenerators {
           hr1.time should be(h1.time)
 
           val h2 = Handshake(appName, av, nodeName, nonce, Some(isa), time)
-          val hr2 = Handshake.parseBytes(h2.bytes).get
+          val hr2 = HandshakeSerializer.parseBytes(h2.bytes).get
           hr2.applicationName should be(h2.applicationName)
           hr2.applicationVersion should be(h2.applicationVersion)
           hr2.declaredAddress should be(h2.declaredAddress)

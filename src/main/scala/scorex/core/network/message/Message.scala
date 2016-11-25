@@ -3,7 +3,7 @@ package scorex.core.network.message
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.crypto.hash.FastCryptographicHash._
 import scorex.core.network.ConnectedPeer
-import scorex.core.serialization.BytesSerializable
+import scorex.core.serialization.{BytesSerializable, Serializer}
 
 import scala.util.{Success, Try}
 
@@ -25,16 +25,26 @@ case class Message[Content](spec: MessageSpec[Content],
 
   lazy val dataLength: Int = dataBytes.length
 
-  lazy val bytes: Array[Byte] = {
-    val dataWithChecksum = if (dataLength > 0) {
-      val checksum = hash(dataBytes).take(ChecksumLength)
-      Bytes.concat(checksum, dataBytes)
-    } else dataBytes //empty array
+  override type M = Message[Content]
 
-    MAGIC ++ Array(spec.messageCode) ++ Ints.toByteArray(dataLength) ++ dataWithChecksum
-  }
+  override def serializer: Serializer[Message[Content]] = new MessageSerializer[Content]
 }
 
+class MessageSerializer[Content] extends Serializer[Message[Content]] {
+  import Message.{ChecksumLength, MAGIC}
+
+  override def bytes(obj: Message[Content]): Array[Byte] = {
+    val dataWithChecksum = if (obj.dataLength > 0) {
+      val checksum = hash(obj.dataBytes).take(ChecksumLength)
+      Bytes.concat(checksum, obj.dataBytes)
+    } else obj.dataBytes //empty array
+
+    MAGIC ++ Array(obj.spec.messageCode) ++ Ints.toByteArray(obj.dataLength) ++ dataWithChecksum
+  }
+
+  //TODO how?
+  override def parseBytes(bytes: Array[Byte]): Try[Message[Content]] = ???
+}
 
 object Message {
   type MessageCode = Byte
