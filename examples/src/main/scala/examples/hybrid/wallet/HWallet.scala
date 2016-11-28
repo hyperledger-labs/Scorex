@@ -39,6 +39,10 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   lazy val boxIds = metaDb.treeSet("ids", Serializer.BYTE_ARRAY).createOrOpen()
 
+  private lazy val walletBoxSerializer =
+    new WalletBoxSerializer[PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)
+
+
   override def generateNewSecret(): HWallet = {
     val apdx = seedAppendix.incrementAndGet()
     val s = FastCryptographicHash(seed ++ Ints.toByteArray(apdx))
@@ -51,13 +55,14 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   //not implemented intentionally for now
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleBoxTransaction]] = ???
 
-  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     boxIds
       .flatMap(id => Option(boxStore.get(ByteArrayWrapper(id))))
       .map(_.data)
-      .map(ba => WalletBoxSerializer.parseBytes[PublicKey25519Proposition, PublicKey25519NoncedBox](ba)(PublicKey25519NoncedBoxSerializer.parseBytes))
+      .map(ba => walletBoxSerializer.parseBytes(ba))
       .map(_.get)
       .toSeq
+  }
 
   override def publicKeys: Set[PublicKey25519Proposition] =
     secretsMap.keyIterator().map(ba => PublicKey25519Proposition(ba)).toSet
@@ -81,7 +86,8 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val newBoxes = txs.flatMap { tx =>
       tx.newBoxes.map { box =>
         boxIds.add(box.id)
-        val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id, tx.timestamp)
+        val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id,
+          tx.timestamp)(PublicKey25519NoncedBoxSerializer)
         ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
       }
     }

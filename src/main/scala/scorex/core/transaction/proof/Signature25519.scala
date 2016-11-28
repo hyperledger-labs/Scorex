@@ -11,7 +11,8 @@ import scala.util.Try
   * @param signature 25519 signature
   */
 case class Signature25519(signature: Array[Byte]) extends ProofOfKnowledge[PrivateKey25519, PublicKey25519Proposition] {
-  require(signature.length == Curve25519.SignatureLength)
+  require(signature.isEmpty || signature.length == Curve25519.SignatureLength,
+    s"${signature.length} != ${Curve25519.SignatureLength}")
 
   override def isValid(proposition: PublicKey25519Proposition, message: Array[Byte]): Boolean =
     Curve25519.verify(signature, message, proposition.bytes)

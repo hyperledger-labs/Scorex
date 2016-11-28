@@ -17,9 +17,11 @@ class SerializationTests extends PropSpec
   with HybridGenerators {
 
   property("WalletBox serialization") {
+    val walletBoxSerializer =
+      new WalletBoxSerializer[PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)
     forAll(walletBoxGen) { b: WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox] =>
-      val parsed = WalletBoxSerializer.parseBytes[PublicKey25519Proposition, PublicKey25519NoncedBox](WalletBoxSerializer.bytes(b))(PublicKey25519NoncedBoxSerializer.parseBytes).get
-      WalletBoxSerializer.bytes(parsed) shouldEqual WalletBoxSerializer.bytes(b)
+      val parsed = walletBoxSerializer.parseBytes(walletBoxSerializer.toBytes(b)).get
+      walletBoxSerializer.toBytes(parsed) shouldEqual walletBoxSerializer.toBytes(b)
     }
   }
 
