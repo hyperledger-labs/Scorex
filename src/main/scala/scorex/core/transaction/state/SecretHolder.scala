@@ -42,8 +42,6 @@ case class PrivateKey25519(privKeyBytes: Array[Byte], publicKeyBytes: Array[Byte
 
   override lazy val companion: SecretCompanion[PrivateKey25519] = PrivateKey25519Companion
 
-  override lazy val bytes: Array[Byte] = privKeyBytes
-
   override lazy val publicImage: PublicKey25519Proposition = PublicKey25519Proposition(publicKeyBytes)
   override type M = PrivateKey25519
 
