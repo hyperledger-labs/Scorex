@@ -1,7 +1,7 @@
 package examples.curvepos.transaction
 
-import com.google.common.primitives.{Ints, Longs}
-import scorex.core.serialization.{BytesParseable, Serializer}
+import com.google.common.primitives.Longs
+import scorex.core.serialization.Serializer
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
