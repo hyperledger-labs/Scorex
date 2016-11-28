@@ -7,6 +7,7 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
+import scorex.crypto.signatures.Curve25519
 
 import scala.util.{Failure, Success}
 
@@ -33,7 +34,7 @@ class SimpleNodeViewHolder(settings: Settings)
     val genesisAcc2 = SimpleWallet(Base58.decode("genesis2").get).publicKeys.head
 
     val IntitialBaseTarget = 15372286700L
-    val generator = PublicKey25519Proposition(Array.fill(SimpleBlock.SignatureLength)(0: Byte))
+    val generator = PublicKey25519Proposition(Array.fill(Curve25519.KeyLength)(0: Byte))
     val toInclude: Seq[SimpleTransaction] = Seq(
       SimplePayment(genesisAcc1, genesisAcc1, 50000000, 0, 1, 0),
       SimplePayment(genesisAcc2, genesisAcc2, 50000000, 0, 1, 0)

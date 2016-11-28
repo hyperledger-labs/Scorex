@@ -10,7 +10,9 @@ import scala.util.{Failure, Success, Try}
 
 case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKnowledgeProposition[PrivateKey25519] {
 
-  require(pubKeyBytes.length == Curve25519.KeyLength)
+  require(pubKeyBytes.length == Curve25519.KeyLength,
+    s"Incorrect pubKey length, ${Curve25519.KeyLength} expected, ${pubKeyBytes.length} found")
+
   import PublicKey25519Proposition._
 
   private def bytesWithVersion: Array[Byte] = AddressVersion +: pubKeyBytes

@@ -1,25 +1,25 @@
 package hybrid.serialization
 
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{PosBlock, PowBlock}
-import examples.hybrid.history.HybridSyncInfo
+import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSerializer}
 import examples.hybrid.state.SimpleBoxTransaction
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.wallet.WalletBox
+import scorex.core.transaction.wallet.{WalletBox, WalletBoxSerializer}
 
 class SerializationTests extends PropSpec
-with PropertyChecks
-with GeneratorDrivenPropertyChecks
-with Matchers
-with HybridGenerators {
+  with PropertyChecks
+  with GeneratorDrivenPropertyChecks
+  with Matchers
+  with HybridGenerators {
 
   property("WalletBox serialization") {
     forAll(walletBoxGen) { b: WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox] =>
-      val parsed = WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](WalletBox.bytes(b))(PublicKey25519NoncedBox.parseBytes).get
-      WalletBox.bytes(parsed) shouldEqual WalletBox.bytes(b)
+      val parsed = WalletBoxSerializer.parseBytes[PublicKey25519Proposition, PublicKey25519NoncedBox](WalletBoxSerializer.bytes(b))(PublicKey25519NoncedBoxSerializer.parseBytes).get
+      WalletBoxSerializer.bytes(parsed) shouldEqual WalletBoxSerializer.bytes(b)
     }
   }
 
@@ -35,7 +35,7 @@ with HybridGenerators {
       val parsed = b.serializer.parseBytes(b.bytes).get
       assert(parsed.brothersCount == b.brothersCount)
       assert(parsed.brothersHash sameElements b.brothersHash)
-      assert(parsed.brothers.headOption.map(ph => ph.brothersHash sameElements b.brothers.head.brothersHash).getOrElse(true))
+      assert(parsed.brothers.headOption.exists(ph => ph.brothersHash sameElements b.brothers.head.brothersHash))
       parsed.bytes shouldEqual b.bytes
     }
   }
@@ -49,7 +49,7 @@ with HybridGenerators {
 
   property("HybridSyncInfo serialization") {
     forAll(hybridSyncInfoGen) { b: HybridSyncInfo =>
-      val parsed = HybridSyncInfo.parse(b.bytes).get
+      val parsed = HybridSyncInfoSerializer.parseBytes(b.bytes).get
       parsed.bytes shouldEqual b.bytes
     }
   }

@@ -1,6 +1,7 @@
 package scorex.core.transaction.wallet
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
+import scorex.core.serialization.BytesSerializable
 import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
@@ -10,14 +11,19 @@ import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
-case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long){
-  lazy val bytes = WalletBox.bytes(this)
+//TODO how?
+//case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long) extends BytesSerializable {
+case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long) {
+  lazy val bytes = WalletBoxSerializer.bytes(this)
 
   override def toString: String = s"WalletBox($box, ${Base58.encode(transactionId)}, $createdAt)"
 }
 
-object WalletBox {
-  def parse[P <: Proposition, B <: Box[P]](bytes: Array[Byte])(boxDeserializer: Array[Byte] => Try[B]): Try[WalletBox[P, B]] = Try {
+
+object WalletBoxSerializer {
+  def parseBytes[P <: Proposition, B <: Box[P]](bytes: Array[Byte])(boxDeserializer: Array[Byte] => Try[B]):
+  Try[WalletBox[P, B]] = Try {
+
     val txId = bytes.slice(0, NodeViewModifier.ModifierIdSize)
     val createdAt = Longs.fromByteArray(
       bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8))

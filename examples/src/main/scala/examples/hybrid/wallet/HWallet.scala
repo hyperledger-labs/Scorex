@@ -3,7 +3,7 @@ package examples.hybrid.wallet
 import java.io.File
 
 import com.google.common.primitives.Ints
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
@@ -14,7 +14,7 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
+import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletBoxSerializer, WalletTransaction}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.utils.Random
@@ -55,7 +55,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     boxIds
       .flatMap(id => Option(boxStore.get(ByteArrayWrapper(id))))
       .map(_.data)
-      .map(ba => WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](ba)(PublicKey25519NoncedBox.parseBytes))
+      .map(ba => WalletBoxSerializer.parseBytes[PublicKey25519Proposition, PublicKey25519NoncedBox](ba)(PublicKey25519NoncedBoxSerializer.parseBytes))
       .map(_.get)
       .toSeq
 
