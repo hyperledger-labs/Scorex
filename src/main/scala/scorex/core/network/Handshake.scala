@@ -26,7 +26,7 @@ case class Handshake(applicationName: String,
 
 object HandshakeSerializer extends Serializer[Handshake] {
 
-  override def bytes(obj: Handshake): Array[Byte] = {
+  override def toBytes(obj: Handshake): Array[Byte] = {
     val anb = obj.applicationName.getBytes
 
     val fab = obj.declaredAddress.map { isa =>

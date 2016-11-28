@@ -15,11 +15,11 @@ case class Message[Content](spec: MessageSpec[Content],
 
   lazy val dataBytes = input match {
     case Left(db) => db
-    case Right(d) => spec.serializeData(d)
+    case Right(d) => spec.toBytes(d)
   }
 
   lazy val data: Try[Content] = input match {
-    case Left(db) => spec.deserializeData(db)
+    case Left(db) => spec.parseBytes(db)
     case Right(d) => Success(d)
   }
 
@@ -33,7 +33,7 @@ case class Message[Content](spec: MessageSpec[Content],
 class MessageSerializer[Content] extends Serializer[Message[Content]] {
   import Message.{ChecksumLength, MAGIC}
 
-  override def bytes(obj: Message[Content]): Array[Byte] = {
+  override def toBytes(obj: Message[Content]): Array[Byte] = {
     val dataWithChecksum = if (obj.dataLength > 0) {
       val checksum = hash(obj.dataBytes).take(ChecksumLength)
       Bytes.concat(checksum, obj.dataBytes)

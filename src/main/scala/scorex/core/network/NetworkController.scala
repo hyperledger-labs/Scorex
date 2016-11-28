@@ -114,7 +114,7 @@ class NetworkController(settings: Settings,
     case Message(spec, Left(msgBytes), Some(remote)) =>
       val msgId = spec.messageCode
 
-      spec.deserializeData(msgBytes) match {
+      spec.parseBytes(msgBytes) match {
         case Success(content) =>
           messageHandlers.find(_._1.contains(msgId)).map(_._2) match {
             case Some(handler) =>

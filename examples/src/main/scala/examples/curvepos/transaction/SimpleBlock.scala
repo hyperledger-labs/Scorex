@@ -76,7 +76,7 @@ object SimpleBlockCompanion extends Serializer[SimpleBlock] {
     }
   }
 
-  override def bytes(block: SimpleBlock): Array[Byte] = {
+  override def toBytes(block: SimpleBlock): Array[Byte] = {
     //TODO use messageToSign
     block.parentId ++
       Longs.toByteArray(block.timestamp) ++

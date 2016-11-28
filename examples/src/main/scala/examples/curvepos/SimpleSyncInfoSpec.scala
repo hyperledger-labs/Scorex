@@ -21,7 +21,7 @@ case class SimpleSyncInfo(answer: Boolean, lastBlockID: NodeViewModifier.Modifie
 
 object SimpleSyncInfoSerializer extends Serializer[SimpleSyncInfo] {
 
-  override def bytes(obj: SimpleSyncInfo): Array[Byte] =
+  override def toBytes(obj: SimpleSyncInfo): Array[Byte] =
     (if (obj.answer) 1: Byte else 0: Byte) +: (obj.lastBlockID ++ obj.score.toByteArray)
 
   def parseBytes(bytes: Array[Byte]): Try[SimpleSyncInfo] = Try {

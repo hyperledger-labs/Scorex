@@ -27,7 +27,7 @@ case class HybridSyncInfo(override val answer: Boolean,
 object HybridSyncInfoSerializer extends Serializer[HybridSyncInfo] {
 
 
-  override def bytes(o: HybridSyncInfo): Array[ModifierTypeId] = {
+  override def toBytes(o: HybridSyncInfo): Array[ModifierTypeId] = {
     ((if (o.answer) 1: Byte else 0: Byte) +: o.bestPowBlockId) ++ o.bestPosBlockId
   }
 

@@ -14,7 +14,7 @@ case class ApplicationVersion(firstDigit: Int, secondDigit: Int, thirdDigit: Int
 object ApplicationVersionSerializer extends Serializer[ApplicationVersion] {
   val SerializedVersionLength = 12
 
-  override def bytes(obj: ApplicationVersion): Array[Byte] =
+  override def toBytes(obj: ApplicationVersion): Array[Byte] =
     Ints.toByteArray(obj.firstDigit) ++ Ints.toByteArray(obj.secondDigit) ++ Ints.toByteArray(obj.thirdDigit)
 
   override def parseBytes(bytes: Array[Byte]): Try[ApplicationVersion] = Try {

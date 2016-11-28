@@ -111,7 +111,7 @@ object PowBlockCompanion extends Serializer[PowBlock] {
     ba ++ b.headerBytes
   }
 
-  override def bytes(modifier: PowBlock): Array[Byte] =
+  override def toBytes(modifier: PowBlock): Array[Byte] =
     modifier.headerBytes ++ modifier.brotherBytes
 
   override def parseBytes(bytes: Array[Byte]): Try[PowBlock] = {

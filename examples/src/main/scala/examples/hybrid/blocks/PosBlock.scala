@@ -48,7 +48,7 @@ Block[PublicKey25519Proposition, SimpleBoxTransaction] {
 }
 
 object PosBlockCompanion extends Serializer[PosBlock] {
-  override def bytes(b: PosBlock): Array[Version] = {
+  override def toBytes(b: PosBlock): Array[Version] = {
     val txsBytes = b.txs.foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }

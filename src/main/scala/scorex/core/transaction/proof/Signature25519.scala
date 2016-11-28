@@ -22,7 +22,7 @@ case class Signature25519(signature: Array[Byte]) extends ProofOfKnowledge[Priva
 }
 
 object Signature25519Serializer extends Serializer[Signature25519] {
-  override def bytes(obj: Signature25519): Array[Byte] = obj.signature
+  override def toBytes(obj: Signature25519): Array[Byte] = obj.signature
 
   override def parseBytes(bytes: Array[Byte]): Try[Signature25519] = Try(Signature25519(bytes))
 }

@@ -27,7 +27,7 @@ class SigningFunctionsSpecification extends PropSpec
   property("PrivateKey25519Companion serialization") {
     forAll() { (seed: Array[Byte], message: Array[Byte]) =>
       val priv = PrivateKey25519Companion.generateKeys(seed)._1
-      val parsed = PrivateKey25519Serializer.parseBytes(PrivateKey25519Serializer.bytes(priv))
+      val parsed = PrivateKey25519Serializer.parseBytes(PrivateKey25519Serializer.toBytes(priv))
 
       parsed.isSuccess shouldBe true
       parsed.get.publicImage.address shouldBe priv.publicImage.address

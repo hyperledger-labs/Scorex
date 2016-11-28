@@ -39,7 +39,7 @@ case class SimplePayment(sender: PublicKey25519Proposition,
 object SimplePaymentCompanion extends Serializer[SimplePayment] {
   val TransactionLength: Int = 2 * Constants25519.PubKeyLength + 32
 
-  override def bytes(m: SimplePayment): Array[Byte] = {
+  override def toBytes(m: SimplePayment): Array[Byte] = {
     m.sender.bytes ++
       m.recipient.bytes ++
       Longs.toByteArray(m.amount) ++

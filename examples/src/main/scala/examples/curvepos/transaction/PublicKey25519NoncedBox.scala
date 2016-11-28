@@ -21,7 +21,7 @@ case class PublicKey25519NoncedBox(
 object PublicKey25519NoncedBoxSerializer extends Serializer[PublicKey25519NoncedBox] {
 
 
-  override def bytes(obj: PublicKey25519NoncedBox): Array[Byte] =  {
+  override def toBytes(obj: PublicKey25519NoncedBox): Array[Byte] =  {
     obj.proposition.pubKeyBytes ++ Longs.toByteArray(obj.nonce) ++ Longs.toByteArray(obj.value)
   } 
 

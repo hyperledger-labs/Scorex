@@ -25,9 +25,9 @@ class SyncInfoSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) extends
   override val messageCode: MessageCode = 65: Byte
   override val messageName: String = "Sync"
 
-  override def deserializeData(bytes: Array[Byte]): Try[SI] = deserializer(bytes)
+  override def parseBytes(bytes: Array[Byte]): Try[SI] = deserializer(bytes)
 
-  override def serializeData(data: SI): Array[Byte] = data.bytes
+  override def toBytes(data: SI): Array[Byte] = data.bytes
 }
 
 object InvSpec extends MessageSpec[InvData] {
@@ -37,7 +37,7 @@ object InvSpec extends MessageSpec[InvData] {
   override val messageCode: MessageCode = 55: Byte
   override val messageName: String = "Inv"
 
-  override def deserializeData(bytes: Array[Byte]): Try[InvData] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[InvData] = Try {
     val typeId = bytes.head
     val count = Ints.fromByteArray(bytes.slice(1, 5))
 
@@ -51,7 +51,7 @@ object InvSpec extends MessageSpec[InvData] {
     typeId -> elems
   }
 
-  override def serializeData(data: InvData): Array[Byte] = {
+  override def toBytes(data: InvData): Array[Byte] = {
     require(data._2.nonEmpty, "empty inv list")
     require(data._2.size <= MaxObjects, s"more invs than $MaxObjects in a message")
     data._2.foreach(e => require(e.length == NodeViewModifier.ModifierIdSize))
@@ -67,11 +67,11 @@ object RequestModifierSpec
   override val messageCode: MessageCode = 22: Byte
   override val messageName: String = "RequestModifier"
 
-  override def serializeData(typeAndId: InvData): Array[Byte] =
-    InvSpec.serializeData(typeAndId)
+  override def toBytes(typeAndId: InvData): Array[Byte] =
+    InvSpec.toBytes(typeAndId)
 
-  override def deserializeData(bytes: Array[Byte]): Try[InvData] =
-    InvSpec.deserializeData(bytes)
+  override def parseBytes(bytes: Array[Byte]): Try[InvData] =
+    InvSpec.parseBytes(bytes)
 }
 
 
@@ -80,7 +80,7 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
   override val messageCode: MessageCode = 33: Byte
   override val messageName: String = "Modifier"
 
-  override def deserializeData(bytes: Array[Byte]): Try[ModifiersData] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[ModifiersData] = Try {
     val typeId = bytes.head
     val count = Ints.fromByteArray(bytes.slice(1, 5))
     val objBytes = bytes.slice(5, bytes.length)
@@ -96,7 +96,7 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
     typeId -> seq.toMap
   }
 
-  override def serializeData(data: ModifiersData): Array[Byte] = {
+  override def toBytes(data: ModifiersData): Array[Byte] = {
     require(data._2.nonEmpty, "empty modifiers list")
     val typeId = data._1
     val modifiers = data._2
@@ -111,10 +111,10 @@ object GetPeersSpec extends MessageSpec[Unit] {
 
   override val messageName: String = "GetPeers message"
 
-  override def deserializeData(bytes: Array[Byte]): Try[Unit] =
+  override def parseBytes(bytes: Array[Byte]): Try[Unit] =
     Try(require(bytes.isEmpty, "Non-empty data for GetPeers"))
 
-  override def serializeData(data: Unit): Array[Byte] = Array()
+  override def toBytes(data: Unit): Array[Byte] = Array()
 }
 
 object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
@@ -126,7 +126,7 @@ object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
 
   override val messageName: String = "Peers message"
 
-  override def deserializeData(bytes: Array[Byte]): Try[Seq[InetSocketAddress]] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[Seq[InetSocketAddress]] = Try {
     val lengthBytes = util.Arrays.copyOfRange(bytes, 0, DataLength)
     val length = Ints.fromByteArray(lengthBytes)
 
@@ -141,7 +141,7 @@ object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
     }
   }
 
-  override def serializeData(peers: Seq[InetSocketAddress]): Array[Byte] = {
+  override def toBytes(peers: Seq[InetSocketAddress]): Array[Byte] = {
     val length = peers.size
     val lengthBytes = Ints.toByteArray(length)
 

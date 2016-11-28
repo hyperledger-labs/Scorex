@@ -15,8 +15,8 @@ with ExampleGenerators {
   property("Block serialization") {
     forAll(blockGenerator) { b: SimpleBlock =>
       val companion = b.serializer
-      val recovered = companion.parseBytes(companion.bytes(b)).get
-      companion.bytes(b) shouldEqual companion.bytes(recovered)
+      val recovered = companion.parseBytes(companion.toBytes(b)).get
+      companion.toBytes(b) shouldEqual companion.toBytes(recovered)
     }
   }
 
