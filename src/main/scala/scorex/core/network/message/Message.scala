@@ -11,8 +11,6 @@ case class Message[Content](spec: MessageSpec[Content],
                             input: Either[Array[Byte], Content],
                             source: Option[ConnectedPeer]) extends BytesSerializable {
 
-  import Message.{ChecksumLength, MAGIC}
-
   lazy val dataBytes = input match {
     case Left(db) => db
     case Right(d) => spec.toBytes(d)
@@ -31,6 +29,7 @@ case class Message[Content](spec: MessageSpec[Content],
 }
 
 class MessageSerializer[Content] extends Serializer[Message[Content]] {
+
   import Message.{ChecksumLength, MAGIC}
 
   override def toBytes(obj: Message[Content]): Array[Byte] = {
@@ -42,7 +41,7 @@ class MessageSerializer[Content] extends Serializer[Message[Content]] {
     MAGIC ++ Array(obj.spec.messageCode) ++ Ints.toByteArray(obj.dataLength) ++ dataWithChecksum
   }
 
-  //TODO how?
+  //TODO move MessageHandler.parseBytes here
   override def parseBytes(bytes: Array[Byte]): Try[Message[Content]] = ???
 }
 

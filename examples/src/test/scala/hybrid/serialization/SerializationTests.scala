@@ -16,6 +16,13 @@ class SerializationTests extends PropSpec
   with Matchers
   with HybridGenerators {
 
+  property("SimpleBoxTransaction serialization") {
+    forAll(simpleBoxTransactionGen) { b: SimpleBoxTransaction =>
+      val parsed = b.serializer.parseBytes(b.bytes).get
+      parsed.bytes shouldEqual b.bytes
+    }
+  }
+
   property("WalletBox serialization") {
     val walletBoxSerializer =
       new WalletBoxSerializer[PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)
@@ -38,13 +45,6 @@ class SerializationTests extends PropSpec
       assert(parsed.brothersCount == b.brothersCount)
       assert(parsed.brothersHash sameElements b.brothersHash)
       assert(parsed.brothers.headOption.exists(ph => ph.brothersHash sameElements b.brothers.head.brothersHash))
-      parsed.bytes shouldEqual b.bytes
-    }
-  }
-
-  property("SimpleBoxTransaction serialization") {
-    forAll(simpleBoxTransactionGen) { b: SimpleBoxTransaction =>
-      val parsed = b.serializer.parseBytes(b.bytes).get
       parsed.bytes shouldEqual b.bytes
     }
   }

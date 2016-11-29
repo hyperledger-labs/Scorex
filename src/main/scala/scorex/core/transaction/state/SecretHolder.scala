@@ -37,6 +37,9 @@ trait SecretCompanion[S <: Secret] {
 }
 
 case class PrivateKey25519(privKeyBytes: Array[Byte], publicKeyBytes: Array[Byte]) extends Secret {
+  require(privKeyBytes.length == Curve25519.KeyLength, s"${privKeyBytes.length} == ${Curve25519.KeyLength}")
+  require(publicKeyBytes.length == Curve25519.KeyLength, s"${publicKeyBytes.length} == ${Curve25519.KeyLength}")
+
   override type S = PrivateKey25519
   override type PK = PublicKey25519Proposition
 
@@ -67,8 +70,9 @@ object PrivateKey25519Companion extends SecretCompanion[PrivateKey25519] {
     }
   }
 
-  override def sign(secret: PrivateKey25519, message: Array[Byte]): Signature25519 =
-    Signature25519(Curve25519.sign(secret.bytes, message))
+  override def sign(secret: PrivateKey25519, message: Array[Byte]): Signature25519 = {
+    Signature25519(Curve25519.sign(secret.privKeyBytes, message))
+  }
 
   override def verify(message: Array[Byte], publicImage: PublicKey25519Proposition, proof: Signature25519): Boolean =
     Curve25519.verify(proof.signature, message, publicImage.bytes)
