@@ -46,8 +46,8 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   override def generateNewSecret(): HWallet = {
     val apdx = seedAppendix.incrementAndGet()
     val s = FastCryptographicHash(seed ++ Ints.toByteArray(apdx))
-    val (priv, pub) = PrivateKey25519Companion.generateKeys(s)
-    secretsMap.put(pub.bytes, priv.bytes)
+    val (priv, _) = PrivateKey25519Companion.generateKeys(s)
+    secretsMap.put(priv.publicKeyBytes, priv.privKeyBytes)
     metaDb.commit()
     HWallet(seed, boxStore, metaDb)
   }

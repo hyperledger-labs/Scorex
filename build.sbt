@@ -116,12 +116,6 @@ lazy val commonSettings = Seq(
 lazy val examples = Project(id = "examples", base = file(s"examples"))
   .dependsOn(basics)
   .settings(commonSettings: _*)
-  .settings(
-    testOptions in Test := Seq(Tests.Filter(_.matches(".*TestSuite$")))
-  )
 
 lazy val basics = Project(id = "scorex", base = file("."))
   .settings(commonSettings: _*)
-  .settings(
-    testOptions in Test := Seq(Tests.Filter(_.matches(".*TestSuite$")))
-  )
