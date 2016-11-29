@@ -192,20 +192,22 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     //todo: check PoS rules
   }
 
+  /**
+    * find common suffixes for two chains
+    * returns last common block and then variant blocks for two chains,
+    * longer one and a loser
+    */
+  final def suffixesAfterCommonBlock(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
 
-  //find an id for common parent of two pow blocks with given ids
-  //for parameters, ids are going from genesis to current block
+    val idx = loserChain.indexWhere(blockId => !winnerChain.exists(_.sameElements(blockId)))
+    assert(idx != 0)
 
-  @tailrec
-  private def suffixesAfterCommonBlock(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
-    val c1h = winnerChain.head
-    val c2h = loserChain.head
+    val lc = if (idx == -1) loserChain.slice(loserChain.length - 1, loserChain.length)
+    else loserChain.slice(idx - 1, loserChain.length)
 
-    if (loserChain.contains(c1h)) {
-      (winnerChain, loserChain.dropWhile(id => !(id sameElements c2h)))
-    } else if (winnerChain.contains(c2h)) {
-      (winnerChain.dropWhile(id => !(id sameElements c2h)), loserChain)
-    } else suffixesAfterCommonBlock(blockById(c1h).get.parentId +: winnerChain, blockById(c2h).get.parentId +: loserChain)
+    val wc = winnerChain.dropWhile(blockId => !blockId.sameElements(lc.head))
+
+    (wc, lc)
   }
 
   private def writeBlock(b: HybridPersistentNodeViewModifier) = {

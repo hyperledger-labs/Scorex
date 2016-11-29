@@ -42,6 +42,12 @@ trait HybridGenerators extends ObjectGenerators {
     to: IndexedSeq[(PublicKey25519Proposition, Long)] <- Gen.nonEmptyListOf(pGen).map(_.toIndexedSeq)
   } yield SimpleBoxTransaction(from, to, fee, timestamp)
 
+  lazy val blockIdGen: Gen[BlockId] = genBytesList(Block.BlockIdLength)
+
+  lazy val blockIdsGen: Gen[Seq[BlockId]] = Gen.listOf(blockIdGen)
+
+  lazy val nonEmptyBlockIdsGen: Gen[Seq[BlockId]] = Gen.nonEmptyListOf(blockIdGen)
+
   lazy val posBlockGen: Gen[PosBlock] = for {
     parentId: BlockId <- genBytesList(Block.BlockIdLength)
     timestamp: Long <- positiveLongGen
