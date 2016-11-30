@@ -192,20 +192,22 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     //todo: check PoS rules
   }
 
+  /**
+    * find common suffixes for two chains
+    * returns last common block and then variant blocks for two chains,
+    * longer one and a loser
+    */
+  final def suffixesAfterCommonBlock(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
 
-  //find an id for common parent of two pow blocks with given ids
-  //for parameters, ids are going from genesis to current block
+    val idx = loserChain.indexWhere(blockId => !winnerChain.exists(_.sameElements(blockId)))
+    assert(idx != 0)
 
-  @tailrec
-  private def suffixesAfterCommonBlock(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
-    val c1h = winnerChain.head
-    val c2h = loserChain.head
+    val lc = if (idx == -1) loserChain.slice(loserChain.length - 1, loserChain.length)
+    else loserChain.slice(idx - 1, loserChain.length)
 
-    if (loserChain.contains(c1h)) {
-      (winnerChain, loserChain.dropWhile(id => !(id sameElements c2h)))
-    } else if (winnerChain.contains(c2h)) {
-      (winnerChain.dropWhile(id => !(id sameElements c2h)), loserChain)
-    } else suffixesAfterCommonBlock(blockById(c1h).get.parentId +: winnerChain, blockById(c2h).get.parentId +: loserChain)
+    val wc = winnerChain.dropWhile(blockId => !blockId.sameElements(lc.head))
+
+    (wc, lc)
   }
 
   private def writeBlock(b: HybridPersistentNodeViewModifier) = {
@@ -445,36 +447,4 @@ object HybridHistory extends ScorexLogging {
     val logDirOpt = settings.logDirOpt
     new HybridHistory(blockStorage, metaDb, logDirOpt)
   }
-}
-
-
-//todo: convert to a test
-object HistoryPlayground extends App {
-  val settings = new Settings with MiningSettings {
-    override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
-  }
-
-  val b = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L, 0, Array.fill(32)(0: Byte), Seq())
-
-  val h = HybridHistory.readOrGenerate(settings)
-
-  val h2 = h.append(b).get._1
-
-  assert(h2.blockById(b.id).isDefined)
-
-  val priv1 = PrivateKey25519Companion.generateKeys(Array.fill(32)(0: Byte))
-  val priv2 = PrivateKey25519Companion.generateKeys(Array.fill(32)(1: Byte))
-
-  val from = IndexedSeq(priv1._1 -> 500L, priv2._1 -> 1000L)
-  val to = IndexedSeq(priv2._2 -> 1500L)
-  val fee = 500L
-  val timestamp = System.currentTimeMillis()
-
-  val tx = SimpleBoxTransaction(from, to, fee, timestamp)
-
-  val posBlock = PosBlock(b.id, 0L, Seq(tx), priv1._2, Signature25519(Array.fill(Signature25519.SignatureSize)(0: Byte)))
-
-  val h3 = h2.append(posBlock).get._1
-
-  assert(h3.blockById(posBlock.id).isDefined)
 }

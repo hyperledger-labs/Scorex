@@ -25,7 +25,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
                                 signatures: IndexedSeq[Signature25519],
                                 override val fee: Long,
                                 override val timestamp: Long) extends
-BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
+  BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
 
   override type M = SimpleBoxTransaction
 
@@ -59,7 +59,7 @@ BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
   override lazy val json: Json = ???
 
   //stateless validation
-  lazy val valid: Boolean = {
+  lazy val isValid: Boolean = {
     from.size == signatures.size &&
       to.forall(_._2 >= 0) &&
       fee >= 0 &&
@@ -131,34 +131,4 @@ object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBox
     }
     SimpleBoxTransaction(from, to, signatures, fee, timestamp)
   }
-}
-
-
-//todo: for Am - convert into test
-object TxPlayground extends App {
-  val priv1 = PrivateKey25519Companion.generateKeys(Array.fill(32)(0: Byte))
-  val priv2 = PrivateKey25519Companion.generateKeys(Array.fill(32)(1: Byte))
-
-  val from = IndexedSeq(priv1._1 -> 500L, priv2._1 -> 1000L)
-  val to = IndexedSeq(priv2._2 -> 1500L)
-  val fee = 500L
-  val timestamp = System.currentTimeMillis()
-
-  val tx = SimpleBoxTransaction(from, to, fee, timestamp)
-
-  assert(tx.valid)
-
-  val wrongSig = Array.fill(1)(0: Byte) ++ tx.signatures.head.bytes.tail
-  val wrongSigsSer = Seq(wrongSig) ++ tx.signatures.tail.map(_.bytes)
-  val wrongSigs = wrongSigsSer.map(bs => Signature25519(bs)).toIndexedSeq
-
-  val fromPub = IndexedSeq(priv1._2 -> 500L, priv2._2 -> 1000L)
-  val wrongTx = new SimpleBoxTransaction(fromPub, to, wrongSigs, fee, timestamp)
-
-  assert(!wrongTx.valid)
-
-  val wrongFromPub = IndexedSeq(priv1._2 -> 100L, priv2._2 -> 1000L)
-  val wrongTx2 = new SimpleBoxTransaction(wrongFromPub, to, tx.signatures, fee, timestamp)
-
-  assert(!wrongTx2.valid)
 }

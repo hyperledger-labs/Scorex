@@ -6,11 +6,14 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
+import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
 case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long){
   lazy val bytes = WalletBox.bytes(this)
+
+  override def toString: String = s"WalletBox($box, ${Base58.encode(transactionId)}, $createdAt)"
 }
 
 object WalletBox {
@@ -32,7 +35,6 @@ case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](proposition
                                                                      blockId: Option[NodeViewModifier.ModifierId],
                                                                      createdAt: Long)
 
-//todo: for Dmitry
 object WalletTransaction {
   def parse[P <: Proposition, TX <: Transaction[P]](bytes: Array[Byte])
                                                    (propDeserializer: Array[Byte] => Try[P],
@@ -69,12 +71,8 @@ object WalletTransaction {
     val txBytes = wt.tx.bytes
     val bIdBytes = wt.blockId.map(id => Array(1: Byte) ++ id).getOrElse(Array(0: Byte))
 
-    Ints.toByteArray(propBytes.length) ++
-      propBytes ++
-      Ints.toByteArray(txBytes.length) ++
-      txBytes ++
-      bIdBytes ++
-      Longs.toByteArray(wt.createdAt)
+    Bytes.concat(Ints.toByteArray(propBytes.length), propBytes, Ints.toByteArray(txBytes.length), txBytes, bIdBytes,
+      Longs.toByteArray(wt.createdAt))
   }
 }
 

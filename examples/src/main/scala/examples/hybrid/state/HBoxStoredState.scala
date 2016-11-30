@@ -5,8 +5,6 @@ import java.io.File
 import com.google.common.primitives.Longs
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
-import examples.hybrid.mining.MiningSettings
-import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
@@ -37,7 +35,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
   private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
 
   override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
-    assert(tx.valid)
+    assert(tx.isValid)
   }
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = {
@@ -51,7 +49,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
   //there's no an easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: HPMOD):Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+  override def changes(mod: HPMOD): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     mod match {
       case pb: PowBlock => Success(PowChanges)
       case ps: PosBlock =>
@@ -121,22 +119,4 @@ object HBoxStoredState {
 
   def genesisState(settings: Settings, initialBlock: PosBlock): HBoxStoredState =
     readOrGenerate(settings).applyModifier(initialBlock).get
-}
-
-
-//todo: convert to tests
-object HStatePlayground extends App {
-  val settings = new Settings with MiningSettings {
-    override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
-  }
-
-  val s0 = HBoxStoredState.readOrGenerate(settings)
-
-  val b = PublicKey25519NoncedBox(PublicKey25519Proposition(Array.fill(32)(0:Byte)), 10000L, 500L)
-
-  val c = StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set(b))
-
-  val s1 = s0.applyChanges(c, Array.fill(32)(0: Byte)).get
-
-  assert(s1.closedBox(b.id).isDefined)
 }
