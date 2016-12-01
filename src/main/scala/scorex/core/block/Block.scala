@@ -30,8 +30,6 @@ trait Block[P <: Proposition, TX <: Transaction[P]]
 
   def version: Version
 
-  def parentId: NodeViewModifier.ModifierId
-
   def encodedId: String = Base58.encode(id)
 
   def json: Json
