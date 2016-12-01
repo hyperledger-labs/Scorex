@@ -41,14 +41,11 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
     }
   }
 
-  //todo: should be ID | Seq[ID]
   override def openSurfaceIds(): Seq[ModifierId] = Seq(blockIds(height()))
 
-  //todo: argument should be ID | Seq[ID]
   override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[SimpleBlock]] =
   continuationIds(from, size).map(_.map(_._2).map(blockById).map(_.get))
 
-  //todo: argument should be ID | Seq[ID]
   override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
     require(from.size == 1)
     require(from.head._1 == SimpleBlock.ModifierTypeId)
