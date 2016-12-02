@@ -35,7 +35,7 @@ with HybridGenerators {
       val parsed = b.companion.parse(b.bytes).get
       assert(parsed.brothersCount == b.brothersCount)
       assert(parsed.brothersHash sameElements b.brothersHash)
-      assert(parsed.brothers.headOption.map(ph => ph.brothersHash sameElements b.brothers.head.brothersHash).getOrElse(true))
+      assert(parsed.brothers.headOption.forall(ph => ph.brothersHash sameElements b.brothers.head.brothersHash))
       parsed.bytes shouldEqual b.bytes
     }
   }

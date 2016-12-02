@@ -4,6 +4,7 @@ import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.state.SimpleBoxTransaction._
 import io.circe.Json
+import io.circe.syntax._
 import scorex.core.NodeViewModifierCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.BoxTransaction
@@ -12,6 +13,7 @@ import scorex.core.transaction.box.BoxUnlocker
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
+import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
@@ -55,8 +57,23 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 
   override lazy val companion = SimpleBoxTransactionCompanion
 
-  //todo: for Dmitry - implement
-  override lazy val json: Json = ???
+  override lazy val json: Json = Map(
+    "from" -> from.map { s =>
+      Map(
+        "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
+        "nonce" -> s._2.asJson
+      ).asJson
+    }.asJson,
+    "to" -> from.map { s =>
+      Map(
+        "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
+        "value" -> s._2.asJson
+      ).asJson
+    }.asJson,
+    "signatures" -> signatures.map(s => Base58.encode(s.signature).asJson).asJson,
+    "fee" -> fee.asJson,
+    "timestamp" -> timestamp.asJson
+  ).asJson
 
   //stateless validation
   lazy val isValid: Boolean = {
