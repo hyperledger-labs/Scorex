@@ -38,7 +38,7 @@ class HybridHistorySpecification extends PropSpec
     }
   }
 
-  property("suffixesAfterCommonBlock finds correct suffixes") {
+  property("commonBlockThenSuffixes finds correct suffixes") {
     forAll(nonEmptyBlockIdsGen, blockIdsGen, blockIdsGen) { case (prefix, suffix1, suffix2) =>
 
       val (winnerChain, loserChain) = (prefix ++ suffix1, prefix ++ suffix2)
@@ -50,7 +50,7 @@ class HybridHistorySpecification extends PropSpec
           && winnerChain.forall(blockId => winnerChain.count(_.sameElements(blockId)) == 1)
           && loserChain.forall(blockId => loserChain.count(_.sameElements(blockId)) == 1)
       ) {
-        val (s1, s2) = history.suffixesAfterCommonBlock(winnerChain, loserChain)
+        val (s1, s2) = history.commonBlockThenSuffixes(winnerChain, loserChain)
         s1.length shouldBe suffix1.length + 1
         s2.length shouldBe  suffix2.length + 1
         s1.tail.headOption.getOrElse(Array()).sameElements(s2.tail.headOption.getOrElse(Array())) shouldBe false

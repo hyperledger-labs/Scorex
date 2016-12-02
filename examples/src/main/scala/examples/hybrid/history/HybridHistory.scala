@@ -197,7 +197,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     * returns last common block and then variant blocks for two chains,
     * longer one and a loser
     */
-  final def suffixesAfterCommonBlock(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
+  final def commonBlockThenSuffixes(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
 
     val idx = loserChain.indexWhere(blockId => !winnerChain.exists(_.sameElements(blockId)))
     assert(idx != 0)
@@ -260,7 +260,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
           if (blockScore > currentScoreVar.get()) {
             //check for chain switching
             if (!(powBlock.parentId sameElements bestPowId)) {
-              val (newSuffix, oldSuffix) = suffixesAfterCommonBlock(Seq(powBlock.parentId), Seq(bestPowBlock.parentId, bestPowId))
+              val (newSuffix, oldSuffix) = commonBlockThenSuffixes(Seq(powBlock.parentId), Seq(bestPowBlock.parentId, bestPowId))
 
               //decrement
               orphanCountVar.addAndGet(oldSuffix.size - newSuffix.size)
