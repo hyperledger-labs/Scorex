@@ -57,7 +57,19 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 
   override lazy val companion = SimpleBoxTransactionCompanion
 
+  //stateless validation
+  lazy val isValid: Boolean = {
+    from.size == signatures.size &&
+      to.forall(_._2 >= 0) &&
+      fee >= 0 &&
+      timestamp >= 0 &&
+      from.zip(signatures).forall { case ((prop, _), proof) =>
+        proof.isValid(prop, messageToSign)
+      }
+  }
+
   override lazy val json: Json = Map(
+    "id" -> Base58.encode(id).asJson,
     "from" -> from.map { s =>
       Map(
         "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
@@ -75,16 +87,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     "timestamp" -> timestamp.asJson
   ).asJson
 
-  //stateless validation
-  lazy val isValid: Boolean = {
-    from.size == signatures.size &&
-      to.forall(_._2 >= 0) &&
-      fee >= 0 &&
-      timestamp >= 0 &&
-      from.zip(signatures).forall { case ((prop, _), proof) =>
-        proof.isValid(prop, messageToSign)
-      }
-  }
+  override def toString: String = s"PoSBlock(${json.noSpaces})"
 }
 
 

@@ -3,6 +3,7 @@ package examples.hybrid.blocks
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.hybrid.state.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Json
+import io.circe.syntax._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.NodeViewModifierCompanion
 import scorex.core.block.Block
@@ -22,7 +23,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
                     generator: PublicKey25519Proposition,
                     signature: Signature25519
                    ) extends HybridPersistentNodeViewModifier with
-Block[PublicKey25519Proposition, SimpleBoxTransaction] {
+  Block[PublicKey25519Proposition, SimpleBoxTransaction] {
   override type M = PosBlock
 
   override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = Some(txs)
@@ -36,10 +37,16 @@ Block[PublicKey25519Proposition, SimpleBoxTransaction] {
   override lazy val id: ModifierId =
     FastCryptographicHash(parentId ++ Longs.toByteArray(timestamp) ++ generator.pubKeyBytes)
 
-  override def json: Json = ???
+  override def json: Json = Map(
+    "id" -> Base58.encode(id).asJson,
+    "parentId" -> Base58.encode(parentId).asJson,
+    "timestamp" -> timestamp.asJson,
+    "transactions" -> txs.map(_.json).asJson,
+    "generator" -> Base58.encode(generator.bytes).asJson,
+    "signature" -> Base58.encode(signature.bytes).asJson
+  ).asJson
 
-  override def toString = s"PosBlock(parentId: ${Base58.encode(parentId)}, timestamp: $timestamp. transactions: $txs," +
-    s"generator: ${Base58.encode(generator.bytes)}, signature: ${Base58.encode(signature.bytes)})"
+  override def toString: String = json.noSpaces
 }
 
 object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
@@ -51,7 +58,7 @@ object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
   }
 
   override def parse(bytes: Array[Version]): Try[PosBlock] = Try {
-//    assert(bytes.length <= PosBlock.MaxBlockSize)
+    //    assert(bytes.length <= PosBlock.MaxBlockSize)
 
     val parentId = bytes.slice(0, BlockIdLength)
     var position = BlockIdLength
@@ -79,6 +86,7 @@ object PosBlockCompanion extends NodeViewModifierCompanion[PosBlock] {
 }
 
 object PosBlock {
-  val MaxBlockSize = 65535          //64K
+  val MaxBlockSize = 65535
+  //64K
   val ModifierTypeId = 4: Byte
 }
