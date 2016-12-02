@@ -4,4 +4,4 @@ jdk:
 scala:
 - 2.11.8
 script:
-   - sbt "project examples test" && sbt test
+   - sbt "project examples" "test" && sbt test
