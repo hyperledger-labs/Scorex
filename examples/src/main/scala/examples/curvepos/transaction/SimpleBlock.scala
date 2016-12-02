@@ -25,9 +25,6 @@ case class SimpleBlock(override val parentId: BlockId,
 
   override type M = SimpleBlock
 
-  override type BlockFields = BlockId :: Timestamp :: Version ::
-    GenerationSignature :: BaseTarget :: PublicKey25519Proposition :: Seq[SimpleTransaction] :: HNil
-
   override lazy val modifierTypeId: Byte = SimpleBlock.ModifierTypeId
 
   override lazy val transactions: Option[Seq[SimpleTransaction]] = Some(txs)
@@ -37,9 +34,6 @@ case class SimpleBlock(override val parentId: BlockId,
   override lazy val id: BlockId = FastCryptographicHash(serializer.messageToSign(this))
 
   override lazy val version: Version = 0: Byte
-
-  override lazy val blockFields: BlockFields = parentId :: timestamp :: version :: generationSignature :: baseTarget ::
-    generator :: txs :: HNil
 
   override lazy val json: Json = Map(
     "id" -> Base58.encode(id).asJson,

@@ -3,7 +3,6 @@ package examples.hybrid.blocks
 import com.google.common.primitives.{Ints, Longs}
 import examples.hybrid.mining.PowMiner._
 import examples.hybrid.state.SimpleBoxTransaction
-import shapeless.{::, HNil}
 import io.circe.Json
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.NodeViewModifier
@@ -83,16 +82,12 @@ case class PowBlock(override val parentId: BlockId,
 
   override lazy val serializer = PowBlockCompanion
 
-  override type BlockFields = BlockId :: BlockId :: Block.Timestamp :: Long :: HNil
-
   override lazy val version: Version = 0: Byte
 
   // no transactions a PoW block carries on
   override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = None
 
   override lazy val modifierTypeId: ModifierTypeId = PowBlock.ModifierTypeId
-
-  override lazy val blockFields: BlockFields = parentId :: prevPosId :: timestamp :: nonce :: HNil
 
   override lazy val json: Json = ???
 

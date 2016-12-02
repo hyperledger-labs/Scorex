@@ -8,7 +8,6 @@ import scorex.crypto.encode.Base58
 import scorex.core.serialization.{JsonSerializable, Serializer}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction._
-import shapeless.HList
 
 /**
   * A block is an atomic piece of data network participates are agreed on.
@@ -29,19 +28,13 @@ import shapeless.HList
 trait Block[P <: Proposition, TX <: Transaction[P]]
   extends PersistentNodeViewModifier[P, TX] with JsonSerializable {
 
-  type BlockFields <: HList
-
   def version: Version
-
-  def parentId: NodeViewModifier.ModifierId
 
   def encodedId: String = Base58.encode(id)
 
   def json: Json
 
   def timestamp: Timestamp
-
-  def blockFields: BlockFields
 }
 
 object Block {
@@ -57,8 +50,6 @@ trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
   extends Serializer[B] {
 
   def isValid(block: B): Boolean
-
-  def build(blockFields: B#BlockFields): B
 
   /**
     * Get block producers(miners/forgers). Usually one miner produces a block, but in some proposals not

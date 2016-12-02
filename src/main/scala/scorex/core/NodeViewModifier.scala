@@ -21,14 +21,15 @@ trait NodeViewModifier extends BytesSerializable with JsonSerializable {
 
 /**
   * It is supposed that all the modifiers (offchain transactions, blocks, blockheaders etc)
-  * are of the some length fixed with the ModifierIdSize constant
+  * have identifiers of the some length fixed with the ModifierIdSize constant
   */
 object NodeViewModifier {
+  val DefaultIdSize = 32 // in bytes
 
   type ModifierTypeId = Byte
   type ModifierId = Array[Byte]
 
-  val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(32)
+  val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(DefaultIdSize)
 }
 
 

@@ -33,7 +33,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     super.preRestart(reason, message)
     reason.printStackTrace()
-    System.exit(100)
+    System.exit(100) // this actor shouldn't be restarted so kill the whole app if that happened
   }
 
   /**
@@ -70,14 +70,11 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     */
   override def restoreState(): Option[(HIS, MS, VL, MP)] = {
     if(HWallet.exists(settings)) {
-      /*
-      todo: commented due to a bug in IODB, uncomment after fix
       Some((
         HybridHistory.readOrGenerate(settings),
         HBoxStoredState.readOrGenerate(settings),
         HWallet.readOrGenerate(settings),
-        HMemPool.emptyPool))*/
-      None
+        HMemPool.emptyPool))
     } else None
   }
 }

@@ -12,7 +12,6 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
-import shapeless.{::, HNil}
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -26,15 +25,11 @@ case class PosBlock(override val parentId: BlockId, //PoW block
 Block[PublicKey25519Proposition, SimpleBoxTransaction] {
   override type M = PosBlock
 
-  override type BlockFields = BlockId :: Timestamp :: Seq[SimpleBoxTransaction] :: PublicKey25519Proposition :: Signature25519 :: HNil
-
   override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = Some(txs)
 
   override lazy val serializer = PosBlockCompanion
 
   override lazy val version: Version = 0: Byte
-
-  override lazy val blockFields = parentId :: timestamp :: txs :: generator :: signature :: HNil
 
   override lazy val modifierTypeId: ModifierTypeId = PosBlock.ModifierTypeId
 
