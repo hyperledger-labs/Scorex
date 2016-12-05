@@ -7,7 +7,6 @@ import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBl
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
-import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
@@ -48,7 +47,7 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
       val target = MaxTarget / h.posDifficulty
 
       val boxes = w.boxes().map(_.box)
-      println(s"${boxes.size} stakeholding outputs")
+      log.debug(s"${boxes.size} stakeholding outputs")
 
       //last check on whether to forge at all
       if (h.pairCompleted) {
@@ -57,13 +56,13 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
         val powBlock = h.bestPowBlock
         posIteration(powBlock, boxes, pickTransactions(m, s), target) match {
           case Some(posBlock) =>
-            println(s"locally generated PoS block: $posBlock")
+            log.debug(s"Locally generated PoS block: $posBlock")
             forging = false
             viewHolderRef !
               LocallyGeneratedModifier[PublicKey25519Proposition,
                 SimpleBoxTransaction, HybridPersistentNodeViewModifier](posBlock)
           case None =>
-            (1 to 10).foreach(_ => println("stuck"))
+            log.debug(s"Failed to generate PoS block")
         }
       }
 
@@ -81,7 +80,7 @@ object PosForger extends ScorexLogging {
   case object StopForging
 
   def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
-    val h = FastCryptographicHash(pwb.bytes ++   box.bytes)
+    val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
     Longs.fromByteArray((0: Byte) +: h.take(7))
   }
 
