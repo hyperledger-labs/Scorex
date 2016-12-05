@@ -83,7 +83,7 @@ case class PeerConnectionHandler(settings: Settings,
       if (handshakeGot && handshakeSent) self ! HandshakeDone
 
     case Received(data) =>
-      Handshake.parseBytes(data.toArray) match {
+      HandshakeSerializer.parseBytes(data.toArray) match {
         case Success(handshake) =>
           peerManager ! Handshaked(remote, handshake)
           log.info(s"Got a Handshake from $remote")

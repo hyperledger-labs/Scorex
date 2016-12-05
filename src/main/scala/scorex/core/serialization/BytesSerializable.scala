@@ -1,10 +1,10 @@
 package scorex.core.serialization
 
-import com.google.common.primitives.Ints
-
 trait BytesSerializable extends Serializable {
 
-  def bytes: Array[Byte]
+  type M >: this.type <: BytesSerializable
 
-  protected def arrayWithSize(b: Array[Byte]): Array[Byte] = Ints.toByteArray(b.length) ++ b
+  lazy val bytes: Array[Byte] = serializer.toBytes(this)
+
+  def serializer: Serializer[M]
 }

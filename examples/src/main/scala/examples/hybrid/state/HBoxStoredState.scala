@@ -3,7 +3,7 @@ package examples.hybrid.state
 import java.io.File
 
 import com.google.common.primitives.Longs
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
@@ -41,7 +41,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = {
     val res = Option(store.get(ByteArrayWrapper(boxId)))
       .map(_.data)
-      .map(PublicKey25519NoncedBox.parseBytes)
+      .map(PublicKey25519NoncedBoxSerializer.parseBytes)
       .flatMap(_.toOption)
     res
   }

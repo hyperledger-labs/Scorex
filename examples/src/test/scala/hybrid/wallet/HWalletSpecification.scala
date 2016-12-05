@@ -22,6 +22,7 @@ class HWalletSpecification extends PropSpec
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
   }
   val EmptyBytes = Array.fill(32)(0: Byte)
+  val EmptySignature = Signature25519(Array.fill(64)(0: Byte))
 
   val w = HWallet.readOrGenerate(settings, "p").generateNewSecret().generateNewSecret()
   w.secrets.size should be >= 2
@@ -41,7 +42,7 @@ class HWalletSpecification extends PropSpec
         txIn.from.map(p => (ss.publicImage, p._2 + 1))
       val tx = txIn.copy(from = fromWithMyPubkey)
 
-      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), fs.publicImage, Signature25519(EmptyBytes))
+      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), fs.publicImage, EmptySignature)
       val boxes = w.scanPersistent(pb).boxes()
       boxes.exists(b => b.transactionId sameElements tx.id) shouldBe true
     }
@@ -53,7 +54,7 @@ class HWalletSpecification extends PropSpec
         txIn.to.map(p => (ss.publicImage, p._2 + 1))
       val tx = txIn.copy(to = toWithMyPubkey)
 
-      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), fs.publicImage, Signature25519(EmptyBytes))
+      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), fs.publicImage, EmptySignature)
       val boxes = w.scanPersistent(pb).boxes()
       boxes.exists(b => b.transactionId sameElements tx.id) shouldBe true
     }

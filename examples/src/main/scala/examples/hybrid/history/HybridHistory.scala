@@ -140,9 +140,9 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       val mtypeId = bytes.head
       (mtypeId match {
         case t: Byte if t == PowBlock.ModifierTypeId =>
-          PowBlockCompanion.parse(bytes.tail)
+          PowBlockCompanion.parseBytes(bytes.tail)
         case t: Byte if t == PosBlock.ModifierTypeId =>
-          PosBlockCompanion.parse(bytes.tail)
+          PosBlockCompanion.parseBytes(bytes.tail)
       }).toOption
     }
   }.getOrElse(None)

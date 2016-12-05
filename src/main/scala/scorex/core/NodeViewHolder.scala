@@ -7,6 +7,7 @@ import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
+import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -45,7 +46,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   type NodeView = (HIS, MS, VL, MP)
 
-  val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]]
+  val modifierCompanions: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
 
   val networkChunkSize = 100 //todo: make configurable?
 
@@ -180,7 +181,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
       modifierCompanions.get(modifierTypeId) foreach { companion =>
-        remoteObjects.flatMap(r => companion.parse(r).toOption).foreach {
+        remoteObjects.flatMap(r => companion.parseBytes(r).toOption).foreach {
           case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
             txModify(tx, Some(remote))
 
