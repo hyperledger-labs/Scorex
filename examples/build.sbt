@@ -12,3 +12,5 @@ libraryDependencies ++= Seq(
 )
 
 mainClass in assembly := Some("examples.hybrid.HybridApp")
+
+assemblyJarName in assembly := "twinsChain.jar"
