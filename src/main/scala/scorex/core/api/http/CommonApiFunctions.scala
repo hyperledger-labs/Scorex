@@ -13,7 +13,7 @@ trait CommonApiFunctions {
   protected[api] def withBlock[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], BT <: BlockChain[P, TX, B, _, BT]]
   (history: BlockChain[P, TX, B, _, BT], encodedId: String)
   (action: B => Json): Json =
-    history.blockById(encodedId) match {
+    history.modifierById(encodedId) match {
       case Some(block) => action(block)
       case None => blockNotExists
     }

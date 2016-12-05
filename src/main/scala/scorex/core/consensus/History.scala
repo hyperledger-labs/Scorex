@@ -32,22 +32,20 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   /**
     * Is there's no history, even genesis block
-    *
-    * @return
     */
   def isEmpty: Boolean
 
   def contains(persistentModifier: PM): Boolean = contains(persistentModifier.id)
 
-  def contains(id: ModifierId): Boolean = blockById(id).isDefined
+  def contains(id: ModifierId): Boolean = modifierById(id).isDefined
 
-  def applicable(block: PM): Boolean = openSurfaceIds().exists(_ sameElements block.parentId)
+  def applicable(modifier: PM): Boolean = openSurfaceIds().exists(_ sameElements modifier.parentId)
 
-  def blockById(blockId: ModifierId): Option[PM]
+  def modifierById(modifierId: ModifierId): Option[PM]
 
-  def blockById(blockId: String): Option[PM] = Base58.decode(blockId).toOption.flatMap(blockById)
+  def modifierById(modifierId: String): Option[PM] = Base58.decode(modifierId).toOption.flatMap(modifierById)
 
-  def append(block: PM): Try[(HT, Option[RollbackTo[PM]])]
+  def append(modifier: PM): Try[(HT, Option[RollbackTo[PM]])]
 
   //todo: is it needed?
   //todo: output should be ID | Seq[ID]

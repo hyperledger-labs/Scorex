@@ -57,14 +57,14 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   override def continuation(openSurface: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[B]] = {
     assert(openSurface.size == 1)
     val s = lookForward(openSurface.head._2, size)
-    if (s.isEmpty) None else Some(s.map(id => blockById(id).get))
+    if (s.isEmpty) None else Some(s.map(id => modifierById(id).get))
   }
 
   /**
     * Average delay in milliseconds between last blockNum blocks starting from block
     */
   def averageDelay(blockId: ModifierId, blockNum: Int): Try[Long] = Try {
-    val block = blockById(blockId).get
+    val block = modifierById(blockId).get
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
   }
 

@@ -3,7 +3,6 @@ package examples.curvepos
 import examples.curvepos.transaction.SimpleBlock
 import scorex.core.NodeViewModifier
 import scorex.core.consensus.{BlockChain, SyncInfo}
-import scorex.core.network.message.SyncInfoSpec
 import scorex.core.serialization.Serializer
 import scorex.core.network.message.SyncInfoMessageSpec
 
@@ -33,4 +32,4 @@ object SimpleSyncInfoSerializer extends Serializer[SimpleSyncInfo] {
   }
 }
 
-object SimpleSyncInfoMessageSpec$ extends SyncInfoMessageSpec[SimpleSyncInfo](SimpleSyncInfo.parse)
+object SimpleSyncInfoMessageSpec extends SyncInfoMessageSpec[SimpleSyncInfo](SimpleSyncInfoSerializer.parseBytes)

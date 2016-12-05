@@ -117,7 +117,7 @@ object PrivateChain extends App with ScorexLogging {
       }
     } while (!(history.powHeight == 10 && history.pairCompleted))
 
-    history.bestPosBlock.timestamp - history.blockById(firstId).get.asInstanceOf[PowBlock].timestamp
+    history.bestPosBlock.timestamp - history.modifierById(firstId).get.asInstanceOf[PowBlock].timestamp
   }
 
   val experiments = 2

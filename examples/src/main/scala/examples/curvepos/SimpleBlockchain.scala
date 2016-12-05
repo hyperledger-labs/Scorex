@@ -23,7 +23,7 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
     */
   override def isEmpty: Boolean = blocks.isEmpty
 
-  override def blockById(blockId: ModifierId): Option[SimpleBlock] =
+  override def modifierById(blockId: ModifierId): Option[SimpleBlock] =
     blocks.find(_._1.sameElements(blockId)).map(_._2)
 
   //todo: check PoS data in a block
@@ -44,7 +44,7 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
   override def openSurfaceIds(): Seq[ModifierId] = Seq(blockIds(height()))
 
   override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[SimpleBlock]] =
-  continuationIds(from, size).map(_.map(_._2).map(blockById).map(_.get))
+  continuationIds(from, size).map(_.map(_._2).map(modifierById).map(_.get))
 
   override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
     require(from.size == 1)

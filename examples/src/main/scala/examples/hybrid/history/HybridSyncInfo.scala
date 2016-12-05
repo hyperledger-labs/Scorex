@@ -5,6 +5,7 @@ import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.SyncInfoMessageSpec
+import scorex.core.serialization.Serializer
 
 import scala.util.Try
 
@@ -24,17 +25,26 @@ case class HybridSyncInfo(override val answer: Boolean,
   override def startingPoints: Seq[(ModifierTypeId, ModifierId)] =
     Seq(lastPowBlockIds.map(b => PowBlock.ModifierTypeId -> b) ++ Seq(PosBlock.ModifierTypeId -> lastPosBlockId)).flatten
 
-  override def bytes: Array[Byte] =
-    Array(
-      if (answer) 1: Byte else 0: Byte,
-      lastPowBlockIds.size.toByte
-    ) ++ lastPowBlockIds.reduce(_ ++ _) ++ lastPosBlockId
+
+  override type M = HybridSyncInfo
+
+  override def serializer: Serializer[HybridSyncInfo] = HybridSyncInfoSerializer
 }
 
 object HybridSyncInfo {
   val MaxLastPowBlocks = 50 //don't make it more than 127 without changing serialization!
+}
 
-  def parse(bytes: Array[Byte]): Try[HybridSyncInfo] = Try {
+object HybridSyncInfoSerializer extends Serializer[HybridSyncInfo] {
+   import HybridSyncInfo.MaxLastPowBlocks
+
+  override def toBytes(obj: HybridSyncInfo): Array[Byte] =
+    Array(
+      if (obj.answer) 1: Byte else 0: Byte,
+      obj.lastPowBlockIds.size.toByte
+    ) ++ obj.lastPowBlockIds.reduce(_ ++ _) ++ obj.lastPosBlockId
+
+  override def parseBytes(bytes: Array[Byte]): Try[HybridSyncInfo] = Try {
     val answer: Boolean = if (bytes.head == 1.toByte) true else false
     val lastPowBlockIdsSize = bytes.slice(1, 2).head
 
@@ -50,4 +60,4 @@ object HybridSyncInfo {
   }
 }
 
-object HybridSyncInfoMessageSpec$ extends SyncInfoMessageSpec[HybridSyncInfo](HybridSyncInfo.parse)
+object HybridSyncInfoMessageSpec extends SyncInfoMessageSpec[HybridSyncInfo](HybridSyncInfoSerializer.parseBytes)

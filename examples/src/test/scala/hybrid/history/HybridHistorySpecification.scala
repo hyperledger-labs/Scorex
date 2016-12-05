@@ -26,14 +26,14 @@ class HybridHistorySpecification extends PropSpec
 
   history = history.append(genesisBlock).get._1
 
-  history.blockById(genesisBlock.id).isDefined shouldBe true
+  history.modifierById(genesisBlock.id).isDefined shouldBe true
 
   property("History should be able to add POS blocks") {
     var lastBlockId = genesisBlock.id
     forAll(posBlockGen) { posR =>
       val posBlock = posR.copy(parentId = lastBlockId)
       history = history.append(posBlock).get._1
-      history.blockById(posBlock.id).isDefined shouldBe true
+      history.modifierById(posBlock.id).isDefined shouldBe true
       lastBlockId = posBlock.id
     }
   }

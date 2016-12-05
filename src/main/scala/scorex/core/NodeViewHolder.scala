@@ -171,7 +171,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         case typeId: Byte if typeId == Transaction.ModifierTypeId =>
           memoryPool().getAll(modifierIds)
         case typeId: Byte =>
-          modifierIds.flatMap(id => history().blockById(id))
+          modifierIds.flatMap(id => history().modifierById(id))
       }
 
       log.debug("sending out local objs: " + objs.map(_.id).map(Base58.encode))
