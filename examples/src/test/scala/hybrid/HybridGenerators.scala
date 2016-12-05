@@ -1,6 +1,6 @@
 package hybrid
 
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{PosBlock, PowBlock, PowBlockHeader}
 import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.state.SimpleBoxTransaction
@@ -88,6 +88,6 @@ trait HybridGenerators extends ObjectGenerators {
     createdAt <- positiveLongGen
     txId <- genBytesList(NodeViewModifier.ModifierIdSize)
     box: PublicKey25519NoncedBox <- noncedBoxGen
-  } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)
+  } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
 
 }

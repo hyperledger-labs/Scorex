@@ -3,11 +3,9 @@ package examples.hybrid.wallet
 import java.io.File
 
 import com.google.common.primitives.Ints
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock}
-import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.SimpleBoxTransaction
-import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewComponentCompanion
@@ -15,15 +13,14 @@ import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
+import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletBoxSerializer, WalletTransaction}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.utils.Random
 
-import scala.util.Try
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
@@ -42,11 +39,15 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   lazy val boxIds = metaDb.treeSet("ids", Serializer.BYTE_ARRAY).createOrOpen()
 
+  private lazy val walletBoxSerializer =
+    new WalletBoxSerializer[PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)
+
+
   override def generateNewSecret(): HWallet = {
     val apdx = seedAppendix.incrementAndGet()
     val s = FastCryptographicHash(seed ++ Ints.toByteArray(apdx))
-    val (priv, pub) = PrivateKey25519Companion.generateKeys(s)
-    secretsMap.put(pub.bytes, priv.bytes)
+    val (priv, _) = PrivateKey25519Companion.generateKeys(s)
+    secretsMap.put(priv.publicKeyBytes, priv.privKeyBytes)
     metaDb.commit()
     HWallet(seed, boxStore, metaDb)
   }
@@ -54,13 +55,14 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   //not implemented intentionally for now
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleBoxTransaction]] = ???
 
-  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     boxIds
       .flatMap(id => Option(boxStore.get(ByteArrayWrapper(id))))
       .map(_.data)
-      .map(ba => WalletBox.parse[PublicKey25519Proposition, PublicKey25519NoncedBox](ba)(PublicKey25519NoncedBox.parseBytes))
+      .map(ba => walletBoxSerializer.parseBytes(ba))
       .map(_.get)
       .toSeq
+  }
 
   override def publicKeys: Set[PublicKey25519Proposition] =
     secretsMap.keyIterator().map(ba => PublicKey25519Proposition(ba)).toSet
@@ -84,7 +86,8 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     val newBoxes = txs.flatMap { tx =>
       tx.newBoxes.map { box =>
         boxIds.add(box.id)
-        val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id, tx.timestamp)
+        val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id,
+          tx.timestamp)(PublicKey25519NoncedBoxSerializer)
         ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
       }
     }
@@ -165,5 +168,5 @@ object HWallet {
 
   //wallet with 10 accounts and initial data processed
   def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
-    readOrGenerate(settings).scanPersistent(initialBlock)
+  readOrGenerate(settings).scanPersistent(initialBlock)
 }

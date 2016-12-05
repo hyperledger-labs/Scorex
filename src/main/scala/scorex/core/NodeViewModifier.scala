@@ -2,7 +2,7 @@ package scorex.core
 
 import com.typesafe.config.ConfigFactory
 import scorex.core.NodeViewModifier.ModifierId
-import scorex.core.serialization.{JsonSerializable, BytesSerializable}
+import scorex.core.serialization.{BytesSerializable, JsonSerializable, Serializer}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 
@@ -13,16 +13,10 @@ trait NodeViewModifier extends BytesSerializable with JsonSerializable {
 
   import NodeViewModifier.{ModifierId, ModifierTypeId}
 
-  type M >: self.type <: NodeViewModifier
-
   val modifierTypeId: ModifierTypeId
 
   //todo: check statically or dynamically output size
   def id: ModifierId
-
-  lazy val bytes: Array[Byte] = companion.bytes(this)
-
-  def companion: NodeViewModifierCompanion[M]
 }
 
 /**
@@ -38,11 +32,7 @@ object NodeViewModifier {
   val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(DefaultIdSize)
 }
 
-trait NodeViewModifierCompanion[M <: NodeViewModifier] {
-  def bytes(modifier: M): Array[Byte]
 
-  def parse(bytes: Array[Byte]): Try[M]
-}
 
 trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]] extends NodeViewModifier {
 

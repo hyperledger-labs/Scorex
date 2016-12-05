@@ -20,9 +20,9 @@ class MessageSpecification extends PropSpec
   property("InvData should remain the same after serialization/deserialization") {
     forAll(invDataGen) { data: InvData =>
       whenever(data._2.length < InvSpec.MaxObjects) {
-        val bytes = InvSpec.serializeData(data)
-        val recovered = InvSpec.deserializeData(bytes).get
-        val bytes2 = InvSpec.serializeData(recovered)
+        val bytes = InvSpec.toBytes(data)
+        val recovered = InvSpec.parseBytes(bytes).get
+        val bytes2 = InvSpec.toBytes(recovered)
         bytes shouldEqual bytes2
       }
     }
@@ -31,17 +31,17 @@ class MessageSpecification extends PropSpec
   property("InvData should not serialize big arrays") {
     forAll(Arbitrary.arbitrary[Byte], Gen.listOfN(InvSpec.MaxObjects + 1, modifierIdGen)) { (b: Byte, s: Seq[ModifierId]) =>
       val data: InvData = (b, s)
-      Try(InvSpec.serializeData(data)).isSuccess shouldBe false
+      Try(InvSpec.toBytes(data)).isSuccess shouldBe false
     }
   }
 
   property("RequestModifierSpec serialization/deserialization") {
     forAll(invDataGen) { data: InvData =>
       whenever(data._2.length < InvSpec.MaxObjects) {
-        val bytes = RequestModifierSpec.serializeData(data)
-        val recovered = RequestModifierSpec.deserializeData(bytes).get
+        val bytes = RequestModifierSpec.toBytes(data)
+        val recovered = RequestModifierSpec.parseBytes(bytes).get
         recovered._2.length shouldEqual data._2.length
-        val bytes2 = RequestModifierSpec.serializeData(recovered)
+        val bytes2 = RequestModifierSpec.toBytes(recovered)
         bytes shouldEqual bytes2
       }
     }
@@ -50,15 +50,15 @@ class MessageSpecification extends PropSpec
   property("RequestModifierSpec should not serialize big arrays") {
     forAll(Arbitrary.arbitrary[Byte], Gen.listOfN(InvSpec.MaxObjects + 1, modifierIdGen)) { (b: Byte, s: Seq[ModifierId]) =>
       val data: InvData = (b, s)
-      Try(InvSpec.serializeData(data)).isSuccess shouldBe false
+      Try(InvSpec.toBytes(data)).isSuccess shouldBe false
     }
   }
 
   property("ModifiersSpec serialization/deserialization") {
     forAll(modifiersGen) { data: (NodeViewModifier.ModifierTypeId, Map[ModifierId, Array[Byte]]) =>
       whenever(data._2.nonEmpty && data._2.forall { case (id, m) => id.length == NodeViewModifier.ModifierIdSize && m.length > 0 }) {
-        val bytes = ModifiersSpec.serializeData(data)
-        val recovered = ModifiersSpec.deserializeData(bytes).get
+        val bytes = ModifiersSpec.toBytes(data)
+        val recovered = ModifiersSpec.parseBytes(bytes).get
 
         recovered._1 shouldEqual data._1
         recovered._2.keys.size shouldEqual data._2.keys.size
@@ -71,7 +71,7 @@ class MessageSpecification extends PropSpec
           data._2.values.toSet.exists(_.sameElements(v)) shouldEqual true
         }
 
-        ModifiersSpec.serializeData(data) shouldEqual bytes
+        ModifiersSpec.toBytes(data) shouldEqual bytes
       }
     }
   }

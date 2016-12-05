@@ -3,7 +3,7 @@ package examples.curvepos.transaction
 import com.google.common.primitives.Longs
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifierCompanion
+import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
 import scorex.core.transaction.Transaction
 import scorex.crypto.encode.Base58
@@ -33,13 +33,13 @@ case class SimplePayment(sender: PublicKey25519Proposition,
 
   override lazy val messageToSign: Array[Byte] = id
 
-  override lazy val companion = SimplePaymentCompanion
+  override lazy val serializer = SimplePaymentCompanion
 }
 
-object SimplePaymentCompanion extends NodeViewModifierCompanion[SimplePayment] {
+object SimplePaymentCompanion extends Serializer[SimplePayment] {
   val TransactionLength: Int = 2 * Constants25519.PubKeyLength + 32
 
-  override def bytes(m: SimplePayment): Array[Byte] = {
+  override def toBytes(m: SimplePayment): Array[Byte] = {
     m.sender.bytes ++
       m.recipient.bytes ++
       Longs.toByteArray(m.amount) ++
@@ -48,7 +48,7 @@ object SimplePaymentCompanion extends NodeViewModifierCompanion[SimplePayment] {
       Longs.toByteArray(m.timestamp)
   }.ensuring(_.length == TransactionLength)
 
-  override def parse(bytes: Array[Byte]): Try[SimplePayment] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[SimplePayment] = Try {
     val sender = PublicKey25519Proposition(bytes.slice(0, Constants25519.PubKeyLength))
     val recipient = PublicKey25519Proposition(bytes.slice(Constants25519.PubKeyLength, 2 * Constants25519.PubKeyLength))
     val s = 2 * Constants25519.PubKeyLength

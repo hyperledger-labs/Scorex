@@ -2,7 +2,7 @@ scalaVersion := "2.11.8"
 
 name := "scorex-core"
 organization := "org.scorexfoundation"
-version := "2.0.0-SNAPSHOT"
+version := "2.0.0-M2"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
@@ -110,12 +110,6 @@ lazy val commonSettings = Seq(
 lazy val examples = Project(id = "examples", base = file(s"examples"))
   .dependsOn(basics)
   .settings(commonSettings: _*)
-  .settings(
-    testOptions in Test := Seq(Tests.Filter(_.matches(".*TestSuite$")))
-  )
 
 lazy val basics = Project(id = "scorex", base = file("."))
   .settings(commonSettings: _*)
-  .settings(
-    testOptions in Test := Seq(Tests.Filter(_.matches(".*TestSuite$")))
-  )

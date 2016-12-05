@@ -4,14 +4,16 @@ import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.state.SimpleBoxTransaction._
 import io.circe.Json
-import scorex.core.NodeViewModifierCompanion
+import io.circe.syntax._
 import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.serialization.Serializer
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.BoxUnlocker
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
+import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
@@ -53,10 +55,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     PublicKey25519NoncedBox(prop, nonce, value)
   }
 
-  override lazy val companion = SimpleBoxTransactionCompanion
-
-  //todo: for Dmitry - implement
-  override lazy val json: Json = ???
+  override lazy val serializer = SimpleBoxTransactionCompanion
 
   //stateless validation
   lazy val isValid: Boolean = {
@@ -68,6 +67,27 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
         proof.isValid(prop, messageToSign)
       }
   }
+
+  override lazy val json: Json = Map(
+    "id" -> Base58.encode(id).asJson,
+    "from" -> from.map { s =>
+      Map(
+        "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
+        "nonce" -> s._2.asJson
+      ).asJson
+    }.asJson,
+    "to" -> from.map { s =>
+      Map(
+        "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
+        "value" -> s._2.asJson
+      ).asJson
+    }.asJson,
+    "signatures" -> signatures.map(s => Base58.encode(s.signature).asJson).asJson,
+    "fee" -> fee.asJson,
+    "timestamp" -> timestamp.asJson
+  ).asJson
+
+  override def toString: String = s"PoSBlock(${json.noSpaces})"
 }
 
 
@@ -93,9 +113,9 @@ object SimpleBoxTransaction {
   }
 }
 
-object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBoxTransaction] {
+object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {
 
-  override def bytes(m: SimpleBoxTransaction): Array[Byte] = {
+  override def toBytes(m: SimpleBoxTransaction): Array[Byte] = {
     Bytes.concat(Longs.toByteArray(m.fee),
       Longs.toByteArray(m.timestamp),
       Ints.toByteArray(m.signatures.length),
@@ -107,7 +127,7 @@ object SimpleBoxTransactionCompanion extends NodeViewModifierCompanion[SimpleBox
     )
   }
 
-  override def parse(bytes: Array[Byte]): Try[SimpleBoxTransaction] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[SimpleBoxTransaction] = Try {
     val fee = Longs.fromByteArray(bytes.slice(0, 8))
     val timestamp = Longs.fromByteArray(bytes.slice(8, 16))
     val sigLength = Ints.fromByteArray(bytes.slice(16, 20))

@@ -10,3 +10,5 @@ libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % "1.12.+" % "test",
   "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"
 )
+
+mainClass in assembly := Some("examples.hybrid.HybridApp")

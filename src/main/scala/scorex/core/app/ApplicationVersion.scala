@@ -1,19 +1,23 @@
 package scorex.core.app
 
 import com.google.common.primitives.Ints
-import scorex.core.serialization.{BytesParseable, BytesSerializable}
+import scorex.core.serialization.{BytesSerializable, Serializer}
 
 import scala.util.Try
 
 case class ApplicationVersion(firstDigit: Int, secondDigit: Int, thirdDigit: Int) extends BytesSerializable {
-  lazy val bytes: Array[Byte] = Ints.toByteArray(firstDigit) ++ Ints.toByteArray(secondDigit) ++ Ints.toByteArray(thirdDigit)
+  override type M = ApplicationVersion
+
+  override def serializer: Serializer[ApplicationVersion] = ApplicationVersionSerializer
 }
 
-object ApplicationVersion extends BytesParseable[ApplicationVersion] {
-  val SerializedVersionLength = 4 * 3
+object ApplicationVersionSerializer extends Serializer[ApplicationVersion] {
+  val SerializedVersionLength = 12
 
-  def parseBytes(bytes: Array[Byte]): Try[ApplicationVersion] = Try {
-    require(bytes.length == SerializedVersionLength, "Wrong bytes for application version")
+  override def toBytes(obj: ApplicationVersion): Array[Byte] =
+    Ints.toByteArray(obj.firstDigit) ++ Ints.toByteArray(obj.secondDigit) ++ Ints.toByteArray(obj.thirdDigit)
+
+  override def parseBytes(bytes: Array[Byte]): Try[ApplicationVersion] = Try {
     ApplicationVersion(
       Ints.fromByteArray(bytes.slice(0, 4)),
       Ints.fromByteArray(bytes.slice(4, 8)),

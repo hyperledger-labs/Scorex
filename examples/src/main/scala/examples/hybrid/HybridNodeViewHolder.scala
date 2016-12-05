@@ -6,11 +6,13 @@ import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.PowMiner
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
-import scorex.core.{NodeViewHolder, NodeViewModifier, NodeViewModifierCompanion}
+import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.serialization.Serializer
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.crypto.signatures.Curve25519
 
 import scala.util.Random
 
@@ -26,13 +28,13 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   override type VL = HWallet
   override type MP = HMemPool
 
-  override val modifierCompanions: Map[ModifierTypeId, NodeViewModifierCompanion[_ <: NodeViewModifier]] =
+  override val modifierCompanions: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
     Map(PosBlock.ModifierTypeId -> PosBlockCompanion, PowBlock.ModifierTypeId -> PowBlockCompanion)
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     super.preRestart(reason, message)
     reason.printStackTrace()
-    System.exit(100)
+    System.exit(100) // this actor shouldn't be restarted so kill the whole app if that happened
   }
 
   /**
@@ -52,7 +54,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
           0L))
     }.toSeq
 
-    val za = Array.fill(32)(0: Byte)
+    val za = Array.fill(Curve25519.SignatureLength)(0: Byte)
     val initialBlock = PosBlock(PowMiner.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
     val gs = HBoxStoredState.genesisState(settings, initialBlock)
