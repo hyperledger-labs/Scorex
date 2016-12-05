@@ -12,6 +12,7 @@ import scorex.core.serialization.Serializer
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.crypto.signatures.Curve25519
 
 import scala.util.Random
 
@@ -53,7 +54,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
           0L))
     }.toSeq
 
-    val za = Array.fill(32)(0: Byte)
+    val za = Array.fill(Curve25519.SignatureLength)(0: Byte)
     val initialBlock = PosBlock(PowMiner.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
     val gs = HBoxStoredState.genesisState(settings, initialBlock)
