@@ -4,10 +4,9 @@ package examples.hybrid.history
 import java.io.File
 
 import examples.hybrid.blocks._
-import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
+import examples.hybrid.mining.{PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.util.FileFunctions
-import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
@@ -17,8 +16,6 @@ import scorex.core.consensus.History.{HistoryComparisonResult, RollbackTo}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.Signature25519
-import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
@@ -95,13 +92,24 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       case (true, false) => ??? //shouldn't be
     }
 
-
+  /**
+    * Return specified number of PoW blocks, ordered back from last one
+    *
+    * @param count - how many blocks to return
+    * @return PoW blocks, in reverse order (starting from the most recent one)
+    */
   //a lot of crimes committed here: .get, .asInstanceOf
   def lastPowBlocks(count: Int): Seq[PowBlock] =
   (1 until count).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
     blockById(blocks.head.parentId).get.asInstanceOf[PowBlock] +: blocks
   }
 
+  /**
+    * Return specified number of PoS blocks, ordered back from last one
+    *
+    * @param count - how many blocks to return
+    * @return PoS blocks, in reverse order (starting from the most recent one)
+    */
   //a lot of crimes committed here: .get, .asInstanceOf
   def lastPosBlocks(count: Int): Seq[PosBlock] =
   (1 until count).foldLeft(Seq(bestPosBlock)) { case (blocks, _) =>
@@ -379,7 +387,27 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   }
 
   override def syncInfo(answer: Boolean): HybridSyncInfo =
-    HybridSyncInfo(answer, bestPowId, bestPosId)
+    HybridSyncInfo(
+      answer,
+      lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks).map(_.id),
+      bestPosId)
+
+
+  @tailrec
+  private def divergentSuffix(otherLastPowBlocks: Seq[ModifierId],
+                              suffixFound: Seq[ModifierId] = Seq()): Seq[ModifierId] = {
+    val head = otherLastPowBlocks.head
+    val newSuffix = suffixFound :+ head
+    blockById(head) match {
+      case Some(b) => newSuffix
+      case None => otherLastPowBlocks.tail match {
+        case Nil => Seq()
+        case h :: t => divergentSuffix(otherLastPowBlocks.tail, newSuffix)
+      }
+    }
+  }
+
+  def heightOf(blockId: ModifierId): Option[Long] = Option(blockScores.get(blockId))
 
   /**
     * Whether another's node syncinfo shows that another node is ahead or behind ours
@@ -391,6 +419,33 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     //todo: check PoW header correctness, return cheater status for that
     //todo: return cheater status in other cases, e.g. PoW id is a correct PoS id
 
+    val dSuffix = divergentSuffix(other.lastPowBlockIds)
+
+    dSuffix.length match {
+      case l: Int if l == 0 => HistoryComparisonResult.Nonsense
+      case l: Int if l == 1 =>
+        if (dSuffix.head sameElements bestPowId) {
+          pairCompleted match {
+            case true =>
+              if (other.lastPosBlockId sameElements bestPosId) HistoryComparisonResult.Equal
+              else HistoryComparisonResult.Younger
+            case false =>
+              if (other.lastPosBlockId sameElements bestPosId) HistoryComparisonResult.Equal
+              else HistoryComparisonResult.Older
+          }
+        } else HistoryComparisonResult.Older
+      case _ =>
+        val localSuffixLength = powHeight - heightOf(dSuffix.last).get + 1 // +1 to include common block
+        val otherSuffixLength = dSuffix.length
+
+        if (localSuffixLength < otherSuffixLength)
+          HistoryComparisonResult.Older
+         else if (localSuffixLength == otherSuffixLength)
+          HistoryComparisonResult.Equal
+         else HistoryComparisonResult.Younger
+    }
+
+    /*
     if (other.bestPowBlockId sameElements PowMiner.GenesisParentId) {
       HistoryComparisonResult.Younger
     } else blockById(other.bestPowBlockId) match {
@@ -413,7 +468,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         } else HistoryComparisonResult.Younger
       case None =>
         HistoryComparisonResult.Older
-    }
+    }*/
   }
 
   override def companion: NodeViewComponentCompanion = ???

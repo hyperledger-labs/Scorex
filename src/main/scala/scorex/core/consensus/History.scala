@@ -76,6 +76,7 @@ object History {
     val Equal = Value(1)
     val Younger = Value(2)
     val Older = Value(3)
+    val Nonsense = Value(4)
   }
 
   case class RollbackTo[PM <: PersistentNodeViewModifier[_, _]](to: ModifierId, thrown: Seq[PM], applied: Seq[PM])

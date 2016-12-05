@@ -21,7 +21,8 @@ trait HybridGenerators extends ObjectGenerators {
     answer <- Arbitrary.arbitrary[Boolean]
     pos <- genBytesList(NodeViewModifier.ModifierIdSize)
     pow <- genBytesList(NodeViewModifier.ModifierIdSize)
-  } yield HybridSyncInfo(answer, pow, pos)
+    pows <- Gen.nonEmptyListOf(pow).map(_.take(HybridSyncInfo.MaxLastPowBlocks))
+  } yield HybridSyncInfo(answer, pows, pos)
 
   lazy val signatureGen: Gen[Signature25519] = genBytesList(Signature25519.SignatureSize).map(Signature25519(_))
 
