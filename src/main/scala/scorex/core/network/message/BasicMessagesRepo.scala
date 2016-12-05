@@ -20,7 +20,7 @@ object BasicMsgDataTypes {
 
 import scorex.core.network.message.BasicMsgDataTypes._
 
-class SyncInfoSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) extends MessageSpec[SI] {
+class SyncInfoMessageSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) extends MessageSpec[SI] {
 
   override val messageCode: MessageCode = 65: Byte
   override val messageName: String = "Sync"

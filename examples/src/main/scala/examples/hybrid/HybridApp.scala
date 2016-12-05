@@ -2,7 +2,7 @@ package examples.hybrid
 
 import akka.actor.{ActorRef, Props}
 import examples.hybrid.blocks.HybridPersistentNodeViewModifier
-import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSpec}
+import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec$}
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.wallet.SimpleBoxTransactionGenerator
@@ -33,7 +33,7 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override lazy val appVersion: ApplicationVersion = ApplicationVersion(0, 1, 1)
 
-  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoSpec)
+  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoMessageSpec$)
 
   override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
 
@@ -49,8 +49,8 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[HLocalInterface], nodeViewHolderRef, miner, forger))
 
   override val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoSpec.type]],
-      networkController, nodeViewHolderRef, localInterface, HybridSyncInfoSpec))
+    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec$.type]],
+      networkController, nodeViewHolderRef, localInterface, HybridSyncInfoMessageSpec$))
 
   //touching lazy vals
   miner

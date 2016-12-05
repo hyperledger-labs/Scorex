@@ -33,7 +33,7 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override type NVHT = SimpleNodeViewHolder
 
-  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(SimpleSyncInfoSpec)
+  override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(SimpleSyncInfoMessageSpec$)
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder], settings))
 
@@ -43,8 +43,8 @@ class SimpleApp(val settingsFilename: String) extends Application {
     forger))
 
   override val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoSpec.type]],
-      networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoSpec))
+    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoMessageSpec$.type]],
+      networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoMessageSpec$))
 
   override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings),

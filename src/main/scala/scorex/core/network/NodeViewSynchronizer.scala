@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   * @tparam TX
   * @tparam SIS
   */
-class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoSpec[SI]]
+class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI]]
 (networkControllerRef: ActorRef,
  viewHolderRef: ActorRef,
  localInterfaceRef: ActorRef,

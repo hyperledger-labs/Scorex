@@ -3,7 +3,7 @@ package examples.curvepos
 import examples.curvepos.transaction.SimpleBlock
 import scorex.core.NodeViewModifier
 import scorex.core.consensus.{BlockChain, SyncInfo}
-import scorex.core.network.message.SyncInfoSpec
+import scorex.core.network.message.SyncInfoMessageSpec
 
 import scala.util.Try
 
@@ -24,4 +24,4 @@ object SimpleSyncInfo {
   }
 }
 
-object SimpleSyncInfoSpec extends SyncInfoSpec[SimpleSyncInfo](SimpleSyncInfo.parse)
+object SimpleSyncInfoMessageSpec$ extends SyncInfoMessageSpec[SimpleSyncInfo](SimpleSyncInfo.parse)

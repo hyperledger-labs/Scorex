@@ -4,7 +4,7 @@ import examples.hybrid.blocks.{PosBlock, PowBlock}
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.SyncInfo
-import scorex.core.network.message.SyncInfoSpec
+import scorex.core.network.message.SyncInfoMessageSpec
 
 import scala.util.Try
 
@@ -50,4 +50,4 @@ object HybridSyncInfo {
   }
 }
 
-object HybridSyncInfoSpec extends SyncInfoSpec[HybridSyncInfo](HybridSyncInfo.parse)
+object HybridSyncInfoMessageSpec$ extends SyncInfoMessageSpec[HybridSyncInfo](HybridSyncInfo.parse)
