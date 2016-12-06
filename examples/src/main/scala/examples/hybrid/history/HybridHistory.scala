@@ -98,10 +98,13 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     * @param count - how many blocks to return
     * @return PoW blocks, in reverse order (starting from the most recent one)
     */
-  //a lot of crimes committed here: .get, .asInstanceOf
-  def lastPowBlocks(count: Int): Seq[PowBlock] =
-  (1 until count).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
-    modifierById(blocks.head.parentId).get.asInstanceOf[PowBlock] +: blocks
+  //TODO a lot of crimes committed here: .get, .asInstanceOf
+  def lastPowBlocks(count: Int): Seq[PowBlock] = if (isEmpty) {
+    Seq()
+  } else {
+    (1 until count).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
+      modifierById(blocks.head.parentId).get.asInstanceOf[PowBlock] +: blocks
+    }
   }
 
   /**
@@ -436,13 +439,13 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         } else HistoryComparisonResult.Older
       case _ =>
         val localSuffixLength = powHeight - heightOf(dSuffix.last).get + 1 // +1 to include common block
-        val otherSuffixLength = dSuffix.length
+      val otherSuffixLength = dSuffix.length
 
         if (localSuffixLength < otherSuffixLength)
           HistoryComparisonResult.Older
-         else if (localSuffixLength == otherSuffixLength)
+        else if (localSuffixLength == otherSuffixLength)
           HistoryComparisonResult.Equal
-         else HistoryComparisonResult.Younger
+        else HistoryComparisonResult.Younger
     }
 
     /*

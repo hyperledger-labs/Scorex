@@ -20,7 +20,7 @@
   "rpcPort": 9085,
   "rpcAllowed": [],
   "maxRollback": 100,
-  "offlineGeneration": true,
+  "offlineGeneration": false,
   "blockGenerationDelay": 100,
   "cors": true
 }
