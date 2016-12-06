@@ -99,10 +99,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     * @return PoW blocks, in reverse order (starting from the most recent one)
     */
   //TODO a lot of crimes committed here: .get, .asInstanceOf
-  def lastPowBlocks(count: Int): Seq[PowBlock] = if (isEmpty) {
+  def lastPowBlocks(count: Int): Seq[PowBlock] = if (powHeight <= 1) {
     Seq()
   } else {
-    (1 until count).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
+    (1L until Math.min(powHeight, count.toLong)).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
       modifierById(blocks.head.parentId).get.asInstanceOf[PowBlock] +: blocks
     }
   }
@@ -143,7 +143,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     *
     * @return
     */
-  override def isEmpty: Boolean = currentScoreVar.get() <= 0
+  override def isEmpty: Boolean = powHeight <= 0
 
   override def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier] = Try {
     Option(blocksStorage.get(ByteArrayWrapper(blockId))).flatMap { bw =>

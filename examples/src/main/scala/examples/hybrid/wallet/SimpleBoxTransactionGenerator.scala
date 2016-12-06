@@ -36,11 +36,11 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
     val from: IndexedSeq[(PrivateKey25519, Long, Long)] = wallet.boxes()
       .filter(p => Random.nextBoolean())
       .take(wallet.publicKeys.size / 2 - 1)
-      .map { b =>
+      .flatMap { b =>
         val secretOpt = wallet.secretByPublicImage(b.box.proposition)
         require(secretOpt.isDefined,
           s"Private key for proposition ${b.box.proposition} is not defined. ${wallet.publicKeys}")
-        (secretOpt.get, b.box.nonce, b.box.value)
+        secretOpt.map(s => (s, b.box.nonce, b.box.value))
       }.toIndexedSeq
     var canSend = from.map(_._3).sum
 

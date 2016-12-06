@@ -1,6 +1,7 @@
 package examples.hybrid
 
 import akka.actor.{ActorRef, Props}
+import examples.hybrid.api.http.DebugApiRoute
 import examples.hybrid.blocks.HybridPersistentNodeViewModifier
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec}
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
@@ -38,10 +39,11 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
 
   override val apiRoutes: Seq[ApiRoute] = Seq(
+    DebugApiRoute(settings, nodeViewHolderRef),
     UtilsApiRoute(settings),
     NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
 
-  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
+  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[DebugApiRoute], typeOf[NodeViewApiRoute[P, TX]])
 
   val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
   val forger = actorSystem.actorOf(Props(classOf[PosForger], settings, nodeViewHolderRef))
@@ -57,7 +59,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   localInterface
   nodeViewSynchronizer
 
-  if(settings.nodeName == "node1") {
+  if (settings.nodeName == "node1") {
     log.info("Starting transactions generation")
     val generator: ActorRef = actorSystem.actorOf(Props(classOf[SimpleBoxTransactionGenerator], nodeViewHolderRef))
     generator ! StartGeneration(FiniteDuration(10, SECONDS))
