@@ -9,7 +9,6 @@ import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.util.FileFunctions
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
-import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{HistoryComparisonResult, RollbackTo}
@@ -17,6 +16,7 @@ import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
+import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
@@ -403,10 +403,9 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     val newSuffix = suffixFound :+ head
     modifierById(head) match {
       case Some(b) => newSuffix
-      case None => otherLastPowBlocks.tail match {
-        case Nil => Seq()
-        case h :: t => divergentSuffix(otherLastPowBlocks.tail, newSuffix)
-      }
+      case None =>
+        if (otherLastPowBlocks.length > 1) Seq()
+        else divergentSuffix(otherLastPowBlocks.tail, newSuffix)
     }
   }
 
