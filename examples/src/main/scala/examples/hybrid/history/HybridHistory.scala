@@ -107,18 +107,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     }
   }
 
-  /**
-    * Return specified number of PoS blocks, ordered back from last one
-    *
-    * @param count - how many blocks to return
-    * @return PoS blocks, in reverse order (starting from the most recent one)
-    */
-  //a lot of crimes committed here: .get, .asInstanceOf
-  def lastPosBlocks(count: Int): Seq[PosBlock] =
-  (1 until count).foldLeft(Seq(bestPosBlock)) { case (blocks, _) =>
-    modifierById(forwardPosLinks.get(blocks.head.parentId)).get.asInstanceOf[PosBlock] +: blocks
-  }
-
   def recalcDifficulties(): Unit = {
     val powBlocks = lastPowBlocks(DifficultyRecalcPeriod)
     val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
