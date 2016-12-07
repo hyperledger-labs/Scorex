@@ -403,9 +403,11 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     val newSuffix = suffixFound :+ head
     modifierById(head) match {
       case Some(b) => newSuffix
-      case None =>
-        if (otherLastPowBlocks.length > 1) Seq()
-        else divergentSuffix(otherLastPowBlocks.tail, newSuffix)
+      case None => if (otherLastPowBlocks.isEmpty) {
+        Seq()
+      } else {
+        divergentSuffix(otherLastPowBlocks.tail, newSuffix)
+      }
     }
   }
 
