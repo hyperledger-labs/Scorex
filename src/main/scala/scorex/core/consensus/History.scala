@@ -35,10 +35,25 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
     */
   def isEmpty: Boolean
 
+  /**
+    * Whether the history contains the given modifier
+    * @param persistentModifier - modifier
+    * @return
+    */
   def contains(persistentModifier: PM): Boolean = contains(persistentModifier.id)
 
+  /**
+    * Whether the history contains a modifier with the given id
+    * @param id - modifier's id
+    * @return
+    */
   def contains(id: ModifierId): Boolean = modifierById(id).isDefined
 
+  /**
+    * Whether a modifier could be applied to the history
+    * @param modifier - modifier to apply
+    * @return
+    */
   def applicable(modifier: PM): Boolean = openSurfaceIds().exists(_ sameElements modifier.parentId)
 
   def modifierById(modifierId: ModifierId): Option[PM]
