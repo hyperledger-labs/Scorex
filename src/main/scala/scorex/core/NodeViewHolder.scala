@@ -191,10 +191,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
         log.info(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
 
-        modifiersCache.find(_._1 sameElements Base58.decode("1dd9Hfg6DFDdaM4BUMq5hP9nm2cWzYS1KmdmTamCYyZ").get).map{ gb =>
-          println("genesis arrived: " + gb)
-        }
-
         var t: Option[(ConnectedPeer, PMOD)] = None
         do {
           t = {
@@ -233,7 +229,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       log.debug(s"Local side contains head: ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
 
       val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
-      log.debug("sending extension: " + extensionOpt.getOrElse(Seq()).map(_._2).map(Base58.encode).mkString(","))
+      log.debug("Sending extension: " + extensionOpt.getOrElse(Seq()).map(_._2).map(Base58.encode).mkString(","))
+      log.debug("Comparison result is: " + history().compare(syncInfo))
 
       sender() ! OtherNodeSyncingStatus(
         remote,

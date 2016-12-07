@@ -428,23 +428,22 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
     dSuffix.length match {
       case 0 =>
-        val ids: List[Array[Byte]] = other.lastPowBlockIds.toList
-        log.warn(s"CompareNonsense: ${ids.map(Base58.encode)} vs ${Base58.encode(bestPowId)}")
+        log.warn(s"CompareNonsense: ${other.lastPowBlockIds.toList.map(Base58.encode)} vs ${Base58.encode(bestPowId)}")
         HistoryComparisonResult.Nonsense
       case 1 =>
         if (dSuffix.head sameElements bestPowId) {
-          pairCompleted match {
-            case true =>
-              if (other.lastPosBlockId sameElements bestPosId) HistoryComparisonResult.Equal
-              else HistoryComparisonResult.Younger
-            case false =>
-              if (other.lastPosBlockId sameElements bestPosId) HistoryComparisonResult.Equal
-              else HistoryComparisonResult.Older
+          if (other.lastPosBlockId sameElements bestPosId) {
+            HistoryComparisonResult.Equal
+          } else if (pairCompleted) {
+            HistoryComparisonResult.Younger
+          } else {
+            HistoryComparisonResult.Older
           }
         } else HistoryComparisonResult.Older
       case _ =>
-        val localSuffixLength = powHeight - heightOf(dSuffix.last).get + 1 // +1 to include common block
-      val otherSuffixLength = dSuffix.length
+        // +1 to include common block
+        val localSuffixLength = powHeight - heightOf(dSuffix.last).get + 1
+        val otherSuffixLength = dSuffix.length
 
         if (localSuffixLength < otherSuffixLength)
           HistoryComparisonResult.Older
