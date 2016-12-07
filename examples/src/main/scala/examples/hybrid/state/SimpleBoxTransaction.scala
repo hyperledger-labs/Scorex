@@ -87,7 +87,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     "timestamp" -> timestamp.asJson
   ).asJson
 
-  override def toString: String = s"PoSBlock(${json.noSpaces})"
+  override def toString: String = s"SimpleBoxTransaction(${json.noSpaces})"
 }
 
 
