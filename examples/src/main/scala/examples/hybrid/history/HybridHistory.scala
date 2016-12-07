@@ -435,11 +435,11 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
           if (other.lastPosBlockId sameElements bestPosId) {
             HistoryComparisonResult.Equal
           } else if (pairCompleted) {
-            HistoryComparisonResult.Younger
-          } else {
             HistoryComparisonResult.Older
+          } else {
+            HistoryComparisonResult.Younger
           }
-        } else HistoryComparisonResult.Older
+        } else HistoryComparisonResult.Younger
       case _ =>
         // +1 to include common block
         val localSuffixLength = powHeight - heightOf(dSuffix.last).get + 1
