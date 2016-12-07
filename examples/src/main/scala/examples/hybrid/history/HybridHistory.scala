@@ -99,7 +99,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     * @return PoW blocks, in reverse order (starting from the most recent one)
     */
   //TODO a lot of crimes committed here: .get, .asInstanceOf
-  def lastPowBlocks(count: Int): Seq[PowBlock] = if (powHeight <= 1) {
+  def lastPowBlocks(count: Int): Seq[PowBlock] = if (isEmpty) {
     Seq()
   } else {
     (1L until Math.min(powHeight, count.toLong)).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
@@ -423,35 +423,31 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     //todo: check PoW header correctness, return cheater status for that
     //todo: return cheater status in other cases, e.g. PoW id is a correct PoS id
 
-    if (other.lastPowBlockIds.isEmpty) {
-      HistoryComparisonResult.Older
-    } else {
 
-      val dSuffix = divergentSuffix(other.lastPowBlockIds)
+    val dSuffix = divergentSuffix(other.lastPowBlockIds)
 
-      dSuffix.length match {
-        case 0 => HistoryComparisonResult.Nonsense
-        case 1 =>
-          if (dSuffix.head sameElements bestPowId) {
-            pairCompleted match {
-              case true =>
-                if (other.lastPosBlockId sameElements bestPosId) HistoryComparisonResult.Equal
-                else HistoryComparisonResult.Younger
-              case false =>
-                if (other.lastPosBlockId sameElements bestPosId) HistoryComparisonResult.Equal
-                else HistoryComparisonResult.Older
-            }
-          } else HistoryComparisonResult.Older
-        case _ =>
-          val localSuffixLength = powHeight - heightOf(dSuffix.last).get + 1 // +1 to include common block
-        val otherSuffixLength = dSuffix.length
+    dSuffix.length match {
+      case 0 => HistoryComparisonResult.Nonsense
+      case 1 =>
+        if (dSuffix.head sameElements bestPowId) {
+          pairCompleted match {
+            case true =>
+              if (other.lastPosBlockId sameElements bestPosId) HistoryComparisonResult.Equal
+              else HistoryComparisonResult.Younger
+            case false =>
+              if (other.lastPosBlockId sameElements bestPosId) HistoryComparisonResult.Equal
+              else HistoryComparisonResult.Older
+          }
+        } else HistoryComparisonResult.Older
+      case _ =>
+        val localSuffixLength = powHeight - heightOf(dSuffix.last).get + 1 // +1 to include common block
+      val otherSuffixLength = dSuffix.length
 
-          if (localSuffixLength < otherSuffixLength)
-            HistoryComparisonResult.Older
-          else if (localSuffixLength == otherSuffixLength)
-            HistoryComparisonResult.Equal
-          else HistoryComparisonResult.Younger
-      }
+        if (localSuffixLength < otherSuffixLength)
+          HistoryComparisonResult.Older
+        else if (localSuffixLength == otherSuffixLength)
+          HistoryComparisonResult.Equal
+        else HistoryComparisonResult.Younger
     }
 
     /*

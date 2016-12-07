@@ -6,12 +6,12 @@ import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.PowMiner
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
-import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.serialization.Serializer
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.Random
@@ -43,6 +43,15 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
   override protected def genesisState: (HIS, MS, VL, MP) = {
     val ew = HWallet.readOrGenerate(settings, "genesis", "e", 500)
 
+    var history = HybridHistory.readOrGenerate(settings)
+
+    //PoWBlock({"posParentId":"4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi","timestamp":1481107613415,"nonce":1010880103258330752,
+    // "brothers":[],"id":"12PqjFtvnR2zN2DP9nAtj3MAMhX9VA9orm3EF6ExiGBw","parentId":"4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi"})
+    val genesisBlock = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L,
+      0, Array.fill(32)(0: Byte), Seq())
+
+    history = history.append(genesisBlock).get._1
+
     val genesisAccount = ew.secrets.head
 
     val genesisTxs = ew.publicKeys.flatMap { pubkey =>
@@ -62,7 +71,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
 
     gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))
 
-    (HybridHistory.readOrGenerate(settings), gs, gw, HMemPool.emptyPool)
+    (history, gs, gw, HMemPool.emptyPool)
   }
 
   /**
@@ -70,7 +79,7 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     * (e.g. if it is a first launch of a node) None is to be returned
     */
   override def restoreState(): Option[(HIS, MS, VL, MP)] = {
-    if(HWallet.exists(settings)) {
+    if (HWallet.exists(settings)) {
       Some((
         HybridHistory.readOrGenerate(settings),
         HBoxStoredState.readOrGenerate(settings),
