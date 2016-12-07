@@ -12,6 +12,7 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.{NodeViewHolder, NodeViewModifier}
+import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.Random
@@ -42,17 +43,17 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     */
   override protected def genesisState: (HIS, MS, VL, MP) = {
     val ew = HWallet.readOrGenerate(settings, "genesis", "e", 500)
+    val genesisAccount = ew.secrets.head
 
     var history = HybridHistory.readOrGenerate(settings)
 
-    //PoWBlock({"posParentId":"4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi","timestamp":1481107613415,"nonce":1010880103258330752,
-    // "brothers":[],"id":"12PqjFtvnR2zN2DP9nAtj3MAMhX9VA9orm3EF6ExiGBw","parentId":"4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi"})
-    val genesisBlock = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L,
-      0, Array.fill(32)(0: Byte), Seq())
+    val powGenesis = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1481110008516L, -4954221073250153861L, 0, Array.fill(32)(0: Byte), Seq())
+    history = history.append(powGenesis).get._1
 
-    history = history.append(genesisBlock).get._1
+    val posGenesis = PosBlock(Base58.decode("1P27qcVfiFxScqaG5orvbz4qyERvWr63p8DHocPgJSD").get, 1481110008680L, Seq(),
+      genesisAccount.publicImage, Signature25519(Array.fill(64)(0: Byte)))
 
-    val genesisAccount = ew.secrets.head
+    history = history.append(posGenesis).get._1
 
     val genesisTxs = ew.publicKeys.flatMap { pubkey =>
       (1 to 10).map(_ =>

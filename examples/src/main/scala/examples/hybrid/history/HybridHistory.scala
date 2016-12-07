@@ -428,7 +428,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
     dSuffix.length match {
       case 0 =>
-        log.warn(s"CompareNonsense: ${other.lastPowBlockIds.map(Base58.encode)} vs ${Base58.encode(bestPowId)}")
+        val ids: List[Array[Byte]] = other.lastPowBlockIds.toList
+        log.warn(s"CompareNonsense: ${ids.map(Base58.encode)} vs ${Base58.encode(bestPowId)}")
         HistoryComparisonResult.Nonsense
       case 1 =>
         if (dSuffix.head sameElements bestPowId) {

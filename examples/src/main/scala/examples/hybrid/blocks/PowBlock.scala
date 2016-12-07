@@ -99,9 +99,10 @@ case class PowBlock(override val parentId: BlockId,
   override lazy val json: Json = Map(
     "id" -> Base58.encode(id).asJson,
     "parentId" -> Base58.encode(parentId).asJson,
-    "posParentId" -> Base58.encode(prevPosId).asJson,
+    "prevPosId" -> Base58.encode(prevPosId).asJson,
     "timestamp" -> timestamp.asJson,
     "nonce" -> nonce.asJson,
+    "brothersHash" -> Base58.encode(brothersHash).asJson,
     "brothers" -> brothers.map(b => Base58.encode(b.id).asJson).asJson
   ).asJson
 

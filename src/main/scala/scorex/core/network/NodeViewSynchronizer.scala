@@ -117,6 +117,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       equals.remove(remoteHost)
 
       status match {
+        case Nonsense =>
+          log.warn("Got nonsense")
+
         case Older =>
           seniors.add(remoteHost)
 
