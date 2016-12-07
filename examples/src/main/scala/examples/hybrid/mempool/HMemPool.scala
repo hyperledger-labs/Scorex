@@ -1,7 +1,7 @@
 package examples.hybrid.mempool
 
 import examples.hybrid.state.SimpleBoxTransaction
-import scorex.core.{NodeViewComponentCompanion, NodeViewModifier}
+import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.transaction.MemoryPool
 import scorex.core.utils.ScorexLogging
@@ -58,7 +58,6 @@ case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTrans
     HMemPool(newU)
   }
 
-  override def companion: NodeViewComponentCompanion = ???
 }
 
 

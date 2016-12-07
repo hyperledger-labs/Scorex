@@ -7,7 +7,6 @@ import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519Non
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
@@ -86,7 +85,6 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     new HBoxStoredState(store, metaDb, version)
   }
 
-  override def companion: NodeViewComponentCompanion = ???
 }
 
 object HBoxStoredState {

@@ -2,10 +2,9 @@ package examples.curvepos
 
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.consensus.History.{HistoryComparisonResult, RollbackTo}
 import scorex.core.consensus.BlockChain
+import scorex.core.consensus.History.{HistoryComparisonResult, RollbackTo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 
@@ -44,7 +43,7 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
   override def openSurfaceIds(): Seq[ModifierId] = Seq(blockIds(height()))
 
   override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[SimpleBlock]] =
-  continuationIds(from, size).map(_.map(_._2).map(modifierById).map(_.get))
+    continuationIds(from, size).map(_.map(_._2).map(modifierById).map(_.get))
 
   override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
     require(from.size == 1)
@@ -67,8 +66,6 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
   override def chainScore(): BigInt = blocks.map(ib => score(ib._2)).sum
 
   override type NVCT = SimpleBlockchain
-
-  override def companion: NodeViewComponentCompanion = null
 
   override def score(block: SimpleBlock): Score = BigInt("18446744073709551616") / block.baseTarget
 

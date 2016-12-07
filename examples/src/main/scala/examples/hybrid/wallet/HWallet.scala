@@ -8,7 +8,6 @@ import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Constants25519._
@@ -112,7 +111,6 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override type NVCT = this.type
 
-  override def companion: NodeViewComponentCompanion = ???
 }
 
 object HWallet {

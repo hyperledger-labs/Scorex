@@ -3,11 +3,10 @@ package examples.curvepos.transaction
 import java.nio.ByteBuffer
 
 import examples.curvepos.transaction.SimpleState.EmptyVersion
-import scorex.core.NodeViewComponentCompanion
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
-import scorex.core.transaction.state.{MinimalState, StateChanges}
 import scorex.core.transaction.state.MinimalState.VersionTag
+import scorex.core.transaction.state.{MinimalState, StateChanges}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
@@ -17,7 +16,7 @@ case class TransactionChanges[P <: Proposition, BX <: Box[P]](toRemove: Set[BX],
 
 case class SimpleState(override val version: VersionTag = EmptyVersion,
                        storage: Map[ByteBuffer, PublicKey25519NoncedBox] = Map()) extends ScorexLogging
-with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
+  with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
 
   def isEmpty: Boolean = version sameElements EmptyVersion
 
@@ -47,8 +46,6 @@ with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTran
     }
     SimpleState(newVersion, amap)
   }
-
-  override def companion: NodeViewComponentCompanion = ???
 
   override type NVCT = SimpleState
 

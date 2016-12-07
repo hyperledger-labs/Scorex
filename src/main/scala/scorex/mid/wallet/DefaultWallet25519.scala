@@ -5,7 +5,7 @@ import java.io.File
 import com.google.common.primitives.{Bytes, Ints}
 import org.mapdb.serializer.SerializerByteArray
 import org.mapdb.{DBMaker, HTreeMap}
-import scorex.core.{NodeViewComponentCompanion, PersistentNodeViewModifier}
+import scorex.core.PersistentNodeViewModifier
 import scorex.core.crypto.hash.DoubleCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.Transaction
@@ -21,7 +21,7 @@ import scala.util.Try
 //todo: HKDF
 // todo: encryption
 case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition],
-  PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
+PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
 (settings: Settings)
   extends Wallet[PublicKey25519Proposition, TX, PMOD, DefaultWallet25519[TX, PMOD]] {
 
@@ -63,15 +63,13 @@ case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition],
 
   //todo: protection?
   override def secrets: Set[PrivateKey25519] =
-    dbSecrets.getEntries.map(e => PrivateKey25519(e.getValue, e.getKey)).toSet
+  dbSecrets.getEntries.map(e => PrivateKey25519(e.getValue, e.getKey)).toSet
 
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
     Option(dbSecrets.get(publicImage))
       .map(privBytes => PrivateKey25519(privBytes, publicImage.pubKeyBytes))
 
   override type NVCT = DefaultWallet25519[TX, PMOD]
-
-  override def companion: NodeViewComponentCompanion = ??? //todo: fix
 
   override def scanPersistent(modifier: PMOD): DefaultWallet25519[TX, PMOD] = ???
 
