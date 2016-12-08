@@ -77,8 +77,6 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
   override def heightOf(blockId: ModifierId): Option[Height] =
     blockIds.find(_._2 sameElements blockId).map(_._1)
 
-  override def discardBlock(): Try[SimpleBlockchain] = ???
-
   override def blockAt(height: Height): Option[SimpleBlock] =
     blockIds.get(height).flatMap(blocks.get)
 

@@ -13,8 +13,6 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
 
   import BlockChain.Score
 
-  def score(block: B): Score
-
   /**
     * Height of the a chain, or a longest chain in an explicit block-tree
     */
@@ -33,8 +31,6 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   def heightOf(block: B): Option[Int] = heightOf(block.id)
 
   def heightOf(blockId: ModifierId): Option[Int]
-
-  def confirmations(block: B): Option[Int] = heightOf(block).map(height() - _)
 
   /**
     * Block with maximum blockchain score
@@ -68,8 +64,6 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
   }
 
-  def discardBlock(): Try[BT]
-
   def blockAt(height: Int): Option[B]
 
   def parent(block: B, back: Int = 1): Option[B] = {
@@ -93,9 +87,12 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   lazy val genesisBlock: B = blockAt(1).get
 
   /**
+    * Score of concrete block
+    */
+  def score(block: B): Score
+
+  /**
     * Quality score of a best chain, e.g. cumulative difficulty in case of Bitcoin / Nxt
-    *
-    * @return
     */
   def chainScore(): Score
 }
