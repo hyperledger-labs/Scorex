@@ -6,7 +6,7 @@ version := "2.0.0-M2"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-val circeVersion = "0.5.+"
+val circeVersion = "0.+"
 
 val networkDependencies = Seq(
   "com.typesafe.akka" %% "akka-actor" % "+",

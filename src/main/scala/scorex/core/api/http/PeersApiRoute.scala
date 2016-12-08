@@ -88,11 +88,14 @@ case class PeersApiRoute(peerManager: ActorRef,
     entity(as[String]) { body =>
       withAuth {
         postJsonRoute {
-          decode[ConnectCommandParams](body).map { case ConnectCommandParams(host, port) =>
-            val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port)
-            networkController ! ConnectTo(add)
-            Map("hostname" -> add.getHostName, "status" -> "Trying to connect").asJson
-          }.getOrElse(ApiError.wrongJson)
+          decode[ConnectCommandParams](body) match {
+            case Right(ConnectCommandParams(host, port)) =>
+              val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port)
+              networkController ! ConnectTo(add)
+              Map("hostname" -> add.getHostName, "status" -> "Trying to connect").asJson
+            case _ =>
+              ApiError.wrongJson
+          }
         }
       }
     }
