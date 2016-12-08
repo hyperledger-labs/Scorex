@@ -3,7 +3,6 @@ package scorex.core
 import akka.actor.{Actor, ActorRef}
 import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.api.http.ApiRoute
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
@@ -136,13 +135,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
     }
   }
-
-  def apis: Seq[ApiRoute] = Seq(
-    genesisState._1,
-    genesisState._2,
-    genesisState._3,
-    genesisState._4
-  ).map(_.companion.api)
 
   private def handleSubscribe: Receive = {
     case NodeViewHolder.Subscribe(events) =>
