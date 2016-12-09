@@ -68,7 +68,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
         //brother
         log.info(s"Starting brother mining for ${Base58.encode(h.bestPowBlock.parentId)}:${Base58.encode(h.bestPowBlock.parentId)}")
         val bs = h.bestPowBlock.brothers :+ h.bestPowBlock.header
-        (h.bestPowBlock.parentId, h.bestPowBlock.parentId, bs)
+        (h.bestPowBlock.parentId, h.bestPowBlock.prevPosId, bs)
       } else {
         log.info(s"Starting new block mining for ${Base58.encode(h.bestPowId)}:${Base58.encode(h.bestPosId)}")
         (h.bestPowId, h.bestPosId, Seq()) //new step

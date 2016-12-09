@@ -321,7 +321,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       val oldPosDifficulty = getPoSDifficulty(powBlocks.last.prevPosId)
 
       val newPowDiff = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))
-      val posBlock = bestPosBlock
       val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * 8 / 10)
       log.info(s"PoW difficulty changed: old $oldPowDifficulty, new $newPowDiff")
       log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")

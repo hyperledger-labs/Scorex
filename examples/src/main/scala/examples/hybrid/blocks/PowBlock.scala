@@ -24,6 +24,7 @@ class PowBlockHeader(
                       val brothersCount: Int,
                       val brothersHash: Array[Byte]) {
 
+
   import PowBlockHeader._
 
   lazy val headerBytes =
