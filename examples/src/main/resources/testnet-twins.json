@@ -5,7 +5,7 @@
     "upnp": false,
     "upnpGatewayTimeout": 7000,
     "upnpDiscoverTimeout": 3000,
-    "port": 9084,
+    "port": 9584,
     "knownPeers": [
       "88.198.13.202:9084"
     ],
@@ -17,7 +17,7 @@
   "walletSeed": "test",
   "dataDir": "/tmp/scorex/data",
   "logDir": "/tmp/scorex/log",
-  "rpcPort": 9085,
+  "rpcPort": 9585,
   "rpcAllowed": [],
   "maxRollback": 100,
   "offlineGeneration": false,

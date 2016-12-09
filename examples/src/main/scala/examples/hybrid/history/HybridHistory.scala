@@ -2,6 +2,7 @@ package examples.hybrid.history
 
 
 import java.io.File
+import java.math.BigInteger
 
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{PosForger, PowMiner}
@@ -40,17 +41,13 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
   require(NodeViewModifier.ModifierIdSize == 32, "32 bytes ids assumed")
 
-  private lazy val powDifficultyVar = metaDb.atomicString("powdiff", PowMiner.Difficulty.toString()).createOrOpen()
-
-  private lazy val posDifficultyVar = metaDb.atomicLong("posdiff", PosForger.InitialDifficuly).createOrOpen()
-
-  lazy val powDifficulty = BigInt(powDifficultyVar.get())
-
-  lazy val posDifficulty = posDifficultyVar.get()
+  // map from block id to difficulty at this state
+  lazy val blockDifficulties = metaDb.hashMap("powDiff", Serializer.BYTE_ARRAY, Serializer.BIG_INTEGER).createOrOpen()
 
   //block -> score correspondence, for now score == height; that's not very secure,
   //see http://bitcoin.stackexchange.com/questions/29742/strongest-vs-longest-chain-and-orphaned-blocks
   lazy val blockScores = metaDb.hashMap("hidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
+
 
   //reverse index: only link to parent is stored in a block
   //so to go forward along the chains we need for additional indexes
@@ -107,25 +104,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     }
   }
 
-  def recalcDifficulties(): Unit = {
-    val powBlocks = lastPowBlocks(DifficultyRecalcPeriod)
-    val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
-
-    val brothersCount = powBlocks.map(_.brothersCount).sum
-
-    val expectedTime = (DifficultyRecalcPeriod + brothersCount) * PowMiner.BlockDelay
-
-    val newPowDiff = (powDifficulty * expectedTime / realTime).max(BigInt(1L))
-
-    val newPosDiff = posDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * 8 / 10)
-
-    log.info(s"PoW difficulty changed: old $powDifficulty, new $newPowDiff")
-    log.info(s"PoS difficulty changed: old $posDifficulty, new $newPosDiff")
-
-    powDifficultyVar.set(newPowDiff.toString())
-    posDifficultyVar.set(newPosDiff)
-  }
-
   /**
     * Is there's no history, even genesis block
     *
@@ -151,7 +129,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
   //PoW consensus rules checks, work/references
   //throws exception if anything wrong
-  def checkPowConsensusRules(powBlock: PowBlock): Unit = {
+  def checkPowConsensusRules(powBlock: PowBlock, powDifficulty: BigInt): Unit = {
     //check work
     assert(powBlock.correctWork(powDifficulty), "work done is incorrent")
 
@@ -234,7 +212,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       case powBlock: PowBlock =>
 
         val currentScore = if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
-          checkPowConsensusRules(powBlock)
+          checkPowConsensusRules(powBlock, getPoWDifficulty(powBlock.prevPosId))
           blockScores.get(powBlock.parentId): Long
         } else {
           log.info("Genesis block: " + Base58.encode(powBlock.id))
@@ -324,13 +302,36 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
         if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
 
-        //recalc difficulties
-        if (currentScoreVar.get() > 0 && currentScoreVar.get() % DifficultyRecalcPeriod == 0) recalcDifficulties()
+        setDifficultiesForNewBlock(posBlock)
         (new HybridHistory(blocksStorage, metaDb, logDirOpt), None) //no rollback ever
     }
     metaDb.commit()
     log.info(s"History: block appended, new score is ${currentScoreVar.get()}")
     res
+  }
+
+  private def setDifficultiesForNewBlock(posBlock: PosBlock): Unit = {
+    if (currentScoreVar.get() > 0 && currentScoreVar.get() % DifficultyRecalcPeriod == 0) {
+      //recalc difficulties
+      val powBlocks = lastPowBlocks(DifficultyRecalcPeriod)
+      val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
+      val brothersCount = powBlocks.map(_.brothersCount).sum
+      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * PowMiner.BlockDelay
+      val oldPowDifficulty = getPoWDifficulty(powBlocks.last.prevPosId)
+      val oldPosDifficulty = getPoSDifficulty(powBlocks.last.prevPosId)
+
+      val newPowDiff = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))
+      val posBlock = bestPosBlock
+      val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * 8 / 10)
+      log.info(s"PoW difficulty changed: old $oldPowDifficulty, new $newPowDiff")
+      log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")
+      setDifficulties(posBlock.id, newPowDiff, newPosDiff)
+
+    } else {
+      //Same difficulty as in previous block
+      val parentPoSId: ModifierId = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock].prevPosId
+      setDifficulties(posBlock.id, getPoWDifficulty(parentPoSId), getPoSDifficulty(parentPoSId))
+    }
   }
 
   override def openSurfaceIds(): Seq[ModifierId] =
@@ -382,7 +383,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       answer,
       lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks).map(_.id),
       bestPosId)
-
 
   @tailrec
   private def divergentSuffix(otherLastPowBlocks: Seq[ModifierId],
@@ -465,6 +465,29 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         HistoryComparisonResult.Older
     }*/
   }
+
+  private def setDifficulties(id: NodeViewModifier.ModifierId, powDiff: BigInt, posDiff: Long): Unit = {
+    blockDifficulties.put(1.toByte +: id, powDiff.bigInteger)
+    blockDifficulties.put(0.toByte +: id, BigInt(posDiff).bigInteger)
+  }
+
+  private def getPoWDifficulty(id: NodeViewModifier.ModifierId): BigInt = {
+    if (id sameElements PowMiner.GenesisParentId) {
+      PowMiner.Difficulty
+    } else {
+      BigInt(blockDifficulties.get(1.toByte +: id): BigInteger)
+    }
+  }
+
+  private def getPoSDifficulty(id: NodeViewModifier.ModifierId): Long = if (id sameElements PowMiner.GenesisParentId) {
+    PosForger.InitialDifficuly
+  } else {
+    BigInt(blockDifficulties.get(0.toByte +: id): BigInteger).toLong
+  }
+
+  lazy val powDifficulty = getPoWDifficulty(bestPowBlock.prevPosId)
+  lazy val posDifficulty = getPoSDifficulty(bestPosBlock.id)
+
 }
 
 
