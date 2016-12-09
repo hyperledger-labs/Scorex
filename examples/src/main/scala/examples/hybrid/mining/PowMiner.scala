@@ -62,37 +62,41 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
 
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
 
-      val difficulty = h.powDifficulty
-
-      val (parentId, prevPosId, brothers) = if (!h.pairCompleted) {
-        //brother
-        log.info(s"Starting brother mining for ${Base58.encode(h.bestPowBlock.parentId)}:${Base58.encode(h.bestPowBlock.parentId)}")
-        val bs = h.bestPowBlock.brothers :+ h.bestPowBlock.header
-        (h.bestPowBlock.parentId, h.bestPowBlock.prevPosId, bs)
+      if (!cancellableOpt.forall(_.status.isCancelled)) {
+        log.warn("Trying to run miner when the old one is still running")
       } else {
-        log.info(s"Starting new block mining for ${Base58.encode(h.bestPowId)}:${Base58.encode(h.bestPosId)}")
-        (h.bestPowId, h.bestPosId, Seq()) //new step
-      }
+        val difficulty = h.powDifficulty
 
-      val p = Promise[Option[PowBlock]]()
-      cancellableOpt = Some(Cancellable.run() { status =>
-        Future {
-          var foundBlock: Option[PowBlock] = None
-          var attemps = 0
-
-          while (status.nonCancelled && foundBlock.isEmpty) {
-            foundBlock = powIteration(parentId, prevPosId, brothers, difficulty)
-            attemps = attemps + 1
-            if (attemps % 100 == 99) {
-              println(s"100 hashes tried, difficulty is $difficulty")
-            }
-          }
-          p.success(foundBlock)
+        val (parentId, prevPosId, brothers) = if (!h.pairCompleted) {
+          //brother
+          log.info(s"Starting brother mining for ${Base58.encode(h.bestPowBlock.parentId)}:${Base58.encode(h.bestPowBlock.prevPosId)}")
+          val bs = h.bestPowBlock.brothers :+ h.bestPowBlock.header
+          (h.bestPowBlock.parentId, h.bestPowBlock.prevPosId, bs)
+        } else {
+          log.info(s"Starting new block mining for ${Base58.encode(h.bestPowId)}:${Base58.encode(h.bestPosId)}")
+          (h.bestPowId, h.bestPosId, Seq()) //new step
         }
-      })
 
-      p.future.onComplete { toBlock =>
-        toBlock.getOrElse(None).foreach(block => self ! block)
+        val p = Promise[Option[PowBlock]]()
+        cancellableOpt = Some(Cancellable.run() { status =>
+          Future {
+            var foundBlock: Option[PowBlock] = None
+            var attemps = 0
+
+            while (status.nonCancelled && foundBlock.isEmpty) {
+              foundBlock = powIteration(parentId, prevPosId, brothers, difficulty)
+              attemps = attemps + 1
+              if (attemps % 100 == 99) {
+                println(s"100 hashes tried, difficulty is $difficulty")
+              }
+            }
+            p.success(foundBlock)
+          }
+        })
+
+        p.future.onComplete { toBlock =>
+          toBlock.getOrElse(None).foreach(block => self ! block)
+        }
       }
 
 

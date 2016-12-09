@@ -12,14 +12,15 @@
     "addedMaxDelay": 1000,
     "maxConnections": 10
   },
-  "walletDir": "/tmp/scorex/wallet2",
   "walletPassword": "cookies2",
   "walletSeed": "helloworld2",
-  "dataDir": "/tmp/scorex/data2",
-  "logDir": "/tmp/scorex/log2",
+  "walletDir": "/tmp/scorex/data2/wallet",
+  "dataDir": "/tmp/scorex/data2/blockchain",
+  "logDir": "/tmp/scorex/data2/log",
   "rpcPort": 9089,
   "rpcAllowed": [],
   "maxRollback": 100,
-  "blockGenerationDelay": 100,
+  "offlineGeneration": false,
+  "blockGenerationDelay": 1000,
   "cors": false
 }

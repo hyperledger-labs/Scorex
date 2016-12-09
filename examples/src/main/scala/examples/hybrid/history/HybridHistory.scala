@@ -487,6 +487,29 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   lazy val powDifficulty = getPoWDifficulty(bestPowBlock.prevPosId)
   lazy val posDifficulty = getPoSDifficulty(bestPosBlock.id)
 
+
+  //chain without brothers
+  override def toString: String = {
+    val chain = chainOf(bestPosBlock, Seq())
+    chain.map(Base58.encode).mkString(", ")
+  }
+
+  @tailrec
+  private def chainOf(m: HybridPersistentNodeViewModifier, acc: Seq[ModifierId] = Seq()): Seq[ModifierId] = m match {
+    case b: PosBlock =>
+      val summ: Seq[ModifierId] = b.id +: acc
+      modifierById(b.parentId) match {
+        case Some(parent) => chainOf(parent, summ)
+        case _ => summ
+      }
+    case b: PowBlock =>
+      val summ: Seq[ModifierId] = b.id +: acc
+      modifierById(b.prevPosId) match {
+        case Some(parent) => chainOf(parent, summ)
+        case _ => summ
+      }
+  }
+
 }
 
 
