@@ -6,10 +6,10 @@ version := "2.0.0-M2"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-val circeVersion = "0.5.+"
+val circeVersion = "0.+"
 
 val networkDependencies = Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.+",
+  "com.typesafe.akka" %% "akka-actor" % "+",
   "org.bitlet" % "weupnp" % "0.1.+",
   "commons-net" % "commons-net" % "3.+"
 )
@@ -18,7 +18,7 @@ val apiDependencies = Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
-  "com.typesafe.akka" %% "akka-http-experimental" % "2.+",
+  "com.typesafe.akka" %% "akka-http-experimental" % "+",
   "io.swagger" %% "swagger-scala-module" % "1.+",
   "io.swagger" % "swagger-core" % "1.+",
   "io.swagger" % "swagger-annotations" % "1.+",

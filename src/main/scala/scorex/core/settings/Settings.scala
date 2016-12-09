@@ -19,13 +19,13 @@ trait Settings extends ScorexLogging {
 
   def settingsFromFile(filename: String): Map[String, Json] = Try {
     val jsonString = scala.io.Source.fromFile(filename).mkString
-    parse(jsonString)
+    parse(jsonString).right.get
   }.recoverWith { case t =>
     Try {
       val jsonString = scala.io.Source.fromURL(getClass.getResource(s"/$filename")).mkString
-      parse(jsonString)
+      parse(jsonString).right.get
     }
-  }.toOption.flatMap(_.toOption).flatMap(_.asObject).map(_.toMap).getOrElse {
+  }.toOption.flatMap(_.asObject).map(_.toMap).getOrElse {
     log.error(s"Unable to read $filename or not a JSON map there, closing")
     //catch error?
     System.exit(10)
