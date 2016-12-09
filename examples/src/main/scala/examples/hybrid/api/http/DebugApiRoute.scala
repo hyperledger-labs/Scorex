@@ -5,6 +5,7 @@ import javax.ws.rs.Path
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
+import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.HBoxStoredState
@@ -31,7 +32,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
   }
 
   override val route = pathPrefix("debug") {
-    debugRoute
+    infoRoute ~ chain
   }
 
   @Path("/info")
@@ -39,7 +40,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "Json with peer list or error")
   ))
-  def debugRoute: Route = path("info") {
+  def infoRoute: Route = path("info") {
     getJsonRoute {
       getView().map { view =>
         Map(
@@ -50,4 +51,18 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
     }
   }
 
+  @Path("/chain")
+  @ApiOperation(value = "Chain", notes = "Print full chain", httpMethod = "GET")
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Json with peer list or error")
+  ))
+  def chain: Route = path("chain") {
+    getJsonRoute {
+      getView().map { view =>
+        Map(
+          "history" -> view.history.toString
+        ).asJson
+      }
+    }
+  }
 }
