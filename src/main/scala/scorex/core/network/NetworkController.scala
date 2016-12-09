@@ -26,14 +26,13 @@ import scala.reflect.runtime.universe.TypeTag
   * must be singleton
   */
 class NetworkController(settings: Settings,
+                        peerManager: ActorRef,
                         messageHandler: MessageHandler,
                         upnp: UPnP,
                         agentName: String,
                         appVersion: ApplicationVersion) extends Actor with ScorexLogging {
 
   import NetworkController._
-
-  val peerManager = context.system.actorOf(Props(classOf[PeerManager], settings, self))
 
   val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], self, peerManager), "PeerSynchronizer")
 
