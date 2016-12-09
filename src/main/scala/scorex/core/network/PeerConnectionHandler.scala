@@ -135,7 +135,7 @@ case class PeerConnectionHandler(settings: Settings,
       t._1.find { packet =>
         messagesHandler.parseBytes(packet.toByteBuffer, Some(selfPeer)) match {
           case Success(message) =>
-            log.info("received message " + message.spec + " from " + remote)
+            log.info("Received message " + message.spec + " from " + remote)
             networkControllerRef ! message
             false
 
@@ -172,5 +172,4 @@ object PeerConnectionHandler {
   case object CloseConnection
 
   case object Blacklist
-
 }
