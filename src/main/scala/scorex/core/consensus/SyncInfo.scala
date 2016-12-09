@@ -1,7 +1,7 @@
 package scorex.core.consensus
 
-import scorex.core.NodeViewModifier
 import scorex.core.serialization.BytesSerializable
+import History.ModifierIds
 
 /**
   * Syncing info provides information about starting points this node recommends another to start
@@ -9,7 +9,7 @@ import scorex.core.serialization.BytesSerializable
   */
 trait SyncInfo extends BytesSerializable {
   def answer: Boolean
-  def startingPoints: Seq[(NodeViewModifier.ModifierTypeId, NodeViewModifier.ModifierId)]
+  def startingPoints: ModifierIds
 }
 
 

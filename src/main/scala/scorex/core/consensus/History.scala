@@ -30,8 +30,6 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
   import History._
   import NodeViewModifier.ModifierId
 
-  type ModifierIds = Seq[(ModifierTypeId, ModifierId)]
-
   /**
     * Is there's no history, even genesis block
     */
@@ -86,6 +84,8 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 }
 
 object History {
+
+  type ModifierIds = Seq[(ModifierTypeId, ModifierId)]
 
   object HistoryComparisonResult extends Enumeration {
     val Equal = Value(1)
