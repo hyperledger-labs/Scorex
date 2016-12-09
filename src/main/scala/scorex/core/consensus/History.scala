@@ -67,10 +67,10 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
   def openSurfaceIds(): Seq[ModifierId]
 
   //todo: argument should be ID | Seq[ID]
-  def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[PM]]
+  def continuation(from: ModifierIds, size: Int): Option[Seq[PM]]
 
   //todo: argument should be ID | Seq[ID]
-  def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]]
+  def continuationIds(from: ModifierIds, size: Int): Option[ModifierIds]
 
   def syncInfo(answer: Boolean): SI
 
@@ -84,6 +84,8 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 }
 
 object History {
+
+  type ModifierIds = Seq[(ModifierTypeId, ModifierId)]
 
   object HistoryComparisonResult extends Enumeration {
     val Equal = Value(1)
