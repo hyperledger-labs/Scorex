@@ -30,10 +30,6 @@ class HybridApp(val settingsFilename: String) extends Application {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 
-  override lazy val applicationName: String = "2-Hop"
-
-  override lazy val appVersion: ApplicationVersion = ApplicationVersion(0, 1, 1)
-
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoMessageSpec)
 
   override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))

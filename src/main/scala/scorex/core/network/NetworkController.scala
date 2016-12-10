@@ -27,9 +27,7 @@ import scala.reflect.runtime.universe.TypeTag
   */
 class NetworkController(settings: Settings,
                         messageHandler: MessageHandler,
-                        upnp: UPnP,
-                        agentName: String,
-                        appVersion: ApplicationVersion) extends Actor with ScorexLogging {
+                        upnp: UPnP) extends Actor with ScorexLogging {
 
   import NetworkController._
 
@@ -84,14 +82,6 @@ class NetworkController(settings: Settings,
 
   log.info(s"Declared address: $ownSocketAddress")
 
-  private lazy val handshakeTemplate = Handshake(agentName,
-    appVersion,
-    settings.nodeName,
-    settings.nodeNonce,
-    ownSocketAddress,
-    0
-  )
-
 
   lazy val connTimeout = Some(new FiniteDuration(settings.connectionTimeout, SECONDS))
 
@@ -142,12 +132,13 @@ class NetworkController(settings: Settings,
 
     case c@Connected(remote, local) =>
       val connection = sender()
-      val handler =
-        context.actorOf(Props(classOf[PeerConnectionHandler], settings, self, peerManager, messageHandler, connection, remote))
+      val props = Props(classOf[PeerConnectionHandler], settings, self, peerManager,
+        messageHandler, connection, ownSocketAddress, remote)
+      val handler = context.actorOf(props)
       connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
       val newPeer = ConnectedPeer(remote, handler)
-      newPeer.handlerRef ! handshakeTemplate.copy(time = System.currentTimeMillis() / 1000)
       peerManager ! PeerManager.Connected(newPeer)
+      newPeer.handlerRef ! PeerConnectionHandler.StartInteraction
 
     case CommandFailed(c: Connect) =>
       log.info("Failed to connect to : " + c.remoteAddress)

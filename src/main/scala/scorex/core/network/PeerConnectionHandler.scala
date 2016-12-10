@@ -35,6 +35,7 @@ case class PeerConnectionHandler(settings: Settings,
                                  peerManager: ActorRef,
                                  messagesHandler: MessageHandler,
                                  connection: ActorRef,
+                                 ownSocketAddress: Option[InetSocketAddress],
                                  remote: InetSocketAddress) extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler._
@@ -76,8 +77,17 @@ case class PeerConnectionHandler(settings: Settings,
   private object HandshakeDone
 
   private def handshake: Receive = ({
-    case h: Handshake =>
-      connection ! Write(ByteString(h.bytes))
+    case StartInteraction =>
+      val hb = Handshake(
+        settings.agentName,
+        settings.appVersion,
+        settings.nodeName,
+        settings.nodeNonce,
+        ownSocketAddress,
+        System.currentTimeMillis()
+      ).bytes
+
+      connection ! Write(ByteString(hb))
       log.info(s"Handshake sent to $remote")
       handshakeSent = true
       if (handshakeGot && handshakeSent) self ! HandshakeDone
@@ -161,6 +171,7 @@ case class PeerConnectionHandler(settings: Settings,
 }
 
 object PeerConnectionHandler {
+  case object StartInteraction
 
   private object CommunicationState extends Enumeration {
     type CommunicationState = Value

@@ -23,10 +23,6 @@ class SimpleApp(val settingsFilename: String) extends Application {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 
-  override lazy val applicationName: String = "SimpleApp"
-
-  override lazy val appVersion: ApplicationVersion = ApplicationVersion(0, 1, 0)
-
   override type P = PublicKey25519Proposition
   override type TX = SimpleTransaction
   override type PMOD = SimpleBlock
@@ -49,7 +45,6 @@ class SimpleApp(val settingsFilename: String) extends Application {
   override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings),
     NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
-
 }
 
 object SimpleApp extends App {

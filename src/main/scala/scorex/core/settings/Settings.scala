@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 
 import io.circe.Json
 import io.circe.parser.parse
+import scorex.core.app.ApplicationVersion
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -125,4 +126,19 @@ trait Settings extends ScorexLogging {
   private val DefaultBlockGenerationDelay: FiniteDuration = 1.second
   private val DefaultMiningThreads: Int = 1
 
+  //APPLICATION DATA
+  lazy val agentName = settingsJSON.get("agent").flatMap(_.asString).get
+  lazy val appVersion: ApplicationVersion = {
+    val ints = settingsJSON.get("version")
+      .flatMap(_.asArray).map(_.flatMap(_.asNumber.flatMap(_.toInt)))
+      .get
+      .toArray
+      .ensuring(_.length == Settings.VersionNumbers)
+
+    ApplicationVersion(ints(0), ints(1), ints(2))
+  }
+}
+
+object Settings {
+  val VersionNumbers = 3 //a version is about 3 numbers e.g. 1.0.1
 }
