@@ -7,7 +7,6 @@ import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.core.app.ApplicationVersion
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.core.network.peer.PeerManager
 import scorex.core.settings.Settings
