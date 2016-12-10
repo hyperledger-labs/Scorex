@@ -48,4 +48,6 @@ class PeerDatabaseImpl(settings: Settings, filename: Option[String]) extends Pee
     }).toMap
 
   override def blacklistedPeers(): Seq[String] = blacklist.keys.toSeq
+
+  override def isEmpty(): Boolean = whitelistPersistence.size() == 0
 }

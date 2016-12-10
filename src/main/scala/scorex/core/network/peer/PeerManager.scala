@@ -2,7 +2,7 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.Actor
 import scorex.core.network._
 import scorex.core.settings.Settings
 import scorex.core.utils.ScorexLogging
@@ -12,10 +12,9 @@ import scala.collection.mutable
 import scala.util.Random
 
 /**
- * Peer manager takes care of peers connected and in process
- * Must be singleton
- *
- */
+  * Peer manager takes care of peers connected and in process, and also choose a random peer to connect
+  * Must be singleton
+  */
 class PeerManager(settings: Settings) extends Actor with ScorexLogging {
 
   import PeerManager._
@@ -23,11 +22,13 @@ class PeerManager(settings: Settings) extends Actor with ScorexLogging {
   private val connectedPeers = mutable.Map[ConnectedPeer, Option[Handshake]]()
   private var connectingPeer: Option[InetSocketAddress] = None
 
-  private lazy val peerDatabase = new PeerDatabaseImpl(settings, settings.dataDirOpt.map(f => f + "/peers.dat"))
+  private lazy val peerDatabase = new PeerDatabaseImpl(settings, settings.dataDirOpt.map(_ + "/peers.dat"))
 
-  settings.knownPeers.foreach { address =>
-    val defaultPeerInfo = PeerInfo(System.currentTimeMillis(), None, None)
-    peerDatabase.addOrUpdateKnownPeer(address, defaultPeerInfo)
+  if (peerDatabase.isEmpty()) {
+    settings.knownPeers.foreach { address =>
+      val defaultPeerInfo = PeerInfo(System.currentTimeMillis(), None, None)
+      peerDatabase.addOrUpdateKnownPeer(address, defaultPeerInfo)
+    }
   }
 
   private def randomPeer(): Option[InetSocketAddress] = {
