@@ -9,8 +9,8 @@ import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.wallet.SimpleBoxTransactionGenerator
 import examples.hybrid.wallet.SimpleBoxTransactionGenerator.StartGeneration
 import io.circe
-import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, UtilsApiRoute}
-import scorex.core.app.{Application, ApplicationVersion}
+import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApiRoute}
+import scorex.core.app.Application
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
@@ -37,9 +37,12 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val apiRoutes: Seq[ApiRoute] = Seq(
     DebugApiRoute(settings, nodeViewHolderRef),
     UtilsApiRoute(settings),
-    NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
+    NodeViewApiRoute[P, TX](settings, nodeViewHolderRef),
+    PeersApiRoute(peerManagerRef, networkController, settings)
+  )
 
-  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[DebugApiRoute], typeOf[NodeViewApiRoute[P, TX]])
+  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[DebugApiRoute], typeOf[NodeViewApiRoute[P, TX]],
+    typeOf[PeersApiRoute])
 
   val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
   val forger = actorSystem.actorOf(Props(classOf[PosForger], settings, nodeViewHolderRef))

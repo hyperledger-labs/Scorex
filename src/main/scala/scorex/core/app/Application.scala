@@ -7,6 +7,7 @@ import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.api.http.{ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
+import scorex.core.network.peer.PeerManager
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
@@ -53,7 +54,10 @@ trait Application extends ScorexLogging {
   val nodeViewSynchronizer: ActorRef
   val localInterface: ActorRef
 
-  val nProps = Props(classOf[NetworkController], settings, messagesHandler, upnp)
+
+  val peerManagerRef = actorSystem.actorOf(Props(classOf[PeerManager], settings))
+
+  val nProps = Props(classOf[NetworkController], settings, messagesHandler, upnp, peerManagerRef)
   val networkController = actorSystem.actorOf(nProps, "networkController")
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute

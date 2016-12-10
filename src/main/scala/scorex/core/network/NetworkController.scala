@@ -26,13 +26,13 @@ import scala.reflect.runtime.universe.TypeTag
   */
 class NetworkController(settings: Settings,
                         messageHandler: MessageHandler,
-                        upnp: UPnP) extends Actor with ScorexLogging {
+                        upnp: UPnP,
+                        peerManagerRef: ActorRef
+                       ) extends Actor with ScorexLogging {
 
   import NetworkController._
 
-  val peerManager = context.system.actorOf(Props(classOf[PeerManager], settings, self))
-
-  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], self, peerManager), "PeerSynchronizer")
+  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], self, peerManagerRef), "PeerSynchronizer")
 
   private implicit val system = context.system
 
@@ -90,7 +90,7 @@ class NetworkController(settings: Settings,
   private def bindingLogic: Receive = {
     case b@Bound(localAddr) =>
       log.info("Successfully bound to the port " + settings.port)
-      context.system.scheduler.schedule(600.millis, 5.seconds)(peerManager ! PeerManager.CheckPeers)
+      context.system.scheduler.schedule(600.millis, 5.seconds)(peerManagerRef ! PeerManager.CheckPeers)
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.port + " already in use!")
@@ -119,7 +119,7 @@ class NetworkController(settings: Settings,
       }
 
     case SendToNetwork(message, sendingStrategy) =>
-      (peerManager ? PeerManager.FilterPeers(sendingStrategy))
+      (peerManagerRef ? PeerManager.FilterPeers(sendingStrategy))
         .map(_.asInstanceOf[Seq[ConnectedPeer]])
         .foreach(_.foreach(_.handlerRef ! message))
   }
@@ -131,24 +131,24 @@ class NetworkController(settings: Settings,
 
     case c@Connected(remote, local) =>
       val connection = sender()
-      val props = Props(classOf[PeerConnectionHandler], settings, self, peerManager,
+      val props = Props(classOf[PeerConnectionHandler], settings, self, peerManagerRef,
         messageHandler, connection, ownSocketAddress, remote)
       val handler = context.actorOf(props)
       connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
       val newPeer = ConnectedPeer(remote, handler)
-      peerManager ! PeerManager.Connected(newPeer)
+      peerManagerRef ! PeerManager.Connected(newPeer)
       newPeer.handlerRef ! PeerConnectionHandler.StartInteraction
 
     case CommandFailed(c: Connect) =>
       log.info("Failed to connect to : " + c.remoteAddress)
-      peerManager ! PeerManager.Disconnected(c.remoteAddress)
+      peerManagerRef ! PeerManager.Disconnected(c.remoteAddress)
   }
 
   //calls from API / application
   def interfaceCalls: Receive = {
     case ShutdownNetwork =>
       log.info("Going to shutdown all connections & unbind port")
-      (peerManager ? PeerManager.FilterPeers(Broadcast))
+      (peerManagerRef ? PeerManager.FilterPeers(Broadcast))
         .map(_.asInstanceOf[Seq[ConnectedPeer]])
         .foreach(_.foreach(_.handlerRef ! PeerConnectionHandler.CloseConnection))
       self ! Unbind
