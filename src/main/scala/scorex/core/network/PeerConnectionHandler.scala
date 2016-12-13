@@ -29,7 +29,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
 case object Ack extends Event
 
 
-//todo: timeout on Ack waiting
+//todo: timeout on Handshake Ack waiting
 case class PeerConnectionHandler(settings: Settings,
                                  networkControllerRef: ActorRef,
                                  peerManager: ActorRef,
@@ -46,7 +46,7 @@ case class PeerConnectionHandler(settings: Settings,
 
   override def preStart: Unit = connection ! ResumeReading
 
-  // there is not recovery for broken connections
+  // there is no recovery for broken connections
   override val supervisorStrategy = SupervisorStrategy.stoppingStrategy
 
   private def processErrors(stateName: String): Receive = {
