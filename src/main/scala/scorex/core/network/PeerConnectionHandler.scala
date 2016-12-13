@@ -29,7 +29,6 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
 case object Ack extends Event
 
 
-//todo: timeout on Handshake Ack waiting
 case class PeerConnectionHandler(settings: Settings,
                                  networkControllerRef: ActorRef,
                                  peerManager: ActorRef,
