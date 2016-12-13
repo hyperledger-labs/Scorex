@@ -6,7 +6,7 @@ import com.google.common.primitives.Longs
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import org.mapdb.{DB, DBMaker, Serializer}
+import org.mapdb.{DB, DBMaker}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
@@ -28,24 +28,17 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
   override type NVCT = HBoxStoredState
   type HPMOD = HybridPersistentNodeViewModifier
 
-  //blockId(state version) -> dbversion index, as IODB uses long int version
-  lazy val dbVersions = metaDb.hashMap("vidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
-
-  private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
-
   override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
     assert(tx.isValid)
   }
 
-  override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = {
-    val res = Option(store.get(ByteArrayWrapper(boxId)))
+  override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
+    store.get(ByteArrayWrapper(boxId))
       .map(_.data)
       .map(PublicKey25519NoncedBoxSerializer.parseBytes)
       .flatMap(_.toOption)
-    res
-  }
 
-  //there's no an easy way to know boxes associated with a proposition, without an additional index
+  //there's no easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
   override def changes(mod: HPMOD): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
@@ -70,21 +63,18 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
 
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {
-    val newDbVersion = store.lastVersion + 1
-    dbVersions.put(newVersion, newDbVersion)
     val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
     val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    store.update(newDbVersion, boxIdsToRemove, boxesToAdd)
+    store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
     metaDb.commit()
     HBoxStoredState(store, metaDb, newVersion)
   }
 
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
-    store.rollback(dbVersion(version))
+    store.rollback(ByteArrayWrapper(version))
     new HBoxStoredState(store, metaDb, version)
   }
-
 }
 
 object HBoxStoredState {

@@ -11,6 +11,8 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.StateChanges
 
+import scala.util.Random
+
 class HBoxStoredStateSpecification extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks
@@ -28,7 +30,7 @@ class HBoxStoredStateSpecification extends PropSpec
     forAll(noncedBoxGen) { b =>
       val c = StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set(b))
 
-      state = state.applyChanges(c, Array.fill(32)(0: Byte)).get
+      state = state.applyChanges(c, Array.fill(32)(Random.nextInt(Byte.MaxValue).toByte)).get
 
       state.closedBox(b.id).isDefined shouldBe true
     }

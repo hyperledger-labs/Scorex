@@ -111,8 +111,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     */
   override def isEmpty: Boolean = powHeight <= 0
 
-  override def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier] = Try {
-    Option(blocksStorage.get(ByteArrayWrapper(blockId))).flatMap { bw =>
+  override def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier] =
+    blocksStorage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
       (mtypeId match {
@@ -122,7 +122,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
           PosBlockCompanion.parseBytes(bytes.tail)
       }).toOption
     }
-  }.getOrElse(None)
 
   override def contains(id: ModifierId): Boolean =
     if (id sameElements PowMiner.GenesisParentId) true else modifierById(id).isDefined
@@ -169,24 +168,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     //todo: check PoS rules
   }
 
-  /**
-    * find common suffixes for two chains
-    * returns last common block and then variant blocks for two chains,
-    * longer one and a loser
-    */
-  final def commonBlockThenSuffixes(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
-
-    val idx = loserChain.indexWhere(blockId => !winnerChain.exists(_.sameElements(blockId)))
-    assert(idx != 0)
-
-    val lc = if (idx == -1) loserChain.slice(loserChain.length - 1, loserChain.length)
-    else loserChain.slice(idx - 1, loserChain.length)
-
-    val wc = winnerChain.dropWhile(blockId => !blockId.sameElements(lc.head))
-
-    (wc, lc)
-  }
-
   private def writeBlock(b: HybridPersistentNodeViewModifier) = {
     val typeByte = b match {
       case _: PowBlock =>
@@ -196,7 +177,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     }
 
     blocksStorage.update(
-      blocksStorage.lastVersion + 1,
+      ByteArrayWrapper(b.id),
       Seq(),
       Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
   }
@@ -516,10 +497,32 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 object HybridHistory extends ScorexLogging {
   val DifficultyRecalcPeriod = 20
 
+  /**
+    * find common suffixes for two chains
+    * returns last common block and then variant blocks for two chains,
+    * longer one and a loser
+    */
+  final def commonBlockThenSuffixes(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
+
+    val idx = loserChain.indexWhere(blockId => !winnerChain.exists(_.sameElements(blockId)))
+    assert(idx != 0)
+
+    val lc = if (idx == -1) loserChain.slice(loserChain.length - 1, loserChain.length)
+    else loserChain.slice(idx - 1, loserChain.length)
+
+    val wc = winnerChain.dropWhile(blockId => !blockId.sameElements(lc.head))
+
+    (wc, lc)
+  }
+
   def readOrGenerate(settings: Settings): HybridHistory = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
+    val logDirOpt = settings.logDirOpt
+    readOrGenerate(dataDir, logDirOpt)
+  }
 
+  def readOrGenerate(dataDir: String, logDirOpt: Option[String]): HybridHistory = {
     val iFile = new File(s"$dataDir/blocks")
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile)
@@ -537,7 +540,6 @@ object HybridHistory extends ScorexLogging {
         .closeOnJvmShutdown()
         .make()
 
-    val logDirOpt = settings.logDirOpt
     new HybridHistory(blockStorage, metaDb, logDirOpt)
   }
 }

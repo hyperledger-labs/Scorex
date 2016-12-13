@@ -34,8 +34,6 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   lazy val seedAppendix = metaDb.atomicInteger("seedAppendix", 0).createOrOpen()
   lazy val secretsMap = metaDb.treeMap("secrets", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
 
-  lazy val dbVersions = metaDb.hashMap("versions", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
-
   lazy val boxIds = metaDb.treeSet("ids", Serializer.BYTE_ARRAY).createOrOpen()
 
   private lazy val walletBoxSerializer =
@@ -56,7 +54,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     boxIds
-      .flatMap(id => Option(boxStore.get(ByteArrayWrapper(id))))
+      .flatMap(id => boxStore.get(ByteArrayWrapper(id)))
       .map(_.data)
       .map(ba => walletBoxSerializer.parseBytes(ba))
       .map(_.get)
@@ -90,22 +88,16 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
         ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
       }
     }
-    val boxIdsToRemove = txs.flatMap(_.boxIdsToOpen).map(ByteArrayWrapper)
-    val newVersion = boxStore.lastVersion + 1
-
-    boxStore.update(newVersion, boxIdsToRemove, newBoxes)
-
-    dbVersions.put(modifier.id, newVersion)
+    val boxIdsToRemove = txs.flatMap(_.boxIdsToOpen).map(ByteArrayWrapper.apply)
+    boxStore.update(ByteArrayWrapper(modifier.id), boxIdsToRemove, newBoxes)
 
     metaDb.commit()
     HWallet(seed, boxStore, metaDb)
   }
 
-  private def dbVersion(ver: VersionTag): Long = dbVersions.get(ver)
-
   override def rollback(to: VersionTag): Try[HWallet] = Try {
     log.debug(s"Rolling back wallet to: ${Base58.encode(to)}")
-    boxStore.rollback(dbVersion(to))
+    boxStore.rollback(ByteArrayWrapper(to))
     HWallet(seed, boxStore, metaDb)
   }
 
