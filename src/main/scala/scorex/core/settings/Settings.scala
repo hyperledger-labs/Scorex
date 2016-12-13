@@ -55,6 +55,8 @@ trait Settings extends ScorexLogging {
   //p2p
   lazy val DefaultPort = 9084
 
+  lazy val DefaultHandshakleTimeout = 5000
+
   lazy val p2pSettings = settingsJSON("p2p").asObject.get.toMap
 
   lazy val nodeNonce: Long = (Random.nextInt(1000) + 1000) * Random.nextInt(1000) + Random.nextInt(1000)
@@ -86,6 +88,11 @@ trait Settings extends ScorexLogging {
   lazy val upnpDiscoverTimeout = p2pSettings.get("upnpDiscoverTimeout").flatMap(_.asNumber).flatMap(_.toInt)
   lazy val port = p2pSettings.get("port").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultPort)
   lazy val declaredAddress = p2pSettings.get("myAddress").flatMap(_.asString)
+
+  lazy val handshakeTimeout: Int = p2pSettings.get("handshakeTimeout")
+    .flatMap(_.asNumber)
+    .flatMap(_.toInt)
+    .getOrElse(DefaultHandshakleTimeout)
 
   lazy val rpcPort = settingsJSON.get("rpcPort").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultRpcPort)
 

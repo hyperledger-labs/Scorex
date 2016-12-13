@@ -2,7 +2,7 @@ package scorex.core.network
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef, SupervisorStrategy}
+import akka.actor.{Actor, ActorRef, Cancellable, SupervisorStrategy}
 import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
@@ -13,9 +13,9 @@ import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
 import scorex.core.settings.Settings
 import scorex.core.utils.ScorexLogging
 
-import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef) {
 
@@ -74,6 +74,8 @@ case class PeerConnectionHandler(settings: Settings,
   private var handshakeGot = false
   private var handshakeSent = false
 
+  private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
+
   private object HandshakeDone
 
   private def handshake: Receive = ({
@@ -90,7 +92,11 @@ case class PeerConnectionHandler(settings: Settings,
       connection ! Write(ByteString(hb))
       log.info(s"Handshake sent to $remote")
       handshakeSent = true
-      if (handshakeGot && handshakeSent) self ! HandshakeDone
+      if (handshakeGot && handshakeSent){
+        self ! HandshakeDone
+      } else {
+        handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout.millis)(self ! HandshakeTimeout))
+      }
 
     case Received(data) =>
       HandshakeSerializer.parseBytes(data.toArray) match {
@@ -106,7 +112,11 @@ case class PeerConnectionHandler(settings: Settings,
           connection ! Close
       }
 
+    case HandshakeTimeout =>
+      connection ! Close
+
     case HandshakeDone =>
+      handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading
       context become workingCycle
   }: Receive) orElse processErrors(CommunicationState.AwaitingHandshake.toString)
@@ -179,6 +189,8 @@ object PeerConnectionHandler {
     val AwaitingHandshake = Value("AwaitingHandshake")
     val WorkingCycle = Value("WorkingCycle")
   }
+
+  case object HandshakeTimeout
 
   case object CloseConnection
 

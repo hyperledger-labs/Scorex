@@ -10,7 +10,8 @@
       "127.0.0.2:9088"
     ],
     "addedMaxDelay": 2000,
-    "maxConnections": 10
+    "maxConnections": 10,
+    "handshakeTimeout": 2000
   },
   "walletPassword": "cookies",
   "walletSeed": "genesis",
