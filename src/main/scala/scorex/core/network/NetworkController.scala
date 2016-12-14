@@ -42,7 +42,7 @@ class NetworkController(settings: Settings,
 
   //check own declared address for validity
   if (!settings.localOnly) {
-    settings.declaredAddress.map { myAddress =>
+    settings.declaredAddress.forall { myAddress =>
       Try {
         val uri = new URI("http://" + myAddress)
         val myHost = uri.getHost
@@ -65,7 +65,7 @@ class NetworkController(settings: Settings,
         log.error("Declared address validation failed: ", t)
         false
       }.getOrElse(false)
-    }.getOrElse(true).ensuring(b => b, "Declared address isn't valid")
+    }.ensuring(b => b, "Declared address isn't valid")
   }
 
   lazy val localAddress = new InetSocketAddress(InetAddress.getByName(settings.bindAddress), settings.port)
