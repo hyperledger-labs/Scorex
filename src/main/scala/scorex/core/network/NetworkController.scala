@@ -130,7 +130,7 @@ class NetworkController(settings: Settings,
     case c@Connected(remote, local) =>
       val connection = sender()
       val props = Props(classOf[PeerConnectionHandler], settings, self, peerManagerRef,
-        messageHandler, connection, ownSocketAddress, remote)
+        messageHandler, connection, externalSocketAddress, remote)
       val handler = context.actorOf(props)
       connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
       val newPeer = ConnectedPeer(remote, handler)
