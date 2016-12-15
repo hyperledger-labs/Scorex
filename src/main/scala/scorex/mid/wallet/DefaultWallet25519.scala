@@ -14,7 +14,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 
@@ -59,11 +59,11 @@ PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
   override def boxes(): Seq[WalletBox[PublicKey25519Proposition, _ <: PublicKeyNoncedBox[PublicKey25519Proposition]]] = ???
 
   override def publicKeys: Set[PublicKey25519Proposition] =
-    dbSecrets.getKeys.map(PublicKey25519Proposition.apply).toSet
+    dbSecrets.getKeys.asScala.map(PublicKey25519Proposition.apply).toSet
 
   //todo: protection?
   override def secrets: Set[PrivateKey25519] =
-  dbSecrets.getEntries.map(e => PrivateKey25519(e.getValue, e.getKey)).toSet
+  dbSecrets.getEntries.asScala.map(e => PrivateKey25519(e.getValue, e.getKey)).toSet
 
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
     Option(dbSecrets.get(publicImage))

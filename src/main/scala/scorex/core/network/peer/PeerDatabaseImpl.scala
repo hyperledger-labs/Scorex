@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import org.mapdb.{DBMaker, HTreeMap, Serializer}
 import scorex.core.settings.Settings
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class PeerDatabaseImpl(settings: Settings, filename: Option[String]) extends PeerDatabase {
 
@@ -33,21 +33,21 @@ class PeerDatabaseImpl(settings: Settings, filename: Option[String]) extends Pee
 
   override def blacklistPeer(address: InetSocketAddress): Unit = {
     whitelistPersistence.remove(address)
-    if (!isBlacklisted(address)) blacklist += address.getHostName -> System.currentTimeMillis()
+    if (!isBlacklisted(address)) blacklist.asScala += address.getHostName -> System.currentTimeMillis()
     database.commit()
   }
 
   override def isBlacklisted(address: InetSocketAddress): Boolean = {
-    blacklist.synchronized(blacklist.contains(address.getHostName))
+    blacklist.synchronized(blacklist.asScala.contains(address.getHostName))
   }
 
   override def knownPeers(excludeSelf: Boolean): Map[InetSocketAddress, PeerInfo] =
     (excludeSelf match {
       case true => knownPeers(false).filter(_._2.nonce.getOrElse(-1) != ownNonce)
-      case false => whitelistPersistence.keys.flatMap(k => Option(whitelistPersistence.get(k)).map(v => k -> v))
+      case false => whitelistPersistence.asScala.keys.flatMap(k => Option(whitelistPersistence.get(k)).map(v => k -> v))
     }).toMap
 
-  override def blacklistedPeers(): Seq[String] = blacklist.keys.toSeq
+  override def blacklistedPeers(): Seq[String] = blacklist.asScala.keys.toSeq
 
   override def isEmpty(): Boolean = whitelistPersistence.size() == 0
 }
