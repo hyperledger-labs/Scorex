@@ -1,4 +1,4 @@
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.0"
 
 name := "scorex-core"
 organization := "org.scorexfoundation"
@@ -17,14 +17,7 @@ val networkDependencies = Seq(
 val apiDependencies = Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
-  "io.circe" %% "circe-parser" % circeVersion,
-  "com.typesafe.akka" %% "akka-http-experimental" % "+",
-  "io.swagger" %% "swagger-scala-module" % "1.+",
-  "io.swagger" % "swagger-core" % "1.+",
-  "io.swagger" % "swagger-annotations" % "1.+",
-  "io.swagger" % "swagger-models" % "1.+",
-  "io.swagger" % "swagger-jaxrs" % "1.+",
-  "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.+"
+  "io.circe" %% "circe-parser" % circeVersion
 )
 
 val loggingDependencies = Seq(
@@ -34,10 +27,9 @@ val loggingDependencies = Seq(
 
 val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-testkit" % "2.+" % "test",
-  "org.scalatest" %% "scalatest" % "2.+" % "test",
-  "org.scalactic" %% "scalactic" % "2.+" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.12.+" % "test",
-  "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"
+  "org.scalatest" %% "scalatest" % "3.+" % "test",
+  "org.scalactic" %% "scalactic" % "3.+" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.13.+" % "test"
 )
 
 libraryDependencies ++= Seq(
@@ -49,7 +41,7 @@ libraryDependencies ++= Seq(
 
 
 
-libraryDependencies += "org.atnos" %% "eff-cats" % "2.0.0-RC4"
+libraryDependencies += "org.atnos" %% "eff" % "2.2.0"
 
 
 
@@ -97,19 +89,3 @@ pomExtra := (
     </developers>)
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
-
-
-import sbt.Keys._
-
-lazy val commonSettings = Seq(
-  organization := "org.consensusresearch",
-  version := version.value,
-  scalaVersion := "2.11.8"
-)
-
-lazy val examples = Project(id = "examples", base = file(s"examples"))
-  .dependsOn(basics)
-  .settings(commonSettings: _*)
-
-lazy val basics = Project(id = "scorex", base = file("."))
-  .settings(commonSettings: _*)

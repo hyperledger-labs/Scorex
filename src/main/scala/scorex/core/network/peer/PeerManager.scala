@@ -7,7 +7,6 @@ import scorex.core.network._
 import scorex.core.settings.Settings
 import scorex.core.utils.ScorexLogging
 
-import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.Random
 
@@ -119,7 +118,7 @@ class PeerManager(settings: Settings) extends Actor with ScorexLogging {
     case CheckPeers =>
       if (connectedPeers.size < settings.maxConnections && connectingPeer.isEmpty) {
         randomPeer().foreach { address =>
-          if (!connectedPeers.map(_._1.socketAddress).contains(address)) {
+          if (!connectedPeers.exists(_._1.socketAddress == address)) {
             connectingPeer = Some(address)
             sender() ! NetworkController.ConnectTo(address)
           }

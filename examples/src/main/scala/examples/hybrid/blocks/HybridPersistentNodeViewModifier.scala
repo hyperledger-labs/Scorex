@@ -1,8 +1,0 @@
-package examples.hybrid.blocks
-
-import examples.hybrid.state.SimpleBoxTransaction
-import scorex.core.PersistentNodeViewModifier
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-
-trait HybridPersistentNodeViewModifier
-  extends PersistentNodeViewModifier[PublicKey25519Proposition, SimpleBoxTransaction]
