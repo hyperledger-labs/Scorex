@@ -12,6 +12,8 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.transaction.state.StateChanges
 import scorex.core.transaction.state.authenticated.BoxMinimalState
+import scorex.core.utils.ScorexLogging
+import scorex.crypto.encode.Base58
 
 import scala.util.{Success, Try}
 
@@ -23,7 +25,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
     HybridPersistentNodeViewModifier,
-    HBoxStoredState] {
+    HBoxStoredState] with ScorexLogging {
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridPersistentNodeViewModifier
@@ -66,6 +68,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
     val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
+    log.debug(s"Update HBoxStoredState with version ${Base58.encode(newVersion)}")
     store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
     metaDb.commit()
     HBoxStoredState(store, metaDb, newVersion)

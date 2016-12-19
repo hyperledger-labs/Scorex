@@ -66,10 +66,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   lazy val orphanCountVar = metaDb.atomicLong("orphans", 0L).createOrOpen()
 
   private lazy val bestPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
-  lazy val bestPowId = Option(bestPowIdVar.get()).getOrElse(PowMiner.GenesisParentId)
+  lazy val bestPowId: Array[Byte] = Option(bestPowIdVar.get()).getOrElse(PowMiner.GenesisParentId)
 
   private lazy val bestPosIdVar = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen()
-  lazy val bestPosId = Option(bestPosIdVar.get()).getOrElse(PowMiner.GenesisParentId)
+  lazy val bestPosId: Array[Byte] = Option(bestPosIdVar.get()).getOrElse(PowMiner.GenesisParentId)
 
   lazy val bestPowBlock = {
     require(currentScoreVar.get() > 0, "History is empty")
@@ -111,8 +111,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     */
   override def isEmpty: Boolean = powHeight <= 0
 
-  override def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier] =
-    blocksStorage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
+  override def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier] = {
+    val mod = blocksStorage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
       (mtypeId match {
@@ -122,6 +122,9 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
           PosBlockCompanion.parseBytes(bytes.tail)
       }).toOption
     }
+    if(mod.isEmpty) log.warn(s"Modifier ${Base58.encode(blockId)} not found in history")
+    mod
+  }
 
   override def contains(id: ModifierId): Boolean =
     if (id sameElements PowMiner.GenesisParentId) true else modifierById(id).isDefined
@@ -157,7 +160,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   //PoS consensus rules checks, throws exception if anything wrong
   def checkPoSConsensusRules(posBlock: PosBlock): Unit = {
     //check PoW block exists
-    modifierById(posBlock.parentId).get
+    require(modifierById(posBlock.parentId).isDefined)
 
     //todo: check difficulty
 
@@ -180,7 +183,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       ByteArrayWrapper(b.id),
       Seq(),
       Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
-  }
+  }.ensuring(blocksStorage.get(ByteArrayWrapper(b.id)).isDefined)
 
   /**
     *
@@ -189,6 +192,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     */
   override def append(block: HybridPersistentNodeViewModifier):
   Try[(HybridHistory, Option[RollbackTo[HybridPersistentNodeViewModifier]])] = Try {
+    log.debug(s"Append block $block to history")
     val res = block match {
       case powBlock: PowBlock =>
 

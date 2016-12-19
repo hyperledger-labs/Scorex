@@ -46,7 +46,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
     "signature" -> Base58.encode(signature.bytes).asJson
   ).asJson
 
-  override def toString: String = json.noSpaces
+  override def toString: String = s"PoSBlock(${json.noSpaces})"
 }
 
 object PosBlockCompanion extends Serializer[PosBlock] {

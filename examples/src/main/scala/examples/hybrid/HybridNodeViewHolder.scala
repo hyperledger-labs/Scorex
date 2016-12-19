@@ -50,10 +50,6 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     val powGenesis = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1481110008516L, -4954221073250153861L, 0, Array.fill(32)(0: Byte), Seq())
     history = history.append(powGenesis).get._1
 
-    val posGenesis = PosBlock(Base58.decode("1P27qcVfiFxScqaG5orvbz4qyERvWr63p8DHocPgJSD").get, 1481110008680L, Seq(),
-      genesisAccount.publicImage, Signature25519(Array.fill(64)(0: Byte)))
-
-    history = history.append(posGenesis).get._1
 
     val genesisTxs = ew.publicKeys.flatMap { pubkey =>
       (1 to 10).map(_ =>
@@ -65,8 +61,9 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
     }.toSeq
 
     val za = Array.fill(Curve25519.SignatureLength)(0: Byte)
-    val initialBlock = PosBlock(PowMiner.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
+    val initialBlock = PosBlock(powGenesis.id, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
+    history = history.append(initialBlock).get._1
     val gs = HBoxStoredState.genesisState(settings, initialBlock)
     val gw = HWallet.genesisWallet(settings, initialBlock)
 
