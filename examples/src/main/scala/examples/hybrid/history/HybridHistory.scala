@@ -122,7 +122,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
           PosBlockCompanion.parseBytes(bytes.tail)
       }).toOption
     }
-    if(mod.isEmpty) log.warn(s"Modifier ${Base58.encode(blockId)} not found in history")
+    if (mod.isEmpty) log.warn(s"Modifier ${Base58.encode(blockId)} not found in history")
     mod
   }
 
@@ -192,7 +192,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     */
   override def append(block: HybridPersistentNodeViewModifier):
   Try[(HybridHistory, Option[RollbackTo[HybridPersistentNodeViewModifier]])] = Try {
-    log.debug(s"Append block $block to history")
+    log.debug(s"Trying to append block ${Base58.encode(block.id)} to history")
     val res = block match {
       case powBlock: PowBlock =>
 
