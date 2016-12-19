@@ -1,11 +1,18 @@
 package hybrid.history
 
-import examples.hybrid.blocks.PowBlock
+import java.io.File
+
+import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mining.PowMiner
 import hybrid.HybridGenerators
+import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
+import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
+import scorex.core.NodeViewModifier.ModifierId
+import scorex.crypto.encode.Base58
+
 import scala.util.Random
 
 
@@ -15,21 +22,43 @@ class HybridHistorySpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
+  var history = HybridHistory.readOrGenerate(s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}", None)
+  val genesisBlock = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L,
+    0, Array.fill(32)(0: Byte), Seq())
+  history = history.append(genesisBlock).get._1
+  history.modifierById(genesisBlock.id).isDefined shouldBe true
 
-  property("History should be able to add POS blocks") {
-    forAll(posBlockGen) { posR =>
-      var history = HybridHistory.readOrGenerate("/tmp/"+s"scorextest-${Random.nextInt(10000000)}", None)
 
-      val genesisBlock = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L,
-        0, Array.fill(32)(0: Byte), Seq())
+  property("Block application and HybridHistory.continuationIds") {
+    var ids: Seq[ModifierId] = Seq()
+    forAll(posBlockGen, powBlockGen) { (posR, powR) =>
+      if (history.powHeight <= HybridHistory.DifficultyRecalcPeriod) {
+        val posBlock = posR.copy(parentId = history.bestPowId)
+        history = history.append(posBlock).get._1
 
-      history = history.append(genesisBlock).get._1
+        var powBlock = powR.copy(parentId = history.bestPowId, prevPosId = history.bestPosId, brothers = Seq(),
+          brothersCount = 0)
+        while (!powBlock.correctWork(history.powDifficulty)) {
+          powBlock = powBlock.copy(nonce = Random.nextLong())
+        }
+        history = history.append(powBlock).get._1
 
-      history.modifierById(genesisBlock.id).isDefined shouldBe true
+        history.modifierById(posBlock.id).isDefined shouldBe true
+        history.modifierById(powBlock.id).isDefined shouldBe true
+        ids = ids ++ Seq(powBlock.id, posBlock.id)
+      }
+    }
 
-      val posBlock = posR.copy(parentId = genesisBlock.id)
-      history = history.append(posBlock).get._1
-      history.modifierById(posBlock.id).isDefined shouldBe true
+    val startFrom = ids.head
+    history.continuationIds(Seq((2.toByte, startFrom)), ids.length).get.map(_._2).map(Base58.encode) shouldEqual ids.map(Base58.encode)
+
+    ids.length shouldBe HybridHistory.DifficultyRecalcPeriod * 2
+
+    forAll(Gen.choose(0, ids.length - 2)) { startIndex: Int =>
+      val startFrom = ids(startIndex)
+      val restIds = ids.zipWithIndex.filter { case (datum, index) => index >= startIndex }.map(_._1).map(Base58.encode)
+
+      history.continuationIds(Seq((2.toByte, startFrom)), ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
     }
   }
 
@@ -47,7 +76,7 @@ class HybridHistorySpecification extends PropSpec
       ) {
         val (s1, s2) = HybridHistory.commonBlockThenSuffixes(winnerChain, loserChain)
         s1.length shouldBe suffix1.length + 1
-        s2.length shouldBe  suffix2.length + 1
+        s2.length shouldBe suffix2.length + 1
         s1.tail.headOption.getOrElse(Array()).sameElements(s2.tail.headOption.getOrElse(Array())) shouldBe false
         s1.headOption.getOrElse(Array()).sameElements(s2.headOption.getOrElse(Array())) shouldBe true
       }

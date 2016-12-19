@@ -39,6 +39,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
   override type NVCT = HybridHistory
 
+  log.debug(s"Initialized block storage with version ${Try(blocksStorage.lastVersionID)}")
   require(NodeViewModifier.ModifierIdSize == 32, "32 bytes ids assumed")
 
   // map from block id to difficulty at this state
