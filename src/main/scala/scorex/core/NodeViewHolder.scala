@@ -106,11 +106,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         if (maybeRollback.nonEmpty) log.debug(s"Going to rollback to $maybeRollback")
         maybeRollback.map(rb => minimalState().rollbackTo(rb.to).flatMap(_.applyModifiers(rb.applied)))
           .getOrElse(minimalState().applyModifier(pmod)) match {
-
           case Success(newMinState) =>
             val rolledBackTxs = maybeRollback.map(rb => rb.thrown.flatMap(_.transactions).flatten).getOrElse(Seq())
 
-            val appliedMods = maybeRollback.map(_.applied).getOrElse(Seq()) ++ Seq(pmod)
+            val appliedMods = maybeRollback.map(_.applied).getOrElse(Seq(pmod))
 
             val appliedTxs = appliedMods.flatMap(_.transactions).flatten
 
