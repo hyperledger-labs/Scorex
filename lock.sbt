@@ -26,13 +26,13 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.thoughtworks.paranamer" % "paranamer" % "2.6",
   "com.typesafe" % "config" % "1.3.0",
   "com.typesafe" % "ssl-config-core_2.11" % "0.2.1",
-  "com.typesafe.akka" % "akka-actor_2.11" % "2.4.14",
+  "com.typesafe.akka" % "akka-actor_2.11" % "2.4.16",
   "com.typesafe.akka" % "akka-http-core_2.11" % "10.0.0",
   "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.4.11",
   "com.typesafe.akka" % "akka-http_2.11" % "10.0.0",
   "com.typesafe.akka" % "akka-parsing_2.11" % "10.0.0",
   "com.typesafe.akka" % "akka-stream_2.11" % "2.4.14",
-  "com.typesafe.akka" % "akka-testkit_2.11" % "2.4.14",
+  "com.typesafe.akka" % "akka-testkit_2.11" % "2.4.16",
   "com.typesafe.play" % "play-datacommons_2.11" % "2.4.8",
   "com.typesafe.play" % "play-functional_2.11" % "2.4.8",
   "com.typesafe.play" % "play-iteratees_2.11" % "2.4.8",
@@ -80,7 +80,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.scalacheck" % "scalacheck_2.11" % "1.12.6",
   "org.scalactic" % "scalactic_2.11" % "2.3.0-SNAP2",
   "org.scalatest" % "scalatest_2.11" % "2.3.0-SNAP2",
-  "org.scorexfoundation" % "iodb_2.11" % "0.1",
+  "org.scorexfoundation" % "iodb_2.11" % "0.1.1",
   "org.scoverage" % "scalac-scoverage-plugin_2.11" % "1.1.1",
   "org.scoverage" % "scalac-scoverage-runtime_2.11" % "1.1.1",
   "org.slf4j" % "slf4j-api" % "1.7.21",
@@ -93,4 +93,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.5",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH d8f7d88dbf7726c61dec312ac300ce9569460a22
+// LIBRARY_DEPENDENCIES_HASH 28dff73f980c56703c489672d40f3540ec19960b
