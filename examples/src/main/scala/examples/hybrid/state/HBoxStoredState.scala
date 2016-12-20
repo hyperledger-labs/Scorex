@@ -68,13 +68,14 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
     val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    log.debug(s"Update HBoxStoredState with version ${Base58.encode(newVersion)}")
+    log.debug(s"Update HBoxStoredState from version ${store.lastVersionID} to version ${Base58.encode(newVersion)}")
     store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
     metaDb.commit()
     HBoxStoredState(store, metaDb, newVersion)
   }
 
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
+    log.debug(s"Rollback state to ${Base58.encode(version)}")
     store.rollback(ByteArrayWrapper(version))
     new HBoxStoredState(store, metaDb, version)
   }

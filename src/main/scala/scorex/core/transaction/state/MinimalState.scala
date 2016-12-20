@@ -1,12 +1,12 @@
 package scorex.core.transaction.state
 
-import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier}
+import scorex.core.transaction._
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction._
+import scorex.core.transaction.state.MinimalState.VersionTag
+import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier}
 
 import scala.util.Try
-import MinimalState.VersionTag
 
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
