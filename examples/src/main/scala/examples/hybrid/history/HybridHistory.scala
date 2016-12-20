@@ -292,7 +292,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         (new HybridHistory(blocksStorage, metaDb, logDirOpt), None) //no rollback ever
     }
     metaDb.commit()
-    log.info(s"History: block appended, new score is ${currentScoreVar.get()}")
+    log.info(s"History: block ${block.id} appended, new score is ${currentScoreVar.get()}")
     res
   }
 

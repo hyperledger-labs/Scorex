@@ -41,7 +41,7 @@ class HybridHistorySpecification extends PropSpec
 
         history.modifierById(posBlock.id).isDefined shouldBe true
         history.modifierById(powBlock.id).isDefined shouldBe true
-        ids = ids ++ Seq(powBlock.id, posBlock.id)
+        ids = ids ++ Seq(posBlock.id, powBlock.id)
       }
     }
 
