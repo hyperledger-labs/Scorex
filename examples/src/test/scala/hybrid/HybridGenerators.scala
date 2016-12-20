@@ -39,8 +39,8 @@ trait HybridGenerators extends ObjectGenerators {
   lazy val simpleBoxTransactionGen: Gen[SimpleBoxTransaction] = for {
     fee <- positiveLongGen
     timestamp <- positiveLongGen
-    from: IndexedSeq[(PrivateKey25519, Long)] <- Gen.nonEmptyListOf(privGen).map(_.toIndexedSeq)
-    to: IndexedSeq[(PublicKey25519Proposition, Long)] <- Gen.nonEmptyListOf(pGen).map(_.toIndexedSeq)
+    from: IndexedSeq[(PrivateKey25519, Long)] <- smallInt.flatMap(i => Gen.listOfN(i + 1, privGen).map(_.toIndexedSeq))
+    to: IndexedSeq[(PublicKey25519Proposition, Long)] <- smallInt.flatMap(i => Gen.listOfN(i + 1, pGen).map(_.toIndexedSeq))
   } yield SimpleBoxTransaction(from, to, fee, timestamp)
 
   lazy val blockIdGen: Gen[BlockId] = genBytesList(Block.BlockIdLength)
@@ -52,7 +52,7 @@ trait HybridGenerators extends ObjectGenerators {
   lazy val posBlockGen: Gen[PosBlock] = for {
     parentId: BlockId <- genBytesList(Block.BlockIdLength)
     timestamp: Long <- positiveLongGen
-    txs: Seq[SimpleBoxTransaction] <- Gen.listOf(simpleBoxTransactionGen)
+    txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
     generator: PublicKey25519Proposition <- propositionGen
     signature: Signature25519 <- signatureGen
   } yield PosBlock(parentId, timestamp, txs, generator, signature)

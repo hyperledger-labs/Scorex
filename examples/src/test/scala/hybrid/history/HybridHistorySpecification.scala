@@ -1,12 +1,9 @@
 package hybrid.history
 
-import java.io.File
-
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
+import examples.hybrid.blocks.PowBlock
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mining.PowMiner
 import hybrid.HybridGenerators
-import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -27,7 +24,6 @@ class HybridHistorySpecification extends PropSpec
     0, Array.fill(32)(0: Byte), Seq())
   history = history.append(genesisBlock).get._1
   history.modifierById(genesisBlock.id).isDefined shouldBe true
-
 
   property("Block application and HybridHistory.continuationIds") {
     var ids: Seq[ModifierId] = Seq()
@@ -50,6 +46,7 @@ class HybridHistorySpecification extends PropSpec
     }
 
     val startFrom = ids.head
+
     history.continuationIds(Seq((2.toByte, startFrom)), ids.length).get.map(_._2).map(Base58.encode) shouldEqual ids.map(Base58.encode)
 
     ids.length shouldBe HybridHistory.DifficultyRecalcPeriod * 2

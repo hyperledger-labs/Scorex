@@ -12,6 +12,8 @@ import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.crypto.signatures.Curve25519
 
 trait ObjectGenerators {
+  lazy val smallInt: Gen[Int] = Gen.choose(0, 20)
+
   lazy val nonEmptyBytesGen: Gen[Array[Byte]] = Gen.nonEmptyListOf(Arbitrary.arbitrary[Byte])
     .map(_.toArray).suchThat(_.length > 0)
 
