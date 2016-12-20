@@ -5,7 +5,7 @@ import java.io.File
 import java.math.BigInteger
 
 import examples.hybrid.blocks._
-import examples.hybrid.mining.{PosForger, PowMiner}
+import examples.hybrid.mining.{MiningConstants, MiningSettings, PosForger}
 import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.util.FileFunctions
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
@@ -15,7 +15,6 @@ import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{HistoryComparisonResult, RollbackTo}
 import scorex.core.crypto.hash.FastCryptographicHash
-import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -28,7 +27,7 @@ import scala.util.Try
   * we store all the blocks, even if they are not in a main chain
   */
 //todo: add some versioned field to the class
-class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[String])
+class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[String], settings: MiningConstants)
   extends History[PublicKey25519Proposition,
     SimpleBoxTransaction,
     HybridPersistentNodeViewModifier,
@@ -67,10 +66,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   lazy val orphanCountVar = metaDb.atomicLong("orphans", 0L).createOrOpen()
 
   private lazy val bestPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
-  lazy val bestPowId: Array[Byte] = Option(bestPowIdVar.get()).getOrElse(PowMiner.GenesisParentId)
+  lazy val bestPowId: Array[Byte] = Option(bestPowIdVar.get()).getOrElse(settings.GenesisParentId)
 
   private lazy val bestPosIdVar = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen()
-  lazy val bestPosId: Array[Byte] = Option(bestPosIdVar.get()).getOrElse(PowMiner.GenesisParentId)
+  lazy val bestPosId: Array[Byte] = Option(bestPosIdVar.get()).getOrElse(settings.GenesisParentId)
 
   lazy val bestPowBlock = {
     require(currentScoreVar.get() > 0, "History is empty")
@@ -83,7 +82,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   }
 
   lazy val pairCompleted: Boolean =
-    (bestPowId sameElements PowMiner.GenesisParentId, bestPosId sameElements PowMiner.GenesisParentId) match {
+    (bestPowId sameElements settings.GenesisParentId, bestPosId sameElements settings.GenesisParentId) match {
       case (true, true) => true
       case (false, true) => false
       case (false, false) => bestPosBlock.parentId sameElements bestPowId
@@ -128,13 +127,13 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   }
 
   override def contains(id: ModifierId): Boolean =
-    if (id sameElements PowMiner.GenesisParentId) true else modifierById(id).isDefined
+    if (id sameElements settings.GenesisParentId) true else modifierById(id).isDefined
 
   //PoW consensus rules checks, work/references
   //throws exception if anything wrong
   def checkPowConsensusRules(powBlock: PowBlock, powDifficulty: BigInt): Unit = {
     //check work
-    assert(powBlock.correctWork(powDifficulty), "work done is incorrent")
+    assert(powBlock.correctWork(powDifficulty, settings), "work done is incorrent")
 
     //check PoW parent id
     modifierById(powBlock.parentId).get
@@ -144,12 +143,12 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
     //check brothers data
     assert(powBlock.brothers.size == powBlock.brothersCount)
-    assert(powBlock.brothers.forall(_.correctWork(powDifficulty)))
+    assert(powBlock.brothers.forall(_.correctWork(powDifficulty, settings)))
     if (powBlock.brothersCount > 0) {
       assert(FastCryptographicHash(powBlock.brotherBytes) sameElements powBlock.brothersHash)
     }
 
-    if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
+    if (!(powBlock.parentId sameElements settings.GenesisParentId)) {
       //check referenced PoS block exists as well
       val posBlock = modifierById(powBlock.prevPosId).get
 
@@ -197,7 +196,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     val res = block match {
       case powBlock: PowBlock =>
 
-        val currentScore = if (!(powBlock.parentId sameElements PowMiner.GenesisParentId)) {
+        val currentScore = if (!(powBlock.parentId sameElements settings.GenesisParentId)) {
           checkPowConsensusRules(powBlock, getPoWDifficulty(powBlock.prevPosId))
           blockScores.get(powBlock.parentId): Long
         } else {
@@ -213,7 +212,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         val blockScore = currentScore + 1
         blockScores.put(blockId, blockScore)
 
-        val rollbackOpt: Option[RollbackTo[HybridPersistentNodeViewModifier]] = if (powBlock.parentId sameElements PowMiner.GenesisParentId) {
+        val rollbackOpt: Option[RollbackTo[HybridPersistentNodeViewModifier]] = if (powBlock.parentId sameElements settings.GenesisParentId) {
           //genesis block
           currentScoreVar.set(blockScore)
           bestPowIdVar.set(blockId)
@@ -272,7 +271,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
           val record = s"${orphanCountVar.get()}, ${currentScoreVar.get}"
           FileFunctions.append(logDir + "/orphans.csv", record)
         }
-        (new HybridHistory(blocksStorage, metaDb, logDirOpt), rollbackOpt)
+        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings), rollbackOpt)
 
 
       case posBlock: PosBlock =>
@@ -289,7 +288,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
 
         setDifficultiesForNewBlock(posBlock)
-        (new HybridHistory(blocksStorage, metaDb, logDirOpt), None) //no rollback ever
+        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings), None) //no rollback ever
     }
     metaDb.commit()
     log.info(s"History: block ${block.id} appended, new score is ${currentScoreVar.get()}")
@@ -302,7 +301,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       val powBlocks = lastPowBlocks(DifficultyRecalcPeriod)
       val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
-      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * PowMiner.BlockDelay
+      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.BlockDelay
       val oldPowDifficulty = getPoWDifficulty(powBlocks.last.prevPosId)
       val oldPosDifficulty = getPoSDifficulty(powBlocks.last.prevPosId)
 
@@ -320,7 +319,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   }
 
   override def openSurfaceIds(): Seq[ModifierId] =
-    if (isEmpty) Seq(PowMiner.GenesisParentId)
+    if (isEmpty) Seq(settings.GenesisParentId)
     else if (pairCompleted) Seq(bestPowId, bestPosId)
     else Seq(bestPowId)
 
@@ -342,8 +341,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
     val (modTypeId, modId) = from.head
 
-    val startingBlock = if (modId sameElements PowMiner.GenesisParentId) {
-      Option(forwardPowLinks.get(PowMiner.GenesisParentId))
+    val startingBlock = if (modId sameElements settings.GenesisParentId) {
+      Option(forwardPowLinks.get(settings.GenesisParentId))
         .flatMap(modifierById)
     } else modifierById(modId)
 
@@ -457,14 +456,14 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   }
 
   private def getPoWDifficulty(id: NodeViewModifier.ModifierId): BigInt = {
-    if (id sameElements PowMiner.GenesisParentId) {
-      PowMiner.Difficulty
+    if (id sameElements settings.GenesisParentId) {
+      settings.Difficulty
     } else {
       BigInt(blockDifficulties.get(1.toByte +: id): BigInteger)
     }
   }
 
-  private def getPoSDifficulty(id: NodeViewModifier.ModifierId): Long = if (id sameElements PowMiner.GenesisParentId) {
+  private def getPoSDifficulty(id: NodeViewModifier.ModifierId): Long = if (id sameElements settings.GenesisParentId) {
     PosForger.InitialDifficuly
   } else {
     BigInt(blockDifficulties.get(0.toByte +: id): BigInteger).toLong
@@ -520,14 +519,14 @@ object HybridHistory extends ScorexLogging {
     (wc, lc)
   }
 
-  def readOrGenerate(settings: Settings): HybridHistory = {
+  def readOrGenerate(settings: MiningSettings): HybridHistory = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
     val logDirOpt = settings.logDirOpt
-    readOrGenerate(dataDir, logDirOpt)
+    readOrGenerate(dataDir, logDirOpt, settings)
   }
 
-  def readOrGenerate(dataDir: String, logDirOpt: Option[String]): HybridHistory = {
+  def readOrGenerate(dataDir: String, logDirOpt: Option[String], settings: MiningConstants): HybridHistory = {
     val iFile = new File(s"$dataDir/blocks")
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile)
@@ -545,6 +544,6 @@ object HybridHistory extends ScorexLogging {
         .closeOnJvmShutdown()
         .make()
 
-    new HybridHistory(blockStorage, metaDb, logDirOpt)
+    new HybridHistory(blockStorage, metaDb, logDirOpt, settings)
   }
 }

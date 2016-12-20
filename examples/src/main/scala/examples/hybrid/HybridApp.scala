@@ -26,7 +26,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   override type PMOD = HybridPersistentNodeViewModifier
   override type NVHT = HybridNodeViewHolder
 
-  implicit lazy val settings = new Settings with MiningSettings {
+  implicit lazy val settings = new MiningSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
 
@@ -47,7 +47,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
   val forger = actorSystem.actorOf(Props(classOf[PosForger], settings, nodeViewHolderRef))
 
-  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[HLocalInterface], nodeViewHolderRef, miner, forger))
+  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[HLocalInterface], nodeViewHolderRef, miner, forger, settings))
 
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type]],

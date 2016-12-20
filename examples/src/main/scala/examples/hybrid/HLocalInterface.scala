@@ -3,7 +3,7 @@ package examples.hybrid
 import akka.actor.ActorRef
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import examples.hybrid.mining.PosForger.{StartForging, StopForging}
-import examples.hybrid.mining.PowMiner
+import examples.hybrid.mining.{MiningSettings, PowMiner}
 import examples.hybrid.mining.PowMiner.{MineBlock, StartMining}
 import examples.hybrid.state.SimpleBoxTransaction
 import scorex.core.LocalInterface
@@ -11,7 +11,8 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 class HLocalInterface(override val viewHolderRef: ActorRef,
                       powMinerRef: ActorRef,
-                      posForgerRef: ActorRef)
+                      posForgerRef: ActorRef,
+                      miningSettings: MiningSettings)
   extends LocalInterface[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier] {
 
   private var block = false
@@ -34,7 +35,7 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
           powMinerRef ! MineBlock
 
         case sb: PosBlock =>
-          if (!(sb.parentId sameElements PowMiner.GenesisParentId)) {
+          if (!(sb.parentId sameElements miningSettings.GenesisParentId)) {
             posForgerRef ! StopForging
             powMinerRef ! StartMining
           }

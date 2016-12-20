@@ -3,7 +3,7 @@ package examples.hybrid
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
-import examples.hybrid.mining.PowMiner
+import examples.hybrid.mining.{MiningSettings, PowMiner}
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
 import scorex.core.NodeViewModifier.ModifierTypeId
@@ -18,7 +18,7 @@ import scorex.crypto.signatures.Curve25519
 import scala.util.Random
 
 
-class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey25519Proposition,
+class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridPersistentNodeViewModifier] {
 
@@ -47,7 +47,8 @@ class HybridNodeViewHolder(settings: Settings) extends NodeViewHolder[PublicKey2
 
     var history = HybridHistory.readOrGenerate(settings)
 
-    val powGenesis = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1481110008516L, -4954221073250153861L, 0, Array.fill(32)(0: Byte), Seq())
+    val powGenesis = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1481110008516L, -4954221073250153861L,
+      0, Array.fill(32)(0: Byte), Seq())
     history = history.append(powGenesis).get._1
 
 

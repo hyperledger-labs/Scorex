@@ -11,26 +11,21 @@ import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.block.Block.BlockId
 import scorex.core.crypto.hash.FastCryptographicHash
-import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
-import scala.util.Random
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-
-trait MiningSettings extends Settings {
-  lazy val offlineGeneration = settingsJSON.get("offlineGeneration").flatMap(_.asBoolean).getOrElse(false)
-}
+import scala.util.Random
 
 /**
   * A controller for PoW mining
   * currently it is starting to work on getting a (PoW; PoS) block references
   * and stops on a new PoW block found (when PoS ref is unknown)
   */
-class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends Actor with ScorexLogging {
+class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor with ScorexLogging {
 
   import PowMiner._
 
@@ -39,7 +34,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
 
   override def preStart(): Unit = {
     //todo: check for a last block
-    if (miningSettings.offlineGeneration) {
+    if (settings.offlineGeneration) {
       context.system.scheduler.scheduleOnce(1.second)(self ! StartMining)
     }
   }
@@ -84,7 +79,7 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
             var attemps = 0
 
             while (status.nonCancelled && foundBlock.isEmpty) {
-              foundBlock = powIteration(parentId, prevPosId, brothers, difficulty)
+              foundBlock = powIteration(parentId, prevPosId, brothers, difficulty, settings)
               attemps = attemps + 1
               if (attemps % 100 == 99) {
                 println(s"100 hashes tried, difficulty is $difficulty")
@@ -116,15 +111,6 @@ class PowMiner(viewHolderRef: ActorRef, miningSettings: MiningSettings) extends 
 object PowMiner extends App {
   lazy val HashesPerSecond = 20
 
-  lazy val BlockDelay = 8.seconds.toMillis
-
-  lazy val MaxTarget = BigInt(1, Array.fill(32)(Byte.MinValue))
-  lazy val Difficulty = BigInt("1")
-
-  lazy val GenesisParentId = Array.fill(32)(1: Byte)
-
-  lazy val MaxBlockSize = 100000
-
   case object StartMining
 
   case object StopMining
@@ -135,6 +121,7 @@ object PowMiner extends App {
                    prevPosId: BlockId,
                    brothers: Seq[PowBlockHeader],
                    difficulty: BigInt,
+                   settings: MiningSettings,
                    hashesPerSecond: Int = HashesPerSecond
                   ): Option[PowBlock] = {
     val nonce = Random.nextLong()
@@ -147,7 +134,7 @@ object PowMiner extends App {
     val b = PowBlock(parentId, prevPosId, ts, nonce, brothers.size, bHash, brothers)
 
     val foundBlock =
-      if (b.correctWork(difficulty)) {
+      if (b.correctWork(difficulty, settings)) {
         Some(b)
       } else {
         None

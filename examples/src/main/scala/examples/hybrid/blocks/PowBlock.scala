@@ -1,7 +1,7 @@
 package examples.hybrid.blocks
 
 import com.google.common.primitives.{Ints, Longs}
-import examples.hybrid.mining.PowMiner._
+import examples.hybrid.mining.MiningConstants
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe.Json
 import io.circe.syntax._
@@ -39,7 +39,7 @@ class PowBlockHeader(
     brothersCount >= 0 &&
       timestamp >= 0
 
-  def correctWork(difficulty: BigInt) = correctWorkDone(id, difficulty)
+  def correctWork(difficulty: BigInt, s: MiningConstants) = correctWorkDone(id, difficulty, s)
 
   lazy val id = FastCryptographicHash(headerBytes)
 
@@ -64,8 +64,8 @@ object PowBlockHeader {
     new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
   }
 
-  def correctWorkDone(id: Array[Byte], difficulty: BigInt): Boolean = {
-    val target = MaxTarget / difficulty
+  def correctWorkDone(id: Array[Byte], difficulty: BigInt, s: MiningConstants): Boolean = {
+    val target = s.MaxTarget / difficulty
     BigInt(1, id) < target
   }
 }

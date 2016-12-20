@@ -39,7 +39,7 @@ object PrivateChain extends App with ScorexLogging {
     }.toSeq
 
     val za = Array.fill(32)(0: Byte)
-    val initialBlock = PosBlock(PowMiner.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
+    val initialBlock = PosBlock(settings.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
     val gs = HBoxStoredState.genesisState(settings, initialBlock)
     val gw = HWallet.genesisWallet(settings, initialBlock)
@@ -64,7 +64,7 @@ object PrivateChain extends App with ScorexLogging {
 
     @tailrec
     def step(): PowBlock = {
-      PowMiner.powIteration(parentId, prevPosId, brothers, difficulty, hashesPerSecond) match {
+      PowMiner.powIteration(parentId, prevPosId, brothers, difficulty, settings, hashesPerSecond) match {
         case Some(block) => block
         case None => step()
       }

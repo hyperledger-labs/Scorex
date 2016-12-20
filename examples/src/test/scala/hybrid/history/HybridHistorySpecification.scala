@@ -2,7 +2,7 @@ package hybrid.history
 
 import examples.hybrid.blocks.PowBlock
 import examples.hybrid.history.HybridHistory
-import examples.hybrid.mining.PowMiner
+import examples.hybrid.mining.{MiningConstants, PowMiner}
 import hybrid.HybridGenerators
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
@@ -19,8 +19,11 @@ class HybridHistorySpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  var history = HybridHistory.readOrGenerate(s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}", None)
-  val genesisBlock = PowBlock(PowMiner.GenesisParentId, PowMiner.GenesisParentId, 1478164225796L, -308545845552064644L,
+  val constants = new MiningConstants {
+    override lazy val Difficulty: BigInt = 1
+  }
+  var history = HybridHistory.readOrGenerate(s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}", None, constants)
+  val genesisBlock = PowBlock(constants.GenesisParentId, constants.GenesisParentId, 1478164225796L, -308545845552064644L,
     0, Array.fill(32)(0: Byte), Seq())
   history = history.append(genesisBlock).get._1
   history.modifierById(genesisBlock.id).isDefined shouldBe true
@@ -34,7 +37,7 @@ class HybridHistorySpecification extends PropSpec
 
         var powBlock = powR.copy(parentId = history.bestPowId, prevPosId = history.bestPosId, brothers = Seq(),
           brothersCount = 0)
-        while (!powBlock.correctWork(history.powDifficulty)) {
+        while (!powBlock.correctWork(history.powDifficulty, constants)) {
           powBlock = powBlock.copy(nonce = Random.nextLong())
         }
         history = history.append(powBlock).get._1
