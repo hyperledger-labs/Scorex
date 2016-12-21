@@ -97,7 +97,6 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
 
 
     case b: PowBlock =>
-      println(s"locally generated PoW block: $b")
       cancellableOpt.foreach(_.cancel())
       viewHolderRef ! LocallyGeneratedModifier[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier](b)
 

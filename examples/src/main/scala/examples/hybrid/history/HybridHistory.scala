@@ -47,16 +47,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   //see http://bitcoin.stackexchange.com/questions/29742/strongest-vs-longest-chain-and-orphaned-blocks
   lazy val blockScores = metaDb.hashMap("hidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
 
-
-  //reverse index: only link to parent is stored in a block
-  //so to go forward along the chains we need for additional indexes
-
-  //links from a pow block to next pow block(in a best chain)
-  lazy val forwardPowLinks = metaDb.hashMap("fpow", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
-
-  //links from a pow block to a corresponding pos block(for all the chains)
-  lazy val forwardPosLinks = metaDb.hashMap("fpos", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
-
   //for now score = chain length; that's not very secure, see link above
   private lazy val currentScoreVar = metaDb.atomicLong("score").createOrOpen()
 
@@ -111,7 +101,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   override def isEmpty: Boolean = powHeight <= 0
 
   override def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier] = {
-    val mod = blocksStorage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
+    blocksStorage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
       (mtypeId match {
@@ -121,8 +111,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
           PosBlockCompanion.parseBytes(bytes.tail)
       }).toOption
     }
-    if (mod.isEmpty) log.warn(s"Modifier ${Base58.encode(blockId)} not found in history")
-    mod
   }
 
   override def contains(id: ModifierId): Boolean =
@@ -147,7 +135,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       assert(FastCryptographicHash(powBlock.brotherBytes) sameElements powBlock.brothersHash)
     }
 
-    if (!(powBlock.parentId sameElements settings.GenesisParentId)) {
+    if (!isGenesis(powBlock)) {
       //check referenced PoS block exists as well
       val posBlock = modifierById(powBlock.prevPosId).get
 
@@ -195,7 +183,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     val res = block match {
       case powBlock: PowBlock =>
 
-        val currentScore = if (!(powBlock.parentId sameElements settings.GenesisParentId)) {
+        val currentScore = if (!isGenesis(powBlock)) {
           checkPowConsensusRules(powBlock, getPoWDifficulty(Some(powBlock.prevPosId)))
           blockScores.get(powBlock.parentId): Long
         } else {
@@ -211,17 +199,21 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         val blockScore = currentScore + 1
         blockScores.put(blockId, blockScore)
 
-        val rollbackOpt: Option[RollbackTo[HybridPersistentNodeViewModifier]] = if (powBlock.parentId sameElements settings.GenesisParentId) {
+        val rollbackOpt: Option[RollbackTo[HybridPersistentNodeViewModifier]] = if (isGenesis(powBlock)) {
           //genesis block
           currentScoreVar.set(blockScore)
           bestPowIdVar.set(blockId)
-          forwardPowLinks.put(powBlock.parentId, blockId)
           None
         } else {
           if (blockScore > currentScoreVar.get()) {
             //check for chain switching
             if (!(powBlock.parentId sameElements bestPowId)) {
-              val (newSuffix, oldSuffix) = commonBlockThenSuffixes(Seq(powBlock.parentId), Seq(bestPowBlock.parentId, bestPowId))
+              log.info(s"Porcessing fork at ${Base58.encode(powBlock.id)}")
+              val winnerChain = chainBack(powBlock, isGenesis, 100).get.map(_._2)
+              val loserChain = chainBack(bestPowBlock, isGenesis, 100).get.map(_._2)
+
+              val (newSuffix, oldSuffix) = commonBlockThenSuffixes(winnerChain, loserChain)
+              assert(newSuffix.head sameElements oldSuffix.head)
 
               //decrement
               orphanCountVar.addAndGet(oldSuffix.size - newSuffix.size)
@@ -235,19 +227,12 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
               val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
               val applyBlocks = newSuffix.tail.map(id => modifierById(id).get)
 
-              oldSuffix.foreach(forwardPowLinks.remove)
-              (0 until newSuffix.size - 1).foreach { idx =>
-                forwardPowLinks.put(newSuffix(idx), blockId)
-              }
-              forwardPowLinks.put(powBlock.parentId, blockId)
-
               currentScoreVar.set(blockScore)
               bestPowIdVar.set(blockId)
               Some(RollbackTo(rollbackPoint, throwBlocks, applyBlocks))
             } else {
               currentScoreVar.set(blockScore)
               bestPowIdVar.set(blockId)
-              forwardPowLinks.put(powBlock.parentId, blockId)
               None
             }
           } else if (blockScore == currentScoreVar.get() &&
@@ -258,11 +243,9 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
             //handle younger brother - replace current best PoW block with a brother
             val replacedBlock = bestPowBlock
             bestPowIdVar.set(blockId)
-            forwardPowLinks.put(powBlock.parentId, blockId)
             Some(RollbackTo(powBlock.prevPosId, Seq(replacedBlock), Seq(powBlock)))
           } else {
             orphanCountVar.incrementAndGet()
-            forwardPowLinks.put(powBlock.parentId, blockId)
             None
           }
         }
@@ -280,8 +263,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
         val blockId = posBlock.id
 
-        forwardPosLinks.put(powParent, blockId)
-
         writeBlock(posBlock)
 
         if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
@@ -290,7 +271,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings), None) //no rollback ever
     }
     metaDb.commit()
-    log.info(s"History: block ${block.id} appended, new score is ${currentScoreVar.get()}")
+    log.info(s"History: block ${Base58.encode(block.id)} appended, new score is ${currentScoreVar.get()}")
     res
   }
 
@@ -337,27 +318,14 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     })
   }
 
-  override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
-    val (modTypeId, modId) = from.head
+  override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)],
+                               size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+    def inList(a: HybridPersistentNodeViewModifier): Boolean = idInList(a.id)
+    def idInList(id: ModifierId): Boolean = from.exists(f => f._2 sameElements id)
 
-    val startingBlock = if (modId sameElements settings.GenesisParentId) {
-      Option(forwardPowLinks.get(settings.GenesisParentId))
-        .flatMap(modifierById)
-    } else modifierById(modId)
-
-    startingBlock.map { b =>
-      (1 to size).foldLeft(Seq(modTypeId -> b.id) -> true) { case ((collected, go), _) =>
-        if (go) {
-          val toAdd = modifierById(collected.last._2).get match {
-            case pb: PowBlock =>
-              Option(forwardPosLinks.get(pb.id)).map(id => PosBlock.ModifierTypeId -> id)
-            case ps: PosBlock =>
-              Option(forwardPowLinks.get(ps.parentId)).map(id => PowBlock.ModifierTypeId -> id)
-          }
-
-          toAdd.map(t => collected :+ t).getOrElse(collected) -> toAdd.isDefined
-        } else collected -> false
-      }._1
+    chainBack(bestPowBlock, inList, size) match {
+      case Some(chain) if chain.exists(id => idInList(id._2)) => Some(chain)
+      case _ => None
     }
   }
 
@@ -373,7 +341,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     val head = otherLastPowBlocks.head
     val newSuffix = suffixFound :+ head
     modifierById(head) match {
-      case Some(b) => newSuffix
+      case Some(b) =>
+        newSuffix
       case None => if (otherLastPowBlocks.length <= 1) {
         Seq()
       } else {
@@ -395,7 +364,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     //todo: return cheater status in other cases, e.g. PoW id is a correct PoS id
 
 
-    val dSuffix = divergentSuffix(other.lastPowBlockIds)
+    val dSuffix = divergentSuffix(other.lastPowBlockIds.reverse)
 
     dSuffix.length match {
       case 0 =>
@@ -478,26 +447,41 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
   log.debug(s"Initialized block storage with version ${blocksStorage.lastVersionID}")
 
+  def isGenesis(b: HybridPersistentNodeViewModifier): Boolean = b.parentId sameElements settings.GenesisParentId
+
   //chain without brothers
   override def toString: String = {
-    val chain = chainOf(bestPosBlock, Seq())
-    chain.map(Base58.encode).mkString(", ")
+    val chain = chainBack(bestPosBlock, isGenesis, powOnly = true)
+    chain.get.map(_._2).map(Base58.encode).mkString(",")
   }
 
+  /**
+    * Go back though chain and get block ids until condition until
+    */
   @tailrec
-  private def chainOf(m: HybridPersistentNodeViewModifier, acc: Seq[ModifierId] = Seq()): Seq[ModifierId] = m match {
-    case b: PosBlock =>
-      val summ: Seq[ModifierId] = b.id +: acc
-      modifierById(b.parentId) match {
-        case Some(parent) => chainOf(parent, summ)
-        case _ => summ
+  private def chainBack(m: HybridPersistentNodeViewModifier,
+                        until: HybridPersistentNodeViewModifier => Boolean,
+                        limit: Int = 1000,
+                        powOnly: Boolean = false,
+                        acc: Seq[(ModifierTypeId, ModifierId)] = Seq()): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+    val summ: Seq[(ModifierTypeId, ModifierId)] = if (m.isInstanceOf[PosBlock]) (PosBlock.ModifierTypeId -> m.id) +: acc
+    else if (powOnly) acc
+    else (PowBlock.ModifierTypeId -> m.id) +: acc
+
+    if (limit <= 0 || until(m)) {
+      Some(summ)
+    } else {
+      val parentId = m match {
+        case b: PosBlock => b.parentId
+        case b: PowBlock => b.prevPosId
       }
-    case b: PowBlock =>
-      val summ: Seq[ModifierId] = b.id +: acc
-      modifierById(b.prevPosId) match {
-        case Some(parent) => chainOf(parent, summ)
-        case _ => summ
+      modifierById(parentId) match {
+        case Some(parent) => chainBack(parent, until, limit - 1, powOnly, summ)
+        case _ =>
+          log.warn(s"Parent block ${Base58.encode(parentId)} for ${Base58.encode(m.id)} not found ")
+          None
       }
+    }
   }
 
 }
@@ -514,7 +498,7 @@ object HybridHistory extends ScorexLogging {
   final def commonBlockThenSuffixes(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
 
     val idx = loserChain.indexWhere(blockId => !winnerChain.exists(_.sameElements(blockId)))
-    assert(idx != 0)
+    assert(idx != 0, s"${winnerChain.map(Base58.encode)} vs ${loserChain.map(Base58.encode)}")
 
     val lc = if (idx == -1) loserChain.slice(loserChain.length - 1, loserChain.length)
     else loserChain.slice(idx - 1, loserChain.length)

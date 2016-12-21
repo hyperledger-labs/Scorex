@@ -2,7 +2,7 @@ package hybrid.history
 
 import examples.hybrid.blocks.PowBlock
 import examples.hybrid.history.HybridHistory
-import examples.hybrid.mining.{MiningConstants, PowMiner}
+import examples.hybrid.mining.MiningConstants
 import hybrid.HybridGenerators
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
@@ -28,6 +28,7 @@ class HybridHistorySpecification extends PropSpec
   history = history.append(genesisBlock).get._1
   history.modifierById(genesisBlock.id).isDefined shouldBe true
 
+  //Generate chain
   property("Block application and HybridHistory.continuationIds") {
     var ids: Seq[ModifierId] = Seq()
     forAll(posBlockGen, powBlockGen) { (posR, powR) =>
@@ -54,11 +55,20 @@ class HybridHistorySpecification extends PropSpec
 
     ids.length shouldBe HybridHistory.DifficultyRecalcPeriod * 2
 
-    forAll(Gen.choose(0, ids.length - 2)) { startIndex: Int =>
-      val startFrom = ids(startIndex)
+    //continuationIds with limit
+    forAll(Gen.choose(0, ids.length - 1)) { startIndex: Int =>
+      val startFrom = Seq((2.toByte, ids(startIndex)))
+      val startList = ids.take(startIndex + 1).map(a => (2.toByte, a))
       val restIds = ids.zipWithIndex.filter { case (datum, index) => index >= startIndex }.map(_._1).map(Base58.encode)
 
-      history.continuationIds(Seq((2.toByte, startFrom)), ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
+      history.continuationIds(startFrom, ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
+      history.continuationIds(startList, ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
+
+      val limit = 5
+      history.continuationIds(startList, limit) match {
+        case None => restIds.length should be >= limit
+        case Some(l) => l.length shouldBe restIds.length
+      }
     }
   }
 

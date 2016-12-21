@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
 import examples.hybrid.mining.PosForger.{StartForging, StopForging}
 import examples.hybrid.mining.{MiningSettings, PowMiner}
-import examples.hybrid.mining.PowMiner.{MineBlock, StartMining}
+import examples.hybrid.mining.PowMiner.{MineBlock, StartMining, StopMining}
 import examples.hybrid.state.SimpleBoxTransaction
 import scorex.core.LocalInterface
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -51,8 +51,8 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
 
   //todo: check
   override protected def onBetterNeighbourAppeared(): Unit = {
-    //powMinerRef ! StopMining
-    //posForgerRef ! StopForging
-    //block = true
+    powMinerRef ! StopMining
+    posForgerRef ! StopForging
+    block = true
   }
 }

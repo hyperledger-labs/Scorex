@@ -220,7 +220,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       log.debug(s"Local side contains head: ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
 
       val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
-      log.debug("Sending extension: " + extensionOpt.getOrElse(Seq()).map(_._2).map(Base58.encode).mkString(","))
+      val ext = extensionOpt.getOrElse(Seq())
+      log.debug(s"Sending extension of length ${ext.length}: ${ext.map(_._2).map(Base58.encode).mkString(",")}")
       log.debug("Comparison result is: " + history().compare(syncInfo))
 
       sender() ! OtherNodeSyncingStatus(

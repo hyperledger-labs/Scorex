@@ -131,7 +131,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
             case (mid, mods) =>
               networkControllerRef ! SendToNetwork(Message(InvSpec, Right(mid -> mods), None), SendToPeer(remote))
           }
-
         case Equal =>
           equals.add(remoteHost)
       }
