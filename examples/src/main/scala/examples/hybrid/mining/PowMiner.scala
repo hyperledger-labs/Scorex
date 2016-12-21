@@ -82,9 +82,10 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
               foundBlock = powIteration(parentId, prevPosId, brothers, difficulty, settings)
               attemps = attemps + 1
               if (attemps % 100 == 99) {
-                println(s"100 hashes tried, difficulty is $difficulty")
+                log.debug(s"100 hashes tried, difficulty is $difficulty")
               }
             }
+            log.debug(s"Block found with difficulty $difficulty")
             p.success(foundBlock)
           }
         })

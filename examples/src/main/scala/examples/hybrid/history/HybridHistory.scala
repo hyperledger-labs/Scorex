@@ -38,7 +38,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
   override type NVCT = HybridHistory
 
-  log.debug(s"Initialized block storage with version ${Try(blocksStorage.lastVersionID)}")
   require(NodeViewModifier.ModifierIdSize == 32, "32 bytes ids assumed")
 
   // map from block id to difficulty at this state
@@ -72,12 +71,12 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   lazy val bestPosId: Array[Byte] = Option(bestPosIdVar.get()).getOrElse(settings.GenesisParentId)
 
   lazy val bestPowBlock = {
-    require(currentScoreVar.get() > 0, "History is empty")
+    require(powHeight > 0, "History is empty")
     modifierById(bestPowId).get.asInstanceOf[PowBlock]
   }
 
   lazy val bestPosBlock = {
-    require(currentScoreVar.get() > 0, "History is empty")
+    require(powHeight > 0, "History is empty")
     modifierById(bestPosId).get.asInstanceOf[PosBlock]
   }
 
@@ -133,7 +132,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   //throws exception if anything wrong
   def checkPowConsensusRules(powBlock: PowBlock, powDifficulty: BigInt): Unit = {
     //check work
-    assert(powBlock.correctWork(powDifficulty, settings), "work done is incorrent")
+    require(powBlock.correctWork(powDifficulty, settings), s"Work done is incorrent for difficulty $powDifficulty")
 
     //check PoW parent id
     modifierById(powBlock.parentId).get
@@ -197,7 +196,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       case powBlock: PowBlock =>
 
         val currentScore = if (!(powBlock.parentId sameElements settings.GenesisParentId)) {
-          checkPowConsensusRules(powBlock, getPoWDifficulty(powBlock.prevPosId))
+          checkPowConsensusRules(powBlock, getPoWDifficulty(Some(powBlock.prevPosId)))
           blockScores.get(powBlock.parentId): Long
         } else {
           log.info("Genesis block: " + Base58.encode(powBlock.id))
@@ -302,7 +301,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
       val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.BlockDelay
-      val oldPowDifficulty = getPoWDifficulty(powBlocks.last.prevPosId)
+      val oldPowDifficulty = getPoWDifficulty(Some(powBlocks.last.prevPosId))
       val oldPosDifficulty = getPoSDifficulty(powBlocks.last.prevPosId)
 
       val newPowDiff = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))
@@ -314,7 +313,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     } else {
       //Same difficulty as in previous block
       val parentPoSId: ModifierId = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock].prevPosId
-      setDifficulties(posBlock.id, getPoWDifficulty(parentPoSId), getPoSDifficulty(parentPoSId))
+      setDifficulties(posBlock.id, getPoWDifficulty(Some(parentPoSId)), getPoSDifficulty(parentPoSId))
     }
   }
 
@@ -455,11 +454,16 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     blockDifficulties.put(0.toByte +: id, BigInt(posDiff).bigInteger)
   }
 
-  private def getPoWDifficulty(id: NodeViewModifier.ModifierId): BigInt = {
-    if (id sameElements settings.GenesisParentId) {
-      settings.Difficulty
-    } else {
-      BigInt(blockDifficulties.get(1.toByte +: id): BigInteger)
+  private def getPoWDifficulty(idOpt: Option[NodeViewModifier.ModifierId]): BigInt = {
+    idOpt match {
+      case Some(id) if id sameElements settings.GenesisParentId =>
+        settings.Difficulty
+      case Some(id) =>
+        BigInt(blockDifficulties.get(1.toByte +: id): BigInteger)
+      case None if powHeight > 0 =>
+        BigInt(blockDifficulties.get(1.toByte +: bestPosId): BigInteger)
+      case _ =>
+        settings.Difficulty
     }
   }
 
@@ -469,9 +473,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     BigInt(blockDifficulties.get(0.toByte +: id): BigInteger).toLong
   }
 
-  lazy val powDifficulty = getPoWDifficulty(bestPowBlock.prevPosId)
+  lazy val powDifficulty = getPoWDifficulty(None)
   lazy val posDifficulty = getPoSDifficulty(bestPosBlock.id)
 
+  log.debug(s"Initialized block storage with version ${blocksStorage.lastVersionID}")
 
   //chain without brothers
   override def toString: String = {
