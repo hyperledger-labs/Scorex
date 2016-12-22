@@ -37,6 +37,7 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   /**
     * Whether the history contains the given modifier
+    *
     * @param persistentModifier - modifier
     * @return
     */
@@ -44,6 +45,7 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   /**
     * Whether the history contains a modifier with the given id
+    *
     * @param id - modifier's id
     * @return
     */
@@ -51,6 +53,7 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   /**
     * Whether a modifier could be applied to the history
+    *
     * @param modifier - modifier to apply
     * @return
     */
@@ -67,7 +70,11 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
   def openSurfaceIds(): Seq[ModifierId]
 
   //todo: argument should be ID | Seq[ID]
-  def continuation(from: ModifierIds, size: Int): Option[Seq[PM]]
+  def continuation(from: ModifierIds, size: Int): Option[Seq[PM]] = {
+    continuationIds(from, size).map { ids =>
+      ids.map(_._2).flatMap(id => modifierById(id))
+    }
+  }
 
   //todo: argument should be ID | Seq[ID]
   def continuationIds(from: ModifierIds, size: Int): Option[ModifierIds]
@@ -100,4 +107,5 @@ object History {
       s"RollbackTo(${Base58.encode(to)}, $thrown, $applied)"
     }
   }
+
 }

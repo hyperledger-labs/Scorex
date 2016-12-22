@@ -209,10 +209,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
             //check for chain switching
             if (!(powBlock.parentId sameElements bestPowId)) {
               log.info(s"Porcessing fork at ${Base58.encode(powBlock.id)}")
-              val winnerChain = chainBack(powBlock, isGenesis, 100).get.map(_._2)
-              val loserChain = chainBack(bestPowBlock, isGenesis, 100).get.map(_._2)
 
-              val (newSuffix, oldSuffix) = commonBlockThenSuffixes(winnerChain, loserChain)
+              val (newSuffix, oldSuffix) = commonBlockThenSuffixes(powBlock)
               assert(newSuffix.head sameElements oldSuffix.head)
 
               //decrement
@@ -310,12 +308,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       case psb: PosBlock =>
         contains(psb.parentId)
     }
-  }
-
-  override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[HybridPersistentNodeViewModifier]] = {
-    continuationIds(from, size).map(_.map { case (_, mId) =>
-      modifierById(mId).get
-    })
   }
 
   override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)],
@@ -484,29 +476,24 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     }
   }
 
+  //TODO limit???
+  /**
+    * find common suffixes for two chains - starting from forkBlock and from bestPowBlock
+    * returns last common block and then variant blocks for two chains,
+    */
+  final def commonBlockThenSuffixes(forkBlock: HybridPersistentNodeViewModifier,
+                                    limit: Int = 100): (Seq[ModifierId], Seq[ModifierId]) = {
+    val loserChain = chainBack(bestPowBlock, isGenesis, limit).get.map(_._2)
+    def in(m: HybridPersistentNodeViewModifier): Boolean = loserChain.head sameElements m.id
+    val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
+    (winnerChain, loserChain)
+  }
+
 }
 
 
 object HybridHistory extends ScorexLogging {
   val DifficultyRecalcPeriod = 20
-
-  /**
-    * find common suffixes for two chains
-    * returns last common block and then variant blocks for two chains,
-    * longer one and a loser
-    */
-  final def commonBlockThenSuffixes(winnerChain: Seq[ModifierId], loserChain: Seq[ModifierId]): (Seq[ModifierId], Seq[ModifierId]) = {
-
-    val idx = loserChain.indexWhere(blockId => !winnerChain.exists(_.sameElements(blockId)))
-    assert(idx != 0, s"${winnerChain.map(Base58.encode)} vs ${loserChain.map(Base58.encode)}")
-
-    val lc = if (idx == -1) loserChain.slice(loserChain.length - 1, loserChain.length)
-    else loserChain.slice(idx - 1, loserChain.length)
-
-    val wc = winnerChain.dropWhile(blockId => !blockId.sameElements(lc.head))
-
-    (wc, lc)
-  }
 
   def readOrGenerate(settings: MiningSettings): HybridHistory = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
