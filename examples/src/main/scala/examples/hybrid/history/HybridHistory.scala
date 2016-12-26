@@ -211,7 +211,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
               log.info(s"Porcessing fork at ${Base58.encode(powBlock.id)}")
 
               val (newSuffix, oldSuffix) = commonBlockThenSuffixes(powBlock)
-              assert(newSuffix.head sameElements oldSuffix.head)
 
               //decrement
               orphanCountVar.addAndGet(oldSuffix.size - newSuffix.size)
@@ -486,12 +485,13 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     * returns last common block and then variant blocks for two chains,
     */
   final def commonBlockThenSuffixes(forkBlock: HybridPersistentNodeViewModifier,
-                                    limit: Int = 100): (Seq[ModifierId], Seq[ModifierId]) = {
+                                    limit: Int = Int.MaxValue): (Seq[ModifierId], Seq[ModifierId]) = {
     val loserChain = chainBack(bestPowBlock, isGenesis, limit).get.map(_._2)
-    def in(m: HybridPersistentNodeViewModifier): Boolean = loserChain.head sameElements m.id
+    def in(m: HybridPersistentNodeViewModifier): Boolean = loserChain.exists(s => s sameElements m.id)
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
-    (winnerChain, loserChain)
-  }
+    val i = loserChain.indexWhere(id => id sameElements winnerChain.head)
+    (winnerChain, loserChain.takeRight(loserChain.length - i ))
+  }.ensuring(r => r._1.head sameElements r._2.head)
 
 }
 
