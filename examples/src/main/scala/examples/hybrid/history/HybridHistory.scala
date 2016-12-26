@@ -312,11 +312,15 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
   override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)],
                                size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
-    def inList(a: HybridPersistentNodeViewModifier): Boolean = idInList(a.id)
+    def inList(m: HybridPersistentNodeViewModifier): Boolean = idInList(m.id) || isGenesis(m)
     def idInList(id: ModifierId): Boolean = from.exists(f => f._2 sameElements id)
 
-    chainBack(bestPowBlock, inList, size) match {
-      case Some(chain) if chain.exists(id => idInList(id._2)) => Some(chain)
+    //Look without limit for case difference between nodes is bigger then size
+    chainBack(bestPowBlock, inList) match {
+      case Some(chain) if chain.exists(id => idInList(id._2)) => Some(chain.take(size))
+      case Some(chain) =>
+        log.warn("Found chain without ids form remote")
+        None
       case _ => None
     }
   }
@@ -453,7 +457,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   @tailrec
   private def chainBack(m: HybridPersistentNodeViewModifier,
                         until: HybridPersistentNodeViewModifier => Boolean,
-                        limit: Int = 1000,
+                        limit: Int = Int.MaxValue,
                         powOnly: Boolean = false,
                         acc: Seq[(ModifierTypeId, ModifierId)] = Seq()): Option[Seq[(ModifierTypeId, ModifierId)]] = {
     val summ: Seq[(ModifierTypeId, ModifierId)] = if (m.isInstanceOf[PosBlock]) (PosBlock.ModifierTypeId -> m.id) +: acc

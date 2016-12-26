@@ -3,6 +3,7 @@ package scorex.core
 import akka.actor.{Actor, ActorRef}
 import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
@@ -221,12 +222,15 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
       val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
       val ext = extensionOpt.getOrElse(Seq())
+      val comparison = history().compare(syncInfo)
       log.debug(s"Sending extension of length ${ext.length}: ${ext.map(_._2).map(Base58.encode).mkString(",")}")
-      log.debug("Comparison result is: " + history().compare(syncInfo))
+      log.debug("Comparison result is: " + comparison)
+
+      require(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)
 
       sender() ! OtherNodeSyncingStatus(
         remote,
-        history().compare(syncInfo),
+        comparison,
         syncInfo,
         history().syncInfo(true),
         extensionOpt
