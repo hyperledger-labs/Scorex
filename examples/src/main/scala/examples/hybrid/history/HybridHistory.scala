@@ -450,8 +450,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
   //chain without brothers
   override def toString: String = {
-    val chain = chainBack(bestPosBlock, isGenesis, powOnly = true)
-    chain.get.map(_._2).map(Base58.encode).mkString(",")
+      chainBack(bestPosBlock, isGenesis, powOnly = false).get.map(_._2).map(Base58.encode).mkString(",")
   }
 
   /**
