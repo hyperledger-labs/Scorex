@@ -63,7 +63,7 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   def modifierById(modifierId: String): Option[PM] = Base58.decode(modifierId).toOption.flatMap(modifierById)
 
-  def append(modifier: PM): Try[(HT, Option[RollbackTo[PM]])]
+  def append(modifier: PM): Try[(HT, Modifications[PM])]
 
   //todo: is it needed?
   //todo: output should be ID | Seq[ID]
@@ -102,9 +102,11 @@ object History {
   }
 
   //TODO rename to ToProcess => includes all modifiers to include and to throw away
-  case class RollbackTo[PM <: PersistentNodeViewModifier[_, _]](to: ModifierId, thrown: Seq[PM], applied: Seq[PM]) {
+  case class Modifications[PM <: PersistentNodeViewModifier[_, _]](branchPoint: ModifierId,
+                                                                   toRemove: Seq[PM],
+                                                                   toApply: Seq[PM]) {
     override def toString: String = {
-      s"RollbackTo(${Base58.encode(to)}, $thrown, $applied)"
+      s"RollbackTo(${Base58.encode(branchPoint)}, $toRemove, $toApply)"
     }
   }
 

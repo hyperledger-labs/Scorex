@@ -1,7 +1,7 @@
 package scorex.core.consensus
 
 import scorex.core.block.{Block, BlockCompanion}
-import scorex.core.consensus.History.RollbackTo
+import scorex.core.consensus.History.Modifications
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging

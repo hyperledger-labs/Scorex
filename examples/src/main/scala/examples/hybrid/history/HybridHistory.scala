@@ -13,7 +13,7 @@ import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.History
-import scorex.core.consensus.History.{HistoryComparisonResult, RollbackTo}
+import scorex.core.consensus.History.{HistoryComparisonResult, Modifications}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
@@ -179,9 +179,9 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     * @return
     */
   override def append(block: HybridPersistentNodeViewModifier):
-  Try[(HybridHistory, Option[RollbackTo[HybridPersistentNodeViewModifier]])] = Try {
+  Try[(HybridHistory, Modifications[HybridPersistentNodeViewModifier])] = Try {
     log.debug(s"Trying to append block ${Base58.encode(block.id)} to history")
-    val res = block match {
+    val res: (HybridHistory, Modifications[HybridPersistentNodeViewModifier]) = block match {
       case powBlock: PowBlock =>
 
         val currentScore = if (!isGenesis(powBlock)) {
@@ -200,11 +200,11 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         val blockScore = currentScore + 1
         blockScores.put(blockId, blockScore)
 
-        val rollbackOpt: Option[RollbackTo[HybridPersistentNodeViewModifier]] = if (isGenesis(powBlock)) {
+        val modifications: Modifications[HybridPersistentNodeViewModifier] = if (isGenesis(powBlock)) {
           //genesis block
           currentScoreVar.set(blockScore)
           bestPowIdVar.set(blockId)
-          None
+          Modifications(powBlock.parentId, Seq(), Seq(powBlock))
         } else {
           if (blockScore > currentScoreVar.get()) {
             //check for chain switching
@@ -227,11 +227,11 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
               currentScoreVar.set(blockScore)
               bestPowIdVar.set(blockId)
-              Some(RollbackTo(rollbackPoint, throwBlocks, applyBlocks))
+              Modifications(rollbackPoint, throwBlocks, applyBlocks)
             } else {
               currentScoreVar.set(blockScore)
               bestPowIdVar.set(blockId)
-              None
+              Modifications(powBlock.parentId, Seq(), Seq(powBlock))
             }
           } else if (blockScore == currentScoreVar.get() &&
             (bestPowBlock.parentId sameElements powBlock.parentId) &&
@@ -241,17 +241,17 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
             //handle younger brother - replace current best PoW block with a brother
             val replacedBlock = bestPowBlock
             bestPowIdVar.set(blockId)
-            Some(RollbackTo(powBlock.prevPosId, Seq(replacedBlock), Seq(powBlock)))
+            Modifications(powBlock.prevPosId, Seq(replacedBlock), Seq(powBlock))
           } else {
             orphanCountVar.incrementAndGet()
-            None
+            Modifications(powBlock.parentId, Seq(), Seq(powBlock))
           }
         }
         logDirOpt.foreach { logDir =>
           val record = s"${orphanCountVar.get()}, ${currentScoreVar.get}"
           FileFunctions.append(logDir + "/orphans.csv", record)
         }
-        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings), rollbackOpt)
+        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings), modifications)
 
 
       case posBlock: PosBlock =>
@@ -266,7 +266,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
 
         setDifficultiesForNewBlock(posBlock)
-        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings), None) //no rollback ever
+        val mod: Modifications[HybridPersistentNodeViewModifier] =
+          Modifications(posBlock.parentId, Seq(), Seq(posBlock))
+
+        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings), mod) //no rollback ever
     }
     metaDb.commit()
     log.info(s"History: block ${Base58.encode(block.id)} appended, new score is ${currentScoreVar.get()}")
@@ -491,7 +494,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     def in(m: HybridPersistentNodeViewModifier): Boolean = loserChain.exists(s => s sameElements m.id)
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
     val i = loserChain.indexWhere(id => id sameElements winnerChain.head)
-    (winnerChain, loserChain.takeRight(loserChain.length - i ))
+    (winnerChain, loserChain.takeRight(loserChain.length - i))
   }.ensuring(r => r._1.head sameElements r._2.head)
 
 }
