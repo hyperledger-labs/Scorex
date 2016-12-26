@@ -96,9 +96,13 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   }
 
   override def rollback(to: VersionTag): Try[HWallet] = Try {
-    log.debug(s"Rolling back wallet to: ${Base58.encode(to)}")
-    boxStore.rollback(ByteArrayWrapper(to))
-    HWallet(seed, boxStore, metaDb)
+    if (boxStore.lastVersionID.exists(_.data sameElements to)) {
+      this
+    } else {
+      log.debug(s"Rolling back wallet to: ${Base58.encode(to)}")
+      boxStore.rollback(ByteArrayWrapper(to))
+      HWallet(seed, boxStore, metaDb)
+    }
   }
 
   override type NVCT = this.type
@@ -157,7 +161,7 @@ object HWallet {
     readOrGenerate(settings, "", 10)
 
   //wallet with applied initialBlocks
-  def genesisWallet(settings: Settings, initialBlocks: Seq[HybridPersistentNodeViewModifier]): HWallet ={
+  def genesisWallet(settings: Settings, initialBlocks: Seq[HybridPersistentNodeViewModifier]): HWallet = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (a, b) =>
       a.scanPersistent(b)
     }

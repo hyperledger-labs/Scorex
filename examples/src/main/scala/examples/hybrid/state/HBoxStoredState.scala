@@ -75,9 +75,13 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
   }
 
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
-    log.debug(s"Rollback state to ${Base58.encode(version)}")
-    store.rollback(ByteArrayWrapper(version))
-    new HBoxStoredState(store, metaDb, version)
+    if (store.lastVersionID.exists(_.data sameElements version)) {
+      this
+    } else {
+      log.debug(s"Rollback state to ${Base58.encode(version)}")
+      store.rollback(ByteArrayWrapper(version))
+      new HBoxStoredState(store, metaDb, version)
+    }
   }
 }
 

@@ -105,7 +105,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     history().append(pmod) match {
       case Success((newHistory, modifications)) =>
         log.debug(s"Going to apply modifications: $modifications")
-        minimalState().rollbackTo(modifications.branchPoint).flatMap(_.applyModifiers(modifications.toApply)) match {
+        val newStateTry = if (modifications.toRemove.isEmpty) minimalState().applyModifiers(modifications.toApply)
+        else minimalState().rollbackTo(modifications.branchPoint).flatMap(_.applyModifiers(modifications.toApply))
+
+        newStateTry match {
           case Success(newMinState) =>
             val rolledBackTxs = modifications.toRemove.flatMap(_.transactions).flatten
 
@@ -116,7 +119,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter(appliedTxs)
 
             //we consider that vault always able to perform a rollback needed
-            val newWallet =  vault().rollback(modifications.branchPoint).get.scanPersistent(appliedMods)
+            val newWallet = if (modifications.toRemove.isEmpty) vault().scanPersistent(appliedMods)
+            else vault().rollback(modifications.branchPoint).get.scanPersistent(appliedMods)
 
             log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
             nodeView = (newHistory, newMinState, newWallet, newMemPool)
