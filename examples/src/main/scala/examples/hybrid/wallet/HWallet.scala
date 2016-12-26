@@ -156,7 +156,10 @@ object HWallet {
   def readOrGenerate(settings: Settings): HWallet =
     readOrGenerate(settings, "", 10)
 
-  //wallet with 10 accounts and initial data processed
-  def genesisWallet(settings: Settings, initialBlock: PosBlock): HWallet =
-  readOrGenerate(settings).scanPersistent(initialBlock)
+  //wallet with applied initialBlocks
+  def genesisWallet(settings: Settings, initialBlocks: Seq[HybridPersistentNodeViewModifier]): HWallet ={
+    initialBlocks.foldLeft(readOrGenerate(settings)) { (a, b) =>
+      a.scanPersistent(b)
+    }
+  }
 }

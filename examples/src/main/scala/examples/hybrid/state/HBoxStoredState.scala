@@ -109,6 +109,9 @@ object HBoxStoredState {
     HBoxStoredState(stateStorage, metaDb, Array.emptyByteArray)
   }
 
-  def genesisState(settings: Settings, initialBlock: PosBlock): HBoxStoredState =
-    readOrGenerate(settings).applyModifier(initialBlock).get
+  def genesisState(settings: Settings, initialBlocks: Seq[HybridPersistentNodeViewModifier]): HBoxStoredState = {
+    initialBlocks.foldLeft(readOrGenerate(settings)) { (a, b) =>
+      a.applyModifier(b).get
+    }
+  }
 }

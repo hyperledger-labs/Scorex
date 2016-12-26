@@ -41,8 +41,8 @@ object PrivateChain extends App with ScorexLogging {
     val za = Array.fill(32)(0: Byte)
     val initialBlock = PosBlock(settings.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
-    val gs = HBoxStoredState.genesisState(settings, initialBlock)
-    val gw = HWallet.genesisWallet(settings, initialBlock)
+    val gs = HBoxStoredState.genesisState(settings, Seq(initialBlock))
+    val gw = HWallet.genesisWallet(settings, Seq(initialBlock))
 
     gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))
 

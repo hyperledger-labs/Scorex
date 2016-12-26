@@ -44,14 +44,8 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
   override protected def genesisState: (HIS, MS, VL, MP) = {
     val ew = HWallet.readOrGenerate(settings, "genesis", "e", 500)
     val genesisAccount = ew.secrets.head
-
-    var history = HybridHistory.readOrGenerate(settings)
-
     val powGenesis = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1481110008516L, -4954221073250153861L,
       0, Array.fill(32)(0: Byte), Seq())
-    history = history.append(powGenesis).get._1
-
-
     val genesisTxs = ew.publicKeys.flatMap { pubkey =>
       (1 to 10).map(_ =>
         SimpleBoxTransaction(
@@ -62,11 +56,16 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
     }.toSeq
 
     val za = Array.fill(Curve25519.SignatureLength)(0: Byte)
-    val initialBlock = PosBlock(powGenesis.id, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
+    val posGenesis = PosBlock(powGenesis.id, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
 
-    history = history.append(initialBlock).get._1
-    val gs = HBoxStoredState.genesisState(settings, initialBlock)
-    val gw = HWallet.genesisWallet(settings, initialBlock)
+
+
+    var history = HybridHistory.readOrGenerate(settings)
+    history = history.append(powGenesis).get._1
+    history = history.append(posGenesis).get._1
+
+    var gs = HBoxStoredState.genesisState(settings, Seq(powGenesis, posGenesis))
+    val gw = HWallet.genesisWallet(settings, Seq(powGenesis, posGenesis))
 
     gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))
 
