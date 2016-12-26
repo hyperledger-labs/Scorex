@@ -45,6 +45,8 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
       getView().map { view =>
         Map(
           "height" -> view.history.powHeight.asJson,
+          "bestPoS" -> Base58.encode(view.history.bestPosId).asJson,
+          "bestPoW" -> Base58.encode(view.history.bestPowId).asJson,
           "stateVersion" -> Base58.encode(view.state.version).asJson
         ).asJson
       }
