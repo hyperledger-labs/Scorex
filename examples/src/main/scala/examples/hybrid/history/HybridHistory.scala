@@ -120,7 +120,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   //throws exception if anything wrong
   def checkPowConsensusRules(powBlock: PowBlock, powDifficulty: BigInt): Unit = {
     //check work
-    require(powBlock.correctWork(powDifficulty, settings), s"Work done is incorrent for difficulty $powDifficulty")
+    require(powBlock.correctWork(powDifficulty, settings),
+      s"Work done is incorrent for block ${Base58.encode(powBlock.id)} and difficulty $powDifficulty")
 
     //check PoW parent id
     modifierById(powBlock.parentId).get

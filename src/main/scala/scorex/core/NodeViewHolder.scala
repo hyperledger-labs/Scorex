@@ -94,7 +94,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
-  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]): Unit = {
+  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]): Unit = if (!history().contains(pmod.id)) {
     notifySubscribers(
       EventType.StartingPersistentModifierApplication,
       StartingPersistentModifierApplication[P, TX, PMOD](pmod)
@@ -134,6 +134,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to history, reason: ${e.getMessage}", e)
         notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
     }
+  } else {
+    log.warn("Trying to apply modifier that's already in history")
   }
 
   private def handleSubscribe: Receive = {
