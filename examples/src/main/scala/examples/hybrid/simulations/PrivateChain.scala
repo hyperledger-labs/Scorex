@@ -115,7 +115,7 @@ object PrivateChain extends App with ScorexLogging {
         history = history.append(b).get._1
         Thread.sleep(15)
       }
-    } while (!(history.powHeight == 10 && history.pairCompleted))
+    } while (!(history.height == 10 && history.pairCompleted))
 
     history.bestPosBlock.timestamp - history.modifierById(firstId).get.asInstanceOf[PowBlock].timestamp
   }

@@ -4,12 +4,12 @@ package examples.hybrid.history
 import java.io.File
 import java.math.BigInteger
 
-import io.circe.syntax._
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, MiningSettings, PosForger}
 import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.util.FileFunctions
 import io.circe.Json
+import io.circe.syntax._
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.NodeViewModifier
@@ -50,8 +50,8 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   lazy val blockHeights = metaDb.hashMap("hidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
 
   //for now score = chain length; that's not very secure, see link above
-  lazy val powHeight = blockHeights.get(bestPowId)
-  lazy val bestChainScore = powHeight
+  lazy val height = blockHeights.get(bestPowId)
+  lazy val bestChainScore = height
 
   lazy val orphanCountVar = metaDb.atomicLong("orphans", 0L).createOrOpen()
 
@@ -62,12 +62,12 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   lazy val bestPosId: Array[Byte] = Option(bestPosIdVar.get()).getOrElse(settings.GenesisParentId)
 
   lazy val bestPowBlock = {
-    require(powHeight > 0, "History is empty")
+    require(height > 0, "History is empty")
     modifierById(bestPowId).get.asInstanceOf[PowBlock]
   }
 
   lazy val bestPosBlock = {
-    require(powHeight > 0, "History is empty")
+    require(height > 0, "History is empty")
     modifierById(bestPosId).get.asInstanceOf[PosBlock]
   }
 
@@ -89,9 +89,16 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   def lastPowBlocks(count: Int): Seq[PowBlock] = if (isEmpty) {
     Seq()
   } else {
-    (1L until Math.min(powHeight, count.toLong)).foldLeft(Seq(bestPowBlock)) { case (blocks, _) =>
-      modifierById(blocks.head.parentId).get.asInstanceOf[PowBlock] +: blocks
+    @tailrec
+    def loop(b: PowBlock, acc: Seq[PowBlock] = Seq()): Seq[PowBlock] = if (acc.length >= count) {
+      acc
+    } else {
+      modifierById(b.parentId) match {
+        case Some(parent: PowBlock) => loop(parent, b +: acc)
+        case _ => b +: acc
+      }
     }
+    loop(bestPowBlock)
   }
 
   /**
@@ -99,7 +106,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     *
     * @return
     */
-  override def isEmpty: Boolean = powHeight <= 0
+  override def isEmpty: Boolean = height <= 0
 
   override def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier] = {
     blocksStorage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
@@ -187,7 +194,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
 
         val currentScore: Long = if (!isGenesis(powBlock)) {
           checkPowConsensusRules(powBlock, getPoWDifficulty(Some(powBlock.prevPosId)))
-          blockHeights.get(powBlock.parentId)
+          Math.max(blockHeights.get(powBlock.parentId), blockHeights.get(powBlock.prevPosId))
         } else {
           log.info("Genesis block: " + Base58.encode(powBlock.id))
           0L
@@ -260,6 +267,10 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         val blockId = posBlock.id
 
         writeBlock(posBlock)
+        val parentHeight: Long = if (!isGenesis(posBlock)) blockHeights.get(posBlock.parentId)
+        else 0L
+
+        blockHeights.put(posBlock.id, parentHeight + 1)
 
         if (powParent sameElements bestPowId) bestPosIdVar.set(blockId)
 
@@ -293,7 +304,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       val newPowDiff = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))
       val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * 8 / 10)
       log.info(s"PoW difficulty changed at ${Base58.encode(posBlock.id)}: old $oldPowDifficulty, new $newPowDiff. " +
-        s" ${ powBlocks.last.timestamp} - ${powBlocks.head.timestamp} | $brothersCount")
+        s" ${powBlocks.last.timestamp} - ${powBlocks.head.timestamp} | $brothersCount")
       log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")
       setDifficulties(posBlock.id, newPowDiff, newPosDiff)
 
@@ -388,7 +399,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         } else HistoryComparisonResult.Younger
       case _ =>
         // +1 to include common block
-        val localSuffixLength = powHeight - heightOf(dSuffix.last).get + 1
+        val localSuffixLength = height - heightOf(dSuffix.last).get + 1
         val otherSuffixLength = dSuffix.length
 
         if (localSuffixLength < otherSuffixLength)
@@ -435,7 +446,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         settings.Difficulty
       case Some(id) =>
         BigInt(blockDifficulties.get(1.toByte +: id): BigInteger)
-      case None if powHeight > 0 =>
+      case None if height > 0 =>
         BigInt(blockDifficulties.get(1.toByte +: bestPosId): BigInteger)
       case _ =>
         settings.Difficulty

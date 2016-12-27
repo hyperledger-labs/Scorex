@@ -32,7 +32,7 @@ class HybridHistorySpecification extends PropSpec
   property("Block application and HybridHistory.continuationIds") {
     var ids: Seq[ModifierId] = Seq()
     forAll(posBlockGen, powBlockGen) { (posR, powR) =>
-      if (history.powHeight <= HybridHistory.DifficultyRecalcPeriod) {
+      if (history.height <= HybridHistory.DifficultyRecalcPeriod) {
         val posBlock = posR.copy(parentId = history.bestPowId)
         history = history.append(posBlock).get._1
 
