@@ -283,10 +283,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
     metaDb.commit()
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score $bestChainScore")
     res
-  }.recoverWith { case e =>
-    e.printStackTrace()
-    System.exit(1)
-    Failure(e)
   }
 
   private def setDifficultiesForNewBlock(posBlock: PosBlock): Unit = {
@@ -299,17 +295,15 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       val brothersCount = powBlocks.map(_.brothersCount).sum
       val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.BlockDelay
       val oldPowDifficulty = getPoWDifficulty(Some(powBlocks.last.prevPosId))
-      val oldPosDifficulty = getPoSDifficulty(powBlocks.last.prevPosId)
 
       val newPowDiff = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))
+
+      val oldPosDifficulty = getPoSDifficulty(powBlocks.last.prevPosId)
       val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * 8 / 10)
       log.info(s"PoW difficulty changed at ${Base58.encode(posBlock.id)}: old $oldPowDifficulty, new $newPowDiff. " +
         s" ${powBlocks.last.timestamp} - ${powBlocks.head.timestamp} | $brothersCount")
       log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")
       setDifficulties(posBlock.id, newPowDiff, newPosDiff)
-
-      println(debugDifficulties())
-
     } else {
       //Same difficulty as in previous block
       val parentPoSId: ModifierId = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock].prevPosId
