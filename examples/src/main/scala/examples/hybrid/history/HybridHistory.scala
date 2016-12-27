@@ -8,6 +8,7 @@ import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, MiningSettings, PosForger}
 import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.util.FileFunctions
+import examples.hybrid.validation.BlockValidator
 import io.circe.Json
 import io.circe.syntax._
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
@@ -22,14 +23,18 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Try}
+import scala.util.Try
 
 /**
   * History storage
   * we store all the blocks, even if they are not in a main chain
   */
 //todo: add some versioned field to the class
-class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[String], settings: MiningConstants)
+class HybridHistory(blocksStorage: LSMStore,
+                    metaDb: DB,
+                    logDirOpt: Option[String],
+                    settings: MiningConstants,
+                    validator: BlockValidator)
   extends History[PublicKey25519Proposition,
     SimpleBoxTransaction,
     HybridPersistentNodeViewModifier,
@@ -124,49 +129,6 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
   override def contains(id: ModifierId): Boolean =
     if (id sameElements settings.GenesisParentId) true else modifierById(id).isDefined
 
-  //PoW consensus rules checks, work/references
-  //throws exception if anything wrong
-  def checkPowConsensusRules(powBlock: PowBlock, powDifficulty: BigInt): Unit = {
-    //check work
-    require(powBlock.correctWork(powDifficulty, settings),
-      s"Work done is incorrent for block ${Base58.encode(powBlock.id)} and difficulty $powDifficulty")
-
-    //check PoW parent id
-    modifierById(powBlock.parentId).get
-
-    //some check for header fields
-    assert(powBlock.headerValid)
-
-    //check brothers data
-    assert(powBlock.brothers.size == powBlock.brothersCount)
-    assert(powBlock.brothers.forall(_.correctWork(powDifficulty, settings)))
-    if (powBlock.brothersCount > 0) {
-      assert(FastCryptographicHash(powBlock.brotherBytes) sameElements powBlock.brothersHash)
-    }
-
-    if (!isGenesis(powBlock)) {
-      //check referenced PoS block exists as well
-      val posBlock = modifierById(powBlock.prevPosId).get
-
-      //check referenced PoS block points to parent PoW block
-      assert(posBlock.parentId sameElements posBlock.parentId, "ref rule broken")
-    }
-  }
-
-  //PoS consensus rules checks, throws exception if anything wrong
-  def checkPoSConsensusRules(posBlock: PosBlock): Unit = {
-    //check PoW block exists
-    require(modifierById(posBlock.parentId).isDefined)
-
-    //todo: check difficulty
-
-    //todo: check signature
-
-    //todo: check transactions
-
-    //todo: check PoS rules
-  }
-
   private def writeBlock(b: HybridPersistentNodeViewModifier) = {
     val typeByte = b match {
       case _: PowBlock =>
@@ -193,7 +155,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
       case powBlock: PowBlock =>
 
         val currentScore: Long = if (!isGenesis(powBlock)) {
-          checkPowConsensusRules(powBlock, getPoWDifficulty(Some(powBlock.prevPosId)))
+          validator.checkPowConsensusRules(powBlock, getPoWDifficulty(Some(powBlock.prevPosId))).get
           Math.max(blockHeights.get(powBlock.parentId), blockHeights.get(powBlock.prevPosId))
         } else {
           log.info("Genesis block: " + Base58.encode(powBlock.id))
@@ -256,11 +218,11 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
           val record = s"${orphanCountVar.get()}, $bestChainScore"
           FileFunctions.append(logDir + "/orphans.csv", record)
         }
-        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings), modifications)
+        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings, validator), modifications)
 
 
       case posBlock: PosBlock =>
-        checkPoSConsensusRules(posBlock)
+        validator.checkPoSConsensusRules(posBlock).get
 
         val powParent = posBlock.parentId
 
@@ -278,7 +240,7 @@ class HybridHistory(blocksStorage: LSMStore, metaDb: DB, logDirOpt: Option[Strin
         val mod: Modifications[HybridPersistentNodeViewModifier] =
           Modifications(posBlock.parentId, Seq(), Seq(posBlock))
 
-        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings), mod) //no rollback ever
+        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings, validator), mod) //no rollback ever
     }
     metaDb.commit()
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score $bestChainScore")
@@ -547,6 +509,6 @@ object HybridHistory extends ScorexLogging {
         .closeOnJvmShutdown()
         .make()
 
-    new HybridHistory(blockStorage, metaDb, logDirOpt, settings)
+    new HybridHistory(blockStorage, metaDb, logDirOpt, settings, new BlockValidator(settings, FastCryptographicHash))
   }
 }
