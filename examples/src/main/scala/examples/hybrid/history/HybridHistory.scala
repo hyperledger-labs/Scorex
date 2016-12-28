@@ -32,7 +32,6 @@ import scala.util.Try
 //todo: add some versioned field to the class
 class HybridHistory(blocksStorage: LSMStore,
                     metaDb: DB,
-                    logDirOpt: Option[String],
                     settings: MiningConstants,
                     validator: BlockValidator)
   extends History[PublicKey25519Proposition,
@@ -184,10 +183,6 @@ class HybridHistory(blocksStorage: LSMStore,
 
               //decrement
               orphanCountVar.addAndGet(oldSuffix.size - newSuffix.size)
-              logDirOpt.foreach { logDir =>
-                val record = s"${oldSuffix.size}, $bestChainScore"
-                FileFunctions.append(logDir + "/forkdepth.csv", record)
-              }
 
               val rollbackPoint = newSuffix.head
 
@@ -214,11 +209,7 @@ class HybridHistory(blocksStorage: LSMStore,
             Modifications(powBlock.parentId, Seq(), Seq(powBlock))
           }
         }
-        logDirOpt.foreach { logDir =>
-          val record = s"${orphanCountVar.get()}, $bestChainScore"
-          FileFunctions.append(logDir + "/orphans.csv", record)
-        }
-        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings, validator), modifications)
+        (new HybridHistory(blocksStorage, metaDb, settings, validator), modifications)
 
 
       case posBlock: PosBlock =>
@@ -240,7 +231,7 @@ class HybridHistory(blocksStorage: LSMStore,
         val mod: Modifications[HybridPersistentNodeViewModifier] =
           Modifications(posBlock.parentId, Seq(), Seq(posBlock))
 
-        (new HybridHistory(blocksStorage, metaDb, logDirOpt, settings, validator), mod) //no rollback ever
+        (new HybridHistory(blocksStorage, metaDb, settings, validator), mod) //no rollback ever
     }
     metaDb.commit()
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score $bestChainScore")
@@ -484,6 +475,6 @@ object HybridHistory extends ScorexLogging {
         .closeOnJvmShutdown()
         .make()
 
-    new HybridHistory(blockStorage, metaDb, logDirOpt, settings, new BlockValidator(settings, FastCryptographicHash))
+    new HybridHistory(blockStorage, metaDb, settings, new BlockValidator(settings, FastCryptographicHash))
   }
 }
