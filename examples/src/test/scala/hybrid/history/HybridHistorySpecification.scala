@@ -53,7 +53,7 @@ class HybridHistorySpecification extends PropSpec
 
     history.continuationIds(Seq((2.toByte, startFrom)), ids.length).get.map(_._2).map(Base58.encode) shouldEqual ids.map(Base58.encode)
 
-    ids.length shouldBe HybridHistory.DifficultyRecalcPeriod * 2
+    ids.length shouldBe HybridHistory.DifficultyRecalcPeriod
 
     //continuationIds with limit
     forAll(Gen.choose(0, ids.length - 1)) { startIndex: Int =>
@@ -65,9 +65,11 @@ class HybridHistorySpecification extends PropSpec
       history.continuationIds(startList, ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
 
       val limit = 5
-      history.continuationIds(startList, limit) match {
-        case None => restIds.length should be >= limit
-        case Some(l) => l.length shouldBe restIds.length
+      val continuation = history.continuationIds(startList, limit).get
+      continuation.length shouldBe Math.min(limit, restIds.length)
+      startList.exists(sl => sl._2 sameElements continuation.head._2) shouldBe true
+      continuation.tail.foreach { c =>
+        startList.exists(sl => sl._2 sameElements c._2) shouldBe false
       }
     }
   }
