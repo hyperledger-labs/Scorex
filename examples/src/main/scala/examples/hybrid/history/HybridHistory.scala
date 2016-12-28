@@ -7,7 +7,6 @@ import java.math.BigInteger
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, MiningSettings, PosForger}
 import examples.hybrid.state.SimpleBoxTransaction
-import examples.hybrid.util.FileFunctions
 import examples.hybrid.validation.BlockValidator
 import io.circe.Json
 import io.circe.syntax._
@@ -410,19 +409,19 @@ class HybridHistory(blocksStorage: LSMStore,
                         limit: Int = Int.MaxValue,
                         powOnly: Boolean = false,
                         acc: Seq[(ModifierTypeId, ModifierId)] = Seq()): Option[Seq[(ModifierTypeId, ModifierId)]] = {
-    val summ: Seq[(ModifierTypeId, ModifierId)] = if (m.isInstanceOf[PosBlock]) (PosBlock.ModifierTypeId -> m.id) +: acc
+    val sum: Seq[(ModifierTypeId, ModifierId)] = if (m.isInstanceOf[PosBlock]) (PosBlock.ModifierTypeId -> m.id) +: acc
     else if (powOnly) acc
     else (PowBlock.ModifierTypeId -> m.id) +: acc
 
     if (limit <= 0 || until(m)) {
-      Some(summ)
+      Some(sum)
     } else {
       val parentId = m match {
         case b: PosBlock => b.parentId
         case b: PowBlock => b.prevPosId
       }
       modifierById(parentId) match {
-        case Some(parent) => chainBack(parent, until, limit - 1, powOnly, summ)
+        case Some(parent) => chainBack(parent, until, limit - 1, powOnly, sum)
         case _ =>
           log.warn(s"Parent block ${Base58.encode(parentId)} for ${Base58.encode(m.id)} not found ")
           None
