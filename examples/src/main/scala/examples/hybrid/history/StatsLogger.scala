@@ -7,7 +7,7 @@ import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import scorex.core.NodeViewHolder
-import scorex.core.NodeViewHolder.{CurrentView, Subscribe, SuccessfulModification}
+import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView, Subscribe, SuccessfulModification}
 import scorex.core.NodeViewModifier._
 import scorex.core.network.ConnectedPeer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -28,7 +28,7 @@ class StatsLogger(logDirOpt: Option[String], viewHolderRef: ActorRef) extends Ac
         case b: PosBlock =>
         case b: PowBlock =>
           modifiersCache += b.id
-          viewHolderRef ! CurrentView
+          viewHolderRef ! GetCurrentView
       }
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
       logOrphanCount(h.orphanCountVar.get(), h.bestChainScore)
