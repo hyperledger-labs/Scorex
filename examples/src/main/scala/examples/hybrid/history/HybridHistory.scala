@@ -364,31 +364,6 @@ class HybridHistory(blocksStorage: LSMStore,
           HistoryComparisonResult.Equal
         else HistoryComparisonResult.Younger
     }
-
-    /*
-    if (other.bestPowBlockId sameElements PowMiner.GenesisParentId) {
-      HistoryComparisonResult.Younger
-    } else blockById(other.bestPowBlockId) match {
-      case Some(pb: PowBlock) =>
-        if (pb.id sameElements bestPowId) {
-          val prevPosId = pb.prevPosId
-          val otherNext = !(other.bestPosBlockId sameElements prevPosId)
-          val selfNext = !(bestPosId sameElements prevPosId)
-
-          (otherNext, selfNext) match {
-            case (true, true) =>
-              HistoryComparisonResult.Equal
-            case (true, false) =>
-              HistoryComparisonResult.Older
-            case (false, true) =>
-              HistoryComparisonResult.Younger
-            case (false, false) =>
-              HistoryComparisonResult.Equal
-          }
-        } else HistoryComparisonResult.Younger
-      case None =>
-        HistoryComparisonResult.Older
-    }*/
   }
 
   private def setDifficulties(id: NodeViewModifier.ModifierId, powDiff: BigInt, posDiff: Long): Unit = {
