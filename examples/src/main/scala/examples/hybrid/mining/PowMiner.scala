@@ -85,7 +85,6 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
                 log.debug(s"100 hashes tried, difficulty is $difficulty")
               }
             }
-            log.debug(s"Block found with difficulty $difficulty")
             p.success(foundBlock)
           }
         })
@@ -98,6 +97,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
 
     case b: PowBlock =>
       cancellableOpt.foreach(_.cancel())
+      log.debug(s"Locally generated PoW block: $b")
       viewHolderRef ! LocallyGeneratedModifier[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier](b)
 
     case StopMining =>

@@ -3,7 +3,7 @@ package examples.hybrid
 import akka.actor.{ActorRef, Props}
 import examples.hybrid.api.http.DebugApiRoute
 import examples.hybrid.blocks.HybridPersistentNodeViewModifier
-import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec}
+import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec, StatsLogger}
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.wallet.SimpleBoxTransactionGenerator
@@ -33,6 +33,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoMessageSpec)
 
   override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
+  val logger = actorSystem.actorOf(Props(classOf[StatsLogger], settings.logDirOpt, nodeViewHolderRef))
 
   override val apiRoutes: Seq[ApiRoute] = Seq(
     DebugApiRoute(settings, nodeViewHolderRef),
