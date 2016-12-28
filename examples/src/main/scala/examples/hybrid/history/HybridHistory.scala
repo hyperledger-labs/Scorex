@@ -397,7 +397,7 @@ class HybridHistory(blocksStorage: LSMStore,
 
   //chain without brothers
   override def toString: String = {
-    chainBack(bestPosBlock, isGenesis, powOnly = false).get.map(_._2).map(Base58.encode).mkString(",")
+    chainBack(bestPosBlock, isGenesis).get.map(_._2).map(Base58.encode).mkString(",")
   }
 
   /**
@@ -407,10 +407,8 @@ class HybridHistory(blocksStorage: LSMStore,
   private def chainBack(m: HybridPersistentNodeViewModifier,
                         until: HybridPersistentNodeViewModifier => Boolean,
                         limit: Int = Int.MaxValue,
-                        powOnly: Boolean = false,
                         acc: Seq[(ModifierTypeId, ModifierId)] = Seq()): Option[Seq[(ModifierTypeId, ModifierId)]] = {
     val sum: Seq[(ModifierTypeId, ModifierId)] = if (m.isInstanceOf[PosBlock]) (PosBlock.ModifierTypeId -> m.id) +: acc
-    else if (powOnly) acc
     else (PowBlock.ModifierTypeId -> m.id) +: acc
 
     if (limit <= 0 || until(m)) {
@@ -421,7 +419,7 @@ class HybridHistory(blocksStorage: LSMStore,
         case b: PowBlock => b.prevPosId
       }
       modifierById(parentId) match {
-        case Some(parent) => chainBack(parent, until, limit - 1, powOnly, sum)
+        case Some(parent) => chainBack(parent, until, limit - 1, sum)
         case _ =>
           log.warn(s"Parent block ${Base58.encode(parentId)} for ${Base58.encode(m.id)} not found ")
           None
