@@ -31,7 +31,7 @@ class StatsLogger(logDirOpt: Option[String], viewHolderRef: ActorRef) extends Ac
           viewHolderRef ! GetCurrentView
       }
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
-      logOrphanCount(h.orphanCountVar.get(), h.bestChainScore)
+//TODO      logOrphanCount(h.orphanCountVar.get(), h.bestChainScore)
       //TODO logForkDepth
 
   }
