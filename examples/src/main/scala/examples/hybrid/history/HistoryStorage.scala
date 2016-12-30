@@ -29,7 +29,7 @@ class HistoryStorage(blocksStorage: LSMStore,
   private lazy val bestPosIdVar = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen()
 
   //for now score = chain length; that's not very secure, see link above
-  def height: Long = blockHeights.get(bestPowId)
+  def height: Long = Math.max(heightOf(bestPowId).getOrElse(0L), heightOf(bestPosId).getOrElse(0L))
 
   def bestChainScore: Long = height
 
@@ -127,7 +127,7 @@ class HistoryStorage(blocksStorage: LSMStore,
       else 0L
   }
 
-  def heightOf(blockId: ModifierId): Option[Long] = Option(blockHeights.get(blockId))
+  def heightOf(blockId: ModifierId): Option[Long] = Option(blockHeights.get(blockId)).map(_.toLong)
 
   def isGenesis(b: HybridPersistentNodeViewModifier): Boolean = b.parentId sameElements settings.GenesisParentId
 

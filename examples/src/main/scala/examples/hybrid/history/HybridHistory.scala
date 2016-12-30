@@ -106,7 +106,6 @@ class HybridHistory(storage: HistoryStorage,
           validator.checkPowConsensusRules(powBlock, storage.getPoWDifficulty(Some(powBlock.prevPosId))).get
           storage.heightOf(powBlock.parentId) match {
             case Some(parentHeight) =>
-
               val isBest: Boolean = if (storage.height == storage.parentHeight(powBlock)) {
                 //new best block
                 true
