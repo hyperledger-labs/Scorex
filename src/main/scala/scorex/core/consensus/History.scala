@@ -105,7 +105,7 @@ object History {
                                                                    toRemove: Seq[PM],
                                                                    toApply: Seq[PM]) {
     override def toString: String = {
-      s"Modifications(${Base58.encode(branchPoint)}, $toRemove, $toApply)"
+      s"Modifications(${Base58.encode(branchPoint)}, ${toRemove.map(_.encodedId)}, ${toApply.map(_.encodedId)})"
     }
   }
 

@@ -5,6 +5,7 @@ import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.serialization.{BytesSerializable, JsonSerializable, Serializer}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
@@ -17,6 +18,9 @@ trait NodeViewModifier extends BytesSerializable with JsonSerializable {
 
   //todo: check statically or dynamically output size
   def id: ModifierId
+
+  def encodedId: String = Base58.encode(id)
+
 }
 
 /**
