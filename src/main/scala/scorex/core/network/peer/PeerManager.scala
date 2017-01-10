@@ -73,10 +73,10 @@ class PeerManager(settings: Settings) extends Actor with ScorexLogging {
       } else {
         connectedPeers += newPeer -> None
         if (connectingPeer.contains(remote)) {
-          log.info(s"Connected to $remote")
+          log.info(s"Connected to $remote. ${connectedPeers.size} connections are open")
           connectingPeer = None
         } else {
-          log.info(s"Got incoming connection from $remote")
+          log.info(s"Got incoming connection from $remote. ${connectedPeers.size} connections are open")
         }
       }
 

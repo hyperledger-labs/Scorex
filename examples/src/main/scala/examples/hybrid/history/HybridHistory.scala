@@ -139,8 +139,7 @@ class HybridHistory(storage: HistoryStorage,
                   Modifications(rollbackPoint, throwBlocks, applyBlocks)
                 }
               } else {
-                //No changes needed to state or wallet
-                Modifications(powBlock.parentId, Seq(), Seq())
+                Modifications(powBlock.parentId, Seq(), Seq(powBlock))
               }
             case None =>
               log.warn("No parent block in history")
