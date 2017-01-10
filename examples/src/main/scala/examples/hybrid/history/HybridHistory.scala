@@ -125,16 +125,18 @@ class HybridHistory(storage: HistoryStorage,
                 } else if ((bestPowBlock.parentId sameElements powBlock.parentId) &&
                   (bestPowBlock.brothersCount < powBlock.brothersCount)) {
                   //new best brother
-                  Modifications(powBlock.parentId, Seq(bestPowBlock), Seq(powBlock))
+                  Modifications(bestPowBlock.id, Seq(bestPowBlock), Seq(powBlock))
                 } else {
-                  log.info(s"Porcessing fork at ${Base58.encode(powBlock.id)}")
+                  log.info(s"Processing fork at ${Base58.encode(powBlock.id)}")
 
-                  val (newSuffix, oldSuffix) = commonBlockThenSuffixes(powBlock)
+                  val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(powBlock.prevPosId).get)
 
                   val rollbackPoint = newSuffix.head
 
                   val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
-                  val applyBlocks = newSuffix.tail.map(id => modifierById(id).get)
+                  val applyBlocks = powBlock +: newSuffix.tail.map(id => modifierById(id).get)
+                  require(applyBlocks.nonEmpty)
+                  require(throwBlocks.nonEmpty)
 
                   Modifications(rollbackPoint, throwBlocks, applyBlocks)
                 }
@@ -146,6 +148,7 @@ class HybridHistory(storage: HistoryStorage,
               ???
           }
         }
+        require(modifications.toApply.exists(_.id sameElements powBlock.id))
         (new HybridHistory(storage, settings, validator), modifications)
 
 
@@ -153,7 +156,7 @@ class HybridHistory(storage: HistoryStorage,
         validator.checkPoSConsensusRules(posBlock).get
 
         val difficulties = calcDifficultiesForNewBlock(posBlock)
-        val isBest = posBlock.parentId sameElements bestPowId
+        val isBest = storage.height == storage.parentHeight(posBlock)
         storage.update(posBlock, Some(difficulties), isBest)
 
         val mod: Modifications[HybridPersistentNodeViewModifier] =
@@ -161,7 +164,8 @@ class HybridHistory(storage: HistoryStorage,
 
         (new HybridHistory(storage, settings, validator), mod) //no rollback ever
     }
-    log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.bestChainScore}")
+    log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
+      s"Best score is ${storage.bestChainScore}")
     res
   }
 

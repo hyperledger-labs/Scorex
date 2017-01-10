@@ -114,17 +114,12 @@ class HistoryStorage(blocksStorage: LSMStore,
   }
 
 
-  def parentHeight(b: HybridPersistentNodeViewModifier): Long = b match {
-    case powBlock: PowBlock =>
-      if (!isGenesis(powBlock)) {
-        Math.max(blockHeights.get(powBlock.parentId), blockHeights.get(powBlock.prevPosId))
-      } else {
-        log.info("Genesis block: " + Base58.encode(powBlock.id))
-        0L
-      }
-    case posBlock: PosBlock =>
-      if (!isGenesis(posBlock)) heightOf(posBlock.parentId).get
-      else 0L
+  def parentHeight(b: HybridPersistentNodeViewModifier): Long = {
+    if (isGenesis(b)) 0L
+    else b match {
+      case powBlock: PowBlock => blockHeights.get(powBlock.prevPosId)
+      case posBlock: PosBlock => blockHeights.get(posBlock.parentId)
+    }
   }
 
   def heightOf(blockId: ModifierId): Option[Long] = Option(blockHeights.get(blockId)).map(_.toLong)
