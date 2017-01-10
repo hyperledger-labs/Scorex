@@ -258,8 +258,7 @@ class HybridHistory(storage: HistoryStorage,
 
     dSuffix.length match {
       case 0 =>
-        log.warn(s"CompareNonsense: ${other.lastPowBlockIds.toList.map(Base58.encode)} vs" +
-          s" ${Base58.encode(bestPowId)}")
+        log.warn(s"CompareNonsense: ${other.lastPowBlockIds.toList.map(Base58.encode)} at height $height}")
         HistoryComparisonResult.Nonsense
       case 1 =>
         if (dSuffix.head sameElements bestPowId) {

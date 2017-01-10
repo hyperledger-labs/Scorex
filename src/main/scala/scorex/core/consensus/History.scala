@@ -101,12 +101,11 @@ object History {
     val Nonsense = Value(4)
   }
 
-  //TODO rename to ToProcess => includes all modifiers to include and to throw away
   case class Modifications[PM <: PersistentNodeViewModifier[_, _]](branchPoint: ModifierId,
                                                                    toRemove: Seq[PM],
                                                                    toApply: Seq[PM]) {
     override def toString: String = {
-      s"RollbackTo(${Base58.encode(branchPoint)}, $toRemove, $toApply)"
+      s"Modifications(${Base58.encode(branchPoint)}, $toRemove, $toApply)"
     }
   }
 
