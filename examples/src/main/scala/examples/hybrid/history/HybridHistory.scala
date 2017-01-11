@@ -45,7 +45,7 @@ class HybridHistory(blocksStorage: LSMStore,
 
   require(NodeViewModifier.ModifierIdSize == 32, "32 bytes ids assumed")
 
-  // map from block id to difficulty at this state
+  // map from block id to difficulty at the corresponding moment of time
   lazy val blockDifficulties = metaDb.hashMap("powDiff", Serializer.BYTE_ARRAY, Serializer.BIG_INTEGER).createOrOpen()
 
   //blockId -> score correspondence, for now score == height; that's not very secure,
@@ -176,7 +176,7 @@ class HybridHistory(blocksStorage: LSMStore,
           if (blockScore > currentScore) {
             //check for chain switching
             if (!(powBlock.parentId sameElements bestPowId)) {
-              log.info(s"Porcessing fork at ${Base58.encode(powBlock.id)}")
+              log.info(s"Processing fork at ${Base58.encode(powBlock.id)}")
 
               val (newSuffix, oldSuffix) = commonBlockThenSuffixes(powBlock)
 

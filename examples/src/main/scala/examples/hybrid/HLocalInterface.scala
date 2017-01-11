@@ -49,7 +49,6 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
     block = false
   }
 
-  //todo: check
   override protected def onBetterNeighbourAppeared(): Unit = {
     powMinerRef ! StopMining
     posForgerRef ! StopForging

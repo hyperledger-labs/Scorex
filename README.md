@@ -6,25 +6,19 @@ Scorex 2 - The modular blockchain framework [![Build Status](https://travis-ci.o
 Scorex and Scorex 2
 -------------------
 
-It is experimental an still raw new major release of the Scorex. Previous
-version with documentation etc could be found at [https://github.com/input-output-hk/Scorex](https://github.com/input-output-hk/Scorex).
+It is experimental and still raw new major release of the Scorex. Previous
+version with documentation could be found at [https://github.com/input-output-hk/Scorex](https://github.com/input-output-hk/Scorex).
 
 
 Motivation
 ----------
 
-There are two huge problems around cryptocurrencies development project Scorex aims to weaken:
-
-* Bitcoin Core source code contains more 100K lines of code(80K of C++ only), Nxt is more than 45K
+ Bitcoin Core source code contains more 100K lines of code(80K of C++ only), Nxt is more than 45K
  line of Java code. All parts of the design(network/transactional/consensus protocols) are mixed in a hard way.
  So researchers and developers are not in good start positions to make experiments.
 
- In opposite, Scorex is less than 4K lines of Scala code. Transactional layer is as simple as that. Consensus algo
- could be switched easily(with two consensus algos out of the box, one could be replaced with an another with
-  just one line of code edited!)
-
-* New coins are trying to make money immediately, often having just one or two pretty controversial
- feature. Scorex is the free and open tool aiming to make other systems development easier.
+ In opposite, Scorex core is less than 4K lines of Scala code. Abstract core concepts allow to implement a broad range
+ of systems, including ones with multiple types of blocks and non-linear history.
 
 Features
 --------
@@ -57,7 +51,7 @@ Contributions
 -------------
 
 Contributions are welcome! Please take a look into [issues](https://github.com/ScorexFoundation/ScorexTutorial/issues).
- Testing codebase is very small at the moment, so writing a test is not just good for start, but useful as well.
+ Testing codebase is very small at the moment, so writing a test is not just good for start, but useful for the product as well.
 
 License
 -------
