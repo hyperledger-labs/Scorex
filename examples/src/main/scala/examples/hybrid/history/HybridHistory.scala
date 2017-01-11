@@ -6,7 +6,7 @@ import java.io.File
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, MiningSettings}
 import examples.hybrid.state.SimpleBoxTransaction
-import examples.hybrid.validation.BlockValidator
+import examples.hybrid.validation.{BlockValidator, DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
 import org.mapdb.DBMaker
 import scorex.core.NodeViewModifier
@@ -28,7 +28,7 @@ import scala.util.Try
 //todo: add some versioned field to the class
 class HybridHistory(storage: HistoryStorage,
                     settings: MiningConstants,
-                    validator: BlockValidator)
+                    validators: Seq[BlockValidator])
   extends History[PublicKey25519Proposition,
     SimpleBoxTransaction,
     HybridPersistentNodeViewModifier,
@@ -97,13 +97,14 @@ class HybridHistory(storage: HistoryStorage,
   override def append(block: HybridPersistentNodeViewModifier):
   Try[(HybridHistory, Modifications[HybridPersistentNodeViewModifier])] = Try {
     log.debug(s"Trying to append block ${Base58.encode(block.id)} to history")
+    //TODO collect all validation errors?
+    validators.foreach(_.validate(block).get)
     val res: (HybridHistory, Modifications[HybridPersistentNodeViewModifier]) = block match {
       case powBlock: PowBlock =>
         val modifications: Modifications[HybridPersistentNodeViewModifier] = if (isGenesis(powBlock)) {
           storage.update(powBlock, None, isBest = true)
           Modifications(powBlock.parentId, Seq(), Seq(powBlock))
         } else {
-          validator.checkPowConsensusRules(powBlock, storage.getPoWDifficulty(Some(powBlock.prevPosId))).get
           storage.heightOf(powBlock.parentId) match {
             case Some(parentHeight) =>
               val isBest: Boolean = if (storage.height == storage.parentHeight(powBlock)) {
@@ -149,12 +150,10 @@ class HybridHistory(storage: HistoryStorage,
           }
         }
         require(modifications.toApply.exists(_.id sameElements powBlock.id))
-        (new HybridHistory(storage, settings, validator), modifications)
+        (new HybridHistory(storage, settings, validators), modifications)
 
 
       case posBlock: PosBlock =>
-        validator.checkPoSConsensusRules(posBlock).get
-
         val difficulties = calcDifficultiesForNewBlock(posBlock)
         val isBest = storage.height == storage.parentHeight(posBlock)
         storage.update(posBlock, Some(difficulties), isBest)
@@ -162,7 +161,7 @@ class HybridHistory(storage: HistoryStorage,
         val mod: Modifications[HybridPersistentNodeViewModifier] =
           Modifications(posBlock.parentId, Seq(), Seq(posBlock))
 
-        (new HybridHistory(storage, settings, validator), mod) //no rollback ever
+        (new HybridHistory(storage, settings, validators), mod) //no rollback ever
     }
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
       s"Best score is ${storage.bestChainScore}")
@@ -370,7 +369,11 @@ object HybridHistory extends ScorexLogging {
         .make()
 
     val storage = new HistoryStorage(blockStorage, metaDb, settings)
+    val validators = Seq(new DifficultyBlockValidator(settings, storage),
+      new ParentBlockValidator(storage),
+      new SemanticBlockValidator(FastCryptographicHash)
+    )
 
-    new HybridHistory(storage, settings, new BlockValidator(settings, FastCryptographicHash))
+    new HybridHistory(storage, settings, validators)
   }
 }

@@ -35,10 +35,6 @@ class PowBlockHeader(
       Ints.toByteArray(brothersCount) ++
       brothersHash
 
-  lazy val headerValid =
-    brothersCount >= 0 &&
-      timestamp >= 0
-
   def correctWork(difficulty: BigInt, s: MiningConstants) = correctWorkDone(id, difficulty, s)
 
   lazy val id = FastCryptographicHash(headerBytes)
