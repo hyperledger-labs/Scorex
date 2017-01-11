@@ -136,7 +136,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
     }
   } else {
-    log.warn("Trying to apply modifier that's already in history")
+    log.warn(s"Trying to apply modifier ${Base58.encode(pmod.id)} that's already in history")
   }
 
   private def handleSubscribe: Receive = {

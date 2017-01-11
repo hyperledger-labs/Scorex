@@ -134,16 +134,13 @@ trait Settings extends ScorexLogging {
   private val DefaultMiningThreads: Int = 1
 
   //APPLICATION DATA
-  lazy val agentName = settingsJSON.get("agent").flatMap(_.asString).get
-  lazy val appVersion: ApplicationVersion = {
-    val ints = settingsJSON.get("version")
-      .flatMap(_.asArray).map(_.flatMap(_.asNumber.flatMap(_.toInt)))
-      .get
-      .toArray
-      .ensuring(_.length == Settings.VersionNumbers)
+  lazy val agentName: String = settingsJSON.get("agent").flatMap(_.asString)
+    .getOrElse(Random.alphanumeric.take(16).mkString)
 
-    ApplicationVersion(ints(0), ints(1), ints(2))
-  }
+  lazy val appVersion: ApplicationVersion = settingsJSON.get("version").flatMap(_.asArray)
+    .map(_.flatMap(_.asNumber.flatMap(_.toInt))).map(_.toArray)
+    .map(ints => ApplicationVersion(ints(0), ints(1), ints(2)))
+    .getOrElse(ApplicationVersion(0, 0, 1))
 }
 
 object Settings {
