@@ -35,16 +35,15 @@ Features
 Documentation
 -------------
 
-[Please refer to the tutorial.](https://github.com/ScorexFoundation/ScorexTutorial)
+[Please refer to the tutorial](https://github.com/ScorexFoundation/ScorexTutorial)
 
-Command-Line Client
--------------------
 
-Run ./cli.sh after launching server to issue API requests to it via command-line client. See API section below.
-Some examples of CLI commands:
+Examples
+--------
 
- * GET blocks/first
- * POST payment {"amount":400, "fee":1, "sender":"2kx3DyWJpYYfLErWpRMLHwkL1ZGyKHAPNKr","recipient":"Y2BXLjiAhPUMSo8iBbDEhv81VwKnytTXsH"}
+There are two examples of blockchain systems built with Scorex. Details are available in 
+the [dedicated readme](examples/README.md).
+
 
 
 Contributions

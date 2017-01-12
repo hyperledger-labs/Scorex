@@ -101,9 +101,9 @@ credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 import sbt.Keys._
 
 lazy val commonSettings = Seq(
-  organization := "org.consensusresearch",
+  organization := "org.scorexfoundation",
   version := version.value,
-  scalaVersion := "2.11.8"
+  scalaVersion := "2.12.1"
 )
 
 lazy val examples = Project(id = "examples", base = file(s"examples"))
