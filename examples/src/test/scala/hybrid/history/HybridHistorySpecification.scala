@@ -1,13 +1,20 @@
 package hybrid.history
 
+import java.io.File
+
 import examples.hybrid.blocks.PowBlock
-import examples.hybrid.history.HybridHistory
+import examples.hybrid.history.{HistoryStorage, HybridHistory}
+import examples.hybrid.history.HybridHistory._
 import examples.hybrid.mining.MiningConstants
+import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import hybrid.HybridGenerators
+import io.iohk.iodb.LSMStore
+import org.mapdb.DBMaker
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.NodeViewModifier.ModifierId
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.crypto.encode.Base58
 
 import scala.util.Random
@@ -22,7 +29,8 @@ class HybridHistorySpecification extends PropSpec
   val constants = new MiningConstants {
     override lazy val Difficulty: BigInt = 1
   }
-  var history = HybridHistory.readOrGenerate(s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}", None, constants)
+  var history = generate(constants)
+
   val genesisBlock = PowBlock(constants.GenesisParentId, constants.GenesisParentId, 1478164225796L, -308545845552064644L,
     0, Array.fill(32)(0: Byte), Seq())
   history = history.append(genesisBlock).get._1
@@ -36,11 +44,8 @@ class HybridHistorySpecification extends PropSpec
         val posBlock = posR.copy(parentId = history.bestPowId)
         history = history.append(posBlock).get._1
 
-        var powBlock = powR.copy(parentId = history.bestPowId, prevPosId = history.bestPosId, brothers = Seq(),
+        val powBlock = powR.copy(parentId = history.bestPowId, prevPosId = history.bestPosId, brothers = Seq(),
           brothersCount = 0)
-        while (!powBlock.correctWork(history.powDifficulty, constants)) {
-          powBlock = powBlock.copy(nonce = Random.nextLong())
-        }
         history = history.append(powBlock).get._1
 
         history.modifierById(posBlock.id).isDefined shouldBe true
@@ -72,5 +77,26 @@ class HybridHistorySpecification extends PropSpec
         startList.exists(sl => sl._2 sameElements c._2) shouldBe false
       }
     }
+  }
+
+
+  def generate(settings: MiningConstants): HybridHistory = {
+    val dataDir = s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}"
+
+    val iFile = new File(s"$dataDir/blocks")
+    iFile.mkdirs()
+    val blockStorage = new LSMStore(iFile)
+
+    val metaDb =
+      DBMaker.fileDB(s"$dataDir/hidx")
+        .fileMmapEnableIfSupported()
+        .closeOnJvmShutdown()
+        .make()
+
+    val storage = new HistoryStorage(blockStorage, metaDb, settings)
+    //we don't care about validation here
+    val validators = Seq()
+
+    new HybridHistory(storage, settings, validators)
   }
 }
