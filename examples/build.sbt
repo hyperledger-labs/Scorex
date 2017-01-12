@@ -3,7 +3,7 @@ name := "scorex-examples"
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
 libraryDependencies ++= Seq(
-  "org.scorexfoundation" %% "iodb" % "0.1.2-SNAPSHOT",
+  "org.scorexfoundation" %% "iodb" % "0.+",
   "com.typesafe.akka" %% "akka-testkit" % "2.+" % "test",
   "org.scalatest" %% "scalatest" % "2.+" % "test",
   "org.scalactic" %% "scalactic" % "2.+" % "test",
