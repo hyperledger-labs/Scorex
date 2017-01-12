@@ -4,10 +4,13 @@ import java.math.BigInteger
 
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, PosForger}
+import examples.hybrid.state.SimpleBoxTransaction
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, Serializer}
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier._
+import scorex.core.block.Block
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
@@ -47,7 +50,8 @@ class HistoryStorage(blocksStorage: LSMStore,
     modifierById(bestPosId).get.asInstanceOf[PosBlock]
   }
 
-  def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier] = {
+  def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier with
+    Block[PublicKey25519Proposition, SimpleBoxTransaction]] = {
     blocksStorage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head

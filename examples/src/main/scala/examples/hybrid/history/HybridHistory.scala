@@ -11,6 +11,7 @@ import io.iohk.iodb.LSMStore
 import org.mapdb.DBMaker
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.block.Block
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{HistoryComparisonResult, Modifications}
 import scorex.core.crypto.hash.FastCryptographicHash
@@ -83,7 +84,8 @@ class HybridHistory(storage: HistoryStorage,
     */
   override def isEmpty: Boolean = height <= 0
 
-  override def modifierById(id: ModifierId): Option[HybridPersistentNodeViewModifier] = storage.modifierById(id)
+  override def modifierById(id: ModifierId): Option[HybridPersistentNodeViewModifier with
+    Block[PublicKey25519Proposition, SimpleBoxTransaction]] = storage.modifierById(id)
 
   override def contains(id: ModifierId): Boolean =
     if (id sameElements settings.GenesisParentId) true else modifierById(id).isDefined
@@ -168,11 +170,11 @@ class HybridHistory(storage: HistoryStorage,
   }
 
   private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, Long) = {
-    val powHeight = storage.parentHeight(posBlock) / 2 +1
+    val powHeight = storage.parentHeight(posBlock) / 2 + 1
     if (powHeight > DifficultyRecalcPeriod && powHeight % DifficultyRecalcPeriod == 0) {
 
       //recalc difficulties
-      val powBlocks = lastPowBlocks(DifficultyRecalcPeriod)//.ensuring(_.length == DifficultyRecalcPeriod)
+      val powBlocks = lastPowBlocks(DifficultyRecalcPeriod) //.ensuring(_.length == DifficultyRecalcPeriod)
 
       val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
@@ -285,16 +287,10 @@ class HybridHistory(storage: HistoryStorage,
     }
   }
 
-
   lazy val powDifficulty = storage.getPoWDifficulty(None)
   lazy val posDifficulty = storage.getPoSDifficulty(storage.bestPosBlock.id)
 
   private def isGenesis(b: HybridPersistentNodeViewModifier): Boolean = storage.isGenesis(b)
-
-  //chain without brothers
-  override def toString: String = {
-    chainBack(storage.bestPosBlock, isGenesis).get.map(_._2).map(Base58.encode).mkString(",")
-  }
 
   /**
     * Go back though chain and get block ids until condition until
@@ -335,6 +331,21 @@ class HybridHistory(storage: HistoryStorage,
     val i = loserChain.indexWhere(id => id sameElements winnerChain.head)
     (winnerChain, loserChain.takeRight(loserChain.length - i))
   }.ensuring(r => r._1.head sameElements r._2.head)
+
+  /**
+    * Average delay in milliseconds between last $blockNum blocks starting from $block
+    * Debug only
+    */
+  def averageDelay(id: ModifierId, blockNum: Int): Try[Long] = Try {
+    val block = modifierById(id).get
+    val c = chainBack(block, isGenesis, blockNum).get.map(_._2)
+    (block.timestamp - modifierById(c.head).get.timestamp) / c.length
+  }
+
+  //chain without brothers
+  override def toString: String = {
+    chainBack(storage.bestPosBlock, isGenesis).get.map(_._2).map(Base58.encode).mkString(",")
+  }
 
 }
 
