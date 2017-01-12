@@ -4,7 +4,7 @@ import scala.concurrent.duration._
 
 
 trait MiningConstants {
-  lazy val BlockDelay = 30.seconds.toMillis
+  lazy val BlockDelay = 1.minute.toMillis
 
   lazy val MaxTarget = BigInt(1, Array.fill(32)(Byte.MinValue))
   lazy val Difficulty = BigInt("50")
