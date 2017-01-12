@@ -25,7 +25,6 @@ import scala.util.Try
   * History storage
   * we store all the blocks, even if they are not in a main chain
   */
-//todo: add some versioned field to the class
 class HybridHistory(storage: HistoryStorage,
                     settings: MiningConstants,
                     validators: Seq[BlockValidator])
@@ -323,7 +322,6 @@ class HybridHistory(storage: HistoryStorage,
     }
   }
 
-  //TODO limit???
   /**
     * find common suffixes for two chains - starting from forkBlock and from bestPowBlock
     * returns last common block and then variant blocks for two chains,
