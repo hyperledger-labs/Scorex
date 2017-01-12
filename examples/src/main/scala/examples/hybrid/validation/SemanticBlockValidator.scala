@@ -21,7 +21,9 @@ class SemanticBlockValidator(hash: CryptographicHash) extends BlockValidator {
           require(hash(powBlock.brotherBytes) sameElements powBlock.brothersHash)
         }
       case posBlock: PosBlock =>
+        require(posBlock.timestamp >= 0)
         require(signatureValid(posBlock))
+        //TODO box corresponds to public key/signature
     }
   }
 
