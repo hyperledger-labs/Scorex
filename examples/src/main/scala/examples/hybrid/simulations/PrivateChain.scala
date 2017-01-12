@@ -85,6 +85,7 @@ object PrivateChain extends App with ScorexLogging {
     var (history, state, wallet, _) = genesisState()
 
     val boxes = wallet.boxes().map(_.box).take(adversarialStakePercent)
+    val boxKeys = boxes.flatMap(b => wallet.secretByPublicImage(b.proposition).map(s => (b, s)))
 
     println("Boxes set size: " + boxes.size)
 
@@ -103,7 +104,7 @@ object PrivateChain extends App with ScorexLogging {
         @tailrec
         def posStep(): PosBlock = {
           val pb = history.bestPowBlock
-          PosForger.posIteration(pb, boxes, Seq(), target) match {
+          PosForger.posIteration(pb, boxKeys, Seq(), target) match {
             case Some(pos) => pos
             case None =>
               val npb = generatePow(history, brother = true, hashesPerSecond)

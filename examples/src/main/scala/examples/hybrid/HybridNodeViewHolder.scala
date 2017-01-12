@@ -55,14 +55,13 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
           0L))
     }.toSeq
 
-    val za = Array.fill(Curve25519.SignatureLength)(0: Byte)
-    val posGenesis = PosBlock(powGenesis.id, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
+    val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, ew.secrets.head)
 
     var history = HybridHistory.readOrGenerate(settings)
     history = history.append(powGenesis).get._1
     history = history.append(posGenesis).get._1
 
-    var gs = HBoxStoredState.genesisState(settings, Seq(posGenesis, powGenesis))
+    val gs = HBoxStoredState.genesisState(settings, Seq(posGenesis, powGenesis))
     val gw = HWallet.genesisWallet(settings, Seq(posGenesis, powGenesis))
 
     gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))

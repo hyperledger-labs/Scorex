@@ -11,6 +11,7 @@ import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 
@@ -58,7 +59,7 @@ object PosBlockCompanion extends Serializer[PosBlock] {
   }
 
   override def parseBytes(bytes: Array[Version]): Try[PosBlock] = Try {
-//    assert(bytes.length <= PosBlock.MaxBlockSize)
+    require(bytes.length <= PosBlock.MaxBlockSize)
 
     val parentId = bytes.slice(0, BlockIdLength)
     var position = BlockIdLength
@@ -89,4 +90,13 @@ object PosBlock {
   val MaxBlockSize = 65535
   //64K
   val ModifierTypeId = 4: Byte
+
+  def create(parentId: BlockId,
+             timestamp: Block.Timestamp,
+             txs: Seq[SimpleBoxTransaction],
+             generator: PrivateKey25519): PosBlock = {
+    val unsigned = PosBlock(parentId, timestamp, txs, generator.publicImage, Signature25519(Array.empty))
+    val signature = Curve25519.sign(generator.privKeyBytes, unsigned.bytes)
+    unsigned.copy(signature = Signature25519(signature))
+  }
 }

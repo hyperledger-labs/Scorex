@@ -1,7 +1,7 @@
 package hybrid
 
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
-import examples.hybrid.blocks.{PosBlock, PowBlock, PowBlockHeader}
+import examples.hybrid.blocks.{PosBlock, PowBlock, PowBlockCompanion, PowBlockHeader}
 import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.state.SimpleBoxTransaction
 import org.scalacheck.{Arbitrary, Gen}
@@ -53,9 +53,8 @@ trait HybridGenerators extends ObjectGenerators {
     parentId: BlockId <- genBytesList(Block.BlockIdLength)
     timestamp: Long <- positiveLongGen
     txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
-    generator: PublicKey25519Proposition <- propositionGen
-    signature: Signature25519 <- signatureGen
-  } yield PosBlock(parentId, timestamp, txs, generator, signature)
+    generator: PrivateKey25519 <- key25519Gen.map(_._1)
+  } yield PosBlock.create(parentId, timestamp, txs, generator)
 
 
   lazy val powHeaderGen: Gen[PowBlockHeader] = for {
@@ -73,9 +72,12 @@ trait HybridGenerators extends ObjectGenerators {
     timestamp: Long <- positiveLongGen
     nonce: Long <- positiveLongGen
     brothersCount: Byte <- positiveByteGen
-    brothersHash: Array[Byte] <- genBytesList(FastCryptographicHash.DigestSize)
     brothers <- Gen.listOfN(brothersCount, powHeaderGen)
-  } yield new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, brothers)
+  } yield {
+    val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
+    val brothersHash: Array[Byte] = FastCryptographicHash(brotherBytes)
+    new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, brothers)
+  }
 
 
   lazy val noncedBoxGen: Gen[PublicKey25519NoncedBox] = for {

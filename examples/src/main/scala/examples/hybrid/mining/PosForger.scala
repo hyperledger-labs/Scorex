@@ -13,7 +13,7 @@ import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.Signature25519
+import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
 
 
@@ -47,6 +47,7 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
       val target = MaxTarget / h.posDifficulty
 
       val boxes = w.boxes().map(_.box)
+      val boxKeys = boxes.flatMap(b => w.secretByPublicImage(b.proposition).map(s => (b, s)))
       log.debug(s"${boxes.size} stakeholding outputs")
 
       //last check on whether to forge at all
@@ -54,7 +55,7 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
         self ! StopForging
       } else {
         val powBlock = h.bestPowBlock
-        posIteration(powBlock, boxes, pickTransactions(m, s), target) match {
+        posIteration(powBlock, boxKeys, pickTransactions(m, s), target) match {
           case Some(posBlock) =>
             log.debug(s"Locally generated PoS block: $posBlock")
             forging = false
@@ -85,27 +86,24 @@ object PosForger extends ScorexLogging {
   }
 
   def posIteration(powBlock: PowBlock,
-                   boxes: Seq[PublicKey25519NoncedBox],
+                   boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
                    txsToInclude: Seq[SimpleBoxTransaction],
                    target: Long
                   ): Option[PosBlock] = {
-    val sucessfulHits = boxes.map { box =>
+    val successfulHits = boxKeys.map { boxKey =>
+      val box = boxKey._1
       val h = hit(powBlock)(box)
-      (box.proposition, box.value, h)
+      (box.proposition, box.value, h, boxKey._2)
     }.filter(t => t._3 < t._2 * target)
 
-    log.info(s"Successful hits: ${sucessfulHits.size}")
+    log.info(s"Successful hits: ${successfulHits.size}")
 
-    //val record = s"${boxes.size}, $target, ${sucessfulHits.size}"
-    //FileFunctions.append("/home/kushti/posdata.csv", record)
-
-    sucessfulHits.headOption.map { case (gen, _, _) =>
-      PosBlock(
+    successfulHits.headOption.map { case (gen, _, _, privateKey) =>
+      PosBlock.create(
         powBlock.id,
         System.currentTimeMillis(),
         txsToInclude,
-        gen,
-        Signature25519(Array.fill(Signature25519.SignatureSize)(0: Byte)))
+        privateKey)
     }
   }
 }
