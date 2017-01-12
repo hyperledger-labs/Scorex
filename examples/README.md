@@ -24,7 +24,20 @@ Main points of the implementation:
 
 * Persistence done by using [IODB](https://github.com/input-output-hk/iodb) versioned key-value database
 
-To run, you need to install Java8 and SBT first. 
+To run, you need to install Java8 and SBT (Scala Build Tool) first. 
+
+run `sbt`
+
+then type following in the sbt console:
+
+```
+    project examples
+    run-main examples.hybrid.HybridApp 
+```
+
+Use `run-main examples.hybrid.HybridApp settings2.json`...
+`run-main examples.hybrid.HybridApp settings10.json` to create more local nodes on your machine,
+or `run-main examples.hybrid.HybridApp testnet-twins.json` to connect to a public testnet.
 
 
 

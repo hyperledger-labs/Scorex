@@ -103,7 +103,7 @@ import sbt.Keys._
 lazy val commonSettings = Seq(
   organization := "org.scorexfoundation",
   version := version.value,
-  scalaVersion := "2.12.1"
+  scalaVersion := "2.11.8"
 )
 
 lazy val examples = Project(id = "examples", base = file(s"examples"))
