@@ -37,11 +37,11 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.typesafe.play" % "play-iteratees_2.11" % "2.4.8",
   "com.typesafe.play" % "play-json_2.11" % "2.4.8",
   "commons-net" % "commons-net" % "3.5",
-  "io.circe" % "circe-core_2.11" % "0.7.0-M1",
-  "io.circe" % "circe-generic_2.11" % "0.7.0-M1",
-  "io.circe" % "circe-jawn_2.11" % "0.7.0-M1",
-  "io.circe" % "circe-numbers_2.11" % "0.7.0-M1",
-  "io.circe" % "circe-parser_2.11" % "0.7.0-M1",
+  "io.circe" % "circe-core_2.11" % "0.7.0-M2",
+  "io.circe" % "circe-generic_2.11" % "0.7.0-M2",
+  "io.circe" % "circe-jawn_2.11" % "0.7.0-M2",
+  "io.circe" % "circe-numbers_2.11" % "0.7.0-M2",
+  "io.circe" % "circe-parser_2.11" % "0.7.0-M2",
   "io.netty" % "netty" % "3.10.0.Final",
   "io.swagger" % "swagger-annotations" % "1.5.10",
   "io.swagger" % "swagger-core" % "1.5.10",
@@ -79,7 +79,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.scalacheck" % "scalacheck_2.11" % "1.12.6",
   "org.scalactic" % "scalactic_2.11" % "2.3.0-SNAP2",
   "org.scalatest" % "scalatest_2.11" % "2.3.0-SNAP2",
-  "org.scorexfoundation" % "iodb_2.11" % "0.1.1",
+  "org.scorexfoundation" % "iodb_2.11" % "0.1.2-SNAPSHOT",
   "org.scoverage" % "scalac-scoverage-plugin_2.11" % "1.1.1",
   "org.scoverage" % "scalac-scoverage-runtime_2.11" % "1.1.1",
   "org.slf4j" % "slf4j-api" % "1.7.21",
@@ -92,4 +92,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.5",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH 495e3149e15df9ffdb7e2c7dc950ccb038180c0d
+// LIBRARY_DEPENDENCIES_HASH 1bfddcf59a7edb5b429b79144b2a94d15ff5ed15
