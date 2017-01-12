@@ -168,11 +168,12 @@ class HybridHistory(storage: HistoryStorage,
   }
 
   private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, Long) = {
-    val parentHeight = storage.heightOf(posBlock.parentId).get
-    if (parentHeight > 0 && parentHeight % DifficultyRecalcPeriod == 0) {
+    val powHeight = storage.parentHeight(posBlock) / 2 +1
+    if (powHeight > DifficultyRecalcPeriod && powHeight % DifficultyRecalcPeriod == 0) {
+
       //recalc difficulties
-      val powBlocks = lastPowBlocks(DifficultyRecalcPeriod)
-      assert(powBlocks.length == DifficultyRecalcPeriod)
+      val powBlocks = lastPowBlocks(DifficultyRecalcPeriod)//.ensuring(_.length == DifficultyRecalcPeriod)
+
       val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
       val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.BlockDelay
