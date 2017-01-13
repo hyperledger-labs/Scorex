@@ -1,21 +1,16 @@
 package examples.hybrid
 
+import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
-import examples.hybrid.mining.{MiningSettings, PowMiner}
+import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.serialization.Serializer
-import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.Signature25519
 import scorex.core.{NodeViewHolder, NodeViewModifier}
-import scorex.crypto.encode.Base58
-import scorex.crypto.signatures.Curve25519
-
-import scala.util.Random
 
 
 class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[PublicKey25519Proposition,
@@ -42,20 +37,21 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
   override protected def genesisState: (HIS, MS, VL, MP) = {
-    val ew = HWallet.readOrGenerate(settings, "genesis", "e", 500)
+    val GenesisAccountsNum = 20
+    val GenesisBalance = 100000L
+
+    val ew = HWallet.readOrGenerate(settings, "genesis", "e", GenesisAccountsNum)
     val genesisAccount = ew.secrets.head
     val powGenesis = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1481110008516L, -4954221073250153861L,
       0, Array.fill(32)(0: Byte), Seq())
-    val genesisTxs = ew.publicKeys.flatMap { pubkey =>
-      (1 to 10).map(_ =>
-        SimpleBoxTransaction(
-          IndexedSeq(genesisAccount -> Random.nextLong()),
-          IndexedSeq(pubkey -> (100L + Random.nextInt(100000))),
-          0L,
-          0L))
-    }.toSeq
+    val genesisTxs = Seq(SimpleBoxTransaction(
+      IndexedSeq(genesisAccount -> 0),
+      ew.publicKeys.map(pubkey => pubkey -> GenesisBalance).toIndexedSeq,
+      0L,
+      0L))
 
-    val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, ew.secrets.head)
+    val genesisBox = PublicKey25519NoncedBox(genesisAccount.publicImage, 0, GenesisBalance)
+    val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, genesisBox, genesisAccount)
 
     var history = HybridHistory.readOrGenerate(settings)
     history = history.append(powGenesis).get._1

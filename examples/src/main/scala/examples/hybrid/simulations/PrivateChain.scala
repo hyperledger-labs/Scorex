@@ -2,6 +2,7 @@ package examples.hybrid.simulations
 
 import java.io.FileWriter
 
+import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
@@ -24,29 +25,10 @@ import scala.util.{Random, Try}
   * Private chain attack simulation
   */
 object PrivateChain extends App with ScorexLogging {
-  def genesisState() = {
-    val ew = HWallet.readOrGenerate(settings, "genesis", "e", 500)
 
-    val genesisAccount = ew.secrets.head
-
-    val genesisTxs = ew.publicKeys.flatMap { pubkey =>
-      (1 to 10).map(_ =>
-        SimpleBoxTransaction(
-          IndexedSeq(genesisAccount -> Random.nextLong()),
-          IndexedSeq(pubkey -> (100000L + Random.nextInt(1))),
-          0L,
-          0L))
-    }.toSeq
-
-    val za = Array.fill(32)(0: Byte)
-    val initialBlock = PosBlock(settings.GenesisParentId, 0, genesisTxs, ew.publicKeys.head, Signature25519(za))
-
-    val gs = HBoxStoredState.genesisState(settings, Seq(initialBlock))
-    val gw = HWallet.genesisWallet(settings, Seq(initialBlock))
-
-    gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))
-
-    (HybridHistory.readOrGenerate(settings), gs, gw, HMemPool.emptyPool)
+  def genesisState(): (HybridHistory, HBoxStoredState, HWallet, HMemPool)  = {
+    // May be taken from HybridNodeViewHolder.genesisState
+    ???
   }
 
   def generatePow(h: HybridHistory, brother: Boolean, hashesPerSecond: Int): PowBlock = {

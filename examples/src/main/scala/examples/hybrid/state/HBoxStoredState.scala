@@ -57,7 +57,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
 
           //for PoS forger reward box, we use block Id as a nonce
           val forgerNonce = Longs.fromByteArray(ps.id.take(8))
-          val forgerBox = PublicKey25519NoncedBox(ps.generator, forgerNonce, reward)
+          val forgerBox = PublicKey25519NoncedBox(ps.box.proposition, forgerNonce, reward)
           StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd ++ Set(forgerBox))
         }
     }

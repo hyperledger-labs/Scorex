@@ -37,24 +37,24 @@ class HWalletSpecification extends PropSpec
   }
 
   property("Wallet should scan persistent with sender from wallet") {
-    forAll(simpleBoxTransactionGen) { txIn =>
+    forAll(simpleBoxTransactionGen, noncedBoxGen) { (txIn, box) =>
       val fromWithMyPubkey: IndexedSeq[(PublicKey25519Proposition, Long)] =
         txIn.from.map(p => (ss.publicImage, p._2 + 1))
       val tx = txIn.copy(from = fromWithMyPubkey)
 
-      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), fs.publicImage, EmptySignature)
+      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, EmptySignature)
       val boxes = w.scanPersistent(pb).boxes()
       boxes.exists(b => b.transactionId sameElements tx.id) shouldBe true
     }
   }
 
   property("Wallet should scan persistent with recipient from wallet") {
-    forAll(simpleBoxTransactionGen) { txIn =>
+    forAll(simpleBoxTransactionGen, noncedBoxGen) { (txIn, box) =>
       val toWithMyPubkey: IndexedSeq[(PublicKey25519Proposition, Long)] =
         txIn.to.map(p => (ss.publicImage, p._2 + 1))
       val tx = txIn.copy(to = toWithMyPubkey)
 
-      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), fs.publicImage, EmptySignature)
+      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, EmptySignature)
       val boxes = w.scanPersistent(pb).boxes()
       boxes.exists(b => b.transactionId sameElements tx.id) shouldBe true
     }

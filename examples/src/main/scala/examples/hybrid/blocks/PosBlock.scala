@@ -1,6 +1,7 @@
 package examples.hybrid.blocks
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
+import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.state.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Json
 import io.circe.syntax._
@@ -21,7 +22,7 @@ import scala.util.Try
 case class PosBlock(override val parentId: BlockId, //PoW block
                     override val timestamp: Block.Timestamp,
                     txs: Seq[SimpleBoxTransaction],
-                    generator: PublicKey25519Proposition,
+                    box: PublicKey25519NoncedBox,
                     signature: Signature25519
                    ) extends HybridPersistentNodeViewModifier with
   Block[PublicKey25519Proposition, SimpleBoxTransaction] {
@@ -36,14 +37,14 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override lazy val modifierTypeId: ModifierTypeId = PosBlock.ModifierTypeId
 
   override lazy val id: ModifierId =
-    FastCryptographicHash(parentId ++ Longs.toByteArray(timestamp) ++ generator.pubKeyBytes)
+    FastCryptographicHash(parentId ++ Longs.toByteArray(timestamp) ++ box.id)
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
     "parentId" -> Base58.encode(parentId).asJson,
     "timestamp" -> timestamp.asJson,
     "transactions" -> txs.map(_.json).asJson,
-    "generator" -> Base58.encode(generator.bytes).asJson,
+    "generator" -> box.json,
     "signature" -> Base58.encode(signature.bytes).asJson
   ).asJson
 
@@ -55,7 +56,7 @@ object PosBlockCompanion extends Serializer[PosBlock] {
     val txsBytes = b.txs.foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }
-    Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.generator.bytes, b.signature.bytes, txsBytes)
+    Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.box.bytes, b.signature.bytes, txsBytes)
   }
 
   override def parseBytes(bytes: Array[Version]): Try[PosBlock] = Try {
@@ -66,8 +67,9 @@ object PosBlockCompanion extends Serializer[PosBlock] {
     val timestamp = Longs.fromByteArray(bytes.slice(position, position + 8))
     position = position + 8
 
-    val generator = PublicKey25519Proposition(bytes.slice(position, position + Curve25519.KeyLength))
-    position = position + Curve25519.KeyLength
+    val boxBytes = bytes.slice(position, position + PublicKey25519NoncedBoxSerializer.PublicKey25519NoncedBoxLength)
+    val box = PublicKey25519NoncedBoxSerializer.parseBytes(boxBytes).get
+    position = position + PublicKey25519NoncedBoxSerializer.PublicKey25519NoncedBoxLength
 
     val signature = Signature25519(bytes.slice(position, position + Signature25519.SignatureSize))
     position = position + Signature25519.SignatureSize
@@ -82,7 +84,7 @@ object PosBlockCompanion extends Serializer[PosBlock] {
       } else acc
     }
     val txs: Seq[SimpleBoxTransaction] = parseTxs()
-    PosBlock(parentId, timestamp, txs, generator, signature)
+    PosBlock(parentId, timestamp, txs, box, signature)
   }
 }
 
@@ -94,9 +96,10 @@ object PosBlock {
   def create(parentId: BlockId,
              timestamp: Block.Timestamp,
              txs: Seq[SimpleBoxTransaction],
-             generator: PrivateKey25519): PosBlock = {
-    val unsigned = PosBlock(parentId, timestamp, txs, generator.publicImage, Signature25519(Array.empty))
-    val signature = Curve25519.sign(generator.privKeyBytes, unsigned.bytes)
+             box: PublicKey25519NoncedBox,
+             privateKey: PrivateKey25519): PosBlock = {
+    val unsigned = PosBlock(parentId, timestamp, txs, box, Signature25519(Array.empty))
+    val signature = Curve25519.sign(privateKey.privKeyBytes, unsigned.bytes)
     unsigned.copy(signature = Signature25519(signature))
   }
 }

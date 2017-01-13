@@ -53,8 +53,9 @@ trait HybridGenerators extends ObjectGenerators {
     parentId: BlockId <- genBytesList(Block.BlockIdLength)
     timestamp: Long <- positiveLongGen
     txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
+    box: PublicKey25519NoncedBox <- noncedBoxGen
     generator: PrivateKey25519 <- key25519Gen.map(_._1)
-  } yield PosBlock.create(parentId, timestamp, txs, generator)
+  } yield PosBlock.create(parentId, timestamp, txs, box.copy(proposition = generator.publicImage), generator)
 
 
   lazy val powHeaderGen: Gen[PowBlockHeader] = for {

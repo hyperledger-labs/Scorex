@@ -91,19 +91,19 @@ object PosForger extends ScorexLogging {
                    target: Long
                   ): Option[PosBlock] = {
     val successfulHits = boxKeys.map { boxKey =>
-      val box = boxKey._1
-      val h = hit(powBlock)(box)
-      (box.proposition, box.value, h, boxKey._2)
-    }.filter(t => t._3 < t._2 * target)
+      val h = hit(powBlock)(boxKey._1)
+      (boxKey, h)
+    }.filter(t => t._2 < t._1._1.value * target)
 
     log.info(s"Successful hits: ${successfulHits.size}")
 
-    successfulHits.headOption.map { case (gen, _, _, privateKey) =>
+    successfulHits.headOption.map { case (boxKey, _) =>
       PosBlock.create(
         powBlock.id,
         System.currentTimeMillis(),
         txsToInclude,
-        privateKey)
+        boxKey._1,
+        boxKey._2)
     }
   }
 }

@@ -23,13 +23,12 @@ class SemanticBlockValidator(hash: CryptographicHash) extends BlockValidator {
       case posBlock: PosBlock =>
         require(posBlock.timestamp >= 0)
         require(signatureValid(posBlock))
-        //TODO box corresponds to public key/signature
     }
   }
 
   private def signatureValid(posBlock: PosBlock): Boolean = {
     val unsignedBytes = posBlock.copy(signature = Signature25519(Array.empty)).bytes
-    Curve25519.verify(posBlock.signature.signature, unsignedBytes, posBlock.generator.pubKeyBytes)
+    posBlock.box.proposition.verify(unsignedBytes, posBlock.signature.signature)
   }
 
 }
