@@ -3,7 +3,7 @@ package examples.hybrid.state
 import java.io.File
 
 import com.google.common.primitives.Longs
-import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
+import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBlock}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker}
@@ -57,11 +57,22 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
 
           //for PoS forger reward box, we use block Id as a nonce
           val forgerNonce = Longs.fromByteArray(ps.id.take(8))
-          val forgerBox = PublicKey25519NoncedBox(ps.box.proposition, forgerNonce, reward)
+          val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, reward)
           StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd ++ Set(forgerBox))
         }
     }
   }
+
+
+  //Validate transactions in block and generator box
+  override def validate(mod: HPMOD): Try[Unit] = Try {
+    super.validate(mod).get
+    mod match {
+      case b: PowBlock => //TODO validate coinbase transaction
+      case b: PosBlock => closedBox(b.generatorBox.id).get
+    }
+  }
+
 
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {

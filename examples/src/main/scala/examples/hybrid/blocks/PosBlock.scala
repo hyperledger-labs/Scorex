@@ -22,7 +22,7 @@ import scala.util.Try
 case class PosBlock(override val parentId: BlockId, //PoW block
                     override val timestamp: Block.Timestamp,
                     txs: Seq[SimpleBoxTransaction],
-                    box: PublicKey25519NoncedBox,
+                    generatorBox: PublicKey25519NoncedBox,
                     signature: Signature25519
                    ) extends HybridBlock {
   override type M = PosBlock
@@ -36,14 +36,14 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override lazy val modifierTypeId: ModifierTypeId = PosBlock.ModifierTypeId
 
   override lazy val id: ModifierId =
-    FastCryptographicHash(parentId ++ Longs.toByteArray(timestamp) ++ box.id)
+    FastCryptographicHash(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id)
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
     "parentId" -> Base58.encode(parentId).asJson,
     "timestamp" -> timestamp.asJson,
     "transactions" -> txs.map(_.json).asJson,
-    "generator" -> box.json,
+    "generator" -> generatorBox.json,
     "signature" -> Base58.encode(signature.bytes).asJson
   ).asJson
 
@@ -55,7 +55,7 @@ object PosBlockCompanion extends Serializer[PosBlock] {
     val txsBytes = b.txs.foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }
-    Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.box.bytes, b.signature.bytes, txsBytes)
+    Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes, txsBytes)
   }
 
   override def parseBytes(bytes: Array[Version]): Try[PosBlock] = Try {

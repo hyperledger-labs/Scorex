@@ -29,7 +29,7 @@ class SemanticBlockValidator(hash: CryptographicHash) extends BlockValidator[Hyb
 
   private def signatureValid(posBlock: PosBlock): Boolean = {
     val unsignedBytes = posBlock.copy(signature = Signature25519(Array.empty)).bytes
-    posBlock.box.proposition.verify(unsignedBytes, posBlock.signature.signature)
+    posBlock.generatorBox.proposition.verify(unsignedBytes, posBlock.signature.signature)
   }
 
 }
