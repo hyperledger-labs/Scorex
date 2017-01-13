@@ -13,10 +13,10 @@ import scala.util.Try
   */
 
 trait MinimalState[P <: Proposition,
-  BX <: Box[P],
-  TX <: Transaction[P],
-  M <: PersistentNodeViewModifier[P, TX],
-  MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
+BX <: Box[P],
+TX <: Transaction[P],
+M <: PersistentNodeViewModifier[P, TX],
+MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
   self: MS =>
 
   def version: VersionTag
@@ -24,8 +24,6 @@ trait MinimalState[P <: Proposition,
   def validate(transaction: TX): Try[Unit]
 
   def isValid(tx: TX): Boolean = validate(tx).isSuccess
-
-  def areValid(txs: Seq[TX]): Boolean = txs.forall(isValid)
 
   def filterValid(txs: Seq[TX]): Seq[TX] = txs.filter(isValid)
 
@@ -38,8 +36,10 @@ trait MinimalState[P <: Proposition,
   def applyChanges(changes: StateChanges[P, BX], newVersion: VersionTag): Try[MS]
 
   def applyModifier(mod: M): Try[MS] = {
-    val newVersion = mod.id
-    changes(mod).flatMap(cs => applyChanges(cs, newVersion))
+    Try(mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get)) flatMap { r =>
+      val newVersion = mod.id
+      changes(mod).flatMap(cs => applyChanges(cs, newVersion))
+    }
   }
 
   def applyModifiers(mods: Seq[M]): Try[MS] =
