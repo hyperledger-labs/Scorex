@@ -28,8 +28,6 @@ trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, B
     * @return
     */
   override def validate(tx: BTX): Try[Unit] = {
-    lazy val statelessValid = toTry(tx.fee >= 0, "Negative fee")
-
     lazy val statefulValid = {
       val boxesSumTry = tx.unlockers.foldLeft[Try[Long]](Success(0L)) { case (partialRes, unlocker) =>
         partialRes.flatMap { partialSum =>
@@ -51,9 +49,10 @@ trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, B
         }
       }
     }
-    statefulValid.flatMap(_ => statelessValid).flatMap(_ => semanticValidity(tx))
+    statefulValid.flatMap(_ => semanticValidity(tx))
   }
 
+  //TODO move to validators
   def semanticValidity(tx: BTX): Try[Unit]
 }
 

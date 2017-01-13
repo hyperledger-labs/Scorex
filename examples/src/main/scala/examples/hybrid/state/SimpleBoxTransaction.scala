@@ -58,6 +58,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
   override lazy val serializer = SimpleBoxTransactionCompanion
 
   //stateless validation
+  //todo remove
   lazy val isValid: Boolean = {
     from.size == signatures.size &&
       to.forall(_._2 >= 0) &&

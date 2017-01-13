@@ -43,7 +43,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
     "parentId" -> Base58.encode(parentId).asJson,
     "timestamp" -> timestamp.asJson,
     "transactions" -> txs.map(_.json).asJson,
-    "generator" -> generatorBox.json,
+    "generatorBox" -> generatorBox.json,
     "signature" -> Base58.encode(signature.bytes).asJson
   ).asJson
 

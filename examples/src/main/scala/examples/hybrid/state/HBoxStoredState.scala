@@ -3,7 +3,7 @@ package examples.hybrid.state
 import java.io.File
 
 import com.google.common.primitives.Longs
-import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBlock}
+import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker}
@@ -31,7 +31,13 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
   type HPMOD = HybridBlock
 
   override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
-    assert(tx.isValid)
+    require(tx.from.size == tx.signatures.size)
+    require(tx.to.forall(_._2 >= 0))
+    require(tx.fee >= 0)
+    require(tx.timestamp >= 0)
+    require(tx.from.zip(tx.signatures).forall { case ((prop, _), proof) =>
+      proof.isValid(prop, tx.messageToSign)
+    })
   }
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
@@ -79,7 +85,8 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
     val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    log.debug(s"Update HBoxStoredState from version ${store.lastVersionID} to version ${Base58.encode(newVersion)}")
+    log.debug(s"Update HBoxStoredState from version ${store.lastVersionID} to version ${Base58.encode(newVersion)}. " +
+      s"Removing boxes with ids${boxIdsToRemove.map(b => Base58.encode(b.data))}, adding boxes $boxesToAdd")
     store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
     metaDb.commit()
     HBoxStoredState(store, metaDb, newVersion)
@@ -125,8 +132,8 @@ object HBoxStoredState {
   }
 
   def genesisState(settings: Settings, initialBlocks: Seq[HybridBlock]): HBoxStoredState = {
-    initialBlocks.foldLeft(readOrGenerate(settings)) { (a, b) =>
-      a.applyModifier(b).get
+    initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
+      state.changes(mod).flatMap(cs => state.applyChanges(cs, mod.id)).get
     }
   }
 }
