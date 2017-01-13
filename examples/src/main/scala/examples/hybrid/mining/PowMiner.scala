@@ -90,14 +90,16 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
         })
 
         p.future.onComplete { toBlock =>
-          toBlock.getOrElse(None).foreach(block => self ! block)
+          toBlock.getOrElse(None).foreach { block =>
+            log.debug(s"Locally generated PoW block: $block with difficulty $difficulty")
+            self ! block
+          }
         }
       }
 
 
     case b: PowBlock =>
       cancellableOpt.foreach(_.cancel())
-      log.debug(s"Locally generated PoW block: $b")
       viewHolderRef ! LocallyGeneratedModifier[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock](b)
 
     case StopMining =>

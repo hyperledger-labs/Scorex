@@ -29,6 +29,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   implicit lazy val settings = new MiningSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
   }
+  log.debug(s"Starting application with settings \n$settings")
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoMessageSpec)
 
