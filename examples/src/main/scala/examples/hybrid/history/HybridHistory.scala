@@ -49,9 +49,9 @@ class HybridHistory(storage: HistoryStorage,
       case (true, false) => ??? //shouldn't be
     }
 
-  lazy val height = storage.height
-  lazy val bestPosId = storage.bestPosId
-  lazy val bestPowId = storage.bestPowId
+  val height = storage.height
+  val bestPosId = storage.bestPosId
+  val bestPowId = storage.bestPowId
   lazy val bestPosBlock = storage.bestPosBlock
   lazy val bestPowBlock = storage.bestPowBlock
 

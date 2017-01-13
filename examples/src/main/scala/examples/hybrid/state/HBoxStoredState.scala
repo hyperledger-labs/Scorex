@@ -86,7 +86,8 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
     log.debug(s"Update HBoxStoredState from version ${store.lastVersionID} to version ${Base58.encode(newVersion)}. " +
-      s"Removing boxes with ids${boxIdsToRemove.map(b => Base58.encode(b.data))}, adding boxes $boxesToAdd")
+      s"Removing boxes with ids ${boxIdsToRemove.map(b => Base58.encode(b.data))}, " +
+      s"adding boxes ${boxesToAdd.map(b => Base58.encode(b._1.data))}")
     store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
     metaDb.commit()
     HBoxStoredState(store, metaDb, newVersion)

@@ -10,7 +10,9 @@ import examples.hybrid.wallet.HWallet
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.{NodeViewHolder, NodeViewModifier}
+import scorex.crypto.encode.Base58
 
 
 class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[PublicKey25519Proposition,
@@ -37,18 +39,21 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
   override protected def genesisState: (HIS, MS, VL, MP) = {
-    val GenesisAccountsNum = 20
-    val GenesisBalance = 100000L
+    val GenesisAccountsNum = 10
+    val GenesisBalance = 100000000L
 
     val ew = HWallet.readOrGenerate(settings, "genesis", "e", GenesisAccountsNum)
-    val genesisAccount = ew.secrets.head
+    val icoMembers = ew.publicKeys.ensuring(_.size == GenesisAccountsNum).toIndexedSeq.sortBy(_.address)
+    val genesisAccount = PrivateKey25519Companion.generateKeys("genesis".getBytes)._1
     val powGenesis = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1481110008516L, -4954221073250153861L,
       0, Array.fill(32)(0: Byte), Seq())
     val genesisTxs = Seq(SimpleBoxTransaction(
       IndexedSeq(genesisAccount -> 0),
-      ew.publicKeys.map(_ -> GenesisBalance).toIndexedSeq,
+      icoMembers.map(_ -> GenesisBalance),
       0L,
       0L))
+    log.debug(s"Initialize state with transaction ${genesisTxs.head} with boxes ${genesisTxs.head.newBoxes}")
+    assert(Base58.encode(genesisTxs.head.id) == "J26Fp2sChi6WPS8no7h94zJwrVv3UoqBHwNhb3bEHNgY")
 
     val genesisBox = PublicKey25519NoncedBox(genesisAccount.publicImage, 0, GenesisBalance)
     val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, genesisBox, genesisAccount)

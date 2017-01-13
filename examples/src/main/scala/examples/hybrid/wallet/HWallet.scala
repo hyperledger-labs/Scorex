@@ -142,12 +142,12 @@ object HWallet {
   }
 
   def readOrGenerate(settings: Settings, seed: String, appendix: String, accounts: Int): HWallet =
-    (1 to 10).foldLeft(readOrGenerate(settings, seed, appendix)) { case (w, _) =>
+    (1 to accounts).foldLeft(readOrGenerate(settings, seed, appendix)) { case (w, _) =>
       w.generateNewSecret()
     }
 
   def readOrGenerate(settings: Settings, appendix: String, accounts: Int): HWallet =
-    (1 to 10).foldLeft(readOrGenerate(settings, appendix)) { case (w, _) =>
+    (1 to accounts).foldLeft(readOrGenerate(settings, appendix)) { case (w, _) =>
       w.generateNewSecret()
     }
 

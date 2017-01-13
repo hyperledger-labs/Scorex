@@ -77,7 +77,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
         "nonce" -> s._2.asJson
       ).asJson
     }.asJson,
-    "to" -> from.map { s =>
+    "to" -> to.map { s =>
       Map(
         "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
         "value" -> s._2.asJson
