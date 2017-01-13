@@ -119,6 +119,8 @@ trait Settings extends ScorexLogging {
 
   lazy val corsAllowed = settingsJSON.get("cors").flatMap(_.asBoolean).getOrElse(false)
 
+  lazy val isTestnet = settingsJSON.get("testnet").flatMap(_.asBoolean).getOrElse(false)
+
   //NETWORK
   private val DefaultMaxConnections = 20
   private val DefaultConnectionTimeout = 60

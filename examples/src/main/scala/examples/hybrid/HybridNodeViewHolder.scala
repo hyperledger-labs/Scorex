@@ -46,7 +46,7 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
       0, Array.fill(32)(0: Byte), Seq())
     val genesisTxs = Seq(SimpleBoxTransaction(
       IndexedSeq(genesisAccount -> 0),
-      ew.publicKeys.map(pubkey => pubkey -> GenesisBalance).toIndexedSeq,
+      ew.publicKeys.map(_ -> GenesisBalance).toIndexedSeq,
       0L,
       0L))
 

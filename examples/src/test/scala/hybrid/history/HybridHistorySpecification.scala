@@ -4,9 +4,7 @@ import java.io.File
 
 import examples.hybrid.blocks.PowBlock
 import examples.hybrid.history.{HistoryStorage, HybridHistory}
-import examples.hybrid.history.HybridHistory._
 import examples.hybrid.mining.MiningConstants
-import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import hybrid.HybridGenerators
 import io.iohk.iodb.LSMStore
 import org.mapdb.DBMaker
@@ -14,9 +12,9 @@ import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.NodeViewModifier.ModifierId
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.crypto.encode.Base58
 
+import scala.concurrent.duration._
 import scala.util.Random
 
 
@@ -27,6 +25,8 @@ class HybridHistorySpecification extends PropSpec
   with HybridGenerators {
 
   val constants = new MiningConstants {
+    override val BlockDelay: Long = 1.minute.toMillis
+
     override lazy val Difficulty: BigInt = 1
   }
   var history = generate(constants)
