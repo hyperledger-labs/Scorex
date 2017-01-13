@@ -15,7 +15,7 @@ import scorex.core.{NodeViewHolder, NodeViewModifier}
 
 class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[PublicKey25519Proposition,
   SimpleBoxTransaction,
-  HybridPersistentNodeViewModifier] {
+  HybridBlock] {
 
   override type SI = HybridSyncInfo
 

@@ -74,8 +74,7 @@ case class PowBlock(override val parentId: BlockId,
                     override val brothersHash: Array[Byte],
                     brothers: Seq[PowBlockHeader])
   extends PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
-    with HybridPersistentNodeViewModifier
-    with Block[PublicKey25519Proposition, SimpleBoxTransaction] {
+    with HybridBlock {
 
   override type M = PowBlock
 

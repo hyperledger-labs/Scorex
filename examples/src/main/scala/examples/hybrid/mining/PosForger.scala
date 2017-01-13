@@ -3,7 +3,7 @@ package examples.hybrid.mining
 import akka.actor.{Actor, ActorRef}
 import com.google.common.primitives.Longs
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
+import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
@@ -61,7 +61,7 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
             forging = false
             viewHolderRef !
               LocallyGeneratedModifier[PublicKey25519Proposition,
-                SimpleBoxTransaction, HybridPersistentNodeViewModifier](posBlock)
+                SimpleBoxTransaction, HybridBlock](posBlock)
           case None =>
             log.debug(s"Failed to generate PoS block")
         }

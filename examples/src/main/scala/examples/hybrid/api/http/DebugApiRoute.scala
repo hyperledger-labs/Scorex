@@ -5,7 +5,7 @@ import javax.ws.rs.Path
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
+import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.HBoxStoredState

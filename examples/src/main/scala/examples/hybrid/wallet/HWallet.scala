@@ -4,7 +4,7 @@ import java.io.File
 
 import com.google.common.primitives.Ints
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock}
+import examples.hybrid.blocks.{HybridBlock, PosBlock}
 import examples.hybrid.state.SimpleBoxTransaction
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
@@ -25,7 +25,7 @@ import scala.util.Try
 case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                    boxStore: LSMStore,
                    metaDb: DB)
-  extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier, HWallet]
+  extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock, HWallet]
     with ScorexLogging {
 
   override type S = PrivateKey25519
@@ -75,7 +75,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def scanOffchain(txs: Seq[SimpleBoxTransaction]): HWallet = this
 
-  override def scanPersistent(modifier: HybridPersistentNodeViewModifier): HWallet = {
+  override def scanPersistent(modifier: HybridBlock): HWallet = {
     log.debug(s"Applying modifier to wallet: ${Base58.encode(modifier.id)}")
 
     val txs = modifier.transactions.getOrElse(Seq())
@@ -161,7 +161,7 @@ object HWallet {
     readOrGenerate(settings, "", 10)
 
   //wallet with applied initialBlocks
-  def genesisWallet(settings: Settings, initialBlocks: Seq[HybridPersistentNodeViewModifier]): HWallet = {
+  def genesisWallet(settings: Settings, initialBlocks: Seq[HybridBlock]): HWallet = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (a, b) =>
       a.scanPersistent(b)
     }

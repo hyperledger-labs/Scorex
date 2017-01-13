@@ -6,12 +6,12 @@ import java.io.File
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, MiningSettings}
 import examples.hybrid.state.SimpleBoxTransaction
-import examples.hybrid.validation.{BlockValidator, DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
+import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
 import org.mapdb.DBMaker
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.block.Block
+import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{HistoryComparisonResult, Modifications}
 import scorex.core.crypto.hash.FastCryptographicHash
@@ -28,10 +28,10 @@ import scala.util.Try
   */
 class HybridHistory(storage: HistoryStorage,
                     settings: MiningConstants,
-                    validators: Seq[BlockValidator])
+                    validators: Seq[BlockValidator[HybridBlock]])
   extends History[PublicKey25519Proposition,
     SimpleBoxTransaction,
-    HybridPersistentNodeViewModifier,
+    HybridBlock,
     HybridSyncInfo,
     HybridHistory] with ScorexLogging {
 
@@ -84,7 +84,7 @@ class HybridHistory(storage: HistoryStorage,
     */
   override def isEmpty: Boolean = height <= 0
 
-  override def modifierById(id: ModifierId): Option[HybridPersistentNodeViewModifier with
+  override def modifierById(id: ModifierId): Option[HybridBlock with
     Block[PublicKey25519Proposition, SimpleBoxTransaction]] = storage.modifierById(id)
 
   override def contains(id: ModifierId): Boolean =
@@ -95,14 +95,14 @@ class HybridHistory(storage: HistoryStorage,
     * @param block - block to append
     * @return
     */
-  override def append(block: HybridPersistentNodeViewModifier):
-  Try[(HybridHistory, Modifications[HybridPersistentNodeViewModifier])] = Try {
+  override def append(block: HybridBlock):
+  Try[(HybridHistory, Modifications[HybridBlock])] = Try {
     log.debug(s"Trying to append block ${Base58.encode(block.id)} to history")
     //TODO collect all validation errors?
     validators.foreach(_.validate(block).get)
-    val res: (HybridHistory, Modifications[HybridPersistentNodeViewModifier]) = block match {
+    val res: (HybridHistory, Modifications[HybridBlock]) = block match {
       case powBlock: PowBlock =>
-        val modifications: Modifications[HybridPersistentNodeViewModifier] = if (isGenesis(powBlock)) {
+        val modifications: Modifications[HybridBlock] = if (isGenesis(powBlock)) {
           storage.update(powBlock, None, isBest = true)
           Modifications(powBlock.parentId, Seq(), Seq(powBlock))
         } else {
@@ -159,7 +159,7 @@ class HybridHistory(storage: HistoryStorage,
         val isBest = storage.height == storage.parentHeight(posBlock)
         storage.update(posBlock, Some(difficulties), isBest)
 
-        val mod: Modifications[HybridPersistentNodeViewModifier] =
+        val mod: Modifications[HybridBlock] =
           Modifications(posBlock.parentId, Seq(), Seq(posBlock))
 
         (new HybridHistory(storage, settings, validators), mod) //no rollback ever
@@ -201,7 +201,7 @@ class HybridHistory(storage: HistoryStorage,
     else if (pairCompleted) Seq(bestPowId, bestPosId)
     else Seq(bestPowId)
 
-  override def applicable(block: HybridPersistentNodeViewModifier): Boolean = {
+  override def applicable(block: HybridBlock): Boolean = {
     block match {
       case pwb: PowBlock =>
         contains(pwb.parentId) && contains(pwb.prevPosId)
@@ -212,7 +212,7 @@ class HybridHistory(storage: HistoryStorage,
 
   override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)],
                                size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
-    def inList(m: HybridPersistentNodeViewModifier): Boolean = idInList(m.id) || isGenesis(m)
+    def inList(m: HybridBlock): Boolean = idInList(m.id) || isGenesis(m)
     def idInList(id: ModifierId): Boolean = from.exists(f => f._2 sameElements id)
 
     //Look without limit for case difference between nodes is bigger then size
@@ -290,14 +290,14 @@ class HybridHistory(storage: HistoryStorage,
   lazy val powDifficulty = storage.getPoWDifficulty(None)
   lazy val posDifficulty = storage.getPoSDifficulty(storage.bestPosBlock.id)
 
-  private def isGenesis(b: HybridPersistentNodeViewModifier): Boolean = storage.isGenesis(b)
+  private def isGenesis(b: HybridBlock): Boolean = storage.isGenesis(b)
 
   /**
     * Go back though chain and get block ids until condition until
     */
   @tailrec
-  private def chainBack(m: HybridPersistentNodeViewModifier,
-                        until: HybridPersistentNodeViewModifier => Boolean,
+  private def chainBack(m: HybridBlock,
+                        until: HybridBlock => Boolean,
                         limit: Int = Int.MaxValue,
                         acc: Seq[(ModifierTypeId, ModifierId)] = Seq()): Option[Seq[(ModifierTypeId, ModifierId)]] = {
     val sum: Seq[(ModifierTypeId, ModifierId)] = if (m.isInstanceOf[PosBlock]) (PosBlock.ModifierTypeId -> m.id) +: acc
@@ -323,10 +323,10 @@ class HybridHistory(storage: HistoryStorage,
     * find common suffixes for two chains - starting from forkBlock and from bestPowBlock
     * returns last common block and then variant blocks for two chains,
     */
-  final def commonBlockThenSuffixes(forkBlock: HybridPersistentNodeViewModifier,
+  final def commonBlockThenSuffixes(forkBlock: HybridBlock,
                                     limit: Int = Int.MaxValue): (Seq[ModifierId], Seq[ModifierId]) = {
     val loserChain = chainBack(bestPowBlock, isGenesis, limit).get.map(_._2)
-    def in(m: HybridPersistentNodeViewModifier): Boolean = loserChain.exists(s => s sameElements m.id)
+    def in(m: HybridBlock): Boolean = loserChain.exists(s => s sameElements m.id)
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
     val i = loserChain.indexWhere(id => id sameElements winnerChain.head)
     (winnerChain, loserChain.takeRight(loserChain.length - i))

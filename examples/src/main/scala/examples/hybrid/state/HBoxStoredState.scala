@@ -4,7 +4,7 @@ import java.io.File
 
 import com.google.common.primitives.Longs
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
+import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker}
 import scorex.core.settings.Settings
@@ -24,11 +24,11 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
   BoxMinimalState[PublicKey25519Proposition,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
-    HybridPersistentNodeViewModifier,
+    HybridBlock,
     HBoxStoredState] with ScorexLogging {
 
   override type NVCT = HBoxStoredState
-  type HPMOD = HybridPersistentNodeViewModifier
+  type HPMOD = HybridBlock
 
   override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
     assert(tx.isValid)
@@ -113,7 +113,7 @@ object HBoxStoredState {
     HBoxStoredState(stateStorage, metaDb, Array.emptyByteArray)
   }
 
-  def genesisState(settings: Settings, initialBlocks: Seq[HybridPersistentNodeViewModifier]): HBoxStoredState = {
+  def genesisState(settings: Settings, initialBlocks: Seq[HybridBlock]): HBoxStoredState = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (a, b) =>
       a.applyModifier(b).get
     }

@@ -1,7 +1,7 @@
 package examples.hybrid.history
 
 import akka.actor.{Actor, ActorRef}
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
+import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.util.FileFunctions
@@ -23,7 +23,7 @@ class StatsLogger(logDirOpt: Option[String], viewHolderRef: ActorRef) extends Ac
   }
 
   override def receive: Receive = {
-    case sm: SuccessfulModification[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier] =>
+    case sm: SuccessfulModification[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock] =>
       sm.modifier match {
         case b: PosBlock =>
         case b: PowBlock =>

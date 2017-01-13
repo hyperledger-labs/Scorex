@@ -1,17 +1,18 @@
 package examples.hybrid.validation
 
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
+import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HistoryStorage
 import examples.hybrid.mining.MiningConstants
+import scorex.core.block.BlockValidator
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.CryptographicHash
 
 import scala.util.Try
 
 class DifficultyBlockValidator(settings: MiningConstants,  storage: HistoryStorage)
-  extends BlockValidator {
+  extends BlockValidator[HybridBlock] {
 
-  def validate(block: HybridPersistentNodeViewModifier): Try[Unit] = block match {
+  def validate(block: HybridBlock): Try[Unit] = block match {
     case b: PowBlock => checkPoWConsensusRules(b)
     case b: PosBlock => checkPoSConsensusRules(b)
   }

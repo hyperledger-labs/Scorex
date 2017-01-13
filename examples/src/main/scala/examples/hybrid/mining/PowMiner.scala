@@ -1,7 +1,7 @@
 package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef}
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PowBlock, PowBlockCompanion, PowBlockHeader}
+import examples.hybrid.blocks.{HybridBlock, PowBlock, PowBlockCompanion, PowBlockHeader}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
@@ -98,7 +98,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
     case b: PowBlock =>
       cancellableOpt.foreach(_.cancel())
       log.debug(s"Locally generated PoW block: $b")
-      viewHolderRef ! LocallyGeneratedModifier[PublicKey25519Proposition, SimpleBoxTransaction, HybridPersistentNodeViewModifier](b)
+      viewHolderRef ! LocallyGeneratedModifier[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock](b)
 
     case StopMining =>
       mining = false

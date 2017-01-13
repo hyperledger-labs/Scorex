@@ -2,7 +2,7 @@ package hybrid.history
 
 import java.io.File
 
-import examples.hybrid.blocks.{HybridPersistentNodeViewModifier, PosBlock, PowBlock}
+import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import hybrid.HybridGenerators
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
@@ -22,7 +22,7 @@ class IODBSpecification extends PropSpec
     val iFile = new File(s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}")
     iFile.mkdirs()
     val blocksStorage = new LSMStore(iFile)
-    def writeBlock(b: HybridPersistentNodeViewModifier) = {
+    def writeBlock(b: HybridBlock) = {
       val typeByte = b match {
         case _: PowBlock =>
           PowBlock.ModifierTypeId

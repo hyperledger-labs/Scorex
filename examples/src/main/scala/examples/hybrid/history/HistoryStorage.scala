@@ -50,7 +50,7 @@ class HistoryStorage(blocksStorage: LSMStore,
     modifierById(bestPosId).get.asInstanceOf[PosBlock]
   }
 
-  def modifierById(blockId: ModifierId): Option[HybridPersistentNodeViewModifier with
+  def modifierById(blockId: ModifierId): Option[HybridBlock with
     Block[PublicKey25519Proposition, SimpleBoxTransaction]] = {
     blocksStorage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
       val bytes = bw.data
@@ -64,7 +64,7 @@ class HistoryStorage(blocksStorage: LSMStore,
     }
   }
 
-  def update(b: HybridPersistentNodeViewModifier, diff: Option[(BigInt, Long)], isBest: Boolean) = {
+  def update(b: HybridBlock, diff: Option[(BigInt, Long)], isBest: Boolean) = {
     writeBlock(b)
     blockHeights.put(b.id, parentHeight(b) + 1)
     diff.foreach(d => setDifficulties(b.id, d._1, d._2))
@@ -72,14 +72,14 @@ class HistoryStorage(blocksStorage: LSMStore,
     metaDb.commit()
   }
 
-  def setBestBlock(b: HybridPersistentNodeViewModifier): Unit = b match {
+  def setBestBlock(b: HybridBlock): Unit = b match {
     case powBlock: PowBlock =>
       bestPowIdVar.set(powBlock.id)
     case posBlock: PosBlock =>
       bestPosIdVar.set(posBlock.id)
   }
 
-  private def writeBlock(b: HybridPersistentNodeViewModifier) = {
+  private def writeBlock(b: HybridBlock) = {
     val typeByte = b match {
       case _: PowBlock =>
         PowBlock.ModifierTypeId
@@ -118,7 +118,7 @@ class HistoryStorage(blocksStorage: LSMStore,
   }
 
 
-  def parentHeight(b: HybridPersistentNodeViewModifier): Long = {
+  def parentHeight(b: HybridBlock): Long = {
     if (isGenesis(b)) 0L
     else b match {
       case powBlock: PowBlock => blockHeights.get(powBlock.prevPosId)
@@ -128,6 +128,6 @@ class HistoryStorage(blocksStorage: LSMStore,
 
   def heightOf(blockId: ModifierId): Option[Long] = Option(blockHeights.get(blockId)).map(_.toLong)
 
-  def isGenesis(b: HybridPersistentNodeViewModifier): Boolean = b.parentId sameElements settings.GenesisParentId
+  def isGenesis(b: HybridBlock): Boolean = b.parentId sameElements settings.GenesisParentId
 
 }

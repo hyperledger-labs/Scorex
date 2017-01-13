@@ -2,7 +2,7 @@ package examples.hybrid
 
 import akka.actor.{ActorRef, Props}
 import examples.hybrid.api.http.DebugApiRoute
-import examples.hybrid.blocks.HybridPersistentNodeViewModifier
+import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec, StatsLogger}
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
@@ -23,7 +23,7 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override type P = PublicKey25519Proposition
   override type TX = SimpleBoxTransaction
-  override type PMOD = HybridPersistentNodeViewModifier
+  override type PMOD = HybridBlock
   override type NVHT = HybridNodeViewHolder
 
   implicit lazy val settings = new MiningSettings {

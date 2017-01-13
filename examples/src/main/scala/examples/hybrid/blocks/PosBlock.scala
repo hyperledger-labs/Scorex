@@ -24,8 +24,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
                     txs: Seq[SimpleBoxTransaction],
                     box: PublicKey25519NoncedBox,
                     signature: Signature25519
-                   ) extends HybridPersistentNodeViewModifier with
-  Block[PublicKey25519Proposition, SimpleBoxTransaction] {
+                   ) extends HybridBlock {
   override type M = PosBlock
 
   override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = Some(txs)
