@@ -75,7 +75,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     super.validate(mod).get
     mod match {
       case b: PowBlock => //TODO validate coinbase transaction
-      case b: PosBlock => closedBox(b.generatorBox.id).get
+      case b: PosBlock => //TODO closedBox(b.generatorBox.id).get
     }
   }
 
