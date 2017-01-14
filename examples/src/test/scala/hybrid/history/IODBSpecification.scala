@@ -3,8 +3,11 @@ package hybrid.history
 import java.io.File
 
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
+import examples.hybrid.state.SimpleBoxTransaction
 import hybrid.HybridGenerators
+import io.iohk.iodb.Store._
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
+import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.NodeViewModifier._
@@ -18,10 +21,41 @@ class IODBSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
+
+  val iFile = new File(s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}")
+  iFile.mkdirs()
+  val blocksStorage = new LSMStore(iFile)
+
+  property("Rollback should not touch keys before") {
+    def writeTx(tx: SimpleBoxTransaction) = {
+      //      val boxIdsToRemove: Iterable[ByteArrayWrapper] = tx.boxIdsToOpen.map(id => ByteArrayWrapper(id))
+      val boxIdsToRemove: Iterable[ByteArrayWrapper] = Seq()
+      val boxesToAdd: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] = tx.newBoxes
+        .map(b => (ByteArrayWrapper(b.id), ByteArrayWrapper(b.bytes))).toList
+      blocksStorage.update(ByteArrayWrapper(tx.id), boxIdsToRemove, boxesToAdd)
+    }
+
+    def checkTx(tx: SimpleBoxTransaction): Unit = {
+      tx.newBoxes.foreach(b => require(blocksStorage.get(ByteArrayWrapper(b.id)).isDefined))
+    }
+
+    forAll(Gen.nonEmptyListOf(simpleBoxTransactionGen)) { txs =>
+      whenever(txs.length >= 2) {
+        val head = txs.head
+        writeTx(head)
+        checkTx(head)
+        txs.tail.foreach(tx => writeTx(tx))
+        txs.foreach(tx => checkTx(tx))
+
+        blocksStorage.rollback(ByteArrayWrapper(head.id))
+        checkTx(head)
+
+
+      }
+    }
+  }
+
   property("writeBlock() test") {
-    val iFile = new File(s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}")
-    iFile.mkdirs()
-    val blocksStorage = new LSMStore(iFile)
     def writeBlock(b: HybridBlock) = {
       val typeByte = b match {
         case _: PowBlock =>
@@ -35,6 +69,7 @@ class IODBSpecification extends PropSpec
         Seq(),
         Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
     }
+
     var ids: Seq[ModifierId] = Seq()
 
     forAll(powBlockGen) { block =>
