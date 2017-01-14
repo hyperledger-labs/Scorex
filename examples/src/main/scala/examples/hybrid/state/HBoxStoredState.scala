@@ -6,7 +6,6 @@ import com.google.common.primitives.Longs
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import org.mapdb.{DB, DBMaker}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
@@ -20,7 +19,7 @@ import scala.util.{Success, Try}
 //todo: alter to have coinbase
 object PowChanges extends StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set())
 
-case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: VersionTag) extends
+case class HBoxStoredState(store: LSMStore, override val version: VersionTag) extends
   BoxMinimalState[PublicKey25519Proposition,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
@@ -89,8 +88,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
       s"Removing boxes with ids ${boxIdsToRemove.map(b => Base58.encode(b.data))}, " +
       s"adding boxes ${boxesToAdd.map(b => Base58.encode(b._1.data))}")
     store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
-    metaDb.commit()
-    HBoxStoredState(store, metaDb, newVersion)
+    HBoxStoredState(store, newVersion)
   }
 
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
@@ -99,7 +97,7 @@ case class HBoxStoredState(store: LSMStore, metaDb: DB, override val version: Ve
     } else {
       log.debug(s"Rollback state to ${Base58.encode(version)} from version ${store.lastVersionID}")
       store.rollback(ByteArrayWrapper(version))
-      new HBoxStoredState(store, metaDb, version)
+      new HBoxStoredState(store, version)
     }
   }
 }
@@ -123,13 +121,7 @@ object HBoxStoredState {
 
     val mFile = new File(s"$dataDir/statemeta")
 
-    val metaDb =
-      DBMaker.fileDB(mFile)
-        .fileMmapEnableIfSupported()
-        .closeOnJvmShutdown()
-        .make()
-
-    HBoxStoredState(stateStorage, metaDb, Array.emptyByteArray)
+    HBoxStoredState(stateStorage, Array.emptyByteArray)
   }
 
   def genesisState(settings: Settings, initialBlocks: Seq[HybridBlock]): HBoxStoredState = {
