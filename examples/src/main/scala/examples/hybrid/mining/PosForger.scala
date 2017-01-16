@@ -15,6 +15,7 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.encode.Base58
 
 
 class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
@@ -95,6 +96,7 @@ object PosForger extends ScorexLogging {
       (boxKey, h)
     }.filter(t => t._2 < t._1._1.value * target)
 
+//    log.debug(s"Trying to generate PoS block with boxes ${boxKeys.map(a => Base58.encode(a._1.id)).mkString(",")}")
     log.info(s"Successful hits: ${successfulHits.size}")
 
     successfulHits.headOption.map { case (boxKey, _) =>

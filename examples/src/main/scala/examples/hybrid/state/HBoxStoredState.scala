@@ -74,7 +74,9 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     super.validate(mod).get
     mod match {
       case b: PowBlock => //TODO validate coinbase transaction
-      case b: PosBlock => //TODO closedBox(b.generatorBox.id).get
+      case b: PosBlock =>
+        closedBox(b.generatorBox.id).get
+        mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get)
     }
   }
 
@@ -87,8 +89,11 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     log.debug(s"Update HBoxStoredState from version ${store.lastVersionID} to version ${Base58.encode(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => Base58.encode(b.data))}, " +
       s"adding boxes ${boxesToAdd.map(b => Base58.encode(b._1.data))}")
+    if (store.lastVersionID.isDefined) boxIdsToRemove.foreach(i => require(closedBox(i.data).isDefined))
     store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
-    HBoxStoredState(store, newVersion)
+    val newSt = HBoxStoredState(store, newVersion)
+//    boxIdsToRemove.foreach(box => require(newSt.closedBox(box.data).isEmpty, s"Box $box is still in state"))
+    newSt
   }
 
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
