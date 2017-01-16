@@ -3,6 +3,7 @@ package scorex.core.transaction.proof
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
+import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
@@ -20,6 +21,8 @@ case class Signature25519(signature: Array[Byte]) extends ProofOfKnowledge[Priva
   override type M = Signature25519
 
   override def serializer: Serializer[Signature25519] = Signature25519Serializer
+
+  override def toString: String = s"Signature25519(${Base58.encode(signature)})"
 }
 
 object Signature25519Serializer extends Serializer[Signature25519] {
