@@ -111,7 +111,8 @@ class HybridHistory(storage: HistoryStorage,
               val isBest: Boolean = if (storage.height == storage.parentHeight(powBlock)) {
                 //new best block
                 true
-              } else if ((bestPowBlock.parentId sameElements powBlock.parentId) &&
+              } else if (storage.height == (storage.parentHeight(powBlock) - 1) &&
+                (bestPowBlock.parentId sameElements powBlock.parentId) &&
                 (bestPowBlock.brothersCount < powBlock.brothersCount)) {
                 //new best brother
                 true
@@ -140,7 +141,7 @@ class HybridHistory(storage: HistoryStorage,
                   require(applyBlocks.nonEmpty)
                   require(throwBlocks.nonEmpty)
 
-                  Modifications(rollbackPoint, throwBlocks, applyBlocks)
+                  Modifications[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
                 }
               } else {
                 Modifications(powBlock.parentId, Seq(), Seq(powBlock))
@@ -165,7 +166,8 @@ class HybridHistory(storage: HistoryStorage,
         (new HybridHistory(storage, settings, validators), mod) //no rollback ever
     }
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
-      s"Best score is ${storage.bestChainScore}")
+      s"Best score is ${storage.bestChainScore}. " +
+      s"Pair: ${Base58.encode(storage.bestPowId)}|${Base58.encode(storage.bestPosId)}")
     res
   }
 
