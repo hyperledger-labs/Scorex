@@ -100,7 +100,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     if (store.lastVersionID.exists(_.data sameElements version)) {
       this
     } else {
-      log.debug(s"Rollback state to ${Base58.encode(version)} from version ${store.lastVersionID}")
+      log.debug(s"Rollback HBoxStoredState to ${Base58.encode(version)} from version ${store.lastVersionID}")
       store.rollback(ByteArrayWrapper(version))
       new HBoxStoredState(store, version)
     }

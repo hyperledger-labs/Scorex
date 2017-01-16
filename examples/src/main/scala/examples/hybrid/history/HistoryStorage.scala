@@ -12,7 +12,6 @@ import scorex.core.NodeViewModifier._
 import scorex.core.block.Block
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
 
 class HistoryStorage(blocksStorage: LSMStore,
                      metaDb: DB,
@@ -65,6 +64,7 @@ class HistoryStorage(blocksStorage: LSMStore,
   }
 
   def update(b: HybridBlock, diff: Option[(BigInt, Long)], isBest: Boolean) = {
+    log.debug(s"Write new best=$isBest block ${b.encodedId}")
     writeBlock(b)
     blockHeights.put(b.id, parentHeight(b) + 1)
     diff.foreach(d => setDifficulties(b.id, d._1, d._2))
