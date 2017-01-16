@@ -1,19 +1,21 @@
 package curvepos
 
-import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleState}
+import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleState, SimpleTransaction}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class SimpleStateSpecification extends PropSpec
-with PropertyChecks
-with GeneratorDrivenPropertyChecks
-with Matchers
-with ExampleGenerators {
+  with PropertyChecks
+  with GeneratorDrivenPropertyChecks
+  with Matchers
+  with ExampleGenerators {
 
   property("Total balance") {
-    var state = new SimpleState()
+    var state = new SimpleState() {
+      override def validate(transaction: SimpleTransaction): Try[Unit] = Success()
+    }
     state.totalBalance shouldBe 0
     state.isEmpty shouldBe true
 
