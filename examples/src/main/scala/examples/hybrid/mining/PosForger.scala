@@ -15,7 +15,6 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
 
 
 class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
@@ -49,13 +48,14 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
 
       val boxes = w.boxes().map(_.box)
       val boxKeys = boxes.flatMap(b => w.secretByPublicImage(b.proposition).map(s => (b, s)))
-      log.debug(s"${boxes.size} stakeholding outputs")
 
       //last check on whether to forge at all
       if (h.pairCompleted) {
         self ! StopForging
       } else {
         val powBlock = h.bestPowBlock
+        log.debug(s"Trying to generate blocks with ${boxKeys.size} boxes with total " +
+          s"balance ${boxKeys.map(_._1.value).sum}")
         posIteration(powBlock, boxKeys, pickTransactions(m, s), target) match {
           case Some(posBlock) =>
             log.debug(s"Locally generated PoS block: $posBlock")
@@ -96,7 +96,6 @@ object PosForger extends ScorexLogging {
       (boxKey, h)
     }.filter(t => t._2 < t._1._1.value * target)
 
-//    log.debug(s"Trying to generate PoS block with boxes ${boxKeys.map(a => Base58.encode(a._1.id)).mkString(",")}")
     log.info(s"Successful hits: ${successfulHits.size}")
 
     successfulHits.headOption.map { case (boxKey, _) =>

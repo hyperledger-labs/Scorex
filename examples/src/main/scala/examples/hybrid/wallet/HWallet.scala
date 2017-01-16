@@ -4,7 +4,7 @@ import java.io.File
 
 import com.google.common.primitives.Ints
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
-import examples.hybrid.blocks.{HybridBlock, PosBlock}
+import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.state.SimpleBoxTransaction
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
