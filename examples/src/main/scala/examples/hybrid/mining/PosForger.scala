@@ -47,7 +47,7 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
 
       val target = MaxTarget / h.posDifficulty
 
-      val boxes = w.boxes().map(_.box)
+      val boxes = w.boxes().map(_.box).filter(box => s.closedBox(box.id).isDefined)
       val boxKeys = boxes.flatMap(b => w.secretByPublicImage(b.proposition).map(s => (b, s)))
 
       //last check on whether to forge at all

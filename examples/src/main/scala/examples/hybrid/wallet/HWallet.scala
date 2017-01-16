@@ -89,7 +89,6 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
       }
     }
     val boxIdsToRemove = txs.flatMap(_.boxIdsToOpen).map(ByteArrayWrapper.apply)
-    boxIdsToRemove.foreach(id => boxIds.remove(id.data))
     boxStore.update(ByteArrayWrapper(modifier.id), boxIdsToRemove, newBoxes)
 
     metaDb.commit()
