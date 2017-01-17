@@ -52,7 +52,6 @@ trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, B
     statefulValid.flatMap(_ => semanticValidity(tx))
   }
 
-  //TODO move to validators
   def semanticValidity(tx: BTX): Try[Unit]
 }
 

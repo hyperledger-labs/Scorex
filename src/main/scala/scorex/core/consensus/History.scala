@@ -65,7 +65,6 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   def append(modifier: PM): Try[(HT, Modifications[PM])]
 
-  //todo: is it needed?
   //todo: output should be ID | Seq[ID]
   def openSurfaceIds(): Seq[ModifierId]
 
