@@ -48,7 +48,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   val modifierCompanions: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
 
-  val networkChunkSize = 100 //todo: make configurable?
+  val networkChunkSize: Int
 
   //todo: make configurable limited size
   private val modifiersCache = mutable.Map[ModifierId, (ConnectedPeer, PMOD)]()

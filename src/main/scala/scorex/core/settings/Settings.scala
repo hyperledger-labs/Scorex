@@ -68,6 +68,9 @@ trait Settings extends ScorexLogging {
   lazy val nodeName = p2pSettings.get("name").flatMap(_.asString)
     .getOrElse(Random.nextPrintableChar().toString + nodeNonce)
 
+  lazy val networkChunkSize:Int = p2pSettings.get("networkChunkSize").flatMap(_.asNumber).flatMap(_.toInt)
+    .getOrElse(DefaultNetworkChunkSize)
+
   lazy val localOnly = p2pSettings.get("localOnly").flatMap(_.asBoolean).getOrElse(false)
 
   lazy val knownPeers = Try {
@@ -126,7 +129,7 @@ trait Settings extends ScorexLogging {
   private val DefaultConnectionTimeout = 60
   private val DefaultBindAddress = "127.0.0.1"
 
-  val MaxBlocksChunks = 10
+  private val DefaultNetworkChunkSize = 100
 
   //API
 

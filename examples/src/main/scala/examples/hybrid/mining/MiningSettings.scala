@@ -1,6 +1,5 @@
 package examples.hybrid.mining
 
-import io.circe.Json
 import io.circe.syntax._
 import scorex.core.settings.Settings
 

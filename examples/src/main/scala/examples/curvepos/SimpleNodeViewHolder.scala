@@ -14,6 +14,8 @@ import scala.util.{Failure, Success}
 class SimpleNodeViewHolder(settings: Settings)
   extends NodeViewHolder[PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {
 
+
+  override val networkChunkSize: Int = settings.networkChunkSize
   override type SI = SimpleSyncInfo
 
   override type HIS = SimpleBlockchain
