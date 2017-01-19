@@ -29,16 +29,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   override type NVCT = HBoxStoredState
   type HPMOD = HybridBlock
 
-  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
-    require(tx.from.size == tx.signatures.size)
-    require(tx.to.forall(_._2 >= 0))
-    require(tx.fee >= 0)
-    require(tx.timestamp >= 0)
-    require(tx.from.zip(tx.signatures).forall { case ((prop, _), proof) =>
-      proof.isValid(prop, tx.messageToSign)
-    })
-    require(tx.isValid)
-  }
+  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = HBoxStoredState.semanticValidity(tx)
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
     store.get(ByteArrayWrapper(boxId))
@@ -91,6 +82,17 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 }
 
 object HBoxStoredState {
+  def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
+    require(tx.from.size == tx.signatures.size)
+    require(tx.to.forall(_._2 >= 0))
+    require(tx.fee >= 0)
+    require(tx.timestamp >= 0)
+    require(tx.from.zip(tx.signatures).forall { case ((prop, _), proof) =>
+      proof.isValid(prop, tx.messageToSign)
+    })
+  }
+
+
   def changes(mod: HybridBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     mod match {
       case pb: PowBlock => Success(PowChanges)
