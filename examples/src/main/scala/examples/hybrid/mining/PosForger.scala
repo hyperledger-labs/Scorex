@@ -31,8 +31,7 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
 
   def pickTransactions(memPool: HMemPool, state: HBoxStoredState): Seq[SimpleBoxTransaction] =
     memPool.take(TransactionsPerBlock).foldLeft(Seq[SimpleBoxTransaction]()) { case (collected, tx) =>
-      if (tx.isValid &&
-        tx.boxIdsToOpen.map(state.closedBox).forall(_.isDefined) &&
+      if (state.validate(tx).isSuccess &&
         tx.boxIdsToOpen.forall(id => !collected.flatMap(_.boxIdsToOpen).exists(_ sameElements id))) collected :+ tx
       else collected
     }

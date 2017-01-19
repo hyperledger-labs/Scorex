@@ -37,6 +37,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     require(tx.from.zip(tx.signatures).forall { case ((prop, _), proof) =>
       proof.isValid(prop, tx.messageToSign)
     })
+    require(tx.isValid)
   }
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
