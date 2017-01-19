@@ -92,7 +92,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     if (store.lastVersionID.isDefined) boxIdsToRemove.foreach(i => require(closedBox(i.data).isDefined))
     store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
     val newSt = HBoxStoredState(store, newVersion)
-//    boxIdsToRemove.foreach(box => require(newSt.closedBox(box.data).isEmpty, s"Box $box is still in state"))
+    boxIdsToRemove.foreach(box => require(newSt.closedBox(box.data).isEmpty, s"Box $box is still in state"))
     newSt
   }
 
