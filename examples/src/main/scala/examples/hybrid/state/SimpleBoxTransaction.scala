@@ -71,6 +71,8 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 
   override lazy val json: Json = Map(
     "id" -> Base58.encode(id).asJson,
+    "newBoxes" -> newBoxes.map(b => Base58.encode(b.id).asJson).asJson,
+    "boxesToRemove" -> boxIdsToOpen.map(id => Base58.encode(id).asJson).asJson,
     "from" -> from.map { s =>
       Map(
         "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,

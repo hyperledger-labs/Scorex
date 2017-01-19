@@ -5,7 +5,7 @@ import java.io.File
 import com.google.common.primitives.Ints
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.HybridBlock
-import examples.hybrid.state.SimpleBoxTransaction
+import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.mapdb.{DB, DBMaker, Serializer}
 import scorex.core.crypto.hash.FastCryptographicHash
@@ -77,18 +77,19 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def scanPersistent(modifier: HybridBlock): HWallet = {
     log.debug(s"Applying modifier to wallet: ${Base58.encode(modifier.id)}")
+    val changes = HBoxStoredState.changes(modifier).get
 
-    val txs = modifier.transactions.getOrElse(Seq())
-
-    val newBoxes = txs.flatMap { tx =>
-      tx.newBoxes.map { box =>
-        boxIds.add(box.id)
-        val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, tx.id,
-          tx.timestamp)(PublicKey25519NoncedBoxSerializer)
-        ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
-      }
+    val newBoxes = changes.toAppend.filter(s => secretByPublicImage(s.proposition).isDefined).map { box =>
+      boxIds.add(box.id)
+      val boxTransaction = modifier.transactions.getOrElse(Seq())
+        .find(t => t.newBoxes.exists(tb => tb.id sameElements box.id))
+      val txId = boxTransaction.map(_.id).getOrElse(Array.fill(32)(0: Byte))
+      val ts = boxTransaction.map(_.timestamp).getOrElse(modifier.timestamp)
+      val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, ts)(PublicKey25519NoncedBoxSerializer)
+      ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
     }
-    val boxIdsToRemove = txs.flatMap(_.boxIdsToOpen).map(ByteArrayWrapper.apply)
+
+    val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
     boxStore.update(ByteArrayWrapper(modifier.id), boxIdsToRemove, newBoxes)
 
     metaDb.commit()

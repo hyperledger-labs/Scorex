@@ -11,7 +11,7 @@ import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
-//TODO how?
+//TODO why do we need transactionId and createdAt
 case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
                                                    (subclassDeser: Serializer[B]) extends BytesSerializable {
   override type M = WalletBox[P, B]

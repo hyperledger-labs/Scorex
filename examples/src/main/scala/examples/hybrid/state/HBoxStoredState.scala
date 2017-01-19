@@ -48,26 +48,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   //there's no easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: HPMOD): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
-    mod match {
-      case pb: PowBlock => Success(PowChanges)
-      case ps: PosBlock =>
-        Try {
-          val initial = (Set(): Set[Array[Byte]], Set(): Set[PublicKey25519NoncedBox], 0L)
-
-          val (toRemove: Set[Array[Byte]], toAdd: Set[PublicKey25519NoncedBox], reward) =
-            ps.transactions.map(_.foldLeft(initial) { case ((sr, sa, f), tx) =>
-              (sr ++ tx.boxIdsToOpen.toSet, sa ++ tx.newBoxes.toSet, f + tx.fee)
-            }).getOrElse((Set(), Set(), 0L)) //no reward additional to tx fees
-
-          //for PoS forger reward box, we use block Id as a nonce
-          val forgerNonce = Longs.fromByteArray(ps.id.take(8))
-          val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, reward)
-          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd ++ Set(forgerBox))
-        }
-    }
-  }
-
+  override def changes(mod: HPMOD): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+    HBoxStoredState.changes(mod)
 
   //Validate transactions in block and generator box
   override def validate(mod: HPMOD): Try[Unit] = Try {
@@ -108,6 +90,26 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 }
 
 object HBoxStoredState {
+  def changes(mod: HybridBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+    mod match {
+      case pb: PowBlock => Success(PowChanges)
+      case ps: PosBlock =>
+        Try {
+          val initial = (Set(): Set[Array[Byte]], Set(): Set[PublicKey25519NoncedBox], 0L)
+
+          val (toRemove: Set[Array[Byte]], toAdd: Set[PublicKey25519NoncedBox], reward) =
+            ps.transactions.map(_.foldLeft(initial) { case ((sr, sa, f), tx) =>
+              (sr ++ tx.boxIdsToOpen.toSet, sa ++ tx.newBoxes.toSet, f + tx.fee)
+            }).getOrElse((Set(), Set(), 0L)) //no reward additional to tx fees
+
+          //for PoS forger reward box, we use block Id as a nonce
+          val forgerNonce = Longs.fromByteArray(ps.id.take(8))
+          val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, reward)
+          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd ++ Set(forgerBox))
+        }
+    }
+  }
+
   def readOrGenerate(settings: Settings): HBoxStoredState = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
