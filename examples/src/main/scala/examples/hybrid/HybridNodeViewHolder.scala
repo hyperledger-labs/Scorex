@@ -45,19 +45,20 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
 
     val ew = HWallet.readOrGenerate(settings, "genesis", "e", GenesisAccountsNum)
     val icoMembers = ew.publicKeys.ensuring(_.size == GenesisAccountsNum).toIndexedSeq.sortBy(_.address)
-    val genesisAccount = PrivateKey25519Companion.generateKeys("genesis".getBytes)._1
+    val genesisAccount = PrivateKey25519Companion.generateKeys("genesis".getBytes)
+    val genesisAccountPriv = genesisAccount._1
     val powGenesis = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1481110008516L, -4954221073250153861L,
-      0, Array.fill(32)(0: Byte), Seq())
+      0, Array.fill(32)(0: Byte), genesisAccount._2, Seq())
     val genesisTxs = Seq(SimpleBoxTransaction(
-      IndexedSeq(genesisAccount -> 0),
+      IndexedSeq(genesisAccountPriv -> 0),
       icoMembers.map(_ -> GenesisBalance),
       0L,
       0L))
     log.debug(s"Initialize state with transaction ${genesisTxs.head} with boxes ${genesisTxs.head.newBoxes}")
     assert(Base58.encode(genesisTxs.head.id) == "J26Fp2sChi6WPS8no7h94zJwrVv3UoqBHwNhb3bEHNgY")
 
-    val genesisBox = PublicKey25519NoncedBox(genesisAccount.publicImage, 0, GenesisBalance)
-    val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, genesisBox, genesisAccount)
+    val genesisBox = PublicKey25519NoncedBox(genesisAccountPriv.publicImage, 0, GenesisBalance)
+    val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, genesisBox, genesisAccountPriv)
 
     var history = HybridHistory.readOrGenerate(settings)
     history = history.append(powGenesis).get._1

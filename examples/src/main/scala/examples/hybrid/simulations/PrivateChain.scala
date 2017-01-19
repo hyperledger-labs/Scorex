@@ -13,6 +13,7 @@ import examples.hybrid.wallet.HWallet
 import io.circe
 import scorex.core.block.Block.BlockId
 import scorex.core.settings.Settings
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -25,6 +26,8 @@ import scala.util.{Random, Try}
   * Private chain attack simulation
   */
 object PrivateChain extends App with ScorexLogging {
+
+  val proposition = PublicKey25519Proposition(scorex.utils.Random.randomBytes(32))
 
   def genesisState(): (HybridHistory, HBoxStoredState, HWallet, HMemPool)  = {
     // May be taken from HybridNodeViewHolder.genesisState
@@ -46,7 +49,7 @@ object PrivateChain extends App with ScorexLogging {
 
     @tailrec
     def step(): PowBlock = {
-      PowMiner.powIteration(parentId, prevPosId, brothers, difficulty, settings, hashesPerSecond) match {
+      PowMiner.powIteration(parentId, prevPosId, brothers, difficulty, settings, proposition, hashesPerSecond) match {
         case Some(block) => block
         case None => step()
       }

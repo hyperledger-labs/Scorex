@@ -3,6 +3,7 @@ package examples.hybrid.validation
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HistoryStorage
 import scorex.core.block.BlockValidator
+import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
@@ -13,7 +14,7 @@ class ParentBlockValidator(storage: HistoryStorage)
     block match {
       case powBlock: PowBlock => if (!storage.isGenesis(powBlock)) {
         //check PoW parent id ???
-        storage.modifierById(powBlock.parentId).get
+        require(storage.modifierById(powBlock.parentId).isDefined, s"Parent ${Base58.encode(powBlock.parentId)} missed")
         //check referenced PoS block exists as well
         val posBlock = storage.modifierById(powBlock.prevPosId).get
 

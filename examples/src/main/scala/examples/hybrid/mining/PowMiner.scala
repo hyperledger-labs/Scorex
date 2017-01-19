@@ -79,7 +79,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
             var attemps = 0
 
             while (status.nonCancelled && foundBlock.isEmpty) {
-              foundBlock = powIteration(parentId, prevPosId, brothers, difficulty, settings)
+              foundBlock = powIteration(parentId, prevPosId, brothers, difficulty, settings, w.publicKeys.head)
               attemps = attemps + 1
               if (attemps % 100 == 99) {
                 log.debug(s"100 hashes tried, difficulty is $difficulty")
@@ -124,6 +124,7 @@ object PowMiner extends App {
                    brothers: Seq[PowBlockHeader],
                    difficulty: BigInt,
                    settings: MiningSettings,
+                   proposition: PublicKey25519Proposition,
                    hashesPerSecond: Int = HashesPerSecond
                   ): Option[PowBlock] = {
     val nonce = Random.nextLong()
@@ -133,7 +134,7 @@ object PowMiner extends App {
     val bHash = if (brothers.isEmpty) Array.fill(32)(0: Byte)
     else FastCryptographicHash(PowBlockCompanion.brotherBytes(brothers))
 
-    val b = PowBlock(parentId, prevPosId, ts, nonce, brothers.size, bHash, brothers)
+    val b = PowBlock(parentId, prevPosId, ts, nonce, brothers.size, bHash, proposition, brothers)
 
     val foundBlock =
       if (b.correctWork(difficulty, settings)) {

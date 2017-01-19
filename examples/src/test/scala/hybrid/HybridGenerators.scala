@@ -73,11 +73,12 @@ trait HybridGenerators extends ObjectGenerators {
     timestamp: Long <- positiveLongGen
     nonce: Long <- positiveLongGen
     brothersCount: Byte <- positiveByteGen
+    proposition: PublicKey25519Proposition <- propositionGen
     brothers <- Gen.listOfN(brothersCount, powHeaderGen)
   } yield {
     val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
     val brothersHash: Array[Byte] = FastCryptographicHash(brotherBytes)
-    new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, brothers)
+    new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
   }
 
 

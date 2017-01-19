@@ -16,8 +16,6 @@ import scorex.crypto.encode.Base58
 
 import scala.util.{Success, Try}
 
-//todo: alter to have coinbase
-object PowChanges extends StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set())
 
 case class HBoxStoredState(store: LSMStore, override val version: VersionTag) extends
   BoxMinimalState[PublicKey25519Proposition,
@@ -95,7 +93,12 @@ object HBoxStoredState {
 
   def changes(mod: HybridBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     mod match {
-      case pb: PowBlock => Success(PowChanges)
+      case pb: PowBlock =>
+        val proposition: PublicKey25519Proposition = pb.generatorProposition
+        val nonce: Long = SimpleBoxTransaction.nonceFromDigest(mod.id)
+        val value: Long = 1
+        val toAdd = PublicKey25519NoncedBox(proposition, nonce, value)
+        Success(StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set(toAdd)))
       case ps: PosBlock =>
         Try {
           val initial = (Set(): Set[Array[Byte]], Set(): Set[PublicKey25519NoncedBox], 0L)

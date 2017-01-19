@@ -12,6 +12,7 @@ import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.NodeViewModifier.ModifierId
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.duration._
@@ -32,7 +33,7 @@ class HybridHistorySpecification extends PropSpec
   var history = generate(constants)
 
   val genesisBlock = PowBlock(constants.GenesisParentId, constants.GenesisParentId, 1478164225796L, -308545845552064644L,
-    0, Array.fill(32)(0: Byte), Seq())
+    0, Array.fill(32)(0: Byte), PublicKey25519Proposition(scorex.utils.Random.randomBytes(32)), Seq())
   history = history.append(genesisBlock).get._1
   history.modifierById(genesisBlock.id).isDefined shouldBe true
 

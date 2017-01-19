@@ -11,8 +11,9 @@ import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
 import scorex.crypto.encode.Base58
+import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
 
@@ -72,6 +73,7 @@ case class PowBlock(override val parentId: BlockId,
                     override val nonce: Long,
                     override val brothersCount: Int,
                     override val brothersHash: Array[Byte],
+                    generatorProposition: PublicKey25519Proposition,
                     brothers: Seq[PowBlockHeader])
   extends PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
     with HybridBlock {
@@ -113,19 +115,20 @@ object PowBlockCompanion extends Serializer[PowBlock] {
   }
 
   override def toBytes(modifier: PowBlock): Array[Byte] =
-    modifier.headerBytes ++ modifier.brotherBytes
+    modifier.headerBytes ++ modifier.brotherBytes ++ modifier.generatorProposition.bytes
 
   override def parseBytes(bytes: Array[Byte]): Try[PowBlock] = {
     val headerBytes = bytes.slice(0, PowBlockHeader.PowHeaderSize)
     PowBlockHeader.parse(headerBytes).flatMap { header =>
       Try {
-        val (bs, _) = (0 until header.brothersCount).foldLeft((Seq[PowBlockHeader](), PowBlockHeader.PowHeaderSize)) {
+        val (bs, posit) = (0 until header.brothersCount).foldLeft((Seq[PowBlockHeader](), PowBlockHeader.PowHeaderSize)) {
           case ((brothers, position), _) =>
             val bBytes = bytes.slice(position, position + PowBlockHeader.PowHeaderSize)
 
             (brothers :+ PowBlockHeader.parse(bBytes).get,
               position + PowBlockHeader.PowHeaderSize)
         }
+        val prop = PublicKey25519PropositionSerializer.parseBytes(bytes.slice(posit, posit + Curve25519.KeyLength)).get
         PowBlock(
           header.parentId,
           header.prevPosId,
@@ -133,6 +136,7 @@ object PowBlockCompanion extends Serializer[PowBlock] {
           header.nonce,
           header.brothersCount,
           header.brothersHash,
+          prop,
           bs
         )
       }
