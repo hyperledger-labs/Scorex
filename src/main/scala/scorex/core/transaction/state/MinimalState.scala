@@ -23,8 +23,6 @@ MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
 
   def validate(transaction: TX): Try[Unit]
 
-  //Validate block. In the simpliest case it's validation of all transactions in the block,
-  // but may require additional checks, e.g. for PoS
   def validate(mod: M): Try[Unit] = Try(mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get))
 
   def isValid(tx: TX): Boolean = validate(tx).isSuccess

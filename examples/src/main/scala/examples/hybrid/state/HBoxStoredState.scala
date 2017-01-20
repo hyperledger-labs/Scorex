@@ -42,6 +42,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HBoxStoredState.changes(mod)
 
   //Validate transactions in block and generator box
+  //todo: move validation to history
   override def validate(mod: HPMOD): Try[Unit] = Try {
     super.validate(mod).get
     mod match {
