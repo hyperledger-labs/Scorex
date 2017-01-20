@@ -18,6 +18,7 @@ import scala.collection.JavaConversions._
 import scala.util.Try
 
 
+//todo: finish
 //todo: HKDF
 // todo: encryption
 case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition],
@@ -28,6 +29,9 @@ PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
 
+  type PublicKey = Array[Byte]
+  type PrivateKey = Array[Byte]
+
   val walletFileOpt: Option[File] = settings.walletDirOpt.map(walletDir => new java.io.File(walletDir, "wallet.s.dat"))
   val password: String = settings.walletPassword
   val seed: Array[Byte] = settings.walletSeed
@@ -36,11 +40,9 @@ PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
     .fileDB("wallet.dat")
     .make()
 
-  private val dbSeed = db.atomicString("seed").createOrOpen()
-
   private def lastNonce = db.atomicInteger("nonce").createOrOpen()
 
-  private lazy val dbSecrets: HTreeMap[Array[Byte], Array[Byte]] =
+  private lazy val dbSecrets: HTreeMap[PublicKey, PrivateKey] =
     db.hashMap("secrets", new SerializerByteArray, new SerializerByteArray).createOrOpen()
 
   override def generateNewSecret(): DefaultWallet25519[TX, PMOD] = {

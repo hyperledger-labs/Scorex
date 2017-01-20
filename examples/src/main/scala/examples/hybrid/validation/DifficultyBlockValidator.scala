@@ -5,7 +5,6 @@ import examples.hybrid.history.HistoryStorage
 import examples.hybrid.mining.MiningConstants
 import scorex.core.block.BlockValidator
 import scorex.crypto.encode.Base58
-import scorex.crypto.hash.CryptographicHash
 
 import scala.util.Try
 
