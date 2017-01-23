@@ -65,7 +65,8 @@ trait HybridGenerators extends ObjectGenerators {
     nonce: Long <- positiveLongGen
     brothersCount: Byte <- positiveByteGen
     brothersHash: Array[Byte] <- genBytesList(FastCryptographicHash.DigestSize)
-  } yield new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
+    prop: PublicKey25519Proposition <- propositionGen
+  } yield new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
 
   lazy val powBlockGen: Gen[PowBlock] = for {
     parentId: BlockId <- genBytesList(Block.BlockIdLength)

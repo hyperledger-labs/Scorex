@@ -23,7 +23,8 @@ class PowBlockHeader(
                       val timestamp: Block.Timestamp,
                       val nonce: Long,
                       val brothersCount: Int,
-                      val brothersHash: Array[Byte]) {
+                      val brothersHash: Array[Byte],
+                      val generatorProposition: PublicKey25519Proposition) {
 
 
   import PowBlockHeader._
@@ -34,7 +35,8 @@ class PowBlockHeader(
       Longs.toByteArray(timestamp) ++
       Longs.toByteArray(nonce) ++
       Ints.toByteArray(brothersCount) ++
-      brothersHash
+      brothersHash ++
+      generatorProposition.pubKeyBytes
 
   def correctWork(difficulty: BigInt, s: MiningConstants) = correctWorkDone(id, difficulty, s)
 
@@ -47,7 +49,7 @@ class PowBlockHeader(
 
 object PowBlockHeader {
   //two pointers and 2 long values, 64 bit each
-  val PowHeaderSize = NodeViewModifier.ModifierIdSize * 2 + 8 * 2 + 4 + FastCryptographicHash.DigestSize
+  val PowHeaderSize = NodeViewModifier.ModifierIdSize * 2 + 8 * 2 + 4 + FastCryptographicHash.DigestSize + Curve25519.KeyLength
 
   def parse(bytes: Array[Byte]): Try[PowBlockHeader] = Try {
     require(bytes.length == PowHeaderSize)
@@ -57,8 +59,9 @@ object PowBlockHeader {
     val nonce = Longs.fromByteArray(bytes.slice(72, 80))
     val brothersCount = Ints.fromByteArray(bytes.slice(80, 84))
     val brothersHash = bytes.slice(84, 116)
+    val prop = PublicKey25519Proposition(bytes.slice(116, 148))
 
-    new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
+    new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
   }
 
   def correctWorkDone(id: Array[Byte], difficulty: BigInt, s: MiningConstants): Boolean = {
@@ -73,9 +76,9 @@ case class PowBlock(override val parentId: BlockId,
                     override val nonce: Long,
                     override val brothersCount: Int,
                     override val brothersHash: Array[Byte],
-                    generatorProposition: PublicKey25519Proposition,
+                    override val generatorProposition: PublicKey25519Proposition,
                     brothers: Seq[PowBlockHeader])
-  extends PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
+  extends PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, generatorProposition)
     with HybridBlock {
 
   override type M = PowBlock
@@ -90,7 +93,7 @@ case class PowBlock(override val parentId: BlockId,
   override lazy val modifierTypeId: ModifierTypeId = PowBlock.ModifierTypeId
 
 
-  lazy val header = new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash)
+  lazy val header = new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, generatorProposition)
 
   lazy val brotherBytes = serializer.brotherBytes(brothers)
 

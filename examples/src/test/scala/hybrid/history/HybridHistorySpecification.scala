@@ -34,6 +34,8 @@ class HybridHistorySpecification extends PropSpec
 
   val genesisBlock = PowBlock(constants.GenesisParentId, constants.GenesisParentId, 1478164225796L, -308545845552064644L,
     0, Array.fill(32)(0: Byte), PublicKey25519Proposition(scorex.utils.Random.randomBytes(32)), Seq())
+  println(s"!! + ${genesisBlock}")
+  println(s"!! + ${genesisBlock.id}")
   history = history.append(genesisBlock).get._1
   history.modifierById(genesisBlock.id).isDefined shouldBe true
 

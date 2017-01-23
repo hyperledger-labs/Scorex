@@ -13,6 +13,8 @@ import scorex.core.block.Block
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 
+import scala.util.Failure
+
 class HistoryStorage(blocksStorage: LSMStore,
                      metaDb: DB,
                      settings: MiningConstants) extends ScorexLogging {
@@ -54,12 +56,17 @@ class HistoryStorage(blocksStorage: LSMStore,
     blocksStorage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
-      (mtypeId match {
+      val parsed = mtypeId match {
         case t: Byte if t == PowBlock.ModifierTypeId =>
           PowBlockCompanion.parseBytes(bytes.tail)
         case t: Byte if t == PosBlock.ModifierTypeId =>
           PosBlockCompanion.parseBytes(bytes.tail)
-      }).toOption
+      }
+      parsed match {
+        case Failure(e) => log.warn("Failed to parse bytes from bd", e)
+        case _ =>
+      }
+      parsed.toOption
     }
   }
 
