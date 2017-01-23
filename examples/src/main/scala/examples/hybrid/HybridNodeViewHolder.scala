@@ -47,8 +47,10 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
     val icoMembers = ew.publicKeys.ensuring(_.size == GenesisAccountsNum).toIndexedSeq.sortBy(_.address)
     val genesisAccount = PrivateKey25519Companion.generateKeys("genesis".getBytes)
     val genesisAccountPriv = genesisAccount._1
-    val powGenesis = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1481110008516L, -4954221073250153861L,
+    val powGenesis = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1481110008516L, 38,
       0, Array.fill(32)(0: Byte), genesisAccount._2, Seq())
+
+
     val genesisTxs = Seq(SimpleBoxTransaction(
       IndexedSeq(genesisAccountPriv -> 0),
       icoMembers.map(_ -> GenesisBalance),
