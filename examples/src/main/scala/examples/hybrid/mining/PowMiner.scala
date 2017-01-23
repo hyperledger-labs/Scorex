@@ -33,7 +33,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
   private var mining = false
 
   override def preStart(): Unit = {
-    //todo: check for a last block
+    //todo: check for a last block (for what?)
     if (settings.offlineGeneration) {
       context.system.scheduler.scheduleOnce(1.second)(self ! StartMining)
     }
@@ -47,7 +47,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
     case MineBlock =>
       if (mining) {
         log.info("Mining of previous PoW block stopped")
-        cancellableOpt.foreach(_.cancel()) //todo: check status
+        cancellableOpt.forall(_.cancel())
 
         context.system.scheduler.scheduleOnce(50.millis) {
           if (cancellableOpt.forall(_.status.isCancelled)) viewHolderRef ! GetCurrentView

@@ -61,7 +61,6 @@ class HybridHistory(storage: HistoryStorage,
     * @param count - how many blocks to return
     * @return PoW blocks, in reverse order (starting from the most recent one)
     */
-  //TODO a lot of crimes committed here: .get, .asInstanceOf
   def lastPowBlocks(count: Int): Seq[PowBlock] = if (isEmpty) {
     Seq()
   } else {

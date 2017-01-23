@@ -6,11 +6,13 @@ import scala.util.Success
 
 trait CancellableStatus {
   def isCancelled: Boolean
+
   def nonCancelled = !isCancelled
 }
 
 trait Cancellable {
-  def cancel(): Unit
+  def cancel(): Boolean
+
   def status: CancellableStatus
 }
 
@@ -18,10 +20,10 @@ object Cancellable {
   def apply() = new Cancellable {
     val p = Promise[Unit]()
 
-    override def cancel: Unit = p.tryComplete(Success(()))
+    override def cancel(): Boolean = p.tryComplete(Success(()))
 
     val status: CancellableStatus = new CancellableStatus {
-      override def isCancelled: Boolean = p.future.value != None
+      override def isCancelled: Boolean = p.future.value.isDefined
     }
   }
 
