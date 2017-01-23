@@ -20,7 +20,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
   * History storage
@@ -97,8 +97,12 @@ class HybridHistory(storage: HistoryStorage,
   override def append(block: HybridBlock):
   Try[(HybridHistory, Modifications[HybridBlock])] = Try {
     log.debug(s"Trying to append block ${Base58.encode(block.id)} to history")
-    //TODO collect all validation errors?
-    validators.foreach(_.validate(block).get)
+    val validationResuls = validators.map(_.validate(block))
+    validationResuls.foreach {
+      case Failure(e) => log.warn(s"Block validation failed", e)
+      case _ =>
+    }
+    validationResuls.foreach(_.get)
     val res: (HybridHistory, Modifications[HybridBlock]) = block match {
       case powBlock: PowBlock =>
         val modifications: Modifications[HybridBlock] = if (isGenesis(powBlock)) {
