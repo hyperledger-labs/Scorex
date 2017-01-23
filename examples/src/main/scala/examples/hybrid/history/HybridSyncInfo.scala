@@ -50,8 +50,8 @@ object HybridSyncInfoSerializer extends Serializer[HybridSyncInfo] {
     val answer: Boolean = if (bytes.head == 1.toByte) true else false
     val lastPowBlockIdsSize = bytes.slice(1, 2).head
 
-    assert(lastPowBlockIdsSize >= 0 && lastPowBlockIdsSize <= MaxLastPowBlocks) //todo: or just > 0?
-    assert(bytes.length == 2 + (lastPowBlockIdsSize + 1) * NodeViewModifier.ModifierIdSize)
+    require(lastPowBlockIdsSize >= 0 && lastPowBlockIdsSize <= MaxLastPowBlocks)
+    require(bytes.length == 2 + (lastPowBlockIdsSize + 1) * NodeViewModifier.ModifierIdSize)
 
     val lastPowBlockIds = bytes.slice(2, 2 + NodeViewModifier.ModifierIdSize * lastPowBlockIdsSize)
       .grouped(NodeViewModifier.ModifierIdSize).toSeq
