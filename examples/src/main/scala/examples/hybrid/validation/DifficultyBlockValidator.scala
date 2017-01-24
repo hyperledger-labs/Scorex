@@ -2,13 +2,13 @@ package examples.hybrid.validation
 
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HistoryStorage
-import examples.hybrid.mining.MiningConstants
+import examples.hybrid.mining.{MiningConstants, PosForger}
 import scorex.core.block.BlockValidator
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
-class DifficultyBlockValidator(settings: MiningConstants,  storage: HistoryStorage)
+class DifficultyBlockValidator(settings: MiningConstants, storage: HistoryStorage)
   extends BlockValidator[HybridBlock] {
 
   def validate(block: HybridBlock): Try[Unit] = block match {
@@ -31,11 +31,13 @@ class DifficultyBlockValidator(settings: MiningConstants,  storage: HistoryStora
 
   //PoS consensus rules checks, throws exception if anything wrong
   private def checkPoSConsensusRules(posBlock: PosBlock): Try[Unit] = Try {
-
-    //todo: check difficulty
-
-    //todo: check signature
-
+    if (!storage.isGenesis(posBlock)) {
+      val parentPoW: PowBlock = storage.modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
+      val hit = PosForger.hit(parentPoW)(posBlock.generatorBox)
+      val posDifficulty = storage.getPoSDifficulty(parentPoW.prevPosId)
+      val target = (PosForger.MaxTarget / posDifficulty) * posBlock.generatorBox.value
+      require(hit < target, s"$hit < $target failed, $posDifficulty, ")
+    }
     //todo: check transactions
 
     //todo: check PoS rules
