@@ -39,8 +39,6 @@ class DifficultyBlockValidator(settings: MiningConstants, storage: HistoryStorag
       require(hit < target, s"$hit < $target failed, $posDifficulty, ")
     }
     //todo: check transactions
-
-    //todo: check PoS rules
   }
 
 }
