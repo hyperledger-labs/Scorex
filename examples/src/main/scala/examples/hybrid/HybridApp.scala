@@ -3,7 +3,7 @@ package examples.hybrid
 import akka.actor.{ActorRef, Props}
 import examples.hybrid.api.http.DebugApiRoute
 import examples.hybrid.blocks.HybridBlock
-import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec, StatsLogger}
+import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec}
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.wallet.SimpleBoxTransactionGenerator
@@ -13,7 +13,6 @@ import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApi
 import scorex.core.app.Application
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
-import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 import scala.concurrent.duration._
@@ -34,7 +33,6 @@ class HybridApp(val settingsFilename: String) extends Application {
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoMessageSpec)
 
   override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[HybridNodeViewHolder], settings))
-  val logger = actorSystem.actorOf(Props(classOf[StatsLogger], settings.logDirOpt, nodeViewHolderRef))
 
   override val apiRoutes: Seq[ApiRoute] = Seq(
     DebugApiRoute(settings, nodeViewHolderRef),
