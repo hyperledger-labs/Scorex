@@ -38,7 +38,6 @@ class DifficultyBlockValidator(settings: MiningConstants, storage: HistoryStorag
       val target = (PosForger.MaxTarget / posDifficulty) * posBlock.generatorBox.value
       require(hit < target, s"$hit < $target failed, $posDifficulty, ")
     }
-    //todo: check transactions
   }
 
 }
