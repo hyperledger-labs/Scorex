@@ -262,10 +262,6 @@ class HybridHistory(storage: HistoryStorage,
     * @return Equal if nodes have the same history, Younger if another node is behind, Older if a new node is ahead
     */
   override def compare(other: HybridSyncInfo): HistoryComparisonResult.Value = {
-    //todo: check PoW header correctness, return cheater status for that
-    //todo: return cheater status in other cases, e.g. PoW id is a correct PoS id
-
-
     val dSuffix = divergentSuffix(other.lastPowBlockIds.reverse)
 
     dSuffix.length match {
