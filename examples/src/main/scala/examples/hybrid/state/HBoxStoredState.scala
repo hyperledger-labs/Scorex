@@ -46,7 +46,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   override def validate(mod: HPMOD): Try[Unit] = Try {
     super.validate(mod).get
     mod match {
-      case b: PowBlock => //TODO validate coinbase transaction
+      case b: PowBlock => //coinbase transaction is generated implicitly when block is applied to state
       case b: PosBlock =>
         closedBox(b.generatorBox.id).get
         mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get)
