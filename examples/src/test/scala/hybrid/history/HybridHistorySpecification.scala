@@ -1,22 +1,12 @@
 package hybrid.history
 
-import java.io.File
-
-import examples.hybrid.blocks.PowBlock
-import examples.hybrid.history.{HistoryStorage, HybridHistory}
-import examples.hybrid.mining.MiningConstants
+import examples.hybrid.history.HybridHistory
 import hybrid.HybridGenerators
-import io.iohk.iodb.LSMStore
-import org.mapdb.DBMaker
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.NodeViewModifier.ModifierId
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
-
-import scala.concurrent.duration._
-import scala.util.Random
 
 
 class HybridHistorySpecification extends PropSpec
@@ -25,19 +15,8 @@ class HybridHistorySpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  val constants = new MiningConstants {
-    override val BlockDelay: Long = 1.minute.toMillis
+  var history = generateHistory
 
-    override lazy val Difficulty: BigInt = 1
-  }
-  var history = generate(constants)
-
-  val genesisBlock = PowBlock(constants.GenesisParentId, constants.GenesisParentId, 1478164225796L, -308545845552064644L,
-    0, Array.fill(32)(0: Byte), PublicKey25519Proposition(scorex.utils.Random.randomBytes(32)), Seq())
-  println(s"!! + ${genesisBlock}")
-  println(s"!! + ${genesisBlock.id}")
-  history = history.append(genesisBlock).get._1
-  history.modifierById(genesisBlock.id).isDefined shouldBe true
 
   //Generate chain
   property("Block application and HybridHistory.continuationIds") {
@@ -82,24 +61,4 @@ class HybridHistorySpecification extends PropSpec
     }
   }
 
-
-  def generate(settings: MiningConstants): HybridHistory = {
-    val dataDir = s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}"
-
-    val iFile = new File(s"$dataDir/blocks")
-    iFile.mkdirs()
-    val blockStorage = new LSMStore(iFile)
-
-    val metaDb =
-      DBMaker.fileDB(s"$dataDir/hidx")
-        .fileMmapEnableIfSupported()
-        .closeOnJvmShutdown()
-        .make()
-
-    val storage = new HistoryStorage(blockStorage, metaDb, settings)
-    //we don't care about validation here
-    val validators = Seq()
-
-    new HybridHistory(storage, settings, validators)
-  }
 }
