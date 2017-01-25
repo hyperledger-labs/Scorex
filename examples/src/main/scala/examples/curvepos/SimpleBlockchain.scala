@@ -4,7 +4,7 @@ import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.BlockChain
-import scorex.core.consensus.History.{HistoryComparisonResult, Modifications}
+import scorex.core.consensus.History.{HistoryComparisonResult, RollbackInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 
@@ -26,14 +26,14 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
     blocks.find(_._1.sameElements(blockId)).map(_._2)
 
   //todo: check PoS data in a block
-  override def append(block: SimpleBlock): Try[(SimpleBlockchain, Modifications[SimpleBlock])] = synchronized {
+  override def append(block: SimpleBlock): Try[(SimpleBlockchain, RollbackInfo[SimpleBlock])] = synchronized {
     val blockId = block.id
     val parentId = block.parentId
 
     if (blockIds.isEmpty || (lastBlock.id sameElements parentId)) {
       val h = height() + 1
       val newChain = SimpleBlockchain(blockIds + (h -> blockId), blocks + (blockId -> block))
-      Success(newChain, Modifications(block.parentId, Seq(), Seq(block)))
+      Success(newChain, RollbackInfo(block.parentId, Seq(), Seq(block)))
     } else {
       val e = new Exception(s"Last block id is ${Base58.encode(blockIds.last._2)}, expected ${Base58.encode(parentId)}}")
       Failure(e)

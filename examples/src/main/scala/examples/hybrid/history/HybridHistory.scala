@@ -13,7 +13,7 @@ import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.History
-import scorex.core.consensus.History.{HistoryComparisonResult, Modifications}
+import scorex.core.consensus.History.{HistoryComparisonResult, RollbackInfo}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
@@ -95,7 +95,7 @@ class HybridHistory(storage: HistoryStorage,
     * @return
     */
   override def append(block: HybridBlock):
-  Try[(HybridHistory, Modifications[HybridBlock])] = Try {
+  Try[(HybridHistory, RollbackInfo[HybridBlock])] = Try {
     log.debug(s"Trying to append block ${Base58.encode(block.id)} to history")
     val validationResuls = validators.map(_.validate(block))
     validationResuls.foreach {
@@ -103,11 +103,11 @@ class HybridHistory(storage: HistoryStorage,
       case _ =>
     }
     validationResuls.foreach(_.get)
-    val res: (HybridHistory, Modifications[HybridBlock]) = block match {
+    val res: (HybridHistory, RollbackInfo[HybridBlock]) = block match {
       case powBlock: PowBlock =>
-        val modifications: Modifications[HybridBlock] = if (isGenesis(powBlock)) {
+        val modifications: RollbackInfo[HybridBlock] = if (isGenesis(powBlock)) {
           storage.update(powBlock, None, isBest = true)
-          Modifications(powBlock.parentId, Seq(), Seq(powBlock))
+          RollbackInfo(powBlock.parentId, Seq(), Seq(powBlock))
         } else {
           storage.heightOf(powBlock.parentId) match {
             case Some(parentHeight) =>
@@ -127,11 +127,11 @@ class HybridHistory(storage: HistoryStorage,
               if (isBest) {
                 if (isGenesis(powBlock) || (powBlock.parentId sameElements bestPowId)) {
                   //just apply one block to the end
-                  Modifications(powBlock.parentId, Seq(), Seq(powBlock))
+                  RollbackInfo(powBlock.parentId, Seq(), Seq(powBlock))
                 } else if ((bestPowBlock.parentId sameElements powBlock.parentId) &&
                   (bestPowBlock.brothersCount < powBlock.brothersCount)) {
                   //new best brother
-                  Modifications(bestPowBlock.id, Seq(bestPowBlock), Seq(powBlock))
+                  RollbackInfo(bestPowBlock.id, Seq(bestPowBlock), Seq(powBlock))
                 } else {
                   log.info(s"Processing fork at ${Base58.encode(powBlock.id)}")
 
@@ -144,10 +144,10 @@ class HybridHistory(storage: HistoryStorage,
                   require(applyBlocks.nonEmpty)
                   require(throwBlocks.nonEmpty)
 
-                  Modifications[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
+                  RollbackInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
                 }
               } else {
-                Modifications(powBlock.parentId, Seq(), Seq(powBlock))
+                RollbackInfo(powBlock.parentId, Seq(), Seq(powBlock))
               }
             case None =>
               log.warn("No parent block in history")
@@ -163,8 +163,8 @@ class HybridHistory(storage: HistoryStorage,
         val isBest = storage.height == storage.parentHeight(posBlock)
         storage.update(posBlock, Some(difficulties), isBest)
 
-        val mod: Modifications[HybridBlock] =
-          Modifications(posBlock.parentId, Seq(), Seq(posBlock))
+        val mod: RollbackInfo[HybridBlock] =
+          RollbackInfo(posBlock.parentId, Seq(), Seq(posBlock))
 
         (new HybridHistory(storage, settings, validators), mod) //no rollback ever
     }

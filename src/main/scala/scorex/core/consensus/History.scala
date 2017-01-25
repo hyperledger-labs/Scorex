@@ -63,7 +63,7 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   def modifierById(modifierId: String): Option[PM] = Base58.decode(modifierId).toOption.flatMap(modifierById)
 
-  def append(modifier: PM): Try[(HT, Modifications[PM])]
+  def append(modifier: PM): Try[(HT, RollbackInfo[PM])]
 
   //todo: output should be ID | Seq[ID]
   def openSurfaceIds(): Seq[ModifierId]
@@ -100,9 +100,9 @@ object History {
     val Nonsense = Value(4)
   }
 
-  case class Modifications[PM <: PersistentNodeViewModifier[_, _]](branchPoint: ModifierId,
-                                                                   toRemove: Seq[PM],
-                                                                   toApply: Seq[PM]) {
+  case class RollbackInfo[PM <: PersistentNodeViewModifier[_, _]](branchPoint: ModifierId,
+                                                                  toRemove: Seq[PM],
+                                                                  toApply: Seq[PM]) {
     override def toString: String = {
       s"Modifications(${Base58.encode(branchPoint)}, ${toRemove.map(_.encodedId)}, ${toApply.map(_.encodedId)})"
     }
