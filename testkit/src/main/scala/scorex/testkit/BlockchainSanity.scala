@@ -31,7 +31,7 @@ B <: Box[P]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers {
   val stateChangesGenerator: Gen[StateChanges[P, B]]
 
   property("appended block is in history") {
-//TODO fix    hs.appendedBlockIsInHistory(history, blockGenerator)
+    hs.appendedBlockIsInHistory(history, blockGenerator)
   }
   property("State should be able to add a box") {
     ss.appendedBoxesAreInState(state, stateChangesGenerator)
