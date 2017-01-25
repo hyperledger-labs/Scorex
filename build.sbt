@@ -106,8 +106,12 @@ lazy val commonSettings = Seq(
   scalaVersion := "2.11.8"
 )
 
-lazy val examples = Project(id = "examples", base = file(s"examples"))
+lazy val testkit = Project(id = "testkit", base = file(s"testkit"))
   .dependsOn(basics)
+  .settings(commonSettings: _*)
+
+lazy val examples = Project(id = "examples", base = file(s"examples"))
+  .dependsOn(basics, testkit)
   .settings(commonSettings: _*)
 
 lazy val basics = Project(id = "scorex", base = file("."))
