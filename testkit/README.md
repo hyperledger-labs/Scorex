@@ -10,9 +10,9 @@ TODO
 - If box is successfully applied to state, it's available by id
 - State is able to generate changes from block and apply them
 - Wallet contains secrets for all it's public propositions
+- State changes application and rollback leads to the same state
 
 ### Coming test scenarios:
-- Block application and rollback leads to the same state
 - Block application and rollback leads to the same history (rollback is not defined for history yet)
 - NodeView apply block to both state and history or don't apply to any of them
 - Transactions added to memory pool are available by id

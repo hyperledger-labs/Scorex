@@ -1,22 +1,16 @@
 package scorex.testkit.properties
 
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.consensus.SyncInfo
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.{MinimalState, StateChanges}
-
-import scala.util.Random
+import scorex.core.transaction.state.StateChanges
 
 trait StateChangesGenerationTest[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
-SI <: SyncInfo,
-B <: Box[P]] extends StateTests[P, TX, PM, SI, B] {
+B <: Box[P]] extends StateTests[P, TX, PM, B] {
 
   val validBlockGenerator: Gen[PM]
 

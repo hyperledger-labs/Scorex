@@ -5,13 +5,12 @@ import java.io.File
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{PosBlock, PowBlock, PowBlockCompanion, PowBlockHeader}
 import examples.hybrid.history.{HistoryStorage, HybridHistory, HybridSyncInfo}
-import examples.hybrid.mining.{MiningConstants, MiningSettings}
+import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import io.iohk.iodb.LSMStore
 import org.mapdb.DBMaker
 import org.scalacheck.{Arbitrary, Gen}
-import scorex.ObjectGenerators
 import scorex.core.NodeViewModifier
 import scorex.core.block.Block
 import scorex.core.block.Block._
@@ -21,11 +20,12 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.{PrivateKey25519, StateChanges}
 import scorex.core.transaction.wallet.WalletBox
+import scorex.testkit.CoreGenerators
 
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait HybridGenerators extends ObjectGenerators {
+trait HybridGenerators extends CoreGenerators {
   val settings = new Settings with MiningSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
 
