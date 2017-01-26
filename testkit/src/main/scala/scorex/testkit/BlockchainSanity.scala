@@ -9,6 +9,7 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{MinimalState, StateChanges}
+import scorex.testkit.properties.{HistoryAppendBlockTest, StateApplyChangesTest}
 
 /**
   * The idea of this class is to get some generators and test some situations, common for all blockchains
