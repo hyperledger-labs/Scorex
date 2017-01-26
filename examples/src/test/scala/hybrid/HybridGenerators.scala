@@ -66,13 +66,12 @@ trait HybridGenerators extends ObjectGenerators {
 
   lazy val nonEmptyBlockIdsGen: Gen[Seq[BlockId]] = Gen.nonEmptyListOf(blockIdGen)
 
-
-  private var posParentId: Array[Byte] = settings.GenesisParentId
   lazy val posBlockGen: Gen[PosBlock] = for {
     timestamp: Long <- positiveLongGen
     txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
     box: PublicKey25519NoncedBox <- noncedBoxGen
     generator: PrivateKey25519 <- key25519Gen.map(_._1)
+    posParentId: Array[Byte] <- genBytesList(Block.BlockIdLength)
   } yield PosBlock.create(posParentId, timestamp, txs, box.copy(proposition = generator.publicImage), generator)
 
 

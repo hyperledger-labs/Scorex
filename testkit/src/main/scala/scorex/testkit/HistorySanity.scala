@@ -23,7 +23,7 @@ SI <: SyncInfo] extends PropSpec with GeneratorDrivenPropertyChecks with Matcher
       history.modifierById(b.id).isDefined shouldBe false
       history.append(b) match {
         case Success((updatedHistory, _)) => updatedHistory.modifierById(b.id).isDefined shouldBe true
-        case Failure(e) => log.debug(s"Incorrect block $b from generator", e)
+        case Failure(e) => throw e
       }
     }
   }

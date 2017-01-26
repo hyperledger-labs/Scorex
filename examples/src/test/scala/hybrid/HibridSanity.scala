@@ -16,7 +16,14 @@ class HibridSanity extends BlockchainSanity[PublicKey25519Proposition,
   PublicKey25519NoncedBox] with HybridGenerators {
 
   override val history = generateHistory
-  override val blockGenerator: Gen[HybridBlock] = posBlockGen
+  override val blockGenerator: Gen[HybridBlock] = for {
+    posB <- posBlockGen
+    powB <- powBlockGen
+  } yield {
+    if (history.pairCompleted) powB.copy(parentId = history.bestPowId, prevPosId = history.bestPosId)
+    else posB.copy(parentId = history.bestPowId)
+  }
+
   override val stateChangesGenerator: Gen[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     stateChangesGen
 
