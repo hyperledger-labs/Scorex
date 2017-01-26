@@ -11,15 +11,17 @@ import scorex.core.utils.ScorexLogging
 
 import scala.util.{Failure, Success}
 
-class HistorySanity[P <: Proposition,
+trait HistoryAppendBlockTest[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
 SI <: SyncInfo] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks
   with ScorexLogging {
   type HT = History[P, TX, PM, SI, _ <: History[P, TX, PM, SI, _]]
+  val history: HT
+  val blockGenerator: Gen[PM]
 
-  def appendedBlockIsInHistory(history: HT, blockGen: Gen[PM]): Unit = {
-    forAll(blockGen) { b: PM =>
+  property("Appended block is in history") {
+    forAll(blockGenerator) { b: PM =>
       history.modifierById(b.id).isDefined shouldBe false
       history.append(b) match {
         case Success((updatedHistory, _)) => updatedHistory.modifierById(b.id).isDefined shouldBe true
@@ -27,5 +29,6 @@ SI <: SyncInfo] extends PropSpec with GeneratorDrivenPropertyChecks with Matcher
       }
     }
   }
+
 
 }

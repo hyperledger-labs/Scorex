@@ -17,25 +17,8 @@ trait BlockchainSanity[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
 SI <: SyncInfo,
-B <: Box[P]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers {
-
-  type HT = History[P, TX, PM, SI, _ <: History[P, TX, PM, SI, _]]
-  type ST = MinimalState[P, B, TX, PM, _ <: MinimalState[P, B, TX, PM, _]]
-
-  private val hs = new HistorySanity[P, TX, PM, SI]
-  private val ss = new StateSanity[P, TX, PM, SI, B]
-
-  val history: HT
-  val state: ST
-  val blockGenerator: Gen[PM]
-  val stateChangesGenerator: Gen[StateChanges[P, B]]
-
-  property("appended block is in history") {
-    hs.appendedBlockIsInHistory(history, blockGenerator)
-  }
-  property("State should be able to add a box") {
-    ss.appendedBoxesAreInState(state, stateChangesGenerator)
-  }
+B <: Box[P]] extends HistoryAppendBlockTest[P, TX, PM, SI]
+  with StateApplyChangesTest[P, TX, PM, SI, B]{
 
 
 }
