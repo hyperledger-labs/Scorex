@@ -1,15 +1,11 @@
 package scorex.testkit
 
-import org.scalacheck.Gen
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import org.scalatest.{Matchers, PropSpec}
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.consensus.SyncInfo
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.{MinimalState, StateChanges}
-import scorex.testkit.properties.{HistoryAppendBlockTest, StateApplyChangesTest}
+import scorex.testkit.properties.{HistoryAppendBlockTest, StateApplyChangesTest, StateChangesGenerationTest}
 
 /**
   * The idea of this class is to get some generators and test some situations, common for all blockchains
@@ -19,7 +15,8 @@ TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
 SI <: SyncInfo,
 B <: Box[P]] extends HistoryAppendBlockTest[P, TX, PM, SI]
-  with StateApplyChangesTest[P, TX, PM, SI, B]{
+  with StateApplyChangesTest[P, TX, PM, SI, B]
+  with StateChangesGenerationTest[P, TX, PM, SI, B] {
 
 
 }

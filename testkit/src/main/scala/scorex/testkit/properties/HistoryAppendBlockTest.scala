@@ -18,10 +18,10 @@ SI <: SyncInfo] extends PropSpec with GeneratorDrivenPropertyChecks with Matcher
   with ScorexLogging {
   type HT = History[P, TX, PM, SI, _ <: History[P, TX, PM, SI, _]]
   val history: HT
-  val blockGenerator: Gen[PM]
+  val validBlockGenerator: Gen[PM]
 
   property("Appended block is in history") {
-    forAll(blockGenerator) { b: PM =>
+    forAll(validBlockGenerator) { b: PM =>
       history.modifierById(b.id).isDefined shouldBe false
       history.append(b) match {
         case Success((updatedHistory, _)) => updatedHistory.modifierById(b.id).isDefined shouldBe true
