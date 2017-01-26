@@ -13,7 +13,7 @@ trait StateTests[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
 SI <: SyncInfo,
-B <: Box[P]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks{
+B <: Box[P]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks {
   type ST = MinimalState[P, B, TX, PM, _ <: MinimalState[P, B, TX, PM, _]]
   val state: ST
 

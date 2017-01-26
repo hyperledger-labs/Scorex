@@ -5,7 +5,7 @@ import scorex.core.consensus.SyncInfo
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.testkit.properties.{HistoryAppendBlockTest, StateApplyChangesTest, StateChangesGenerationTest}
+import scorex.testkit.properties.{HistoryAppendBlockTest, StateApplyChangesTest, StateChangesGenerationTest, WalletSecretsTest}
 
 /**
   * The idea of this class is to get some generators and test some situations, common for all blockchains
@@ -16,6 +16,7 @@ PM <: PersistentNodeViewModifier[P, TX],
 SI <: SyncInfo,
 B <: Box[P]] extends HistoryAppendBlockTest[P, TX, PM, SI]
   with StateApplyChangesTest[P, TX, PM, SI, B]
+  with WalletSecretsTest[P, TX, PM]
   with StateChangesGenerationTest[P, TX, PM, SI, B] {
 
 
