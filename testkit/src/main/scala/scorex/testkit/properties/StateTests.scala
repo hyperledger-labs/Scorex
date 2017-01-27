@@ -12,8 +12,10 @@ import scorex.testkit.CoreGenerators
 trait StateTests[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
-B <: Box[P]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks with CoreGenerators {
-  type ST = MinimalState[P, B, TX, PM, _ <: MinimalState[P, B, TX, PM, _]]
+B <: Box[P],
+ST <: MinimalState[P, B, TX, PM, ST]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers
+  with PropertyChecks with CoreGenerators {
+
   val state: ST
 
 }

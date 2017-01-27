@@ -5,6 +5,7 @@ import scorex.core.consensus.SyncInfo
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.transaction.state.MinimalState
 import scorex.testkit.properties._
 
 /**
@@ -15,12 +16,13 @@ TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
 SI <: SyncInfo,
 B <: Box[P],
-MPool <: MemoryPool[TX, MPool]] extends HistoryAppendBlockTest[P, TX, PM, SI]
-  with StateApplyChangesTest[P, TX, PM, B]
+MPool <: MemoryPool[TX, MPool],
+ST <: MinimalState[P, B, TX, PM, ST]] extends HistoryAppendBlockTest[P, TX, PM, SI]
+  with StateApplyChangesTest[P, TX, PM, B, ST]
   with WalletSecretsTest[P, TX, PM]
-  with StateRollbackTest[P, TX, PM, B]
+  with StateRollbackTest[P, TX, PM, B, ST]
   with MempoolTransactionsTest[P, TX, MPool]
-  with StateChangesGenerationTest[P, TX, PM,  B] {
+  with StateChangesGenerationTest[P, TX, PM,  B, ST] {
 
 
 }

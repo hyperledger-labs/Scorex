@@ -16,7 +16,8 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   HybridBlock,
   HybridSyncInfo,
   PublicKey25519NoncedBox,
-  HMemPool] with HybridGenerators {
+  HMemPool,
+  HBoxStoredState] with HybridGenerators {
 
   //Node view components
   override val history = generateHistory
