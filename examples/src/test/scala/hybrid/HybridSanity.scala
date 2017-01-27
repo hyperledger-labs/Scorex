@@ -3,6 +3,7 @@ package hybrid
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HybridSyncInfo
+import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
 import org.scalacheck.Gen
@@ -14,12 +15,17 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock,
   HybridSyncInfo,
-  PublicKey25519NoncedBox] with HybridGenerators {
+  PublicKey25519NoncedBox,
+  HMemPool] with HybridGenerators {
 
+  //Node view components
   override val history = generateHistory
-
+  override val mempool: HMemPool = HMemPool.emptyPool
   override val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings, "p"))((w, _) => w.generateNewSecret())
+  override val state = HBoxStoredState.readOrGenerate(settings)
 
+  //Generators
+  override val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen
   private val validPowBlockGen: Gen[PowBlock] = powBlockGen.map(b => b.copy(parentId = history.bestPowId, prevPosId = history.bestPosId))
   private val validPosBlockGen: Gen[PosBlock] = posBlockGen.map(b => b.copy(parentId = history.bestPowId))
 
@@ -33,6 +39,5 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
     stateChangesGen
 
 
-  override val state = HBoxStoredState.readOrGenerate(settings)
 
 }
