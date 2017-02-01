@@ -6,14 +6,17 @@ Testkit contains property tests common for all blockchains and allow to test blo
 ### Example:
 TODO
 ### Implemented test scenarios
-- If block is successfully applied to history, it's available by id
-- If box is successfully applied to state, it's available by id
-- State is able to generate changes from block and apply them
-- Wallet contains secrets for all it's public propositions
-- State changes application and rollback leads to the same state
-- Transactions added to memory pool are available by id
+- Valid block should be successfully applied to history and available by id after that
+- Valid box should be successfully applied to state, it's available by id after that
+- State should be able to generate changes from valid block and apply them
+- Wallet should contain secrets for all it's public propositions
+- State changes application and rollback should lead to the same state
+- Transactions successfully added to memory pool should be available by id
 
 ### Coming test scenarios:
 - Block application and rollback leads to the same history (rollback is not defined for history yet)
 - NodeView apply block to both state and history or don't apply to any of them
 - It's not possible to apply transaction to a state twice
+- Tests dor invalid transactions/blocks/etc.
+
+
