@@ -2,7 +2,6 @@ package scorex
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.Actor
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.ModifierId
