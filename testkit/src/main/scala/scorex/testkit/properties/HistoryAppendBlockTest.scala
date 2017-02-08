@@ -14,21 +14,33 @@ import scala.util.{Failure, Success}
 trait HistoryAppendBlockTest[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
-SI <: SyncInfo] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks
+SI <: SyncInfo,
+HT <: History[P, TX, PM, SI, HT]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks
   with ScorexLogging {
-  type HT = History[P, TX, PM, SI, _ <: History[P, TX, PM, SI, _]]
   val history: HT
-  val validBlockGenerator: Gen[PM]
+
+  def genValidModifier(history: HT): PM
 
   property("Appended block is in history") {
-    forAll(validBlockGenerator) { b: PM =>
-      history.modifierById(b.id).isDefined shouldBe false
-      history.append(b) match {
-        case Success((updatedHistory, _)) => updatedHistory.modifierById(b.id).isDefined shouldBe true
-        case Failure(e) => throw e
-      }
+    var h: HT = history
+    (0 until 100) foreach { _ =>
+      val b = genValidModifier(h)
+      h.modifierById(b.id).isDefined shouldBe false
+      h = h.append(b).get._1
+      h.modifierById(b.id).isDefined shouldBe true
     }
   }
+
+
+//  val validBlockGenerator: Gen[PM]
+//  var h: HT = history
+//  property("Appended block is in history") {
+//    forAll(validBlockGenerator) { b: PM =>
+//      h.modifierById(b.id).isDefined shouldBe false
+//      h = h.append(b).get._1
+//      h.modifierById(b.id).isDefined shouldBe true
+//    }
+//  }
 
 
 }
