@@ -46,8 +46,14 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   override def validate(mod: HPMOD): Try[Unit] = Try {
     super.validate(mod).get
     mod match {
-      case b: PowBlock => //coinbase transaction is generated implicitly when block is applied to state
+      case b: PowBlock =>
+        //coinbase transaction is generated implicitly when block is applied to state, no validation needed
+        require((b.parentId sameElements version) || (b.prevPosId sameElements version)
+          || b.brothers.exists(_.id sameElements version), s"${Base58.encode(version)} == (${Base58.encode(b.prevPosId)}" +
+          s" || ${Base58.encode(b.parentId)} || ${b.brothers.map(b => Base58.encode(b.id))})")
+
       case b: PosBlock =>
+        require(b.parentId sameElements version, s"${Base58.encode(version)} == ${Base58.encode(b.parentId)}")
         closedBox(b.generatorBox.id).get
         mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get)
     }
