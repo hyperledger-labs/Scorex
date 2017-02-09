@@ -1,3 +1,12 @@
+2.0.0-M4
+--------
+
+* IODB dependency upgraded to 0.2.+
+* TwinsChain example massively improved, README on it has been added 
+(see "examples" folder)
+* akka-http dependency removed, Swagger updated
+
+
 2.0.0-M3
 --------
 
