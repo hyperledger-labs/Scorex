@@ -21,7 +21,7 @@
   "rpcAllowed": [],
   "maxRollback": 100,
   "offlineGeneration": false,
-  "blockGenerationDelay": 1000,
+  "blockGenerationDelay": 100,
   "cors": false,
   "agent": "2-Hop",
   "version": [0, 0, 1]

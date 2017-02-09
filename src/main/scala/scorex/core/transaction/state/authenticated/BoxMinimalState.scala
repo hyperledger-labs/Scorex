@@ -28,7 +28,7 @@ trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, B
     * @return
     */
   override def validate(tx: BTX): Try[Unit] = {
-    lazy val statefulValid = {
+    val statefulValid = {
       val boxesSumTry = tx.unlockers.foldLeft[Try[Long]](Success(0L)) { case (partialRes, unlocker) =>
         partialRes.flatMap { partialSum =>
           closedBox(unlocker.closedBoxId) match {

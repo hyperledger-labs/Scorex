@@ -31,10 +31,10 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
 
-  lazy val seedAppendix = metaDb.atomicInteger("seedAppendix", 0).createOrOpen()
-  lazy val secretsMap = metaDb.treeMap("secrets", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
+  private lazy val seedAppendix = metaDb.atomicInteger("seedAppendix", 0).createOrOpen()
+  private lazy val secretsMap = metaDb.treeMap("secrets", Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY).createOrOpen()
 
-  lazy val boxIds = metaDb.treeSet("ids", Serializer.BYTE_ARRAY).createOrOpen()
+  private lazy val boxIds = metaDb.treeSet("ids", Serializer.BYTE_ARRAY).createOrOpen()
 
   private lazy val walletBoxSerializer =
     new WalletBoxSerializer[PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)

@@ -111,25 +111,17 @@ class HybridHistory(storage: HistoryStorage,
         } else {
           storage.heightOf(powBlock.parentId) match {
             case Some(parentHeight) =>
-              val isBest: Boolean = if (storage.height == storage.parentHeight(powBlock)) {
-                //new best block
-                true
-              } else if (storage.height == (storage.parentHeight(powBlock) - 1) &&
-                (bestPowBlock.parentId sameElements powBlock.parentId) &&
-                (bestPowBlock.brothersCount < powBlock.brothersCount)) {
-                //new best brother
-                true
-              } else {
-                false
-              }
+              val isBestBrother = (bestPosId sameElements powBlock.prevPosId) &&
+                (bestPowBlock.brothersCount < powBlock.brothersCount)
+
+              val isBest: Boolean = storage.height == storage.parentHeight(powBlock) || isBestBrother
 
               storage.update(powBlock, None, isBest)
               if (isBest) {
                 if (isGenesis(powBlock) || (powBlock.parentId sameElements bestPowId)) {
                   //just apply one block to the end
                   RollbackInfo(powBlock.parentId, Seq(), Seq(powBlock))
-                } else if ((bestPowBlock.parentId sameElements powBlock.parentId) &&
-                  (bestPowBlock.brothersCount < powBlock.brothersCount)) {
+                } else if (isBestBrother) {
                   //new best brother
                   RollbackInfo(bestPowBlock.id, Seq(bestPowBlock), Seq(powBlock))
                 } else {

@@ -46,20 +46,25 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   override def validate(mod: HPMOD): Try[Unit] = Try {
     super.validate(mod).get
     mod match {
-      case b: PowBlock => //coinbase transaction is generated implicitly when block is applied to state
+      case b: PowBlock =>
+        //coinbase transaction is generated implicitly when block is applied to state, no validation needed
+        require((b.parentId sameElements version) || (b.prevPosId sameElements version)
+          || b.brothers.exists(_.id sameElements version), s"${Base58.encode(version)} == (${Base58.encode(b.prevPosId)}" +
+          s" || ${Base58.encode(b.parentId)} || ${b.brothers.map(b => Base58.encode(b.id))})")
+
       case b: PosBlock =>
+        require(b.parentId sameElements version, s"${Base58.encode(version)} == ${Base58.encode(b.parentId)}")
         closedBox(b.generatorBox.id).get
         mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get)
     }
   }
-
 
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {
     val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
     val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    log.debug(s"Update HBoxStoredState from version ${store.lastVersionID} to version ${Base58.encode(newVersion)}. " +
+    log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${Base58.encode(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => Base58.encode(b.data))}, " +
       s"adding boxes ${boxesToAdd.map(b => Base58.encode(b._1.data))}")
     if (store.lastVersionID.isDefined) boxIdsToRemove.foreach(i => require(closedBox(i.data).isDefined))
@@ -73,11 +78,14 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     if (store.lastVersionID.exists(_.data sameElements version)) {
       this
     } else {
-      log.debug(s"Rollback HBoxStoredState to ${Base58.encode(version)} from version ${store.lastVersionID}")
+      log.debug(s"Rollback HBoxStoredState to ${Base58.encode(version)} from version $lastVersionString")
       store.rollback(ByteArrayWrapper(version))
       new HBoxStoredState(store, version)
     }
   }
+
+  private def lastVersionString = store.lastVersionID.map(v => Base58.encode(v.data)).getOrElse("None")
+
 }
 
 object HBoxStoredState {
