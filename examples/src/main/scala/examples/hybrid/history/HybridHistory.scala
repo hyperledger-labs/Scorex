@@ -132,7 +132,7 @@ class HybridHistory(storage: HistoryStorage,
                   val rollbackPoint = newSuffix.head
 
                   val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
-                  val applyBlocks = powBlock +: newSuffix.tail.map(id => modifierById(id).get)
+                  val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(powBlock)
                   require(applyBlocks.nonEmpty)
                   require(throwBlocks.nonEmpty)
 
@@ -154,11 +154,18 @@ class HybridHistory(storage: HistoryStorage,
         val difficulties = calcDifficultiesForNewBlock(posBlock)
         val isBest = storage.height == storage.parentHeight(posBlock)
         storage.update(posBlock, Some(difficulties), isBest)
+        val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
 
-        val mod: RollbackInfo[HybridBlock] =
+
+        val mod: RollbackInfo[HybridBlock] = if (!isBest || (posBlock.parentId sameElements bestPowId)) {
           RollbackInfo(posBlock.parentId, Seq(), Seq(posBlock))
+        } else {
+          //rollback to prevoius PoS block and apply parent block one more time
+          val toRollback = parent +: parent.brothers.flatMap(header => modifierById(header.id))
+          RollbackInfo(parent.prevPosId, toRollback, Seq(parent, posBlock))
+        }
 
-        (new HybridHistory(storage, settings, validators), mod) //no rollback ever
+        (new HybridHistory(storage, settings, validators), mod)
     }
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
       s"Best score is ${storage.bestChainScore}. " +
