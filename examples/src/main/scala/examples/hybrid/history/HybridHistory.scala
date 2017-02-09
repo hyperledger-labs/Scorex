@@ -120,7 +120,7 @@ class HybridHistory(storage: HistoryStorage,
               if (isBest) {
                 if (isGenesis(powBlock) || (powBlock.parentId sameElements bestPowId)) {
                   //just apply one block to the end
-                  RollbackInfo(powBlock.parentId, Seq(), Seq(powBlock))
+                  RollbackInfo(powBlock.prevPosId, Seq(), Seq(powBlock))
                 } else if (isBestBrother) {
                   //new best brother
                   RollbackInfo(bestPowBlock.id, Seq(bestPowBlock), Seq(powBlock))
@@ -139,7 +139,7 @@ class HybridHistory(storage: HistoryStorage,
                   RollbackInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
                 }
               } else {
-                RollbackInfo(powBlock.parentId, Seq(), Seq(powBlock))
+                RollbackInfo(powBlock.prevPosId, Seq(), Seq())
               }
             case None =>
               log.warn("No parent block in history")
