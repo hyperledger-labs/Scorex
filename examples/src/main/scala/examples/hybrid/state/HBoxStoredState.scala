@@ -49,11 +49,13 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       case b: PowBlock =>
         //coinbase transaction is generated implicitly when block is applied to state, no validation needed
         require((b.parentId sameElements version) || (b.prevPosId sameElements version)
-          || b.brothers.exists(_.id sameElements version), s"${Base58.encode(version)} == (${Base58.encode(b.prevPosId)}" +
-          s" || ${Base58.encode(b.parentId)} || ${b.brothers.map(b => Base58.encode(b.id))})")
+          || b.brothers.exists(_.id sameElements version), s"Incorrect state version: ${Base58.encode(version)} " +
+          s"found, (${Base58.encode(b.prevPosId)} || ${Base58.encode(b.parentId)} ||" +
+          s" ${b.brothers.map(b => Base58.encode(b.id))}) expected")
 
       case b: PosBlock =>
-        require(b.parentId sameElements version, s"${Base58.encode(version)} == ${Base58.encode(b.parentId)}")
+        require(b.parentId sameElements version, s"Incorrect state version: ${Base58.encode(b.parentId)} " +
+          s"found, ${Base58.encode(version)} expected.")
         closedBox(b.generatorBox.id).get
         mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get)
     }
