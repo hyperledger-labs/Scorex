@@ -14,7 +14,7 @@
     "handshakeTimeout": 2000
   },
   "walletPassword": "cookies",
-  "walletSeed": "genesis",
+  "walletSeed": "genesisoo",
   "walletDir": "/tmp/scorex/data/wallet",
   "dataDir": "/tmp/scorex/data/blockchain",
   "logDir": "/tmp/scorex/data/log",

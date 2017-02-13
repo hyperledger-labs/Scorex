@@ -13,7 +13,7 @@
     "maxConnections": 10
   },
   "walletPassword": "cookies2",
-  "walletSeed": "helloworld2",
+  "walletSeed": "genesiso1",
   "walletDir": "/tmp/scorex/data2/wallet",
   "dataDir": "/tmp/scorex/data2/blockchain",
   "logDir": "/tmp/scorex/data2/log",

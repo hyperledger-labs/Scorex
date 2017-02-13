@@ -14,7 +14,7 @@
   },
   "walletDir": "/tmp/scorex/wallet7",
   "walletPassword": "cookies7",
-  "walletSeed": "helloworld7",
+  "walletSeed": "genesiso6",
   "dataDir": "/tmp/scorex/data7",
   "logDir": "/tmp/scorex/log7",
   "rpcPort": 9101,
