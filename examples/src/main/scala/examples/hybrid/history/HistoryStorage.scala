@@ -82,8 +82,10 @@ class HistoryStorage(blocksStorage: LSMStore,
   def setBestBlock(b: HybridBlock): Unit = b match {
     case powBlock: PowBlock =>
       bestPowIdVar.set(powBlock.id)
+      bestPosIdVar.set(powBlock.prevPosId)
     case posBlock: PosBlock =>
       bestPosIdVar.set(posBlock.id)
+      bestPowIdVar.set(posBlock.parentId)
   }
 
   private def writeBlock(b: HybridBlock) = {
