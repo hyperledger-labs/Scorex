@@ -157,7 +157,9 @@ class HybridHistory(storage: HistoryStorage,
         val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
 
 
-        val mod: RollbackInfo[HybridBlock] = if (!isBest || (posBlock.parentId sameElements bestPowId)) {
+        val mod: RollbackInfo[HybridBlock] = if (!isBest) {
+          RollbackInfo(posBlock.parentId, Seq(), Seq())
+        } else if (posBlock.parentId sameElements bestPowId) {
           RollbackInfo(posBlock.parentId, Seq(), Seq(posBlock))
         } else {
           //rollback to prevoius PoS block and apply parent block one more time
