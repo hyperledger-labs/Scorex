@@ -54,6 +54,7 @@ class HybridHistory(storage: HistoryStorage,
   val bestPowId = storage.bestPowId
   lazy val bestPosBlock = storage.bestPosBlock
   lazy val bestPowBlock = storage.bestPowBlock
+  lazy val bestBlock = if (bestPowBlock.prevPosId sameElements bestPosId) bestPowBlock else bestPosBlock
 
   /**
     * Return specified number of PoW blocks, ordered back from last one
@@ -116,56 +117,54 @@ class HybridHistory(storage: HistoryStorage,
 
               val isBest: Boolean = storage.height == storage.parentHeight(powBlock) || isBestBrother
 
-              storage.update(powBlock, None, isBest)
-              if (isBest) {
-                if (isGenesis(powBlock) || (powBlock.parentId sameElements bestPowId)) {
+              val mod: RollbackInfo[HybridBlock] = if (isBest) {
+                if (isGenesis(powBlock) ||
+                  ((powBlock.parentId sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
+                  log.debug(s"New best PoW block ${Base58.encode(powBlock.id)}")
                   //just apply one block to the end
                   RollbackInfo(powBlock.prevPosId, Seq(), Seq(powBlock))
                 } else if (isBestBrother) {
+                  log.debug(s"New best brother ${Base58.encode(powBlock.id)}")
                   //new best brother
-                  RollbackInfo(bestPowBlock.id, Seq(bestPowBlock), Seq(powBlock))
+                  RollbackInfo(powBlock.prevPosId, Seq(bestPowBlock), Seq(powBlock))
                 } else {
-                  log.info(s"Processing fork at ${Base58.encode(powBlock.id)}")
-
-                  val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(powBlock.prevPosId).get)
-
-                  val rollbackPoint = newSuffix.head
-
-                  val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
-                  val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(powBlock)
-                  require(applyBlocks.nonEmpty)
-                  require(throwBlocks.nonEmpty)
-
-                  RollbackInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
+                  bestForkChanges(powBlock)
                 }
               } else {
+                log.debug(s"New orphaned PoW block ${Base58.encode(powBlock.id)}")
                 RollbackInfo(powBlock.prevPosId, Seq(), Seq())
               }
+              storage.update(powBlock, None, isBest)
+              mod
+
             case None =>
               log.warn("No parent block in history")
               ???
           }
         }
-        require(modifications.toApply.exists(_.id sameElements powBlock.id))
+        //        require(modifications.toApply.exists(_.id sameElements powBlock.id))
         (new HybridHistory(storage, settings, validators), modifications)
 
 
       case posBlock: PosBlock =>
         val difficulties = calcDifficultiesForNewBlock(posBlock)
         val isBest = storage.height == storage.parentHeight(posBlock)
-        storage.update(posBlock, Some(difficulties), isBest)
         val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
 
-
         val mod: RollbackInfo[HybridBlock] = if (!isBest) {
+          log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
           RollbackInfo(posBlock.parentId, Seq(), Seq())
         } else if (posBlock.parentId sameElements bestPowId) {
+          log.debug(s"New best PoS block ${Base58.encode(posBlock.id)}")
           RollbackInfo(posBlock.parentId, Seq(), Seq(posBlock))
-        } else {
+        } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
+          log.debug(s"New best PoS block with link to non-best brother ${Base58.encode(posBlock.id)}")
           //rollback to prevoius PoS block and apply parent block one more time
-          val toRollback = parent +: parent.brothers.flatMap(header => modifierById(header.id))
-          RollbackInfo(parent.prevPosId, toRollback, Seq(parent, posBlock))
+          RollbackInfo(parent.prevPosId, Seq(bestPowBlock), Seq(parent, posBlock))
+        } else {
+          bestForkChanges(posBlock)
         }
+        storage.update(posBlock, Some(difficulties), isBest)
 
         (new HybridHistory(storage, settings, validators), mod)
     }
@@ -173,6 +172,23 @@ class HybridHistory(storage: HistoryStorage,
       s"Best score is ${storage.bestChainScore}. " +
       s"Pair: ${Base58.encode(storage.bestPowId)}|${Base58.encode(storage.bestPosId)}")
     res
+  }
+
+  def bestForkChanges(block: HybridBlock): RollbackInfo[HybridBlock] = {
+    val parentId = storage.parentId(block)
+    val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(parentId).get)
+    log.debug(s"Processing fork for block ${Base58.encode(block.id)}: \n" +
+      s"old: ${oldSuffix.map(Base58.encode)}\n" +
+      s"new: ${newSuffix.map(Base58.encode)}")
+
+    val rollbackPoint = newSuffix.head
+
+    val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
+    val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(block)
+    require(applyBlocks.nonEmpty)
+    require(throwBlocks.nonEmpty)
+
+    RollbackInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
   }
 
   private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, Long) = {
@@ -330,7 +346,8 @@ class HybridHistory(storage: HistoryStorage,
     */
   final def commonBlockThenSuffixes(forkBlock: HybridBlock,
                                     limit: Int = Int.MaxValue): (Seq[ModifierId], Seq[ModifierId]) = {
-    val loserChain = chainBack(bestPowBlock, isGenesis, limit).get.map(_._2)
+    val loserChain = chainBack(bestBlock, isGenesis, limit).get.map(_._2)
+
     def in(m: HybridBlock): Boolean = loserChain.exists(s => s sameElements m.id)
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
     val i = loserChain.indexWhere(id => id sameElements winnerChain.head)
