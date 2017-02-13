@@ -50,7 +50,7 @@ class HWalletSpecification extends PropSpec
         txIn.to.map(p => (ss.publicImage, p._2 + 1))
       val tx = txIn.copy(to = toWithMyPubkey)
 
-      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, EmptySignature)
+      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, Array(), EmptySignature)
       val boxes = w.scanPersistent(pb).boxes()
       boxes.exists(b => b.transactionId sameElements tx.id) shouldBe true
     }
@@ -66,7 +66,7 @@ class HWalletSpecification extends PropSpec
       val tx = txIn.copy(from = fromWithMyPubkey)
       tx.boxIdsToOpen.exists(id => id sameElements boxToRemove.id) shouldBe true
 
-      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, EmptySignature)
+      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, Array(), EmptySignature)
       val boxes = w.scanPersistent(pb).boxes()
       boxes.exists(b => b.box.id sameElements boxToRemove.id) shouldBe false
     }

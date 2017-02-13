@@ -60,7 +60,8 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
     assert(Base58.encode(genesisTxs.head.id) == "J26Fp2sChi6WPS8no7h94zJwrVv3UoqBHwNhb3bEHNgY")
 
     val genesisBox = PublicKey25519NoncedBox(genesisAccountPriv.publicImage, 0, GenesisBalance)
-    val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, genesisBox, genesisAccountPriv)
+    val attachment = "genesis attachment".getBytes
+    val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, genesisBox, attachment, genesisAccountPriv)
 
     var history = HybridHistory.readOrGenerate(settings)
     history = history.append(powGenesis).get._1

@@ -16,9 +16,10 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+import scorex.utils.Random
 
 
-class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
+class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
   import PosForger._
 
@@ -56,7 +57,8 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
         val powBlock = h.bestPowBlock
         log.debug(s"Trying to generate blocks with balance ${boxKeys.map(_._1.value).sum} in" +
           s" boxes ${boxes.map(_.id).map(id => Base58.encode(id)).mkString(",")}")
-        posIteration(powBlock, boxKeys, pickTransactions(m, s), target) match {
+        val attachment = Random.randomBytes(settings.posAttachmentSize)
+        posIteration(powBlock, boxKeys, pickTransactions(m, s), attachment, target) match {
           case Some(posBlock) =>
             log.debug(s"Locally generated PoS block: $posBlock")
             forging = false
@@ -89,6 +91,7 @@ object PosForger extends ScorexLogging {
   def posIteration(powBlock: PowBlock,
                    boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
                    txsToInclude: Seq[SimpleBoxTransaction],
+                   attachment: Array[Byte],
                    target: Long
                   ): Option[PosBlock] = {
     val successfulHits = boxKeys.map { boxKey =>
@@ -104,6 +107,7 @@ object PosForger extends ScorexLogging {
         System.currentTimeMillis(),
         txsToInclude,
         boxKey._1,
+        attachment,
         boxKey._2)
     }
   }

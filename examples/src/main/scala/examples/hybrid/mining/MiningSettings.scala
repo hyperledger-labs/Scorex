@@ -11,6 +11,11 @@ trait MiningSettings extends Settings with MiningConstants {
 
   lazy val offlineGeneration = settingsJSON.get("offlineGeneration").flatMap(_.asBoolean).getOrElse(false)
 
+  lazy val posAttachmentSize = settingsJSON.get("posAttachmentSize").flatMap(_.asNumber).flatMap(_.toInt)
+    .getOrElse(DefaulPtosAttachmentSize)
+
+  val DefaulPtosAttachmentSize = 1024
+
   override def toString: String = (Map("BlockDelay" -> BlockDelay.asJson) ++
     settingsJSON.map(s => s._1 -> s._2)).asJson.spaces2
 }
