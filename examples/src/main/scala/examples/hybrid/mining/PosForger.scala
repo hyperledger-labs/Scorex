@@ -55,8 +55,8 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
         self ! StopForging
       } else {
         val powBlock = h.bestPowBlock
-        log.debug(s"Trying to generate blocks with balance ${boxKeys.map(_._1.value).sum} in" +
-          s" boxes ${boxes.map(_.id).map(id => Base58.encode(id)).mkString(",")}")
+        log.debug(s"Trying to generate PoS block on top of ${powBlock.encodedId} with balance " +
+          s"${boxKeys.map(_._1.value).sum}")
         val attachment = Random.randomBytes(settings.posAttachmentSize)
         posIteration(powBlock, boxKeys, pickTransactions(m, s), attachment, target) match {
           case Some(posBlock) =>

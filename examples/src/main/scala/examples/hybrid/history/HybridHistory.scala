@@ -148,8 +148,9 @@ class HybridHistory(storage: HistoryStorage,
 
       case posBlock: PosBlock =>
         val difficulties = calcDifficultiesForNewBlock(posBlock)
-        val isBest = storage.height == storage.parentHeight(posBlock)
         val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
+        val isBest = bestPowId sameElements posBlock.parentId
+        assert(!isBest || storage.height == storage.parentHeight(posBlock))
 
         val mod: RollbackInfo[HybridBlock] = if (!isBest) {
           log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
@@ -241,7 +242,7 @@ class HybridHistory(storage: HistoryStorage,
     def idInList(id: ModifierId): Boolean = from.exists(f => f._2 sameElements id)
 
     //Look without limit for case difference between nodes is bigger then size
-    chainBack(bestPowBlock, inList) match {
+    chainBack(bestBlock, inList) match {
       case Some(chain) if chain.exists(id => idInList(id._2)) => Some(chain.take(size))
       case Some(chain) =>
         log.warn("Found chain without ids form remote")
