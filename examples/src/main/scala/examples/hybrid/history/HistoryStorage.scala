@@ -127,7 +127,7 @@ class HistoryStorage(blocksStorage: LSMStore,
   }
 
 
-  def parentHeight(b: HybridBlock): Long = if (isGenesis(b)) 0L else blockHeights.get(parentId(b))
+  def parentHeight(b: HybridBlock): Long = heightOf(parentId(b)).getOrElse(0L)
 
   def parentId(block: HybridBlock): ModifierId = block match {
     case powBlock: PowBlock => powBlock.prevPosId
@@ -136,6 +136,9 @@ class HistoryStorage(blocksStorage: LSMStore,
 
   def heightOf(blockId: ModifierId): Option[Long] = Option(blockHeights.get(blockId)).map(_.toLong)
 
-  def isGenesis(b: HybridBlock): Boolean = b.parentId sameElements settings.GenesisParentId
+  def isGenesis(b: HybridBlock): Boolean = b match {
+    case powB: PowBlock => powB.parentId sameElements settings.GenesisParentId
+    case posB: PosBlock => heightOf(posB.parentId).contains(1L)
+  }
 
 }
