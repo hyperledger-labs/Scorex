@@ -149,8 +149,7 @@ class HybridHistory(storage: HistoryStorage,
       case posBlock: PosBlock =>
         val difficulties = calcDifficultiesForNewBlock(posBlock)
         val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
-        val isBest = bestPowId sameElements posBlock.parentId
-        assert(!isBest || storage.height == storage.parentHeight(posBlock))
+        val isBest = storage.height == storage.parentHeight(posBlock)
 
         val mod: RollbackInfo[HybridBlock] = if (!isBest) {
           log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
