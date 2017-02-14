@@ -76,7 +76,7 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
 }
 
 object PosForger extends ScorexLogging {
-  val InitialDifficuly = 588281250L
+  val InitialDifficuly = 1588281250L
   val MaxTarget = Long.MaxValue
 
   case object StartForging
