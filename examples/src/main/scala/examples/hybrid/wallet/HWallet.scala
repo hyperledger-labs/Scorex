@@ -59,6 +59,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
       .map(ba => walletBoxSerializer.parseBytes(ba))
       .map(_.get)
       .toSeq
+      .filter(_.box.value > 0)
   }
 
   override def publicKeys: Set[PublicKey25519Proposition] =
