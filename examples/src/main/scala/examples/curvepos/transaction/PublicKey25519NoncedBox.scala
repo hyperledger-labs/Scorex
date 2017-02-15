@@ -20,6 +20,7 @@ case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Propo
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
     "address" -> proposition.address.asJson,
+    "publicKey" -> Base58.encode(proposition.pubKeyBytes).asJson,
     "nonce" -> nonce.asJson,
     "value" -> value.asJson
   ).asJson
