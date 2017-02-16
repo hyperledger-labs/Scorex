@@ -33,7 +33,7 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     super.preRestart(reason, message)
     reason.printStackTrace()
-    System.exit(100) // this actor shouldn't be restarted so kill the whole app if that happened
+    System.exit(100) // this actor shouldn't be restarted at all so kill the whole app if that happened
   }
 
   /**
