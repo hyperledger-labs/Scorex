@@ -7,7 +7,7 @@ import scala.util.Success
 trait CancellableStatus {
   def isCancelled: Boolean
 
-  def nonCancelled = !isCancelled
+  def nonCancelled: Boolean = !isCancelled
 }
 
 trait Cancellable {
@@ -17,7 +17,7 @@ trait Cancellable {
 }
 
 object Cancellable {
-  def apply() = new Cancellable {
+  def apply(): Cancellable = new Cancellable {
     val p = Promise[Unit]()
 
     override def cancel(): Boolean = p.tryComplete(Success(()))

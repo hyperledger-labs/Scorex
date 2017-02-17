@@ -143,8 +143,6 @@ object HBoxStoredState {
       }
     })
 
-    val mFile = new File(s"$dataDir/statemeta")
-
     HBoxStoredState(stateStorage, Array.emptyByteArray)
   }
 

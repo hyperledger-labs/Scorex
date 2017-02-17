@@ -1,20 +1,16 @@
 package examples.hybrid.simulations
 
-import java.io.FileWriter
-
-import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
-import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
+import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import io.circe
 import scorex.core.block.Block.BlockId
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.Signature25519
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 

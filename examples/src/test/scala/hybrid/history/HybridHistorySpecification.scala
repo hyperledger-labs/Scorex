@@ -26,7 +26,7 @@ class HybridHistorySpecification extends PropSpec
   with HybridGenerators {
 
   val constants = new MiningConstants {
-    override val BlockDelay: Long = 1.minute.toMillis
+    override val targetBlockDelay: Long = 1.minute.toMillis
 
     override lazy val Difficulty: BigInt = 1
   }

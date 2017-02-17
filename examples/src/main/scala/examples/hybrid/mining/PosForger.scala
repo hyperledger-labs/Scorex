@@ -15,7 +15,6 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
 import scorex.utils.Random
 
 

@@ -31,7 +31,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
   def delay: Route = {
     path("delay" / Segment / IntNumber) { case (encodedSignature, count) =>
       getJsonRoute {
-        getView().map { view =>
+        viewAsync().map { view =>
           Map(
             "delay" -> Base58.decode(encodedSignature).flatMap(id => view.history.averageDelay(id, count))
               .map(_.toString).getOrElse("Undefined")
@@ -48,7 +48,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
   ))
   def infoRoute: Route = path("info") {
     getJsonRoute {
-      getView().map { view =>
+      viewAsync().map { view =>
         Map(
           "height" -> view.history.height.toString.asJson,
           "bestPoS" -> Base58.encode(view.history.bestPosId).asJson,
@@ -66,7 +66,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
   ))
   def chain: Route = path("chain") {
     getJsonRoute {
-      getView().map { view =>
+      viewAsync().map { view =>
         Map(
           "history" -> view.history.toString
         ).asJson

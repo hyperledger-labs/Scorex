@@ -38,7 +38,7 @@ class PowBlockHeader(
       brothersHash ++
       generatorProposition.pubKeyBytes
 
-  def correctWork(difficulty: BigInt, s: MiningConstants) = correctWorkDone(id, difficulty, s)
+  def correctWork(difficulty: BigInt, s: MiningConstants): Boolean = correctWorkDone(id, difficulty, s)
 
   lazy val id = FastCryptographicHash(headerBytes)
 

@@ -3,7 +3,7 @@ package examples.hybrid
 import akka.actor.ActorRef
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.mining.PosForger.{StartForging, StopForging}
-import examples.hybrid.mining.{MiningSettings, PowMiner}
+import examples.hybrid.mining.MiningSettings
 import examples.hybrid.mining.PowMiner.{MineBlock, StartMining, StopMining}
 import examples.hybrid.state.SimpleBoxTransaction
 import scorex.core.LocalInterface

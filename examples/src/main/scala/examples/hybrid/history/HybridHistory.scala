@@ -20,7 +20,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 /**
   * History storage
@@ -202,7 +202,7 @@ class HybridHistory(storage: HistoryStorage,
 
       val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
-      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.BlockDelay
+      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.targetBlockDelay
       val oldPowDifficulty = storage.getPoWDifficulty(Some(powBlocks.last.prevPosId))
 
       val newPowDiffUnlimited = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))

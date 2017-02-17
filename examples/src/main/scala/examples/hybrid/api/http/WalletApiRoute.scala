@@ -47,7 +47,7 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
     entity(as[String]) { body =>
       withAuth {
         postJsonRoute {
-          getView().map { view =>
+          viewAsync().map { view =>
             val respons: Json = parse(body) match {
               case Left(failure) => failure.toString.asJson
               case Right(json) => Try {
@@ -87,7 +87,7 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
   ))
   def balances: Route = path("balances") {
     getJsonRoute {
-      getView().map { view =>
+      viewAsync().map { view =>
         val wallet = view.vault
         val boxes = wallet.boxes()
 

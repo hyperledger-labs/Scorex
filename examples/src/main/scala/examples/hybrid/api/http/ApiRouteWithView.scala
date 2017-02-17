@@ -15,9 +15,8 @@ trait ApiRouteWithView extends ApiRoute {
 
   val nodeViewHolderRef: ActorRef
 
-  protected def getView(): Future[CurrentView[HybridHistory, HBoxStoredState, HWallet, HMemPool]] = {
+  protected def viewAsync(): Future[CurrentView[HybridHistory, HBoxStoredState, HWallet, HMemPool]] = {
     (nodeViewHolderRef ? GetCurrentView)
       .mapTo[CurrentView[HybridHistory, HBoxStoredState, HWallet, HMemPool]]
   }
-
 }

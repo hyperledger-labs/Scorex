@@ -14,8 +14,6 @@ import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
-
-import scala.annotation.tailrec
 import scala.util.Try
 
 case class PosBlock(override val parentId: BlockId, //PoW block

@@ -26,8 +26,6 @@ class HistoryStorage(blocksStorage: LSMStore,
   //see http://bitcoin.stackexchange.com/questions/29742/strongest-vs-longest-chain-and-orphaned-blocks
   private lazy val blockHeights = metaDb.hashMap("hidx", Serializer.BYTE_ARRAY, Serializer.LONG).createOrOpen()
 
-  private lazy val orphanCountVar = metaDb.atomicLong("orphans", 0L).createOrOpen()
-
   private lazy val bestPowIdVar = metaDb.atomicVar("lastPow", Serializer.BYTE_ARRAY).createOrOpen()
 
   private lazy val bestPosIdVar = metaDb.atomicVar("lastPos", Serializer.BYTE_ARRAY).createOrOpen()
@@ -41,12 +39,12 @@ class HistoryStorage(blocksStorage: LSMStore,
 
   def bestPosId: Array[Byte] = Option(bestPosIdVar.get()).getOrElse(settings.GenesisParentId)
 
-  def bestPowBlock = {
+  def bestPowBlock: PowBlock = {
     require(height > 0, "History is empty")
     modifierById(bestPowId).get.asInstanceOf[PowBlock]
   }
 
-  def bestPosBlock = {
+  def bestPosBlock: PosBlock = {
     require(height > 0, "History is empty")
     modifierById(bestPosId).get.asInstanceOf[PosBlock]
   }
@@ -70,7 +68,7 @@ class HistoryStorage(blocksStorage: LSMStore,
     }
   }
 
-  def update(b: HybridBlock, diff: Option[(BigInt, Long)], isBest: Boolean) = {
+  def update(b: HybridBlock, diff: Option[(BigInt, Long)], isBest: Boolean) {
     log.debug(s"Write new best=$isBest block ${b.encodedId}")
     writeBlock(b)
     blockHeights.put(b.id, parentHeight(b) + 1)
