@@ -1,3 +1,7 @@
+
+* MapDB dependency removed
+* 
+
 2.0.0-M4
 --------
 
