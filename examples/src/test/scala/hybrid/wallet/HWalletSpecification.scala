@@ -39,7 +39,7 @@ class HWalletSpecification extends PropSpec
 
     val keys = wallet(w).publicKeys
     keys.size shouldBe KeysToGenerate
-    keys.map(_.toString).mkString(",") shouldBe "4VkaSxrbVd8kAXvopmcHgweHf91JmXsKaSW7rw6KhTSn8J5RT1,4GYrmb3opcfefASsPm1KL1Qi9s8ypPqu2VemLkKRyTGVRWtDUY,4KCyVYTeE2YR91AySB9XrUWyrnHCHcenFozr4cdyFKGQpJ7c7p,4HDzwyfUkqspVNetwEYuidFm7yPmLruuDFTCtikm14NKUHPX61,4oR16K9LYFyHqYCfcQVerie2e2h2AQ4SZCUdZBM9RGA8JnJE7n"
+    keys.map(_.toString).mkString(",") shouldBe "4TBtyQqaKmJLL2UqgrVSFt2JNkevZWfwDahPkWM424aeX7ttzc,3TDp4RdDs9HMjmiso4r7jyhyLmECkVwqXXy2V28yLJPdWA4bcq,3qkG6U4v4Vqb85yXLa7wKUDnk7a9iA8zQiampc4Q47yARQG1sY,4qwyT3s6bU21N4dhbmaZSYhFEcDEgLoHJjzfDTfhuktbbNC4da,4nkadHvLyi3ZobRzEamrFkZbNzQAkNpLXUKJEixk6SN6kNQzHa"
   }
 
   property("Wallet should generate new pairs") {

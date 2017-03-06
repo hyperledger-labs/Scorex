@@ -2,6 +2,7 @@ package examples.hybrid.wallet
 
 import java.io.File
 
+import com.google.common.primitives.Ints
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
@@ -60,7 +61,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength), store:
 
   override def generateNewSecret(): HWallet = {
     val prevSecrets = secrets
-    val nonce:Array[Byte] = prevSecrets.toArray.sortBy(b => ByteArrayWrapper(b.privKeyBytes)).flatMap(_.privKeyBytes)
+    val nonce:Array[Byte] = Ints.toByteArray(prevSecrets.size)
     val s = FastCryptographicHash(seed ++ nonce)
     val (priv, _) = PrivateKey25519Companion.generateKeys(s)
     val allSecrets: Set[PrivateKey25519] = Set(priv) ++ prevSecrets
