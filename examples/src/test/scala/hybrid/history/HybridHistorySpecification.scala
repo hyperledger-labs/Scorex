@@ -7,7 +7,6 @@ import examples.hybrid.history.{HistoryStorage, HybridHistory}
 import examples.hybrid.mining.MiningConstants
 import hybrid.HybridGenerators
 import io.iohk.iodb.LSMStore
-import org.mapdb.DBMaker
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -90,13 +89,7 @@ class HybridHistorySpecification extends PropSpec
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile)
 
-    val metaDb =
-      DBMaker.fileDB(s"$dataDir/hidx")
-        .fileMmapEnableIfSupported()
-        .closeOnJvmShutdown()
-        .make()
-
-    val storage = new HistoryStorage(blockStorage, metaDb, settings)
+    val storage = new HistoryStorage(blockStorage, settings)
     //we don't care about validation here
     val validators = Seq()
 

@@ -39,7 +39,7 @@ val loggingDependencies = Seq(
 
 val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-testkit" % "2.+" % "test",
-  "org.scalactic" %% "scalactic" % "3.0.1",
+  "org.scalactic" %% "scalactic" % "3.0.1" % "test",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %% "scalacheck" % "1.13.+" % "test",
   "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"

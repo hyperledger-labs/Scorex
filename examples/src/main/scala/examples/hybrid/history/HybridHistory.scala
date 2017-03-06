@@ -8,7 +8,6 @@ import examples.hybrid.mining.{MiningConstants, MiningSettings}
 import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
-import org.mapdb.DBMaker
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.block.{Block, BlockValidator}
@@ -394,13 +393,7 @@ object HybridHistory extends ScorexLogging {
       }
     })
 
-    val metaDb =
-      DBMaker.fileDB(s"$dataDir/hidx")
-        .fileMmapEnableIfSupported()
-        .closeOnJvmShutdown()
-        .make()
-
-    val storage = new HistoryStorage(blockStorage, metaDb, settings)
+    val storage = new HistoryStorage(blockStorage, settings)
     val validators = Seq(new DifficultyBlockValidator(settings, storage),
       new ParentBlockValidator(storage),
       new SemanticBlockValidator(FastCryptographicHash)

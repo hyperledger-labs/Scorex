@@ -26,6 +26,11 @@ case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKn
   override type M = PublicKey25519Proposition
 
   override def serializer: Serializer[PublicKey25519Proposition] = PublicKey25519PropositionSerializer
+
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case p:PublicKey25519Proposition => pubKeyBytes sameElements pubKeyBytes
+    case _ => false
+  }
 }
 
 object PublicKey25519PropositionSerializer extends Serializer[PublicKey25519Proposition] {
