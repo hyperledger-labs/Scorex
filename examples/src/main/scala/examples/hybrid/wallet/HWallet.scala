@@ -2,7 +2,6 @@ package examples.hybrid.wallet
 
 import java.io.File
 
-import com.google.common.primitives.Ints
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
@@ -15,7 +14,6 @@ import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion,
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletBoxSerializer, WalletTransaction}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
-import scorex.crypto.signatures.Curve25519
 import scorex.utils.Random
 
 import scala.util.Try
@@ -61,9 +59,11 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength), store:
     secrets.find(s => s.publicImage == publicImage)
 
   override def generateNewSecret(): HWallet = {
-    val s = FastCryptographicHash(seed ++ store.lastVersionID.map(_.data).getOrElse(Array()))
+    val prevSecrets = secrets
+    val nonce:Array[Byte] = prevSecrets.toArray.sortBy(b => ByteArrayWrapper(b.privKeyBytes)).flatMap(_.privKeyBytes)
+    val s = FastCryptographicHash(seed ++ nonce)
     val (priv, _) = PrivateKey25519Companion.generateKeys(s)
-    val allSecrets: Set[PrivateKey25519] = Set(priv) ++ secrets
+    val allSecrets: Set[PrivateKey25519] = Set(priv) ++ prevSecrets
     store.update(ByteArrayWrapper(priv.privKeyBytes),
       Seq(),
       Seq(SecretsKey -> ByteArrayWrapper(allSecrets.toArray.flatMap(p => PrivateKey25519Serializer.toBytes(p)))))
@@ -112,7 +112,7 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength), store:
 
 object HWallet {
 
-  def readOrGenerate(settings: Settings, seed: String, appendix: String): HWallet = {
+  def readOrGenerate(settings: Settings, seed: String): HWallet = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
     new File(dataDir).mkdirs()
@@ -130,17 +130,17 @@ object HWallet {
     HWallet(Base58.decode(seed).get, boxesStorage)
   }
 
-  def readOrGenerate(settings: Settings, appendix: String): HWallet = {
-    readOrGenerate(settings, Base58.encode(settings.walletSeed), appendix)
+  def readOrGenerate(settings: Settings): HWallet = {
+    readOrGenerate(settings, Base58.encode(settings.walletSeed))
   }
 
-  def readOrGenerate(settings: Settings, seed: String, appendix: String, accounts: Int): HWallet =
-    (1 to accounts).foldLeft(readOrGenerate(settings, seed, appendix)) { case (w, _) =>
+  def readOrGenerate(settings: Settings, seed: String, accounts: Int): HWallet =
+    (1 to accounts).foldLeft(readOrGenerate(settings, seed)) { case (w, _) =>
       w.generateNewSecret()
     }
 
-  def readOrGenerate(settings: Settings, appendix: String, accounts: Int): HWallet =
-    (1 to accounts).foldLeft(readOrGenerate(settings, appendix)) { case (w, _) =>
+  def readOrGenerate(settings: Settings, accounts: Int): HWallet =
+    (1 to accounts).foldLeft(readOrGenerate(settings)) { case (w, _) =>
       w.generateNewSecret()
     }
 
@@ -149,9 +149,6 @@ object HWallet {
     val dataDir = dataDirOpt.get
     new File(s"$dataDir/walletboxes").exists()
   }
-
-  def readOrGenerate(settings: Settings): HWallet =
-    readOrGenerate(settings, "", 10)
 
   //wallet with applied initialBlocks
   def genesisWallet(settings: Settings, initialBlocks: Seq[HybridBlock]): HWallet = {

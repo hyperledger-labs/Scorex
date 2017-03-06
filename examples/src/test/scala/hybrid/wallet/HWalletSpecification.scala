@@ -10,9 +10,8 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
-import scorex.crypto.encode.Base58
-import scorex.crypto.hash.Blake2b256
 
+import scala.annotation.tailrec
 import scala.util.Random
 
 class HWalletSpecification extends PropSpec
@@ -32,16 +31,23 @@ class HWalletSpecification extends PropSpec
   val fs = w.secrets.head
   val ss = w.secrets.tail.head
 
+  property("Wallet should generate same keys") {
+    val KeysToGenerate = 5
+    @tailrec
+    def wallet(oldW: HWallet): HWallet = if (oldW.publicKeys.size >= KeysToGenerate) oldW
+    else wallet(oldW.generateNewSecret())
+
+    val keys = wallet(w).publicKeys
+    keys.size shouldBe KeysToGenerate
+    keys.map(_.toString).mkString(",") shouldBe "4VkaSxrbVd8kAXvopmcHgweHf91JmXsKaSW7rw6KhTSn8J5RT1,4GYrmb3opcfefASsPm1KL1Qi9s8ypPqu2VemLkKRyTGVRWtDUY,4KCyVYTeE2YR91AySB9XrUWyrnHCHcenFozr4cdyFKGQpJ7c7p,4HDzwyfUkqspVNetwEYuidFm7yPmLruuDFTCtikm14NKUHPX61,4oR16K9LYFyHqYCfcQVerie2e2h2AQ4SZCUdZBM9RGA8JnJE7n"
+  }
+
   property("Wallet should generate new pairs") {
     val s = w.secrets.size
 
     val w2 = w.generateNewSecret().generateNewSecret()
     w2.secrets.size shouldBe s + 2
-  }
-
-  property("Wallet should generate same keys") {
-    val keys = HWallet.readOrGenerate(settings, "genesis", "e", 10).publicKeys
-    keys.map(_.toString).mkString(",") shouldBe "3g21Bv22ES7suDuq3cVGCQqhCCqhtePE5KNz1aCUnQmbtauPw9,4SexWNVTphERBpx2QfWKP2Fz1QYoee91g8rzMBAJExUF5fDuGt,3SHtEdr7tvjA8o27PTAkcBxEjWMbjSQAYH5knBGYLAC7AKJCfg,4BA9MhA62fm5AjbVMvvRrvomfsrMYyijYALP45Eyooo2JvKVb9,3y11aj63n4uvWa3dXh2aQ84YJYQvEFoB1YEVhn2aSXDhVRfVrE,3uQJ736znugcTe76cfyQPcwE1LvA3Ka2Ec2F8FbMCz8xz5NnzF,3pxZkRDUarzPHwaRDbCinhKUk4vEsRZBUFVyBRWNMsHp6v6Naa,4SwRrrULrttmFncRZP8YFMn27oZV8vTFffwt92uV6foiYCcZUb,3zgP2RAUMdBdDraE6E4VokvPC8DtSEACx9c4Dtd6WNVUp5gasU,3aXBqeGdvo6VuWiTyzpuf2skoVZqZ1ousrxxUBApbrzHuNPtxP"
+    w.publicKeys.size shouldBe w.secrets.size
   }
 
   property("Wallet should add boxes where he is recipient") {
