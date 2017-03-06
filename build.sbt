@@ -2,7 +2,7 @@ scalaVersion := "2.12.1"
 
 name := "scorex-core"
 organization := "org.scorexfoundation"
-version := "2.0.0-M4"
+version := "2.0.0-M5-SNAPSHOT"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
