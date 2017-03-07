@@ -43,7 +43,6 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
       viewHolderRef ! GetCurrentView
 
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
-
       val target = MaxTarget / h.posDifficulty
 
       val boxes = w.boxes().map(_.box).filter(box => s.closedBox(box.id).isDefined)

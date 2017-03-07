@@ -153,7 +153,7 @@ object HWallet {
 
   //wallet with applied initialBlocks
   def genesisWallet(settings: Settings, initialBlocks: Seq[HybridBlock]): HWallet = {
-    initialBlocks.foldLeft(readOrGenerate(settings)) { (a, b) =>
+    initialBlocks.foldLeft(readOrGenerate(settings).generateNewSecret()) { (a, b) =>
       a.scanPersistent(b)
     }
   }
