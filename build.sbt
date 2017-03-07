@@ -15,7 +15,7 @@ resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositori
 val circeVersion = "0.+"
 
 val networkDependencies = Seq(
-  "com.typesafe.akka" %% "akka-actor" % "+",
+  "com.typesafe.akka" %% "akka-actor" % "2.4.17",
   "org.bitlet" % "weupnp" % "0.1.+",
   "commons-net" % "commons-net" % "3.+"
 )
@@ -29,7 +29,8 @@ val apiDependencies = Seq(
   // "io.swagger" % "swagger-annotations" % "1.5.10",
   // "io.swagger" % "swagger-models" % "1.5.10",
   // "io.swagger" % "swagger-jaxrs" % "1.5.10",
-  "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.+"
+  "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.+",
+  "com.typesafe.akka" %% "akka-http" % "10.+"
 )
 
 val loggingDependencies = Seq(
@@ -38,7 +39,7 @@ val loggingDependencies = Seq(
 )
 
 val testingDependencies = Seq(
-  "com.typesafe.akka" %% "akka-testkit" % "2.+" % "test",
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.17" % "test",
   "org.scalactic" %% "scalactic" % "3.0.1" % "test",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %% "scalacheck" % "1.13.+" % "test",

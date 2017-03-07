@@ -17,14 +17,14 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.google.guava" % "guava" % "19.0",
   "com.ning" % "async-http-client" % "1.9.11",
   "com.thoughtworks.paranamer" % "paranamer" % "2.8",
-  "com.typesafe" % "config" % "1.3.1",
+  "com.typesafe" % "config" % "1.3.0",
   "com.typesafe" % "ssl-config-core_2.12" % "0.2.1",
-  "com.typesafe.akka" % "akka-actor_2.12" % "2.5-M2",
-  "com.typesafe.akka" % "akka-http-core_2.12" % "10.0.1",
-  "com.typesafe.akka" % "akka-http_2.12" % "10.0.1",
-  "com.typesafe.akka" % "akka-parsing_2.12" % "10.0.1",
-  "com.typesafe.akka" % "akka-stream_2.12" % "2.4.16",
-  "com.typesafe.akka" % "akka-testkit_2.12" % "2.5-M2",
+  "com.typesafe.akka" % "akka-actor_2.12" % "2.4.17",
+  "com.typesafe.akka" % "akka-http-core_2.12" % "10.0.4",
+  "com.typesafe.akka" % "akka-http_2.12" % "10.0.4",
+  "com.typesafe.akka" % "akka-parsing_2.12" % "10.0.4",
+  "com.typesafe.akka" % "akka-stream_2.12" % "2.4.17",
+  "com.typesafe.akka" % "akka-testkit_2.12" % "2.4.17",
   "commons-net" % "commons-net" % "3.6",
   "io.circe" % "circe-core_2.12" % "0.7.0",
   "io.circe" % "circe-generic_2.12" % "0.7.0",
@@ -66,4 +66,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.3.0",
   "org.yaml" % "snakeyaml" % "1.17"
 )
-// LIBRARY_DEPENDENCIES_HASH 46ea24babf8d9cefa79179f47419804809d0d10e
+// LIBRARY_DEPENDENCIES_HASH c55c6c866fbd787939101742c7e2b4d83a8d2b6c
