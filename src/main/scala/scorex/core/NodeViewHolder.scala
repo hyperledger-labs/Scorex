@@ -18,8 +18,6 @@ import scorex.crypto.encode.Base58
 import scala.collection.mutable
 import scala.util.{Failure, Success}
 
-
-//todo: listeners
 //todo: async update?
 
 /**
@@ -128,7 +126,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
           case Failure(e) =>
             log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
-//            System.exit(1)
             notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
         }
 
