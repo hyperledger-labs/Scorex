@@ -15,7 +15,7 @@
   },
   "walletDir": "/tmp/scorex/testnet/wallet",
   "walletPassword": "cookies",
-  "walletSeed": "test",
+  "walletSeed": "genesis44",
   "dataDir": "/tmp/scorex/testnet/data",
   "logDir": "/tmp/scorex/testnet/log",
   "rpcPort": 9585,
