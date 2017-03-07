@@ -99,8 +99,14 @@ object PosBlock {
              box: PublicKey25519NoncedBox,
              attachment: Array[Byte],
              privateKey: PrivateKey25519): PosBlock = {
+    assert(box.proposition.pubKeyBytes sameElements privateKey.publicKeyBytes)
     val unsigned = PosBlock(parentId, timestamp, txs, box, attachment, Signature25519(Array.empty))
     val signature = Curve25519.sign(privateKey.privKeyBytes, unsigned.bytes)
     unsigned.copy(signature = Signature25519(signature))
+  }
+
+  def signatureValid(posBlock: PosBlock): Boolean = {
+    val unsignedBytes = posBlock.copy(signature = Signature25519(Array.empty)).bytes
+    posBlock.generatorBox.proposition.verify(unsignedBytes, posBlock.signature.signature)
   }
 }
