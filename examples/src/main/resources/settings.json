@@ -1,6 +1,6 @@
 {
   "p2p": {
-    "name": "node1",
+    "name": "node121",
     "bindAddress": "127.0.0.1",
     "upnp": false,
     "upnpGatewayTimeout": 7000,
@@ -14,7 +14,7 @@
     "handshakeTimeout": 2000
   },
   "walletPassword": "cookies",
-  "walletSeed": "genesis",
+  "walletSeed": "genesisoo",
   "walletDir": "/tmp/scorex/data/wallet",
   "dataDir": "/tmp/scorex/data/blockchain",
   "logDir": "/tmp/scorex/data/log",
@@ -22,7 +22,7 @@
   "rpcAllowed": [],
   "maxRollback": 100,
   "offlineGeneration": true,
-  "blockGenerationDelay": 1000,
+  "blockGenerationDelay": 500,
   "cors": false,
   "agent": "2-Hop",
   "version": [0, 0, 1]

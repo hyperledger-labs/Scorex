@@ -15,10 +15,10 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
+import scorex.utils.Random
 
 
-class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
+class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
   import PosForger._
 
@@ -43,7 +43,6 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
       viewHolderRef ! GetCurrentView
 
     case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
-
       val target = MaxTarget / h.posDifficulty
 
       val boxes = w.boxes().map(_.box).filter(box => s.closedBox(box.id).isDefined)
@@ -54,9 +53,10 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
         self ! StopForging
       } else {
         val powBlock = h.bestPowBlock
-        log.debug(s"Trying to generate blocks with balance ${boxKeys.map(_._1.value).sum} in" +
-          s" boxes ${boxes.map(_.id).map(id => Base58.encode(id)).mkString(",")}")
-        posIteration(powBlock, boxKeys, pickTransactions(m, s), target) match {
+        log.debug(s"Trying to generate PoS block on top of ${powBlock.encodedId} with balance " +
+          s"${boxKeys.map(_._1.value).sum}")
+        val attachment = Random.randomBytes(settings.posAttachmentSize)
+        posIteration(powBlock, boxKeys, pickTransactions(m, s), attachment, target) match {
           case Some(posBlock) =>
             log.debug(s"Locally generated PoS block: $posBlock")
             forging = false
@@ -74,7 +74,7 @@ class PosForger(settings: Settings, viewHolderRef: ActorRef) extends Actor with 
 }
 
 object PosForger extends ScorexLogging {
-  val InitialDifficuly = 588281250L
+  val InitialDifficuly = 15000000000L
   val MaxTarget = Long.MaxValue
 
   case object StartForging
@@ -89,6 +89,7 @@ object PosForger extends ScorexLogging {
   def posIteration(powBlock: PowBlock,
                    boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
                    txsToInclude: Seq[SimpleBoxTransaction],
+                   attachment: Array[Byte],
                    target: Long
                   ): Option[PosBlock] = {
     val successfulHits = boxKeys.map { boxKey =>
@@ -104,6 +105,7 @@ object PosForger extends ScorexLogging {
         System.currentTimeMillis(),
         txsToInclude,
         boxKey._1,
+        attachment,
         boxKey._2)
     }
   }

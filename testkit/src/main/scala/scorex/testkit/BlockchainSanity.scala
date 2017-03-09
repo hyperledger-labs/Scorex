@@ -1,7 +1,7 @@
 package scorex.testkit
 
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.consensus.SyncInfo
+import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
@@ -17,12 +17,13 @@ PM <: PersistentNodeViewModifier[P, TX],
 SI <: SyncInfo,
 B <: Box[P],
 MPool <: MemoryPool[TX, MPool],
-ST <: MinimalState[P, B, TX, PM, ST]] extends HistoryAppendBlockTest[P, TX, PM, SI]
+ST <: MinimalState[P, B, TX, PM, ST],
+HT <: History[P, TX, PM, SI, HT]] extends HistoryAppendBlockTest[P, TX, PM, SI, HT]
   with StateApplyChangesTest[P, TX, PM, B, ST]
   with WalletSecretsTest[P, TX, PM]
   with StateRollbackTest[P, TX, PM, B, ST]
   with MempoolTransactionsTest[P, TX, MPool]
-  with StateChangesGenerationTest[P, TX, PM,  B, ST] {
+  with StateChangesGenerationTest[P, TX, PM,  B, ST, SI, HT] {
 
 
 }

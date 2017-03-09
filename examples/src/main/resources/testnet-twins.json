@@ -7,6 +7,7 @@
     "upnpDiscoverTimeout": 3000,
     "port": 9584,
     "knownPeers": [
+      "52.40.210.252:9084",
       "88.198.13.202:9084"
     ],
     "addedMaxDelay": 2000,
@@ -14,7 +15,7 @@
   },
   "walletDir": "/tmp/scorex/testnet/wallet",
   "walletPassword": "cookies",
-  "walletSeed": "test",
+  "walletSeed": "genesis44",
   "dataDir": "/tmp/scorex/testnet/data",
   "logDir": "/tmp/scorex/testnet/log",
   "rpcPort": 9585,

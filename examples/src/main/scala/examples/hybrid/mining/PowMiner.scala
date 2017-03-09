@@ -71,6 +71,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
           log.info(s"Starting new block mining for ${Base58.encode(h.bestPowId)}:${Base58.encode(h.bestPosId)}")
           (h.bestPowId, h.bestPosId, Seq()) //new step
         }
+        val pubkey = if(w.publicKeys.nonEmpty) w.publicKeys.head else w.generateNewSecret().publicKeys.head
 
         val p = Promise[Option[PowBlock]]()
         cancellableOpt = Some(Cancellable.run() { status =>
@@ -79,7 +80,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
             var attemps = 0
 
             while (status.nonCancelled && foundBlock.isEmpty) {
-              foundBlock = powIteration(parentId, prevPosId, brothers, difficulty, settings, w.publicKeys.head)
+              foundBlock = powIteration(parentId, prevPosId, brothers, difficulty, settings, pubkey)
               attemps = attemps + 1
               if (attemps % 100 == 99) {
                 log.debug(s"100 hashes tried, difficulty is $difficulty")

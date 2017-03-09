@@ -18,8 +18,6 @@ import scorex.crypto.encode.Base58
 import scala.collection.mutable
 import scala.util.{Failure, Success}
 
-
-//todo: listeners
 //todo: async update?
 
 /**
@@ -129,7 +127,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           case Failure(e) =>
             //TODO rollback history (or at least notify)
             log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
-            System.exit(1)
             notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
         }
 
@@ -186,7 +183,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             modifiersCache.put(pmod.id, remote -> pmod)
         }
 
-        log.info(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+        println(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
 
         var t: Option[(ConnectedPeer, PMOD)] = None
         do {

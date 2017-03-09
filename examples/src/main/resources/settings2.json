@@ -13,7 +13,7 @@
     "maxConnections": 10
   },
   "walletPassword": "cookies2",
-  "walletSeed": "helloworld2",
+  "walletSeed": "genesiso1",
   "walletDir": "/tmp/scorex/data2/wallet",
   "dataDir": "/tmp/scorex/data2/blockchain",
   "logDir": "/tmp/scorex/data2/log",
@@ -21,7 +21,7 @@
   "rpcAllowed": [],
   "maxRollback": 100,
   "offlineGeneration": false,
-  "blockGenerationDelay": 1000,
+  "blockGenerationDelay": 100,
   "cors": false,
   "agent": "2-Hop",
   "version": [0, 0, 1]

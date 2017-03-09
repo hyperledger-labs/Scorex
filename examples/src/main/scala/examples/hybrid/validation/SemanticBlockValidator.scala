@@ -23,13 +23,8 @@ class SemanticBlockValidator(hash: CryptographicHash) extends BlockValidator[Hyb
         }
       case posBlock: PosBlock =>
         require(posBlock.timestamp >= 0)
-        require(signatureValid(posBlock))
+        require(PosBlock.signatureValid(posBlock))
     }
-  }
-
-  private def signatureValid(posBlock: PosBlock): Boolean = {
-    val unsignedBytes = posBlock.copy(signature = Signature25519(Array.empty)).bytes
-    posBlock.generatorBox.proposition.verify(unsignedBytes, posBlock.signature.signature)
   }
 
 }

@@ -8,7 +8,6 @@ import examples.hybrid.mining.{MiningConstants, MiningSettings}
 import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
-import org.mapdb.DBMaker
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.block.{Block, BlockValidator}
@@ -20,7 +19,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 /**
   * History storage
@@ -54,6 +53,7 @@ class HybridHistory(storage: HistoryStorage,
   val bestPowId = storage.bestPowId
   lazy val bestPosBlock = storage.bestPosBlock
   lazy val bestPowBlock = storage.bestPowBlock
+  lazy val bestBlock = if (bestPowBlock.prevPosId sameElements bestPosId) bestPowBlock else bestPosBlock
 
   /**
     * Return specified number of PoW blocks, ordered back from last one
@@ -61,7 +61,7 @@ class HybridHistory(storage: HistoryStorage,
     * @param count - how many blocks to return
     * @return PoW blocks, in reverse order (starting from the most recent one)
     */
-  def lastPowBlocks(count: Int): Seq[PowBlock] = if (isEmpty) {
+  def lastPowBlocks(count: Int, startBlock: PowBlock): Seq[PowBlock] = if (isEmpty) {
     Seq()
   } else {
     @tailrec
@@ -73,7 +73,7 @@ class HybridHistory(storage: HistoryStorage,
         case _ => b +: acc
       }
     }
-    loop(bestPowBlock)
+    loop(startBlock)
   }
 
   /**
@@ -111,67 +111,83 @@ class HybridHistory(storage: HistoryStorage,
         } else {
           storage.heightOf(powBlock.parentId) match {
             case Some(parentHeight) =>
-              val isBest: Boolean = if (storage.height == storage.parentHeight(powBlock)) {
-                //new best block
-                true
-              } else if (storage.height == (storage.parentHeight(powBlock) - 1) &&
-                (bestPowBlock.parentId sameElements powBlock.parentId) &&
-                (bestPowBlock.brothersCount < powBlock.brothersCount)) {
-                //new best brother
-                true
-              } else {
-                false
-              }
+              val isBestBrother = (bestPosId sameElements powBlock.prevPosId) &&
+                (bestPowBlock.brothersCount < powBlock.brothersCount)
 
-              storage.update(powBlock, None, isBest)
-              if (isBest) {
-                if (isGenesis(powBlock) || (powBlock.parentId sameElements bestPowId)) {
+              val isBest: Boolean = storage.height == storage.parentHeight(powBlock) || isBestBrother
+
+              val mod: RollbackInfo[HybridBlock] = if (isBest) {
+                if (isGenesis(powBlock) ||
+                  ((powBlock.parentId sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
+                  log.debug(s"New best PoW block ${Base58.encode(powBlock.id)}")
                   //just apply one block to the end
-                  RollbackInfo(powBlock.parentId, Seq(), Seq(powBlock))
-                } else if ((bestPowBlock.parentId sameElements powBlock.parentId) &&
-                  (bestPowBlock.brothersCount < powBlock.brothersCount)) {
+                  RollbackInfo(powBlock.prevPosId, Seq(), Seq(powBlock))
+                } else if (isBestBrother) {
+                  log.debug(s"New best brother ${Base58.encode(powBlock.id)}")
                   //new best brother
-                  RollbackInfo(bestPowBlock.id, Seq(bestPowBlock), Seq(powBlock))
+                  RollbackInfo(powBlock.prevPosId, Seq(bestPowBlock), Seq(powBlock))
                 } else {
-                  log.info(s"Processing fork at ${Base58.encode(powBlock.id)}")
-
-                  val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(powBlock.prevPosId).get)
-
-                  val rollbackPoint = newSuffix.head
-
-                  val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
-                  val applyBlocks = powBlock +: newSuffix.tail.map(id => modifierById(id).get)
-                  require(applyBlocks.nonEmpty)
-                  require(throwBlocks.nonEmpty)
-
-                  RollbackInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
+                  bestForkChanges(powBlock)
                 }
               } else {
-                RollbackInfo(powBlock.parentId, Seq(), Seq(powBlock))
+                log.debug(s"New orphaned PoW block ${Base58.encode(powBlock.id)}")
+                RollbackInfo(powBlock.prevPosId, Seq(), Seq())
               }
+              storage.update(powBlock, None, isBest)
+              mod
+
             case None =>
               log.warn("No parent block in history")
               ???
           }
         }
-        require(modifications.toApply.exists(_.id sameElements powBlock.id))
+        //        require(modifications.toApply.exists(_.id sameElements powBlock.id))
         (new HybridHistory(storage, settings, validators), modifications)
 
 
       case posBlock: PosBlock =>
         val difficulties = calcDifficultiesForNewBlock(posBlock)
+        val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
         val isBest = storage.height == storage.parentHeight(posBlock)
+
+        val mod: RollbackInfo[HybridBlock] = if (!isBest) {
+          log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
+          RollbackInfo(posBlock.parentId, Seq(), Seq())
+        } else if (posBlock.parentId sameElements bestPowId) {
+          log.debug(s"New best PoS block ${Base58.encode(posBlock.id)}")
+          RollbackInfo(posBlock.parentId, Seq(), Seq(posBlock))
+        } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
+          log.debug(s"New best PoS block with link to non-best brother ${Base58.encode(posBlock.id)}")
+          //rollback to prevoius PoS block and apply parent block one more time
+          RollbackInfo(parent.prevPosId, Seq(bestPowBlock), Seq(parent, posBlock))
+        } else {
+          bestForkChanges(posBlock)
+        }
         storage.update(posBlock, Some(difficulties), isBest)
 
-        val mod: RollbackInfo[HybridBlock] =
-          RollbackInfo(posBlock.parentId, Seq(), Seq(posBlock))
-
-        (new HybridHistory(storage, settings, validators), mod) //no rollback ever
+        (new HybridHistory(storage, settings, validators), mod)
     }
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
       s"Best score is ${storage.bestChainScore}. " +
       s"Pair: ${Base58.encode(storage.bestPowId)}|${Base58.encode(storage.bestPosId)}")
     res
+  }
+
+  def bestForkChanges(block: HybridBlock): RollbackInfo[HybridBlock] = {
+    val parentId = storage.parentId(block)
+    val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(parentId).get)
+    log.debug(s"Processing fork for block ${Base58.encode(block.id)}: \n" +
+      s"old: ${oldSuffix.map(Base58.encode)}\n" +
+      s"new: ${newSuffix.map(Base58.encode)}")
+
+    val rollbackPoint = newSuffix.head
+
+    val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
+    val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(block)
+    require(applyBlocks.nonEmpty)
+    require(throwBlocks.nonEmpty)
+
+    RollbackInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
   }
 
   private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, Long) = {
@@ -181,20 +197,22 @@ class HybridHistory(storage: HistoryStorage,
     if (powHeight > DifficultyRecalcPeriod && powHeight % DifficultyRecalcPeriod == 0) {
 
       //recalc difficulties
-      val powBlocks = lastPowBlocks(DifficultyRecalcPeriod) //.ensuring(_.length == DifficultyRecalcPeriod)
 
-      val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
+      val lastPow = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
+      val powBlocks = lastPowBlocks(DifficultyRecalcPeriod, lastPow) //.ensuring(_.length == DifficultyRecalcPeriod)
+
+      val realTime = lastPow.timestamp - powBlocks.head.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
-      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.BlockDelay
-      val oldPowDifficulty = storage.getPoWDifficulty(Some(powBlocks.last.prevPosId))
+      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.targetBlockDelay
+      val oldPowDifficulty = storage.getPoWDifficulty(Some(lastPow.prevPosId))
 
       val newPowDiffUnlimited = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))
       val newPowDiff = bounded(newPowDiffUnlimited, oldPowDifficulty)
 
-      val oldPosDifficulty = storage.getPoSDifficulty(powBlocks.last.prevPosId)
+      val oldPosDifficulty = storage.getPoSDifficulty(lastPow.prevPosId)
       val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * 8 / 10)
       log.info(s"PoW difficulty changed at ${Base58.encode(posBlock.id)}: old $oldPowDifficulty, new $newPowDiff. " +
-        s" ${powBlocks.last.timestamp} - ${powBlocks.head.timestamp} | $brothersCount")
+        s" last: $lastPow, head: ${powBlocks.head} | $brothersCount")
       log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")
       (newPowDiff, newPosDiff)
     } else {
@@ -224,7 +242,7 @@ class HybridHistory(storage: HistoryStorage,
     def idInList(id: ModifierId): Boolean = from.exists(f => f._2 sameElements id)
 
     //Look without limit for case difference between nodes is bigger then size
-    chainBack(bestPowBlock, inList) match {
+    chainBack(bestBlock, inList) match {
       case Some(chain) if chain.exists(id => idInList(id._2)) => Some(chain.take(size))
       case Some(chain) =>
         log.warn("Found chain without ids form remote")
@@ -236,7 +254,7 @@ class HybridHistory(storage: HistoryStorage,
   override def syncInfo(answer: Boolean): HybridSyncInfo =
     HybridSyncInfo(
       answer,
-      lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks).map(_.id),
+      lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks, bestPowBlock).map(_.id),
       bestPosId)
 
   @tailrec
@@ -329,7 +347,8 @@ class HybridHistory(storage: HistoryStorage,
     */
   final def commonBlockThenSuffixes(forkBlock: HybridBlock,
                                     limit: Int = Int.MaxValue): (Seq[ModifierId], Seq[ModifierId]) = {
-    val loserChain = chainBack(bestPowBlock, isGenesis, limit).get.map(_._2)
+    val loserChain = chainBack(bestBlock, isGenesis, limit).get.map(_._2)
+
     def in(m: HybridBlock): Boolean = loserChain.exists(s => s sameElements m.id)
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
     val i = loserChain.indexWhere(id => id sameElements winnerChain.head)
@@ -376,13 +395,7 @@ object HybridHistory extends ScorexLogging {
       }
     })
 
-    val metaDb =
-      DBMaker.fileDB(s"$dataDir/hidx")
-        .fileMmapEnableIfSupported()
-        .closeOnJvmShutdown()
-        .make()
-
-    val storage = new HistoryStorage(blockStorage, metaDb, settings)
+    val storage = new HistoryStorage(blockStorage, settings)
     val validators = Seq(new DifficultyBlockValidator(settings, storage),
       new ParentBlockValidator(storage),
       new SemanticBlockValidator(FastCryptographicHash)

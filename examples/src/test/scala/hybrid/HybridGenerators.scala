@@ -9,7 +9,6 @@ import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import io.iohk.iodb.LSMStore
-import org.mapdb.DBMaker
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.NodeViewModifier
 import scorex.core.block.Block
@@ -29,7 +28,7 @@ trait HybridGenerators extends CoreGenerators {
   val settings = new Settings with MiningSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
 
-    override lazy val BlockDelay: Long = 1.minute.toMillis
+    override lazy val targetBlockDelay: Long = 1.minute.toMillis
 
     override lazy val Difficulty: BigInt = 1
   }
@@ -70,10 +69,10 @@ trait HybridGenerators extends CoreGenerators {
     timestamp: Long <- positiveLongGen
     txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
     box: PublicKey25519NoncedBox <- noncedBoxGen
+    attach: Array[Byte] <- genBoundedBytes(0, 4096)
     generator: PrivateKey25519 <- key25519Gen.map(_._1)
     posParentId: Array[Byte] <- genBytesList(Block.BlockIdLength)
-  } yield PosBlock.create(posParentId, timestamp, txs, box.copy(proposition = generator.publicImage), generator)
-
+  } yield PosBlock.create(posParentId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
 
   lazy val powHeaderGen: Gen[PowBlockHeader] = for {
     parentId: BlockId <- genBytesList(Block.BlockIdLength)
@@ -122,13 +121,7 @@ trait HybridGenerators extends CoreGenerators {
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile)
 
-    val metaDb =
-      DBMaker.fileDB(s"$dataDir/hidx")
-        .fileMmapEnableIfSupported()
-        .closeOnJvmShutdown()
-        .make()
-
-    val storage = new HistoryStorage(blockStorage, metaDb, settings)
+    val storage = new HistoryStorage(blockStorage, settings)
     //we don't care about validation here
     val validators = Seq()
 
