@@ -61,7 +61,7 @@ class HybridHistory(storage: HistoryStorage,
     * @param count - how many blocks to return
     * @return PoW blocks, in reverse order (starting from the most recent one)
     */
-  def lastPowBlocks(count: Int): Seq[PowBlock] = if (isEmpty) {
+  def lastPowBlocks(count: Int, startBlock: PowBlock): Seq[PowBlock] = if (isEmpty) {
     Seq()
   } else {
     @tailrec
@@ -73,7 +73,7 @@ class HybridHistory(storage: HistoryStorage,
         case _ => b +: acc
       }
     }
-    loop(bestPowBlock)
+    loop(startBlock)
   }
 
   /**
@@ -197,20 +197,22 @@ class HybridHistory(storage: HistoryStorage,
     if (powHeight > DifficultyRecalcPeriod && powHeight % DifficultyRecalcPeriod == 0) {
 
       //recalc difficulties
-      val powBlocks = lastPowBlocks(DifficultyRecalcPeriod) //.ensuring(_.length == DifficultyRecalcPeriod)
 
-      val realTime = powBlocks.last.timestamp - powBlocks.head.timestamp
+      val lastPow = modifierById(posBlock.parentId).get
+      val powBlocks = lastPowBlocks(DifficultyRecalcPeriod, lastPow) //.ensuring(_.length == DifficultyRecalcPeriod)
+
+      val realTime = lastPow.timestamp - powBlocks.head.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
       val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.targetBlockDelay
-      val oldPowDifficulty = storage.getPoWDifficulty(Some(powBlocks.last.prevPosId))
+      val oldPowDifficulty = storage.getPoWDifficulty(Some(lastPow.prevPosId))
 
       val newPowDiffUnlimited = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))
       val newPowDiff = bounded(newPowDiffUnlimited, oldPowDifficulty)
 
-      val oldPosDifficulty = storage.getPoSDifficulty(powBlocks.last.prevPosId)
+      val oldPosDifficulty = storage.getPoSDifficulty(lastPow.prevPosId)
       val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * 8 / 10)
       log.info(s"PoW difficulty changed at ${Base58.encode(posBlock.id)}: old $oldPowDifficulty, new $newPowDiff. " +
-        s" last: ${powBlocks.last}, head: ${powBlocks.head} | $brothersCount")
+        s" last: $lastPow, head: ${powBlocks.head} | $brothersCount")
       log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")
       (newPowDiff, newPosDiff)
     } else {
@@ -252,7 +254,7 @@ class HybridHistory(storage: HistoryStorage,
   override def syncInfo(answer: Boolean): HybridSyncInfo =
     HybridSyncInfo(
       answer,
-      lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks).map(_.id),
+      lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks, bestPowBlock).map(_.id),
       bestPosId)
 
   @tailrec
