@@ -44,7 +44,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
   @Path("/info")
   @ApiOperation(value = "Info", notes = "Debug info about blockchain", httpMethod = "GET")
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with peer list or error")
+    new ApiResponse(code = 200, message = "Json with debug info or error")
   ))
   def infoRoute: Route = path("info") {
     getJsonRoute {
@@ -53,6 +53,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
           "height" -> view.history.height.toString.asJson,
           "bestPoS" -> Base58.encode(view.history.bestPosId).asJson,
           "bestPoW" -> Base58.encode(view.history.bestPowId).asJson,
+          "bestBlock" -> view.history.bestBlock.json,
           "stateVersion" -> Base58.encode(view.state.version).asJson
         ).asJson
       }
