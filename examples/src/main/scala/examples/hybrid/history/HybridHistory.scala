@@ -198,7 +198,7 @@ class HybridHistory(storage: HistoryStorage,
 
       //recalc difficulties
 
-      val lastPow = modifierById(posBlock.parentId).get
+      val lastPow = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
       val powBlocks = lastPowBlocks(DifficultyRecalcPeriod, lastPow) //.ensuring(_.length == DifficultyRecalcPeriod)
 
       val realTime = lastPow.timestamp - powBlocks.head.timestamp
