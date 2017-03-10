@@ -1,14 +1,16 @@
 package hybrid
 
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
+import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock, PowBlockCompanion}
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import examples.hybrid.wallet.HWallet
 import org.scalacheck.Gen
+import org.scalacheck.rng.Seed
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.StateChanges
+import scorex.core.transaction.state.{PrivateKey25519, StateChanges}
 import scorex.testkit.BlockchainSanity
 
 class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
@@ -28,11 +30,32 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
 
   //Generators
   override val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen
-  private val validPowBlockGen: Gen[PowBlock] = powBlockGen.map(b => b.copy(parentId = history.bestPowId, prevPosId = history.bestPosId))
-  private val validPosBlockGen: Gen[PosBlock] = posBlockGen.map(b => b.copy(parentId = history.bestPowId))
 
   override val stateChangesGenerator: Gen[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     stateChangesGen
 
-  override def genValidModifier(history: HybridHistory): HybridBlock = ???
+  override def genValidModifier(curHistory: HybridHistory): HybridBlock = {
+    if (curHistory.pairCompleted) {
+      for {
+        timestamp: Long <- positiveLongGen
+        nonce: Long <- positiveLongGen
+        brothersCount: Byte <- positiveByteGen
+        proposition: PublicKey25519Proposition <- propositionGen
+        brothers <- Gen.listOfN(brothersCount, powHeaderGen)
+      } yield {
+        val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
+        val brothersHash: Array[Byte] = FastCryptographicHash(brotherBytes)
+        new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
+      }
+    } else {
+      for {
+        timestamp: Long <- positiveLongGen
+        txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
+        box: PublicKey25519NoncedBox <- noncedBoxGen
+        attach: Array[Byte] <- genBoundedBytes(0, 4096)
+        generator: PrivateKey25519 <- key25519Gen.map(_._1)
+      } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
+    }
+  }.apply(Gen.Parameters.default, Seed.random()).get
+
 }
