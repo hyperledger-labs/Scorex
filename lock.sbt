@@ -41,6 +41,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "javax.ws.rs" % "jsr311-api" % "1.1.1",
   "jline" % "jline" % "2.14.1",
   "net.databinder.dispatch" % "dispatch-core_2.12" % "0.12.0",
+  "net.jpountz.lz4" % "lz4" % "1.3.0",
   "org.apache.commons" % "commons-lang3" % "3.2.1",
   "org.atnos" % "eff-cats_2.12" % "2.0.0-RC26",
   "org.bitlet" % "weupnp" % "0.1.4",
@@ -55,8 +56,8 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.scalacheck" % "scalacheck_2.12" % "1.13.4",
   "org.scalactic" % "scalactic_2.12" % "3.0.1",
   "org.scalatest" % "scalatest_2.12" % "3.0.1",
-  "org.scorexfoundation" % "iodb_2.12" % "0.2.0",
-  "org.slf4j" % "slf4j-api" % "1.7.22",
+  "org.scorexfoundation" % "iodb_2.12" % "0.3.0",
+  "org.slf4j" % "slf4j-api" % "1.7.23",
   "org.spire-math" % "jawn-parser_2.12" % "0.10.4",
   "org.typelevel" % "cats-core_2.12" % "0.9.0",
   "org.typelevel" % "cats-kernel_2.12" % "0.9.0",
@@ -66,4 +67,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.3.0",
   "org.yaml" % "snakeyaml" % "1.17"
 )
-// LIBRARY_DEPENDENCIES_HASH c55c6c866fbd787939101742c7e2b4d83a8d2b6c
+// LIBRARY_DEPENDENCIES_HASH e3ade3850151642789edc3d5f4e22df2681817e1

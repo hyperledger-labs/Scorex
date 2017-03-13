@@ -19,21 +19,5 @@ class HBoxStoredStateSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  val settings = new Settings with MiningSettings {
-    override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
-  }
-
-  var state = HBoxStoredState.readOrGenerate(settings)
-
-
-  property("State should be able to add a box") {
-    forAll(noncedBoxGen) { b =>
-      val c = StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set(b))
-
-      state = state.applyChanges(c, Array.fill(32)(Random.nextInt(Byte.MaxValue).toByte)).get
-
-      state.closedBox(b.id).isDefined shouldBe true
-    }
-  }
 
 }
