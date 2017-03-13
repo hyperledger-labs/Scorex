@@ -7,7 +7,7 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
-import scorex.testkit.CoreGenerators
+import scorex.testkit.{CoreGenerators, TestkitHelpers}
 
 trait StateTests[P <: Proposition,
 TX <: Transaction[P],

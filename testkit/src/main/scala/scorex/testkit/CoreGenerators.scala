@@ -13,6 +13,7 @@ import scorex.crypto.signatures.Curve25519
 
 //Generators of objects from scorex-core
 trait CoreGenerators {
+
   lazy val smallInt: Gen[Int] = Gen.choose(0, 20)
 
   lazy val nonEmptyBytesGen: Gen[Array[Byte]] = Gen.nonEmptyListOf(Arbitrary.arbitrary[Byte])
