@@ -2,7 +2,6 @@ package scorex.testkit.properties
 
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.consensus.SyncInfo
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition

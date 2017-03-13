@@ -2,10 +2,10 @@ package scorex.testkit
 
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
+import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.testkit.properties._
 
 /**
@@ -23,7 +23,7 @@ HT <: History[P, TX, PM, SI, HT]] extends HistoryAppendBlockTest[P, TX, PM, SI, 
   with WalletSecretsTest[P, TX, PM]
   with StateRollbackTest[P, TX, PM, B, ST]
   with MempoolTransactionsTest[P, TX, MPool]
-  with StateChangesGenerationTest[P, TX, PM,  B, ST, SI, HT] {
+  with StateChangesGenerationTest[P, TX, PM, B, ST, SI, HT] {
 
 
 }

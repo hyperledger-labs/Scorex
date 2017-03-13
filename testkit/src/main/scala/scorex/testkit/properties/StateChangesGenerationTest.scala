@@ -16,6 +16,7 @@ SI <: SyncInfo,
 HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] {
 
   val history: HT
+
   def genValidModifier(history: HT): PM
 
   property("State should be able to generate changes from block and apply them") {
