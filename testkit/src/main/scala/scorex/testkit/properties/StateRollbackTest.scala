@@ -7,6 +7,8 @@ import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{MinimalState, StateChanges}
 
+import scala.util.{Failure, Try}
+
 trait StateRollbackTest[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
@@ -15,14 +17,41 @@ ST <: MinimalState[P, B, TX, PM, ST]] extends StateTests[P, TX, PM, B, ST] {
 
   val stateChangesGenerator: Gen[StateChanges[P, B]]
 
-  property("State changes application and rollback leads to the same state") {
+  property("State version updates as expected") {
+
+    var lastVersion = state.version
+    var newState = state
+
     forAll(stateChangesGenerator, modifierIdGen) { (c, newVersion) =>
-      val oldVersion = state.version
+      lastVersion shouldEqual newState.version
 
-      val newState: ST = state.applyChanges(c, newVersion).get
+      newState = newState.applyChanges(c, newVersion).get
       newState.version shouldBe newVersion
+      lastVersion = newVersion
+    }
+  }
 
-      newState.rollbackTo(oldVersion).get.version shouldEqual oldVersion
+
+  property("State changes application and rollback leads to the same state") {
+
+    var newState = state
+    val rollbackVersion = newState.version
+
+    forAll(stateChangesGenerator, modifierIdGen) { (c, newVersion) =>
+      Try {
+
+        rollbackVersion shouldEqual newState.version
+
+        newState = newState.applyChanges(c, newVersion).get
+        newState.version shouldBe newVersion
+
+        newState = newState.rollbackTo(rollbackVersion).get
+        newState.version shouldEqual rollbackVersion
+      }.recoverWith { case e =>
+        e.printStackTrace()
+        System.exit(1)
+        Failure(e)
+      }
     }
   }
 
