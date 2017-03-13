@@ -15,11 +15,12 @@ ST <: MinimalState[P, B, TX, PM, ST],
 SI <: SyncInfo,
 HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] {
 
+  val history: HT
   def genValidModifier(history: HT): PM
 
   property("State should be able to generate changes from block and apply them") {
-/*
-    forAll(validBlockGenerator) { block =>
+    (0 until 100) foreach { _ =>
+      val block = genValidModifier(history)
       val blockChanges = state.changes(block).get
       val existingBoxIds = blockChanges.boxIdsToRemove.filter(bi => state.closedBox(bi).isDefined)
       val changes: StateChanges[P, B] = blockChanges.copy(boxIdsToRemove = existingBoxIds)
@@ -31,8 +32,6 @@ HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] {
         newState.closedBox(bId).isDefined shouldBe false
       }
     }
-*/
-    ???
   }
 
 
