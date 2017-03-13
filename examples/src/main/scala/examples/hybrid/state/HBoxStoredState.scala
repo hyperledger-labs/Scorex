@@ -24,6 +24,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HybridBlock,
     HBoxStoredState] with ScorexLogging {
 
+  assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version)
+
   override type NVCT = HBoxStoredState
   type HPMOD = HybridBlock
 
@@ -34,7 +36,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       .map(_.data)
       .map(PublicKey25519NoncedBoxSerializer.parseBytes)
       .flatMap(_.toOption)
-
+2
   //there's no easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
