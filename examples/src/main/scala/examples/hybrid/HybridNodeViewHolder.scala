@@ -87,7 +87,7 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
       Some((
         HybridHistory.readOrGenerate(settings),
         HBoxStoredState.readOrGenerate(settings),
-        HWallet.readOrGenerate(settings),
+        HWallet.readOrGenerate(settings, 1),
         HMemPool.emptyPool))
     } else None
   }

@@ -314,6 +314,20 @@ class HybridHistory(storage: HistoryStorage,
 
   private def isGenesis(b: HybridBlock): Boolean = storage.isGenesis(b)
 
+  def filter(f: (HybridBlock => Boolean)): Seq[ModifierId] = {
+    @tailrec
+    def loop(m: HybridBlock, acc: Seq[ModifierId]): Seq[ModifierId] = parentBlock(m) match {
+      case Some(parent) => if (f(m)) loop(parent, m.id +: acc) else loop(parent, acc)
+      case None => if (f(m)) m.id +: acc else acc
+    }
+    loop(bestBlock, Seq())
+  }
+
+  def parentBlock(m: HybridBlock): Option[HybridBlock] = m match {
+    case b: PosBlock => modifierById(b.parentId)
+    case b: PowBlock => modifierById(b.prevPosId)
+  }
+
   /**
     * Go back though chain and get block ids until condition until
     */
@@ -328,14 +342,10 @@ class HybridHistory(storage: HistoryStorage,
     if (limit <= 0 || until(m)) {
       Some(sum)
     } else {
-      val parentId = m match {
-        case b: PosBlock => b.parentId
-        case b: PowBlock => b.prevPosId
-      }
-      modifierById(parentId) match {
+      parentBlock(m) match {
         case Some(parent) => chainBack(parent, until, limit - 1, sum)
         case _ =>
-          log.warn(s"Parent block ${Base58.encode(parentId)} for ${Base58.encode(m.id)} not found ")
+          log.warn(s"Parent block for ${Base58.encode(m.id)} not found ")
           None
       }
     }

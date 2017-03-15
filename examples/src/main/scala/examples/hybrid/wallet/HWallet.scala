@@ -20,7 +20,7 @@ import scorex.utils.Random
 import scala.util.Try
 
 
-case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength), store: LSMStore)
+case class HWallet(seed: Array[Byte], store: LSMStore)
   extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock, HWallet]
     with ScorexLogging {
 
@@ -114,11 +114,11 @@ case class HWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength), store:
 object HWallet {
 
   def readOrGenerate(settings: Settings, seed: String): HWallet = {
-    val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
-    val dataDir = dataDirOpt.get
-    new File(dataDir).mkdirs()
+    val walletDirOpt = settings.walletDirOpt.ensuring(_.isDefined, "wallet dir must be specified")
+    val walletDir = walletDirOpt.get
+    new File(walletDir).mkdirs()
 
-    val wFile = new File(s"$dataDir/walletboxes")
+    val wFile = new File(s"$walletDir/walllet.dat")
     wFile.mkdirs()
     val boxesStorage = new LSMStore(wFile)
 
