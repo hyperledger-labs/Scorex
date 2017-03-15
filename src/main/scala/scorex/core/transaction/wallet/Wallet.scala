@@ -97,6 +97,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewM
   type S <: Secret
   type PI <: ProofOfKnowledgeProposition[S]
 
+  //TODO Add Option[Seed] parameter, use provided seed it it exists
   def generateNewSecret(): W
 
   def historyTransactions: Seq[WalletTransaction[P, TX]]

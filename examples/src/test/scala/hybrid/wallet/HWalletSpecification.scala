@@ -20,9 +20,6 @@ class HWalletSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  val settings = new Settings with MiningSettings {
-    override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
-  }
   val EmptyBytes = Array.fill(32)(0: Byte)
   val EmptySignature = Signature25519(Array.fill(64)(0: Byte))
 

@@ -2,13 +2,13 @@ package curvepos
 
 import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleTransaction, SimpleWallet}
 import org.scalacheck.{Arbitrary, Gen}
-import scorex.ObjectGenerators
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.signatures.Curve25519
+import scorex.testkit.CoreGenerators
 
-trait ExampleGenerators extends ObjectGenerators {
+trait ExampleGenerators extends CoreGenerators {
   val wallet = SimpleWallet()
   val genesisAcc = wallet.secrets.head
 
