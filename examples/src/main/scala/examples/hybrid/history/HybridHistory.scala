@@ -19,6 +19,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
+import scala.collection.concurrent.TrieMap
 import scala.util.{Failure, Try}
 
 /**
@@ -313,6 +314,28 @@ class HybridHistory(storage: HistoryStorage,
   lazy val posDifficulty = storage.getPoSDifficulty(storage.bestPosBlock.id)
 
   private def isGenesis(b: HybridBlock): Boolean = storage.isGenesis(b)
+
+  def blockGenerator(m: HybridBlock): PublicKey25519Proposition = m match {
+    case p: PosBlock => p.generatorBox.proposition
+    case p: PowBlock => p.generatorProposition
+  }
+
+  def generatorDistribution(): Map[PublicKey25519Proposition, Int] = {
+    val map = collection.mutable.Map[PublicKey25519Proposition, Int]().withDefaultValue(0)
+    @tailrec
+    def loop(m: HybridBlock): Unit = {
+      val generator = blockGenerator(m)
+      map.update(generator, map(generator) + 1)
+      parentBlock(m) match {
+        case Some(parent) => loop(parent)
+        case None =>
+      }
+    }
+    loop(bestBlock)
+    map.toMap
+  }
+
+  def count(f: (HybridBlock => Boolean)): Int = filter(f).length
 
   def filter(f: (HybridBlock => Boolean)): Seq[ModifierId] = {
     @tailrec

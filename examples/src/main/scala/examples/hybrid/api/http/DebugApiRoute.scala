@@ -19,7 +19,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
                         (implicit val context: ActorRefFactory) extends ApiRouteWithView {
 
   override val route = pathPrefix("debug") {
-    infoRoute ~ chain ~ delay ~ myblocks
+    infoRoute ~ chain ~ delay ~ myblocks ~ generators
   }
 
   @Path("/delay/{id}/{blockNum}")
@@ -78,17 +78,27 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
           case pow: PowBlock => pubkeys.exists(_.pubKeyBytes sameElements pow.generatorProposition.pubKeyBytes)
           case _ => false
         }
-        val posIds = view.history.filter(isMyPosBlock)
-        val powIds = view.history.filter(isMyPowBlock)
+        val posCount = view.history.count(isMyPosBlock)
+        val powCount = view.history.count(isMyPowBlock)
 
         Map(
           "pubkeys" -> pubkeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
-          "count" -> (posIds.length + powIds.length).asJson,
-          "posCount" -> posIds.length.asJson,
-          "powCount" -> powIds.length.asJson,
-          "posIds" -> posIds.map(Base58.encode).asJson,
-          "powIds" -> powIds.map(Base58.encode).asJson
+          "count" -> (posCount + powCount).asJson,
+          "posCount" -> posCount.asJson,
+          "powCount" -> powCount.asJson
         ).asJson
+      }
+    }
+  }
+
+  @Path("/generators")
+  @ApiOperation(value = "Info", notes = "Blocks generator distribution", httpMethod = "GET")
+  def generators: Route = path("generators") {
+    getJsonRoute {
+      viewAsync().map { view =>
+        val map: Map[String, Int] = view.history.generatorDistribution()
+          .map(d => Base58.encode(d._1.pubKeyBytes) -> d._2)
+        map.asJson
       }
     }
   }
