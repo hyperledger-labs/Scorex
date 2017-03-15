@@ -70,16 +70,24 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
     getJsonRoute {
       viewAsync().map { view =>
         val pubkeys = view.vault.publicKeys
-        def isMyBlock(b: HybridBlock): Boolean = b match {
+        def isMyPosBlock(b: HybridBlock): Boolean = b match {
           case pos: PosBlock => pubkeys.exists(_.pubKeyBytes sameElements pos.generatorBox.proposition.pubKeyBytes)
-          case pow: PowBlock => pubkeys.exists(_.pubKeyBytes sameElements pow.generatorProposition.pubKeyBytes)
+          case _ => false
         }
-        val ids = view.history.filter(isMyBlock)
+        def isMyPowBlock(b: HybridBlock): Boolean = b match {
+          case pow: PowBlock => pubkeys.exists(_.pubKeyBytes sameElements pow.generatorProposition.pubKeyBytes)
+          case _ => false
+        }
+        val posIds = view.history.filter(isMyPosBlock)
+        val powIds = view.history.filter(isMyPowBlock)
 
         Map(
           "pubkeys" -> pubkeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
-          "count" -> ids.length.asJson,
-          "ids" -> ids.map(Base58.encode).asJson
+          "count" -> (posIds.length + powIds.length).asJson,
+          "posCount" -> posIds.length.asJson,
+          "powCount" -> powIds.length.asJson,
+          "posIds" -> posIds.map(Base58.encode).asJson,
+          "powIds" -> powIds.map(Base58.encode).asJson
         ).asJson
       }
     }
