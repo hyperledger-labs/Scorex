@@ -9,13 +9,11 @@ import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
-import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletBoxSerializer, WalletTransaction}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
-import scorex.utils.Random
 
 import scala.util.Try
 
@@ -61,7 +59,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
 
   override def generateNewSecret(): HWallet = {
     val prevSecrets = secrets
-    val nonce:Array[Byte] = Ints.toByteArray(prevSecrets.size)
+    val nonce: Array[Byte] = Ints.toByteArray(prevSecrets.size)
     val s = FastCryptographicHash(seed ++ nonce)
     val (priv, _) = PrivateKey25519Companion.generateKeys(s)
     val allSecrets: Set[PrivateKey25519] = Set(priv) ++ prevSecrets
@@ -113,12 +111,18 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
 
 object HWallet {
 
-  def readOrGenerate(settings: Settings, seed: String): HWallet = {
+  def walletFile(settings: Settings): File = {
     val walletDirOpt = settings.walletDirOpt.ensuring(_.isDefined, "wallet dir must be specified")
     val walletDir = walletDirOpt.get
     new File(walletDir).mkdirs()
 
-    val wFile = new File(s"$walletDir/walllet.dat")
+    new File(s"$walletDir/wallet.dat")
+  }
+
+  def exists(settings: Settings): Boolean = walletFile(settings).exists()
+
+  def readOrGenerate(settings: Settings, seed: String): HWallet = {
+    val wFile = walletFile(settings)
     wFile.mkdirs()
     val boxesStorage = new LSMStore(wFile)
 
@@ -144,12 +148,6 @@ object HWallet {
     (1 to accounts).foldLeft(readOrGenerate(settings)) { case (w, _) =>
       w.generateNewSecret()
     }
-
-  def exists(settings: Settings): Boolean = {
-    val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
-    val dataDir = dataDirOpt.get
-    new File(s"$dataDir/walletboxes").exists()
-  }
 
   //wallet with applied initialBlocks
   def genesisWallet(settings: Settings, initialBlocks: Seq[HybridBlock]): HWallet = {
