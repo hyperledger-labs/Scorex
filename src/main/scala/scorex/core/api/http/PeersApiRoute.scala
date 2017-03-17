@@ -46,7 +46,7 @@ case class PeersApiRoute(peerManager: ActorRef,
               "nodeNonce" -> (peerInfo.nonce.map(_.toString).getOrElse("N/A"): String)
             )
           }.asJson
-        }
+        }.map(s => SuccessApiResponse(s))
     }
   }
 
@@ -68,7 +68,7 @@ case class PeersApiRoute(peerManager: ActorRef,
             ).asJson
           }.asJson
           Map("peers" -> peerData).asJson
-        }
+        }.map(s => SuccessApiResponse(s))
     }
   }
 
@@ -92,7 +92,7 @@ case class PeersApiRoute(peerManager: ActorRef,
             case Right(ConnectCommandParams(host, port)) =>
               val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port)
               networkController ! ConnectTo(add)
-              Map("hostname" -> add.getHostName, "status" -> "Trying to connect").asJson
+              SuccessApiResponse(Map("hostname" -> add.getHostName, "status" -> "Trying to connect").asJson)
             case _ =>
               ApiError.wrongJson
           }
@@ -110,7 +110,7 @@ case class PeersApiRoute(peerManager: ActorRef,
     getJsonRoute {
       (peerManager ? PeerManager.GetBlacklistedPeers)
         .mapTo[Seq[String]]
-        .map(_.asJson)
+        .map(s => SuccessApiResponse(s.asJson))
     }
   }
 }

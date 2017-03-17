@@ -10,13 +10,14 @@ import io.circe.parser._
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
+import scorex.core.api.http.{ApiError, ApiException, ScorexApiResponse, SuccessApiResponse}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 
 @Path("/wallet")
@@ -48,8 +49,8 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
       withAuth {
         postJsonRoute {
           viewAsync().map { view =>
-            val respons: Json = parse(body) match {
-              case Left(failure) => failure.toString.asJson
+            val respons: ScorexApiResponse = parse(body) match {
+              case Left(failure) => ApiException(failure.getCause)
               case Right(json) => Try {
                 val wallet = view.vault
                 val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
@@ -70,7 +71,10 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
                 val tx: SimpleBoxTransaction = SimpleBoxTransaction(from.map(t => t._1 -> t._2), to, fee, timestamp)
                 nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
                 tx.json
-              }.getOrElse("wrong json".asJson)
+              } match {
+                case Success(resp) => SuccessApiResponse(resp)
+                case Failure(e) => ApiException(e)
+              }
             }
             respons
           }
@@ -91,10 +95,10 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
         val wallet = view.vault
         val boxes = wallet.boxes()
 
-        Map(
+        SuccessApiResponse(Map(
           "totalBalance" -> boxes.map(_.box.value).sum.toString.asJson,
           "boxes" -> boxes.map(_.box.json).asJson
-        ).asJson
+        ).asJson)
       }
     }
   }

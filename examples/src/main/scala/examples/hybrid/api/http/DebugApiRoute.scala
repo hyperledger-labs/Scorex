@@ -7,6 +7,7 @@ import akka.http.scaladsl.server.Route
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.circe.syntax._
 import io.swagger.annotations._
+import scorex.core.api.http.SuccessApiResponse
 import scorex.core.settings.Settings
 import scorex.crypto.encode.Base58
 
@@ -33,10 +34,10 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
     path("delay" / Segment / IntNumber) { case (encodedSignature, count) =>
       getJsonRoute {
         viewAsync().map { view =>
-          Map(
+          SuccessApiResponse(Map(
             "delay" -> Base58.decode(encodedSignature).flatMap(id => view.history.averageDelay(id, count))
               .map(_.toString).getOrElse("Undefined")
-          ).asJson
+          ).asJson)
         }
       }
     }
@@ -50,13 +51,13 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
   def infoRoute: Route = path("info") {
     getJsonRoute {
       viewAsync().map { view =>
-        Map(
+        SuccessApiResponse( Map(
           "height" -> view.history.height.toString.asJson,
           "bestPoS" -> Base58.encode(view.history.bestPosId).asJson,
           "bestPoW" -> Base58.encode(view.history.bestPowId).asJson,
           "bestBlock" -> view.history.bestBlock.json,
           "stateVersion" -> Base58.encode(view.state.version).asJson
-        ).asJson
+        ).asJson)
       }
     }
   }
@@ -81,12 +82,12 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
         val posCount = view.history.count(isMyPosBlock)
         val powCount = view.history.count(isMyPowBlock)
 
-        Map(
+        SuccessApiResponse(Map(
           "pubkeys" -> pubkeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
           "count" -> (posCount + powCount).asJson,
           "posCount" -> posCount.asJson,
           "powCount" -> powCount.asJson
-        ).asJson
+        ).asJson)
       }
     }
   }
@@ -98,7 +99,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
       viewAsync().map { view =>
         val map: Map[String, Int] = view.history.generatorDistribution()
           .map(d => Base58.encode(d._1.pubKeyBytes) -> d._2)
-        map.asJson
+        SuccessApiResponse(map.asJson)
       }
     }
   }
@@ -111,9 +112,9 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
   def chain: Route = path("chain") {
     getJsonRoute {
       viewAsync().map { view =>
-        Map(
+        SuccessApiResponse(Map(
           "history" -> view.history.toString
-        ).asJson
+        ).asJson)
       }
     }
   }

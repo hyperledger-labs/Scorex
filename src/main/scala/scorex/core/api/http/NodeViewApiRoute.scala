@@ -48,10 +48,11 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   @ApiOperation(value = "Ids of open surface", notes = "Ids of open surface in history", httpMethod = "GET")
   def openSurface: Route = path("openSurface") {
     getJsonRoute {
-      getHistory() match {
-        case Success(history: HIS) => history.openSurfaceIds().map(Base58.encode).asJson
-        case Failure(e) => ApiError.failure(e)
+      val r: ScorexApiResponse = getHistory() match {
+        case Success(history: HIS) => SuccessApiResponse(history.openSurfaceIds().map(Base58.encode).asJson)
+        case Failure(e) => ApiException(e)
       }
+      r
     }
   }
 
@@ -63,14 +64,16 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   ))
   def persistentModifierById: Route = path("persistentModifier" / Segment) { case encodedId =>
     getJsonRoute {
-      Base58.decode(encodedId) match {
+      val r: Future[ScorexApiResponse] = Base58.decode(encodedId) match {
         case Success(id) =>
           //TODO 1: Byte
           (nodeViewHolderRef ? GetLocalObjects(source, 1: Byte, Seq(id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
-            .map(_.localObjects.headOption.map(_.json).getOrElse(ApiError.blockNotExists))
+            .map(_.localObjects.headOption.map(_.json).map(j => SuccessApiResponse(j))
+              .getOrElse(ApiError.blockNotExists))
         case _ => Future(ApiError.blockNotExists)
       }
+      r
     }
   }
 
@@ -85,8 +88,9 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
         case Success(id) =>
           (nodeViewHolderRef ? GetLocalObjects(null, Transaction.ModifierTypeId, Seq(id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
-            .map(_.localObjects.headOption.map(_.json).getOrElse(ApiError.blockNotExists))
-        case _ => Future(ApiError.blockNotExists)
+            .map(_.localObjects.headOption.map(_.json).map(r => SuccessApiResponse(r))
+              .getOrElse(ApiError.transactionNotExists))
+        case _ => Future(ApiError.transactionNotExists)
       }
     }
   }

@@ -13,7 +13,7 @@ import scorex.crypto.hash.CryptographicHash
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-trait ApiRoute extends Directives with CommonApiFunctions {
+trait ApiRoute extends Directives {
   val settings: Settings
   val context: ActorRefFactory
   val route: Route
@@ -25,21 +25,21 @@ trait ApiRoute extends Directives with CommonApiFunctions {
 
   def actorRefFactory: ActorRefFactory = context
 
-  def getJsonRoute(fn: Future[Json]): Route =
+  def getJsonRoute(fn: Future[ScorexApiResponse]): Route =
     jsonRoute(Await.result(fn, timeout.duration), get)
 
-  def getJsonRoute(fn: Json): Route = jsonRoute(fn, get)
+  def getJsonRoute(fn: ScorexApiResponse): Route = jsonRoute(fn, get)
 
-  def postJsonRoute(fn: Json): Route = jsonRoute(fn, post)
+  def postJsonRoute(fn: ScorexApiResponse): Route = jsonRoute(fn, post)
 
-  def postJsonRoute(fn: Future[Json]): Route = jsonRoute(Await.result(fn, timeout.duration), post)
+  def postJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, timeout.duration), post)
 
-  def deleteJsonRoute(fn: Json): Route = jsonRoute(fn, delete)
+  def deleteJsonRoute(fn: ScorexApiResponse): Route = jsonRoute(fn, delete)
 
-  def deleteJsonRoute(fn: Future[Json]): Route = jsonRoute(Await.result(fn, timeout.duration), delete)
+  def deleteJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, timeout.duration), delete)
 
-  private def jsonRoute(fn: Json, method: Directive0): Route = method {
-    val resp = complete(HttpEntity(ContentTypes.`application/json`, fn.toString))
+  private def jsonRoute(fn: ScorexApiResponse, method: Directive0): Route = method {
+    val resp = complete(HttpEntity(ContentTypes.`application/json`, fn.toJson.spaces2))
     withCors(resp)
   }
 

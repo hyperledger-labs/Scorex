@@ -18,10 +18,10 @@ import scorex.core.settings.Settings
 case class UtilsApiRoute(override val settings: Settings)(implicit val context: ActorRefFactory) extends ApiRoute {
   val SeedSize = 32
 
-  private def seed(length: Int): Json = {
+  private def seed(length: Int): SuccessApiResponse = {
     val seed = new Array[Byte](length)
     new SecureRandom().nextBytes(seed) //seed mutated here!
-    Map("seed" -> Base58.encode(seed)).asJson
+    SuccessApiResponse(Map("seed" -> Base58.encode(seed)).asJson)
   }
 
   override val route = pathPrefix("utils") {
@@ -64,7 +64,7 @@ case class UtilsApiRoute(override val settings: Settings)(implicit val context: 
       entity(as[String]) { message =>
         withAuth {
           postJsonRoute {
-            Map("message" -> message, "hash" -> Base58.encode(DoubleCryptographicHash(message))).asJson
+            SuccessApiResponse(Map("message" -> message, "hash" -> Base58.encode(DoubleCryptographicHash(message))).asJson)
           }
         }
       }
@@ -84,7 +84,7 @@ case class UtilsApiRoute(override val settings: Settings)(implicit val context: 
       entity(as[String]) { message =>
         withAuth {
           postJsonRoute {
-            Map("message" -> message, "hash" -> Base58.encode(FastCryptographicHash(message))).asJson
+            SuccessApiResponse(Map("message" -> message, "hash" -> Base58.encode(FastCryptographicHash(message))).asJson)
           }
         }
       }
