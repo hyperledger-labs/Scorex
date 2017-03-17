@@ -1,4 +1,4 @@
-
+* Issue #19 fixed
 * MapDB dependency removed
 * 
 
