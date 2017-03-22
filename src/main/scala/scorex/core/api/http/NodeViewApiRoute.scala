@@ -48,11 +48,10 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   @ApiOperation(value = "Ids of open surface", notes = "Ids of open surface in history", httpMethod = "GET")
   def openSurface: Route = path("openSurface") {
     getJsonRoute {
-      val r: ScorexApiResponse = getHistory() match {
+      getHistory() match {
         case Success(history: HIS) => SuccessApiResponse(history.openSurfaceIds().map(Base58.encode).asJson)
         case Failure(e) => ApiException(e)
       }
-      r
     }
   }
 
@@ -64,7 +63,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   ))
   def persistentModifierById: Route = path("persistentModifier" / Segment) { case encodedId =>
     getJsonRoute {
-      val r: Future[ScorexApiResponse] = Base58.decode(encodedId) match {
+      Base58.decode(encodedId) match {
         case Success(id) =>
           //TODO 1: Byte
           (nodeViewHolderRef ? GetLocalObjects(source, 1: Byte, Seq(id)))
@@ -73,7 +72,6 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
               .getOrElse(ApiError.blockNotExists))
         case _ => Future(ApiError.blockNotExists)
       }
-      r
     }
   }
 
