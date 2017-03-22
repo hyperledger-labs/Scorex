@@ -3,6 +3,7 @@ package examples.hybrid.state
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.state.SimpleBoxTransaction._
+import examples.hybrid.wallet.HWallet
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.crypto.hash.FastCryptographicHash
@@ -102,6 +103,25 @@ object SimpleBoxTransaction {
 
     new SimpleBoxTransaction(fromPub, to, sigs, fee, timestamp)
   }
+
+  //TODO seq of recipients and amounts
+  def create(w: HWallet, recipient: PublicKey25519Proposition, amount: Long, fee: Long): Try[SimpleBoxTransaction] = Try {
+
+    val from: IndexedSeq[(PrivateKey25519, Long, Long)] = w.boxes().flatMap { b =>
+      w.secretByPublicImage(b.box.proposition).map(s => (s, b.box.nonce, b.box.value))
+    }.toIndexedSeq
+    val canSend = from.map(_._3).sum
+    val charge: (PublicKey25519Proposition, Long) = (w.publicKeys.head, canSend - amount - fee)
+
+    val to: IndexedSeq[(PublicKey25519Proposition, Long)] = IndexedSeq(charge, (recipient, amount))
+
+    require(from.map(_._3).sum - to.map(_._2).sum == fee)
+
+    val timestamp = System.currentTimeMillis()
+    SimpleBoxTransaction(from.map(t => t._1 -> t._2), to, fee, timestamp)
+
+  }
+
 }
 
 object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {

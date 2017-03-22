@@ -58,19 +58,7 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
                 val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
                 val recipient: PublicKey25519Proposition = PublicKey25519Proposition(Base58.decode((json \\ "recipient").head.asString.get).get)
                 val fee: Long = (json \\ "fee").head.asNumber.flatMap(_.toLong).getOrElse(DefaultFee)
-
-                val from: IndexedSeq[(PrivateKey25519, Long, Long)] = wallet.boxes().flatMap { b =>
-                  wallet.secretByPublicImage(b.box.proposition).map(s => (s, b.box.nonce, b.box.value))
-                }.toIndexedSeq
-                var canSend = from.map(_._3).sum
-                val charge: (PublicKey25519Proposition, Long) = (wallet.publicKeys.head, canSend - amount - fee)
-
-                val to: IndexedSeq[(PublicKey25519Proposition, Long)] = IndexedSeq(charge, (recipient, amount))
-
-                require(from.map(_._3).sum - to.map(_._2).sum == fee)
-
-                val timestamp = System.currentTimeMillis()
-                val tx: SimpleBoxTransaction = SimpleBoxTransaction(from.map(t => t._1 -> t._2), to, fee, timestamp)
+                val tx = SimpleBoxTransaction.create(wallet, recipient, amount, fee).get
                 nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
                 tx.json
               } match {

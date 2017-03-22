@@ -5,7 +5,6 @@ import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PrivateKey25519
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
@@ -32,28 +31,11 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
       }
   }
 
-  def generate(wallet: HWallet): Try[SimpleBoxTransaction] = Try {
-    val from: IndexedSeq[(PrivateKey25519, Long, Long)] = wallet.boxes()
-      .filter(p => Random.nextBoolean())
-      .take(wallet.publicKeys.size / 2 - 1)
-      .flatMap { b =>
-        val secretOpt = wallet.secretByPublicImage(b.box.proposition)
-        require(secretOpt.isDefined,
-          s"Private key for proposition ${b.box.proposition} is not defined. ${wallet.publicKeys}")
-        secretOpt.map(s => (s, b.box.nonce, b.box.value))
-      }.toIndexedSeq
-    var canSend = from.map(_._3).sum
-
-    val to: IndexedSeq[(PublicKey25519Proposition, Long)] = wallet.publicKeys
-      .filter(p => Random.nextBoolean()).map { p =>
-      val amount = Random.nextInt(canSend.toInt - 1).toLong % canSend
-      canSend = canSend - amount
-      (p, amount)
-    }.toIndexedSeq
-
-    val fee: Long = from.map(_._3).sum - to.map(_._2).sum
-    val timestamp = System.currentTimeMillis()
-    SimpleBoxTransaction(from.map(t => t._1 -> t._2), to, fee, timestamp)
+  def generate(wallet: HWallet): Try[SimpleBoxTransaction] = {
+    val pubkeys = wallet.publicKeys.toSeq
+    //todo multiple recipients
+    val recipient = pubkeys(Random.nextInt(pubkeys.size))
+    SimpleBoxTransaction.create(wallet, recipient, Random.nextInt(100), Random.nextInt(100))
   }
 }
 

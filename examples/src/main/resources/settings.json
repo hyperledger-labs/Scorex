@@ -1,6 +1,6 @@
 {
   "p2p": {
-    "name": "node121",
+    "name": "node1",
     "bindAddress": "127.0.0.1",
     "upnp": false,
     "upnpGatewayTimeout": 7000,
