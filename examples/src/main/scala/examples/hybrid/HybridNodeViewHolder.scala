@@ -5,10 +5,11 @@ import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.MiningSettings
-import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
+import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import examples.hybrid.wallet.HWallet
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.serialization.Serializer
+import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.{NodeViewHolder, NodeViewModifier}
@@ -28,7 +29,9 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
   override type MP = HMemPool
 
   override val modifierCompanions: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
-    Map(PosBlock.ModifierTypeId -> PosBlockCompanion, PowBlock.ModifierTypeId -> PowBlockCompanion)
+    Map(PosBlock.ModifierTypeId -> PosBlockCompanion,
+      PowBlock.ModifierTypeId -> PowBlockCompanion,
+      Transaction.ModifierTypeId -> SimpleBoxTransactionCompanion)
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     super.preRestart(reason, message)

@@ -183,7 +183,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             modifiersCache.put(pmod.id, remote -> pmod)
         }
 
-        println(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
 
         var t: Option[(ConnectedPeer, PMOD)] = None
         do {
