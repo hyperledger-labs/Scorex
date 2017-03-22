@@ -5,12 +5,11 @@ import javax.ws.rs.Path
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import examples.hybrid.state.SimpleBoxTransaction
-import io.circe.Json
 import io.circe.parser._
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
-import scorex.core.api.http.{ApiError, ApiException, ScorexApiResponse, SuccessApiResponse}
+import scorex.core.api.http.{ApiException, SuccessApiResponse}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
@@ -24,6 +23,9 @@ import scala.util.{Failure, Success, Try}
 @Api(value = "/wallet", produces = "application/json")
 case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: ActorRef)
                          (implicit val context: ActorRefFactory) extends ApiRouteWithView {
+
+  //TODO move to settings?
+  val DefaultFee = 100
 
   override val route = pathPrefix("wallet") {
     balances ~ transfer
@@ -41,7 +43,7 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
       value = "Json with data",
       required = true,
       paramType = "body",
-      defaultValue = "{\"recipient\":\"3Mn6xomsZZepJj1GL1QaW6CaCJAq8B3oPef\",\"amount\":1}"
+      defaultValue = "{\"recipient\":\"3FAskwxrbqiX2KGEnFPuD3z89aubJvvdxZTKHCrMFjxQ\",\"amount\":1,\"fee\":100}"
     )
   ))
   def transfer: Route = path("transfer") {
@@ -49,13 +51,13 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
       withAuth {
         postJsonRoute {
           viewAsync().map { view =>
-            val respons: ScorexApiResponse = parse(body) match {
+            parse(body) match {
               case Left(failure) => ApiException(failure.getCause)
               case Right(json) => Try {
                 val wallet = view.vault
                 val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
                 val recipient: PublicKey25519Proposition = PublicKey25519Proposition(Base58.decode((json \\ "recipient").head.asString.get).get)
-                val fee: Long = 100
+                val fee: Long = (json \\ "fee").head.asNumber.flatMap(_.toLong).getOrElse(DefaultFee)
 
                 val from: IndexedSeq[(PrivateKey25519, Long, Long)] = wallet.boxes().flatMap { b =>
                   wallet.secretByPublicImage(b.box.proposition).map(s => (s, b.box.nonce, b.box.value))
@@ -76,7 +78,6 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
                 case Failure(e) => ApiException(e)
               }
             }
-            respons
           }
         }
       }
