@@ -98,6 +98,7 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
 
         SuccessApiResponse(Map(
           "totalBalance" -> boxes.map(_.box.value).sum.toString.asJson,
+          "publicKeys" -> wallet.publicKeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
           "boxes" -> boxes.map(_.box.json).asJson
         ).asJson)
       }
