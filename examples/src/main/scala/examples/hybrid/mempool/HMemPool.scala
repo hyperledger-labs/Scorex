@@ -18,13 +18,7 @@ case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTrans
   override def getById(id: ModifierId): Option[SimpleBoxTransaction] =
   unconfirmed.get(id)
 
-  //get mempool transaction ids not presenting in ids
-  override def notIn(ids: Seq[ModifierId]): Seq[ModifierId] = {
-    val idsM = ids.map(id => new mutable.WrappedArray.ofByte(id))
-    unconfirmed.filter { case (id, tx) =>
-      !idsM.contains(new mutable.WrappedArray.ofByte(id))
-    }.keySet.map(_.toArray).toSeq
-  }
+  override def contains(id: ModifierId): Boolean = unconfirmed.contains(id)
 
   override def getAll(ids: Seq[ModifierId]): Seq[SimpleBoxTransaction] =
     ids.flatMap(getById)

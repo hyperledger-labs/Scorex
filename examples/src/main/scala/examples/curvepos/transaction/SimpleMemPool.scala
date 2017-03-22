@@ -17,6 +17,8 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
   //getters
   override def getById(id: ModifierId): Option[SimpleTransaction] = unconfTxs.get(key(id))
 
+  override def contains(id: ModifierId): Boolean = unconfTxs.contains(key(id))
+
   override def filter(id: Array[Byte]): SimpleMemPool = {
     unconfTxs.remove(key(id))
     this
@@ -46,14 +48,6 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
     unconfTxs.keys.take(limit).flatMap(k => unconfTxs.get(k))
 
   override def remove(tx: SimpleTransaction): SimpleMemPool = filter(tx)
-
-  //get mempool transaction ids not presenting in ids
-  override def notIn(ids: Seq[ModifierId]): Seq[ModifierId] = {
-    val idsM = ids.map(id => new mutable.WrappedArray.ofByte(id))
-    unconfTxs.filter { case (id, tx) =>
-      !idsM.contains(id)
-    }.keySet.map(_.toArray).toSeq
-  }
 
   override def getAll(ids: Seq[ModifierId]): Seq[SimpleTransaction] = unconfTxs.values.toSeq
 
