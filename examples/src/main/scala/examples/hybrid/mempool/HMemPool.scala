@@ -1,53 +1,53 @@
 package examples.hybrid.mempool
 
 import examples.hybrid.state.SimpleBoxTransaction
-import scorex.core.NodeViewModifier
+import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.transaction.MemoryPool
 import scorex.core.utils.ScorexLogging
 
-import scala.collection.mutable
 import scala.util.{Success, Try}
 
 
-case class HMemPool(unconfirmed: Map[NodeViewModifier.ModifierId, SimpleBoxTransaction])
+case class HMemPool(unconfirmed: Map[ByteArrayWrapper, SimpleBoxTransaction])
   extends MemoryPool[SimpleBoxTransaction, HMemPool] with ScorexLogging {
   override type NVCT = HMemPool
 
+  private def key(id: Array[Byte]): ByteArrayWrapper = ByteArrayWrapper(id)
+
   //getters
   override def getById(id: ModifierId): Option[SimpleBoxTransaction] =
-  unconfirmed.get(id)
+  unconfirmed.get(key(id))
 
-  override def contains(id: ModifierId): Boolean = unconfirmed.contains(id)
+  override def contains(id: ModifierId): Boolean = unconfirmed.contains(key(id))
 
-  override def getAll(ids: Seq[ModifierId]): Seq[SimpleBoxTransaction] =
-    ids.flatMap(getById)
+  override def getAll(ids: Seq[ModifierId]): Seq[SimpleBoxTransaction] = ids.flatMap(getById)
 
   //modifiers
   override def put(tx: SimpleBoxTransaction): Try[HMemPool] =
-  Success(HMemPool(unconfirmed + (tx.id -> tx)))
+  Success(HMemPool(unconfirmed + (key(tx.id) -> tx)))
 
   override def put(txs: Iterable[SimpleBoxTransaction]): Try[HMemPool] =
-    Success(HMemPool(unconfirmed ++ txs.map(tx => tx.id -> tx)))
+    Success(HMemPool(unconfirmed ++ txs.map(tx => key(tx.id) -> tx)))
 
   override def putWithoutCheck(txs: Iterable[SimpleBoxTransaction]): HMemPool =
-    HMemPool(unconfirmed ++ txs.map(tx => tx.id -> tx))
+    HMemPool(unconfirmed ++ txs.map(tx => key(tx.id) -> tx))
 
   override def remove(tx: SimpleBoxTransaction): HMemPool =
-    HMemPool(unconfirmed - tx.id)
+    HMemPool(unconfirmed - key(tx.id))
 
   override def take(limit: Int): Iterable[SimpleBoxTransaction] =
     unconfirmed.values.toSeq.sortBy(-_.fee).take(limit)
 
-  override def filter(id: Array[Byte]): HMemPool = HMemPool(unconfirmed - id)
+  override def filter(id: Array[Byte]): HMemPool = HMemPool(unconfirmed - key(id))
 
   override def filter(tx: SimpleBoxTransaction): HMemPool = filter(tx.id)
 
   override def filter(txs: Seq[SimpleBoxTransaction]): HMemPool = {
-    val idsM = txs.map(tx => new mutable.WrappedArray.ofByte(tx.id))
+    val idsM = txs.map(tx => key(tx.id))
 
     val newU = unconfirmed.filter { case (id, tx) =>
-      !idsM.contains(new mutable.WrappedArray.ofByte(id))
+      !idsM.contains(id)
     }
     HMemPool(newU)
   }
