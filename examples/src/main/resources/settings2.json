@@ -1,4 +1,4 @@
-{
+ {
   "p2p": {
     "name": "node2",
     "bindAddress": "127.0.0.2",

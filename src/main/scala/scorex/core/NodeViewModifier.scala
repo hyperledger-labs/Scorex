@@ -30,6 +30,7 @@ trait NodeViewModifier extends BytesSerializable with JsonSerializable {
 object NodeViewModifier {
   val DefaultIdSize = 32 // in bytes
 
+  //TODO implement ModifierTypeId as a trait
   type ModifierTypeId = Byte
   type ModifierId = Array[Byte]
 
