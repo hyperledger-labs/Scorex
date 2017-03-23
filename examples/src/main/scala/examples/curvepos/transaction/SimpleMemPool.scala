@@ -35,7 +35,7 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
   override def take(limit: Int): Iterable[SimpleTransaction] =
     unconfTxs.keys.take(limit).flatMap(k => unconfTxs.get(k))
 
-  override def remove(tx: SimpleTransaction): SimpleMemPool = filter(tx)
+  override def remove(tx: SimpleTransaction): SimpleMemPool = filter(t => t.id sameElements tx.id)
 
   override def getAll(ids: Seq[ModifierId]): Seq[SimpleTransaction] = unconfTxs.values.toSeq
 

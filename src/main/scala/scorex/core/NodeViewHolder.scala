@@ -114,7 +114,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
             val appliedTxs = appliedMods.flatMap(_.transactions).flatten
 
-            val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter(appliedTxs)
+            val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter { tx =>
+              !appliedTxs.exists(t => t.id sameElements tx.id) && newMinState.validate(tx).isSuccess
+            }
 
             //we consider that vault always able to perform a rollback needed
             val newWallet = if (modifications.toRemove.isEmpty) vault().scanPersistent(appliedMods)
