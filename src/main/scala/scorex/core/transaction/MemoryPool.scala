@@ -6,10 +6,11 @@ import scala.util.Try
 
 /**
   * Unconfirmed transactions pool
- *
+  *
   * @tparam TX -type of transaction the pool contains
   */
 trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewComponent {
+
   import scorex.core.NodeViewModifier.ModifierId
 
   //getters
@@ -33,9 +34,11 @@ trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewC
 
   def take(limit: Int): Iterable[TX]
 
-  def filter(id: Array[Byte]): M
+  def filter(id: Array[Byte]): M = filter(t => !(t.id sameElements id))
 
-  def filter(tx: TX): M
+  def filter(tx: TX): M = filter(t => !(t.id sameElements tx.id))
 
-  def filter(txs: Seq[TX]): M
+  def filter(txs: Seq[TX]): M = filter(t => !txs.exists(_.id sameElements t.id))
+
+  def filter(condition: TX => Boolean): M
 }

@@ -39,19 +39,9 @@ case class HMemPool(unconfirmed: Map[ByteArrayWrapper, SimpleBoxTransaction])
   override def take(limit: Int): Iterable[SimpleBoxTransaction] =
     unconfirmed.values.toSeq.sortBy(-_.fee).take(limit)
 
-  override def filter(id: Array[Byte]): HMemPool = HMemPool(unconfirmed - key(id))
-
-  override def filter(tx: SimpleBoxTransaction): HMemPool = filter(tx.id)
-
-  override def filter(txs: Seq[SimpleBoxTransaction]): HMemPool = {
-    val idsM = txs.map(tx => key(tx.id))
-
-    val newU = unconfirmed.filter { case (id, tx) =>
-      !idsM.contains(id)
-    }
-    HMemPool(newU)
+  override def filter(condition: (SimpleBoxTransaction) => Boolean): HMemPool = {
+    HMemPool(unconfirmed.filter(tx => condition(tx._2)))
   }
-
 }
 
 

@@ -19,18 +19,6 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
 
   override def contains(id: ModifierId): Boolean = unconfTxs.contains(key(id))
 
-  override def filter(id: Array[Byte]): SimpleMemPool = {
-    unconfTxs.remove(key(id))
-    this
-  }
-
-  override def filter(tx: SimpleTransaction): SimpleMemPool = filter(Seq(tx))
-
-  override def filter(txs: Seq[SimpleTransaction]): SimpleMemPool = {
-    txs.foreach(tx => unconfTxs.remove(key(tx.id)))
-    this
-  }
-
   override def putWithoutCheck(txs: Iterable[SimpleTransaction]): SimpleMemPool = {
     txs.foreach(tx => unconfTxs.put(key(tx.id), tx))
     this
@@ -52,4 +40,9 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
   override def getAll(ids: Seq[ModifierId]): Seq[SimpleTransaction] = unconfTxs.values.toSeq
 
   override type NVCT = SimpleMemPool
+
+  override def filter(condition: (SimpleTransaction) => Boolean): SimpleMemPool = {
+    unconfTxs.filter(tx => condition(tx._2)).foreach(tx => unconfTxs.remove(tx._1))
+    this
+  }
 }
