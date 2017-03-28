@@ -3,9 +3,9 @@ package examples.hybrid.history
 
 import java.io.File
 
+import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, MiningSettings}
-import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
 import scorex.core.NodeViewModifier

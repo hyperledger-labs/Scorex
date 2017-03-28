@@ -1,8 +1,8 @@
-package examples.hybrid.state
+package examples.commons
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
+import examples.commons.SimpleBoxTransaction._
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.state.SimpleBoxTransaction._
 import examples.hybrid.wallet.HWallet
 import io.circe.Json
 import io.circe.syntax._

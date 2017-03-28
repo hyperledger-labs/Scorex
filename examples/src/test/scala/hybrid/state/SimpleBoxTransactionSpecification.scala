@@ -1,6 +1,7 @@
 package hybrid.state
 
-import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
+import examples.commons.SimpleBoxTransaction
+import examples.hybrid.state.HBoxStoredState
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}

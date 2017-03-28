@@ -1,11 +1,12 @@
 package examples.tailchain
 
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.MiningSettings
-import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction, SimpleBoxTransactionCompanion}
+import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransactionCompanion}
 import examples.hybrid.wallet.HWallet
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.serialization.Serializer

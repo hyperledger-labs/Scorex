@@ -1,11 +1,11 @@
 package examples.hybrid
 
 import akka.actor.{ActorRef, Props}
+import examples.commons.SimpleBoxTransaction
 import examples.hybrid.api.http.{DebugApiRoute, WalletApiRoute}
 import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec}
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
-import examples.hybrid.state.SimpleBoxTransaction
 import examples.hybrid.wallet.SimpleBoxTransactionGenerator
 import examples.hybrid.wallet.SimpleBoxTransactionGenerator.StartGeneration
 import io.circe

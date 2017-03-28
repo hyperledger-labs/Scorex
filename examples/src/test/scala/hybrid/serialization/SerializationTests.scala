@@ -1,9 +1,9 @@
 package hybrid.serialization
 
+import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSerializer}
-import examples.hybrid.state.SimpleBoxTransaction
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}

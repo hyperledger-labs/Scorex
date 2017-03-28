@@ -1,8 +1,8 @@
 package examples.hybrid.blocks
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
-import examples.hybrid.state.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
@@ -14,6 +14,7 @@ import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
+
 import scala.util.Try
 
 case class PosBlock(override val parentId: BlockId, //PoW block

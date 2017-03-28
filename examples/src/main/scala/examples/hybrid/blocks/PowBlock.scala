@@ -1,8 +1,8 @@
 package examples.hybrid.blocks
 
 import com.google.common.primitives.{Ints, Longs}
+import examples.commons.SimpleBoxTransaction
 import examples.hybrid.mining.MiningConstants
-import examples.hybrid.state.SimpleBoxTransaction
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier

@@ -1,11 +1,11 @@
-package examples.hybrid.state
+package examples.tailchain.utxo
 
 import java.io.File
 
 import com.google.common.primitives.Longs
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
-import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
+import examples.tailchain.modifiers.TModifier
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -18,20 +18,19 @@ import scorex.crypto.encode.Base58
 import scala.util.{Success, Try}
 
 
-case class HBoxStoredState(store: LSMStore, override val version: VersionTag) extends
+case class AuthenticatedUtxo(store: LSMStore, override val version: VersionTag, authenticatedRoot: Array[Byte]) extends
   BoxMinimalState[PublicKey25519Proposition,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
-    HybridBlock,
-    HBoxStoredState] with ScorexLogging {
+    TModifier,
+    AuthenticatedUtxo] with ScorexLogging {
 
   assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
   s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
-  override type NVCT = HBoxStoredState
-  type HPMOD = HybridBlock
+  override type NVCT = AuthenticatedUtxo
 
-  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = HBoxStoredState.semanticValidity(tx)
+  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = AuthenticatedUtxo.semanticValidity(tx)
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
     store.get(ByteArrayWrapper(boxId))
@@ -42,31 +41,17 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   //there's no easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: HPMOD): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
-    HBoxStoredState.changes(mod)
+  override def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+    AuthenticatedUtxo.changes(mod)
 
   //Validate transactions in block and generator box
-  //todo: move validation to history
-  override def validate(mod: HPMOD): Try[Unit] = Try {
+  override def validate(mod: TModifier): Try[Unit] = Try {
+    ???
     super.validate(mod).get
-    mod match {
-      case b: PowBlock =>
-        //coinbase transaction is generated implicitly when block is applied to state, no validation needed
-        require((b.parentId sameElements version) || (b.prevPosId sameElements version)
-          || b.brothers.exists(_.id sameElements version), s"Incorrect state version: ${Base58.encode(version)} " +
-          s"found, (${Base58.encode(b.prevPosId)} || ${Base58.encode(b.parentId)} ||" +
-          s" ${b.brothers.map(b => Base58.encode(b.id))}) expected")
-
-      case b: PosBlock =>
-        require(b.parentId sameElements version, s"Incorrect state version: ${Base58.encode(b.parentId)} " +
-          s"found, ${Base58.encode(version)} expected.")
-        closedBox(b.generatorBox.id).get
-        mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get)
-    }
   }
 
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
-                            newVersion: VersionTag): Try[HBoxStoredState] = Try {
+                            newVersion: VersionTag): Try[AuthenticatedUtxo] = Try {
     val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
     val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
@@ -75,19 +60,19 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       s"adding boxes ${boxesToAdd.map(b => Base58.encode(b._1.data))}")
     assert(store.lastVersionID.isEmpty || boxIdsToRemove.forall(i => closedBox(i.data).isDefined))
     store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
-    val newSt = HBoxStoredState(store, newVersion)
+    val newSt = AuthenticatedUtxo(store, newVersion)
     assert(boxIdsToRemove.forall(box => newSt.closedBox(box.data).isEmpty), s"Removed box is still in state")
     assert(newSt.version sameElements newVersion, s"New version don't match")
     newSt
   }
 
-  override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
+  override def rollbackTo(version: VersionTag): Try[AuthenticatedUtxo] = Try {
     if (store.lastVersionID.exists(_.data sameElements version)) {
       this
     } else {
       log.debug(s"Rollback HBoxStoredState to ${Base58.encode(version)} from version $lastVersionString")
       store.rollback(ByteArrayWrapper(version))
-      new HBoxStoredState(store, version)
+      AuthenticatedUtxo(store, version)
     }
   }
 
@@ -95,7 +80,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 
 }
 
-object HBoxStoredState {
+object AuthenticatedUtxo {
   def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
     require(tx.from.size == tx.signatures.size)
     require(tx.to.forall(_._2 >= 0))
@@ -107,8 +92,9 @@ object HBoxStoredState {
   }
 
 
-  def changes(mod: HybridBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
-    mod match {
+  def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+    ???
+    /*mod match {
       case pb: PowBlock =>
         val proposition: PublicKey25519Proposition = pb.generatorProposition
         val nonce: Long = SimpleBoxTransaction.nonceFromDigest(mod.id)
@@ -129,10 +115,10 @@ object HBoxStoredState {
           val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, reward)
           StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd ++ Set(forgerBox))
         }
-    }
+    }*/
   }
 
-  def readOrGenerate(settings: Settings): HBoxStoredState = {
+  def readOrGenerate(settings: Settings): AuthenticatedUtxo = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
 
@@ -149,10 +135,10 @@ object HBoxStoredState {
     })
     val version = stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
 
-    HBoxStoredState(stateStorage, version)
+    AuthenticatedUtxo(stateStorage, version)
   }
 
-  def genesisState(settings: Settings, initialBlocks: Seq[HybridBlock]): HBoxStoredState = {
+  def genesisState(settings: Settings, initialBlocks: Seq[TModifier]): AuthenticatedUtxo = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
       state.changes(mod).flatMap(cs => state.applyChanges(cs, mod.id)).get
     }

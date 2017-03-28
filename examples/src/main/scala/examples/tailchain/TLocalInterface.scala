@@ -1,11 +1,11 @@
 package examples.tailchain
 
 import akka.actor.ActorRef
+import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.mining.PosForger.{StartForging, StopForging}
 import examples.hybrid.mining.MiningSettings
 import examples.hybrid.mining.PowMiner.{MineBlock, StartMining, StopMining}
-import examples.hybrid.state.SimpleBoxTransaction
 import scorex.core.LocalInterface
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 

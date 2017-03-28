@@ -1,7 +1,8 @@
 package examples.hybrid.wallet
 
 import akka.actor.{Actor, ActorRef}
-import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
+import examples.commons.SimpleBoxTransaction
+import examples.hybrid.state.HBoxStoredState
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition

@@ -1,10 +1,11 @@
 package hybrid
 
+import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock, PowBlockCompanion}
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mempool.HMemPool
-import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
+import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import org.scalacheck.Gen
 import org.scalacheck.rng.Seed

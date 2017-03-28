@@ -2,11 +2,11 @@ package hybrid
 
 import java.io.File
 
+import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{PosBlock, PowBlock, PowBlockCompanion, PowBlockHeader}
 import examples.hybrid.history.{HistoryStorage, HybridHistory, HybridSyncInfo}
 import examples.hybrid.mining.MiningSettings
-import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import io.iohk.iodb.LSMStore
 import org.scalacheck.{Arbitrary, Gen}

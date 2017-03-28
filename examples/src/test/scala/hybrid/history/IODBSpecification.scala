@@ -2,8 +2,8 @@ package hybrid.history
 
 import java.io.File
 
+import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
-import examples.hybrid.state.SimpleBoxTransaction
 import hybrid.HybridGenerators
 import io.iohk.iodb.Store._
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}

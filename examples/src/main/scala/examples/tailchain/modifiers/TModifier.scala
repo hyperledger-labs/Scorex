@@ -1,6 +1,6 @@
 package examples.tailchain.modifiers
 
-import examples.hybrid.state.SimpleBoxTransaction
+import examples.commons.SimpleBoxTransaction
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 

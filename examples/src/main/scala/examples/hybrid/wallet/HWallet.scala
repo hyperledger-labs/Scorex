@@ -3,9 +3,10 @@ package examples.hybrid.wallet
 import java.io.File
 
 import com.google.common.primitives.Ints
+import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.HybridBlock
-import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
+import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings

@@ -1,6 +1,6 @@
 package examples.tailchain.modifiers
 
-import examples.hybrid.state.SimpleBoxTransaction
+import examples.commons.SimpleBoxTransaction
 import io.circe.Json
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.block.Block
