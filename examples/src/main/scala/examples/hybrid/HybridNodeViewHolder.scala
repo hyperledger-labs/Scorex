@@ -1,10 +1,9 @@
 package examples.hybrid
 
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion, SimpleBoxTransactionMemPool}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
-import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
@@ -27,7 +26,7 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
   override type HIS = HybridHistory
   override type MS = HBoxStoredState
   override type VL = HWallet
-  override type MP = HMemPool
+  override type MP = SimpleBoxTransactionMemPool
 
   override val modifierCompanions: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
     Map(PosBlock.ModifierTypeId -> PosBlockCompanion,
@@ -79,7 +78,7 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
 
     gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))
 
-    (history, gs, gw, HMemPool.emptyPool)
+    (history, gs, gw, SimpleBoxTransactionMemPool.emptyPool)
   }
 
   /**
@@ -92,7 +91,7 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
         HybridHistory.readOrGenerate(settings),
         HBoxStoredState.readOrGenerate(settings),
         HWallet.readOrGenerate(settings, 1),
-        HMemPool.emptyPool))
+        SimpleBoxTransactionMemPool.emptyPool))
     } else None
   }
 }

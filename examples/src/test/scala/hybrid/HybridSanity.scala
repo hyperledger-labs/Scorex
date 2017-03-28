@@ -1,10 +1,9 @@
 package hybrid
 
-import examples.commons.SimpleBoxTransaction
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock, PowBlockCompanion}
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
-import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import org.scalacheck.Gen
@@ -19,13 +18,13 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   HybridBlock,
   HybridSyncInfo,
   PublicKey25519NoncedBox,
-  HMemPool,
+  SimpleBoxTransactionMemPool,
   HBoxStoredState,
   HybridHistory] with HybridGenerators {
 
   //Node view components
   override val history = generateHistory
-  override val mempool: HMemPool = HMemPool.emptyPool
+  override val mempool: SimpleBoxTransactionMemPool = SimpleBoxTransactionMemPool.emptyPool
   override val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings, "p"))((w, _) => w.generateNewSecret())
   override val state = HBoxStoredState.readOrGenerate(settings)
 

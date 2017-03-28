@@ -2,11 +2,10 @@ package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef}
 import com.google.common.primitives.Longs
-import examples.commons.SimpleBoxTransaction
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
-import examples.hybrid.mempool.HMemPool
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
@@ -30,7 +29,7 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
 
   val TransactionsPerBlock = 50
 
-  def pickTransactions(memPool: HMemPool, state: HBoxStoredState): Seq[SimpleBoxTransaction] =
+  def pickTransactions(memPool: SimpleBoxTransactionMemPool, state: HBoxStoredState): Seq[SimpleBoxTransaction] =
     memPool.take(TransactionsPerBlock).foldLeft(Seq[SimpleBoxTransaction]()) { case (collected, tx) =>
       if (state.validate(tx).isSuccess &&
         tx.boxIdsToOpen.forall(id => !collected.flatMap(_.boxIdsToOpen).exists(_ sameElements id))) collected :+ tx
@@ -43,7 +42,7 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
       forging = true
       viewHolderRef ! GetCurrentView
 
-    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
+    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: SimpleBoxTransactionMemPool) =>
       val target = MaxTarget / h.posDifficulty
 
       val boxes = w.boxes().map(_.box).filter(box => s.closedBox(box.id).isDefined)

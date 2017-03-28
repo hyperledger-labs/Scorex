@@ -16,7 +16,8 @@ import scorex.crypto.encode.Base58
 import scala.util.{Success, Try}
 
 
-case class AuthenticatedUtxo(store: LSMStore, override val version: VersionTag, authenticatedRoot: Array[Byte]) extends
+// authenticatedRoot: Array[Byte]
+case class AuthenticatedUtxo(store: LSMStore, override val version: VersionTag) extends
   BoxMinimalState[PublicKey25519Proposition,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
