@@ -12,14 +12,13 @@ import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.History
-import scorex.core.consensus.History.{HistoryComparisonResult, RollbackInfo}
+import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
-import scala.collection.concurrent.TrieMap
 import scala.util.{Failure, Try}
 
 /**
@@ -96,7 +95,7 @@ class HybridHistory(storage: HistoryStorage,
     * @return
     */
   override def append(block: HybridBlock):
-  Try[(HybridHistory, RollbackInfo[HybridBlock])] = Try {
+  Try[(HybridHistory, ProgressInfo[HybridBlock])] = Try {
     log.debug(s"Trying to append block ${Base58.encode(block.id)} to history")
     val validationResuls = validators.map(_.validate(block))
     validationResuls.foreach {
@@ -104,11 +103,11 @@ class HybridHistory(storage: HistoryStorage,
       case _ =>
     }
     validationResuls.foreach(_.get)
-    val res: (HybridHistory, RollbackInfo[HybridBlock]) = block match {
+    val res: (HybridHistory, ProgressInfo[HybridBlock]) = block match {
       case powBlock: PowBlock =>
-        val modifications: RollbackInfo[HybridBlock] = if (isGenesis(powBlock)) {
+        val progress: ProgressInfo[HybridBlock] = if (isGenesis(powBlock)) {
           storage.update(powBlock, None, isBest = true)
-          RollbackInfo(powBlock.parentId, Seq(), Seq(powBlock))
+          ProgressInfo(None, Seq(), Seq(powBlock))
         } else {
           storage.heightOf(powBlock.parentId) match {
             case Some(parentHeight) =>
@@ -117,22 +116,22 @@ class HybridHistory(storage: HistoryStorage,
 
               val isBest: Boolean = storage.height == storage.parentHeight(powBlock) || isBestBrother
 
-              val mod: RollbackInfo[HybridBlock] = if (isBest) {
+              val mod: ProgressInfo[HybridBlock] = if (isBest) {
                 if (isGenesis(powBlock) ||
                   ((powBlock.parentId sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
                   log.debug(s"New best PoW block ${Base58.encode(powBlock.id)}")
                   //just apply one block to the end
-                  RollbackInfo(powBlock.prevPosId, Seq(), Seq(powBlock))
+                  ProgressInfo(None, Seq(), Seq(powBlock))
                 } else if (isBestBrother) {
                   log.debug(s"New best brother ${Base58.encode(powBlock.id)}")
                   //new best brother
-                  RollbackInfo(powBlock.prevPosId, Seq(bestPowBlock), Seq(powBlock))
+                  ProgressInfo(Some(powBlock.prevPosId), Seq(bestPowBlock), Seq(powBlock))
                 } else {
                   bestForkChanges(powBlock)
                 }
               } else {
                 log.debug(s"New orphaned PoW block ${Base58.encode(powBlock.id)}")
-                RollbackInfo(powBlock.prevPosId, Seq(), Seq())
+                ProgressInfo(None, Seq(), Seq())  //todo: fix
               }
               storage.update(powBlock, None, isBest)
               mod
@@ -143,7 +142,7 @@ class HybridHistory(storage: HistoryStorage,
           }
         }
         //        require(modifications.toApply.exists(_.id sameElements powBlock.id))
-        (new HybridHistory(storage, settings, validators), modifications)
+        (new HybridHistory(storage, settings, validators), progress)
 
 
       case posBlock: PosBlock =>
@@ -151,16 +150,16 @@ class HybridHistory(storage: HistoryStorage,
         val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
         val isBest = storage.height == storage.parentHeight(posBlock)
 
-        val mod: RollbackInfo[HybridBlock] = if (!isBest) {
+        val mod: ProgressInfo[HybridBlock] = if (!isBest) {
           log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
-          RollbackInfo(posBlock.parentId, Seq(), Seq())
+          ProgressInfo(None, Seq(), Seq())
         } else if (posBlock.parentId sameElements bestPowId) {
           log.debug(s"New best PoS block ${Base58.encode(posBlock.id)}")
-          RollbackInfo(posBlock.parentId, Seq(), Seq(posBlock))
+          ProgressInfo(None, Seq(), Seq(posBlock))
         } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
           log.debug(s"New best PoS block with link to non-best brother ${Base58.encode(posBlock.id)}")
           //rollback to prevoius PoS block and apply parent block one more time
-          RollbackInfo(parent.prevPosId, Seq(bestPowBlock), Seq(parent, posBlock))
+          ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq(parent, posBlock))
         } else {
           bestForkChanges(posBlock)
         }
@@ -174,21 +173,24 @@ class HybridHistory(storage: HistoryStorage,
     res
   }
 
-  def bestForkChanges(block: HybridBlock): RollbackInfo[HybridBlock] = {
+  //todo: implement
+  override def drop(modifierId: ModifierId): HybridHistory = ???
+
+  def bestForkChanges(block: HybridBlock): ProgressInfo[HybridBlock] = {
     val parentId = storage.parentId(block)
     val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(parentId).get)
     log.debug(s"Processing fork for block ${Base58.encode(block.id)}: \n" +
       s"old: ${oldSuffix.map(Base58.encode)}\n" +
       s"new: ${newSuffix.map(Base58.encode)}")
 
-    val rollbackPoint = newSuffix.head
+    val rollbackPoint = newSuffix.headOption
 
     val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
     val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(block)
     require(applyBlocks.nonEmpty)
     require(throwBlocks.nonEmpty)
 
-    RollbackInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
+    ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
   }
 
   private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, Long) = {

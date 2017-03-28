@@ -101,40 +101,55 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     log.info(s"Apply modifier to nodeViewHolder: ${Base58.encode(pmod.id)}")
 
     history().append(pmod) match {
-      case Success((newHistory, modifications)) =>
-        log.debug(s"Going to apply modifications: $modifications")
-        val newStateTry = if (modifications.toRemove.isEmpty) minimalState().applyModifiers(modifications.toApply)
-        else minimalState().rollbackTo(modifications.branchPoint).flatMap(_.applyModifiers(modifications.toApply))
+      case Success((newHistory, progressInfo)) =>
+        log.debug(s"Going to apply modifications: $progressInfo")
 
-        newStateTry match {
-          case Success(newMinState) =>
-            val rolledBackTxs = modifications.toRemove.flatMap(_.transactions).flatten
+        progressInfo.toApply.isEmpty match {
+          case true => //nothing to apply, e.g. a modifier is not in a best chain
 
-            val appliedMods = modifications.toApply
+          case false => //applying modifiers
 
-            val appliedTxs = appliedMods.flatMap(_.transactions).flatten
+            val newStateTry = progressInfo.rollbackNeeded match {
+              case false => minimalState().applyModifiers(progressInfo.toApply)
 
-            val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter { tx =>
-              !appliedTxs.exists(t => t.id sameElements tx.id) && newMinState.validate(tx).isSuccess
+              //todo: in case if better chain (.toApply) has an invalid block in the end,
+              // and mutable database is used under the hood, the system would be in the broken state until a valid
+              // fork of a better score will appear
+              case true => minimalState()
+                .rollbackTo(progressInfo.branchPoint.get)
+                .flatMap(_.applyModifiers(progressInfo.toApply))
             }
 
-            //we consider that vault always able to perform a rollback needed
-            val newWallet = if (modifications.toRemove.isEmpty) vault().scanPersistent(appliedMods)
-            else vault().rollback(modifications.branchPoint).get.scanPersistent(appliedMods)
+            newStateTry match {
+              case Success(newMinState) =>
+                val rolledBackTxs = progressInfo.toRemove.flatMap(_.transactions).flatten
 
-            log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
-            nodeView = (newHistory, newMinState, newWallet, newMemPool)
-            notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
+                val appliedMods = progressInfo.toApply
 
-          case Failure(e) =>
-            //TODO rollback history (or at least notify)
-            log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
-            notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
+                val appliedTxs = appliedMods.flatMap(_.transactions).flatten
+
+                val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter { tx =>
+                  !appliedTxs.exists(t => t.id sameElements tx.id) && newMinState.validate(tx).isSuccess
+                }
+
+                //we consider that vault always able to perform a rollback needed
+                val newVault = progressInfo.rollbackNeeded match {
+                  case true => vault().rollback(progressInfo.branchPoint.get).get.scanPersistent(appliedMods)
+                  case false => vault().scanPersistent(appliedMods)
+                }
+
+                log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
+                nodeView = (newHistory, newMinState, newVault, newMemPool)
+                notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[P, TX, PMOD](pmod, source))
+
+              case Failure(e) =>
+                val newHistoryCancelled = newHistory.drop(progressInfo.appendedId)
+                nodeView = (newHistoryCancelled, minimalState(), vault(), memoryPool())
+
+                log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
+                notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
+            }
         }
-
-      case Failure(e) =>
-        log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to history, reason: ${e.getMessage}", e)
-        notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
     }
   } else {
     log.warn(s"Trying to apply modifier ${Base58.encode(pmod.id)} that's already in history")

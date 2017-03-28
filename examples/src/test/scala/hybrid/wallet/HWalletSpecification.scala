@@ -1,13 +1,10 @@
 package hybrid.wallet
 
 import examples.hybrid.blocks.PosBlock
-import examples.hybrid.mining.MiningSettings
 import examples.hybrid.wallet.HWallet
 import hybrid.HybridGenerators
-import io.circe
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 
@@ -28,7 +25,8 @@ class HWalletSpecification extends PropSpec
   val fs = w.secrets.head
   val ss = w.secrets.tail.head
 
-  property("Wallet should generate same keys") {
+  //todo: what is this test about actually?
+  ignore("Wallet should generate same keys") {
     val KeysToGenerate = 5
     @tailrec
     def wallet(oldW: HWallet): HWallet = if (oldW.publicKeys.size >= KeysToGenerate) oldW

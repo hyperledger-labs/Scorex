@@ -4,7 +4,7 @@ import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.BlockChain
-import scorex.core.consensus.History.{HistoryComparisonResult, RollbackInfo}
+import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 
@@ -26,19 +26,22 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
     blocks.find(_._1.sameElements(blockId)).map(_._2)
 
   //todo: check PoS data in a block
-  override def append(block: SimpleBlock): Try[(SimpleBlockchain, RollbackInfo[SimpleBlock])] = synchronized {
+  override def append(block: SimpleBlock): Try[(SimpleBlockchain, ProgressInfo[SimpleBlock])] = synchronized {
     val blockId = block.id
     val parentId = block.parentId
 
     if (blockIds.isEmpty || (lastBlock.id sameElements parentId)) {
       val h = height() + 1
       val newChain = SimpleBlockchain(blockIds + (h -> blockId), blocks + (blockId -> block))
-      Success(newChain, RollbackInfo(block.parentId, Seq(), Seq(block)))
+      Success(newChain, ProgressInfo(None, Seq(), Seq(block)))
     } else {
       val e = new Exception(s"Last block id is ${Base58.encode(blockIds.last._2)}, expected ${Base58.encode(parentId)}}")
       Failure(e)
     }
   }
+
+  //todo: implement
+  override def drop(modifierId: ModifierId): SimpleBlockchain = ???
 
   override def openSurfaceIds(): Seq[ModifierId] = Seq(blockIds(height()))
 
