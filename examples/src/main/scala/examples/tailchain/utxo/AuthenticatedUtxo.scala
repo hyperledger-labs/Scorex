@@ -1,8 +1,6 @@
 package examples.tailchain.utxo
 
 import java.io.File
-
-import com.google.common.primitives.Longs
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.tailchain.modifiers.TModifier
