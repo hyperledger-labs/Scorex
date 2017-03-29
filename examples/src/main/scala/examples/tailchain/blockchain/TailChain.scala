@@ -1,26 +1,24 @@
 package examples.tailchain.blockchain
 
 import examples.commons.SimpleBoxTransaction
-import examples.hybrid.blocks.HybridBlock
-import examples.hybrid.history.{HistoryStorage, HybridSyncInfo}
 import examples.hybrid.mining.MiningConstants
-import examples.tailchain.modifiers.TModifier
+import examples.tailchain.modifiers.{TBlock, TModifier}
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.block.BlockValidator
 import scorex.core.consensus.History
-import scorex.core.consensus.History.{ModifierIds, ProgressInfo}
+import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 
 import scala.util.Try
 
-class TailChain(storage: HistoryStorage,
-                    settings: MiningConstants,
-                    validators: Seq[BlockValidator[HybridBlock]])
+class TailChain(version: ModifierId,
+                settings: MiningConstants,
+                validators: Seq[BlockValidator[TBlock]])
   extends History[PublicKey25519Proposition,
     SimpleBoxTransaction,
     TModifier,
-    HybridSyncInfo,
+    TailChainSyncInfo,
     TailChain] with ScorexLogging {
   /**
     * Is there's no history, even genesis block
@@ -39,7 +37,7 @@ class TailChain(storage: HistoryStorage,
   //todo: argument should be ID | Seq[ID]
   override def continuationIds(from: ModifierIds, size: Int): Option[ModifierIds] = ???
 
-  override def syncInfo(answer: Boolean): HybridSyncInfo = ???
+  override def syncInfo(answer: Boolean): TailChainSyncInfo = ???
 
   /**
     * Whether another's node syncinfo shows that another node is ahead or behind ours
@@ -47,7 +45,7 @@ class TailChain(storage: HistoryStorage,
     * @param other other's node sync info
     * @return Equal if nodes have the same history, Younger if another node is behind, Older if a new node is ahead
     */
-  override def compare(other: HybridSyncInfo): _root_.scorex.core.consensus.History.HistoryComparisonResult.Value = ???
+  override def compare(other: TailChainSyncInfo): HistoryComparisonResult.Value = ???
 
   override type NVCT = this.type
 }
