@@ -1,6 +1,7 @@
 package examples.tailchain.utxo
 
 import java.io.File
+
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.tailchain.modifiers.TModifier
@@ -11,13 +12,17 @@ import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.transaction.state.StateChanges
 import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert}
 import scorex.crypto.encode.Base58
+import scorex.crypto.hash.Blake2b256Unsafe
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
+import AuthenticatedUtxo.ProverType
 
-// authenticatedRoot: Array[Byte]
-case class AuthenticatedUtxo(store: LSMStore, override val version: VersionTag) extends
+case class AuthenticatedUtxo(store: LSMStore,
+                             proverOpt: Option[ProverType], //todo: externalize the type with the parameter
+                             override val version: VersionTag) extends
   BoxMinimalState[PublicKey25519Proposition,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
@@ -26,6 +31,19 @@ case class AuthenticatedUtxo(store: LSMStore, override val version: VersionTag) 
 
   assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
   s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
+
+  val prover = proverOpt.getOrElse{
+    val p = new ProverType() //todo: feed it with genesis state
+    log.debug("Starting building a tree for UTXO set")
+    store.getAll{case (k, v) =>
+      p.performOneOperation(Insert(k.data, v.data))
+    }
+    p.generateProof()
+    log.debug("Finished building a tree for UTXO set")
+    p
+  }
+
+  lazy val rootHash = prover.digest
 
   override type NVCT = AuthenticatedUtxo
 
@@ -59,7 +77,7 @@ case class AuthenticatedUtxo(store: LSMStore, override val version: VersionTag) 
       s"adding boxes ${boxesToAdd.map(b => Base58.encode(b._1.data))}")
     assert(store.lastVersionID.isEmpty || boxIdsToRemove.forall(i => closedBox(i.data).isDefined))
     store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
-    val newSt = AuthenticatedUtxo(store, newVersion)
+    val newSt = AuthenticatedUtxo(store, None, newVersion)
     assert(boxIdsToRemove.forall(box => newSt.closedBox(box.data).isEmpty), s"Removed box is still in state")
     assert(newSt.version sameElements newVersion, s"New version don't match")
     newSt
@@ -71,7 +89,7 @@ case class AuthenticatedUtxo(store: LSMStore, override val version: VersionTag) 
     } else {
       log.debug(s"Rollback HBoxStoredState to ${Base58.encode(version)} from version $lastVersionString")
       store.rollback(ByteArrayWrapper(version))
-      AuthenticatedUtxo(store, version)
+      AuthenticatedUtxo(store, None, version)
     }
   }
 
@@ -80,6 +98,9 @@ case class AuthenticatedUtxo(store: LSMStore, override val version: VersionTag) 
 }
 
 object AuthenticatedUtxo {
+
+  type ProverType = BatchAVLProver[Blake2b256Unsafe]
+
   def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
     require(tx.from.size == tx.signatures.size)
     require(tx.to.forall(_._2 >= 0))
@@ -134,7 +155,7 @@ object AuthenticatedUtxo {
     })
     val version = stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
 
-    AuthenticatedUtxo(stateStorage, version)
+    AuthenticatedUtxo(stateStorage, None, version)
   }
 
   def genesisState(settings: Settings, initialBlocks: Seq[TModifier]): AuthenticatedUtxo = {

@@ -1,9 +1,9 @@
 package examples.tailchain.modifiers
+
 import examples.commons.SimpleBoxTransaction
 import io.circe.Json
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.serialization.Serializer
-
 
 class UtxoSnapshot extends TModifier {
   override def parentId: ModifierId = ???
