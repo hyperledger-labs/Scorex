@@ -30,12 +30,12 @@ case class AuthenticatedUtxo(store: LSMStore,
     AuthenticatedUtxo] with ScorexLogging {
 
   assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
-  s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
+    s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
-  val prover = proverOpt.getOrElse{
+  val prover = proverOpt.getOrElse {
     val p = new ProverType() //todo: feed it with genesis state
     log.debug("Starting building a tree for UTXO set")
-    store.getAll{case (k, v) =>
+    store.getAll { case (k, v) =>
       p.performOneOperation(Insert(k.data, v.data))
     }
     p.generateProof()
