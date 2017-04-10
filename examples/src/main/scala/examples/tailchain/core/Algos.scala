@@ -4,11 +4,13 @@ import java.io.File
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.curvepos.transaction.PublicKey25519NoncedBox._
 import examples.tailchain.modifiers.BlockHeader
 import examples.tailchain.utxo.AuthenticatedUtxo
 import io.iohk.iodb.LSMStore
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.StateChanges
+import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.{Random, Success, Try}
@@ -54,17 +56,43 @@ object Algos extends App {
     require(minerPubKey.length == Curve25519.KeyLength)
     require(miningUtxos.length == k)
 
-    (1 to attempts).foreach { _ =>
+    (1 to attempts).foreach { i =>
       val st = hashfn(parentId ++ transactionsRoot ++ currentStateRoot)
       val nonce = Random.nextLong()
       val ticket = generateTicket(miningUtxos, st, minerPubKey, nonce).get
       val header = BlockHeader(parentId, currentStateRoot, transactionsRoot, ticket, nonce)
 
-      if (header.correctWorkDone(difficulty)) return Success(Some(header))
+      if (header.correctWorkDone(difficulty)) {
+        println(s"pow done in $i attempts")
+        return Success(Some(header))
+      }
     }
     None
   }
 
+  def validatePow(header: BlockHeader,
+                  miningStateRoots: IndexedSeq[Array[Byte]],
+                  difficulty: BigInt): Boolean = Try {
+    assert(header.correctWorkDone(difficulty))
+    assert(miningStateRoots.length == k)
+
+    val nonce = header.powNonce
+    val minerKey = header.ticket.minerKey
+
+    var seed = hashfn(Longs.toByteArray(nonce))
+
+    //todo: is proof malleability possible?
+    header.ticket.partialProofs.zip(miningStateRoots).zipWithIndex.foreach{case ((pp, sroot), idx) =>
+      val id = hashfn(seed ++ minerKey ++ Ints.toByteArray(idx))
+      val v = new BatchAVLVerifier(sroot, pp.proof, keyLength = BoxKeyLength, valueLength = BoxLength)
+      v.performOneOperation(Lookup(id)).get
+      seed = id
+    }
+
+    true
+  }.getOrElse(false)
+
+  new File("/tmp/utxo").delete()
   new File("/tmp/utxo").mkdirs()
   val store = new LSMStore(new File("/tmp/utxo"))
   val u1 = AuthenticatedUtxo(store, None, Array.fill(32)(0: Byte))
@@ -75,8 +103,12 @@ object Algos extends App {
   val u2 = u1.applyChanges(StateChanges(Set(), Set(b1, b2)), Array.fill(32)(Random.nextInt(100).toByte)).get
 
 
-  println(pow(Array.fill(32)(0: Byte), Array.fill(32)(0: Byte), u2.rootHash, pk1.pubKeyBytes,
-    IndexedSeq(u2), Constants.Difficulty, 1000000))
+  val headerOpt = pow(Array.fill(32)(0: Byte), Array.fill(32)(0: Byte), u2.rootHash, pk1.pubKeyBytes,
+    IndexedSeq(u2), Constants.Difficulty, 500).get
+
+  println(headerOpt)
+
+  headerOpt.foreach(h => println(validatePow(h, IndexedSeq(u2.rootHash), Constants.Difficulty)))
 
   println(chooseSnapshots(9000, Array.fill(32)(Random.nextInt(100).toByte)))
 }

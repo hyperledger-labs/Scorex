@@ -1,6 +1,6 @@
 package examples.tailchain.core
 
-import com.google.common.primitives.{Longs, Shorts}
+import com.google.common.primitives.Shorts
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.serialization.{JsonSerializable, Serializer}
