@@ -3,11 +3,13 @@ package examples.tailchain.modifiers
 import com.google.common.primitives.{Longs, Shorts}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Json
+import io.circe.syntax._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.block.Block
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -17,8 +19,11 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
 
   override def version: Version = 0: Version
 
-  //todo: for Dmitry: implement
-  override def json: Json = ???
+  override def json: Json =  Map(
+    "header" -> header.json,
+    "body" -> body.map(_.json).asJson,
+    "timestamp" -> timestamp.asJson
+  ).asJson
 
   override def parentId: ModifierId = header.parentId
 
@@ -27,7 +32,6 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
 
   override val modifierTypeId: ModifierTypeId = TModifier.Block
 
-  //todo: check statically or dynamically output size
   override def id: ModifierId = header.id
 
   override type M = TBlock
