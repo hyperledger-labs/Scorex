@@ -27,7 +27,7 @@ case class BlockHeader(override val parentId: ModifierId,
 
   override val modifierTypeId: ModifierTypeId = TModifier.Header
 
-  override lazy val id: ModifierId = FastCryptographicHash(serializer.toBytes(this))
+  override lazy val id: ModifierId = Constants.hashfn(serializer.toBytes(this))
 
   override lazy val json: Json = Map(
     "id" -> Base58.encode(id).asJson,
