@@ -2,6 +2,7 @@ package examples.tailchain.modifiers
 
 import com.google.common.primitives.Longs
 import examples.commons.SimpleBoxTransaction
+import examples.hybrid.mining.MiningConstants
 import examples.tailchain.core.Constants._
 import examples.tailchain.core.{Constants, Ticket, TicketSerializer}
 import io.circe.Json
@@ -37,6 +38,11 @@ case class BlockHeader(override val parentId: ModifierId,
     "ticket" -> ticket.json,
     "powNonce" -> powNonce.asJson
   ).asJson
+
+  def correctWorkDone(difficulty: BigInt): Boolean = {
+    val target = Constants.MaxTarget / difficulty
+    BigInt(1, id) < target
+  }
 
   override lazy val serializer = BlockHeaderSerializer
 }

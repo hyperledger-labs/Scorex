@@ -5,7 +5,7 @@ import scorex.crypto.hash.Blake2b256
 
 object Constants {
   val n = 1000
-  val k = 2
+  val k = 1
 
   val hashfn = Blake2b256
 
@@ -14,4 +14,8 @@ object Constants {
 
   type TransactionsRoot = Array[Byte]
   val TxRootLength = hashfn.DigestSize
+
+
+  lazy val MaxTarget = BigInt(1, Array.fill(32)(Byte.MinValue))
+  lazy val Difficulty = BigInt("50")
 }
