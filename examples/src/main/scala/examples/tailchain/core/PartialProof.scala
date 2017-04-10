@@ -1,18 +1,27 @@
 package examples.tailchain.core
 
 import com.google.common.primitives.Ints
-import scorex.core.serialization.Serializer
+import io.circe.Json
+import io.circe.syntax._
+import scorex.core.serialization.{JsonSerializable, Serializer}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
 
-case class PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byte]) {
+case class PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byte]) extends JsonSerializable {
   override def toString: String =
     s"PartialProof(${Base58.encode(id)},${Base58.encode(rootHash)},${Base58.encode(proof)})"
+
+  override lazy val json: Json = Map(
+    "id" -> Base58.encode(id).asJson,
+    "rootHash" -> Base58.encode(rootHash).asJson,
+    "proof" -> Base58.encode(proof).asJson
+  ).asJson
+
 }
 
-object PartialProof extends Serializer[PartialProof] {
+object PartialProofSerializer extends Serializer[PartialProof] {
 
   val HardLimit = 5000 // we assume that serialized partial proof is no more than 5K, more than enough for any imaginable case
 

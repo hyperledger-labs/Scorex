@@ -1,21 +1,30 @@
 package examples.tailchain.core
 
 import com.google.common.primitives.{Longs, Shorts}
-import scorex.core.serialization.Serializer
+import io.circe.Json
+import io.circe.syntax._
+import scorex.core.serialization.{JsonSerializable, Serializer}
+import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 
 import scala.annotation.tailrec
 import scala.util.Try
 
-case class Ticket(minerKey: Array[Byte], nonce: Long, partialProofs: Seq[PartialProof])
+case class Ticket(minerKey: Array[Byte], nonce: Long, partialProofs: Seq[PartialProof]) extends JsonSerializable {
+  override lazy val json: Json = Map(
+    "minerKey" -> Base58.encode(minerKey).asJson,
+    "nonce" -> nonce.asJson,
+    "partialProofs" -> partialProofs.map(_.json).asJson
+  ).asJson
+}
 
-object Ticket extends Serializer[Ticket] {
+object TicketSerializer extends Serializer[Ticket] {
 
   val MinerKeySize = Curve25519.KeyLength
 
   override def toBytes(obj: Ticket): Array[Byte] = {
     val proofsBytes = obj.partialProofs.map { p =>
-      val bytes = PartialProof.toBytes(p)
+      val bytes = PartialProofSerializer.toBytes(p)
       require(bytes.length == bytes.length.toShort)
       Shorts.toByteArray(bytes.length.toShort) ++ bytes
     }
@@ -28,7 +37,7 @@ object Ticket extends Serializer[Ticket] {
     def parseProofs(index: Int, acc: Seq[PartialProof] = Seq.empty): Seq[PartialProof] = {
       if (bytes.length > index) {
         val proofSize = Shorts.fromByteArray(bytes.slice(index, index + 2))
-        val proof = PartialProof.parseBytes(bytes.slice(index + 2, index + 2 + proofSize)).get
+        val proof = PartialProofSerializer.parseBytes(bytes.slice(index + 2, index + 2 + proofSize)).get
         parseProofs(index + 2 + proofSize, proof +: acc)
       } else {
         acc
