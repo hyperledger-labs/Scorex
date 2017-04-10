@@ -67,9 +67,9 @@ object PosBlockCompanion extends Serializer[PosBlock] {
     val timestamp = Longs.fromByteArray(bytes.slice(position, position + 8))
     position = position + 8
 
-    val boxBytes = bytes.slice(position, position + PublicKey25519NoncedBoxSerializer.BoxLength)
+    val boxBytes = bytes.slice(position, position + PublicKey25519NoncedBox.BoxLength)
     val box = PublicKey25519NoncedBoxSerializer.parseBytes(boxBytes).get
-    position = position + PublicKey25519NoncedBoxSerializer.BoxLength
+    position = position + PublicKey25519NoncedBox.BoxLength
 
     val signature = Signature25519(bytes.slice(position, position + Signature25519.SignatureSize))
     position = position + Signature25519.SignatureSize
