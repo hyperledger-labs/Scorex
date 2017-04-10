@@ -6,14 +6,18 @@ import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
 
-//todo: write a test for serialization
-case class PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byte]) extends Serializer[PartialProof] {
+case class PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byte])
 
-  import PartialProof._
+object PartialProof extends Serializer[PartialProof] {
+
+  val HardLimit = 5000 // we assume that serialized partial proof is no more than 5K, more than enough for any imaginable case
+
+  val IdSize = Blake2b256.DigestSize
+  val RootSize = Blake2b256.DigestSize
 
   override def toBytes(obj: PartialProof): Array[Byte] = {
-    val proofSize = Ints.toByteArray(proof.length)
-    id ++ rootHash ++ proofSize ++ proof
+    val proofSize = Ints.toByteArray(obj.proof.length)
+    obj.id ++ obj.rootHash ++ proofSize ++ obj.proof
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[PartialProof] = Try {
@@ -26,17 +30,13 @@ case class PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byt
   }
 }
 
-object PartialProof {
-  val HardLimit = 5000 // we assume that serialized partial proof is no more than 5K, more than enough for any imaginable case
-
-  val IdSize = Blake2b256.DigestSize
-  val RootSize = Blake2b256.DigestSize
-}
-
 case class Ticket(minerKey: Array[Byte], nonce: Array[Byte], partialProofs: IndexedSeq[PartialProof])
   extends Serializer[Ticket] {
 
-  override def toBytes(obj: Ticket): Array[Byte] = minerKey ++ nonce ++ partialProofs.reduce(_ ++ _)
+  override def toBytes(obj: Ticket): Array[Byte] = {
+    ???
+//    minerKey ++ nonce ++ partialProofs.reduce(_ ++ _)
+  }
 
 
   //todo: for Dmitry: implement
