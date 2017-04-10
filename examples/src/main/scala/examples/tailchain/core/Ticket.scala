@@ -1,13 +1,22 @@
 package examples.tailchain.core
 
 import com.google.common.primitives.{Longs, Shorts}
-import scorex.core.serialization.Serializer
+import io.circe.Json
+import io.circe.syntax._
+import scorex.core.serialization.{JsonSerializable, Serializer}
+import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 
 import scala.annotation.tailrec
 import scala.util.Try
 
-case class Ticket(minerKey: Array[Byte], nonce: Long, partialProofs: Seq[PartialProof])
+case class Ticket(minerKey: Array[Byte], nonce: Long, partialProofs: Seq[PartialProof]) extends JsonSerializable {
+  override lazy val json: Json = Map(
+    "minerKey" -> Base58.encode(minerKey).asJson,
+    "nonce" -> nonce.asJson,
+    "partialProofs" -> partialProofs.map(_.json).asJson
+  ).asJson
+}
 
 object TicketSerializer extends Serializer[Ticket] {
 
