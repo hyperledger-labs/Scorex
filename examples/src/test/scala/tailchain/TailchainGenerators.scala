@@ -1,11 +1,12 @@
 package tailchain
 
+import commons.ExamplesCommonGenerators
+import examples.commons.SimpleBoxTransaction
 import examples.tailchain.core._
-import examples.tailchain.modifiers.BlockHeader
+import examples.tailchain.modifiers.{BlockHeader, TBlock}
 import org.scalacheck.{Arbitrary, Gen}
-import scorex.testkit.CoreGenerators
 
-trait TailchainGenerators extends CoreGenerators {
+trait TailchainGenerators extends ExamplesCommonGenerators {
 
   val partialProofGen: Gen[PartialProof] = for {
     id: Array[Byte] <- genBytesList(PartialProofSerializer.IdSize)
@@ -26,5 +27,11 @@ trait TailchainGenerators extends CoreGenerators {
     powNonce: Long <- Arbitrary.arbitrary[Long]
     ticket: Ticket <- ticketGen
   } yield BlockHeader(parentId, stateRoot, txRoot, ticket, powNonce)
+
+  val TBlockGen: Gen[TBlock] = for {
+    header: BlockHeader <- blockHeaderGen
+    body: Seq[SimpleBoxTransaction] <- Gen.listOf(simpleBoxTransactionGen)
+    timestamp: Long <- Arbitrary.arbitrary[Long]
+  } yield TBlock(header, body, timestamp)
 
 }
