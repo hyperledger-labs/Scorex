@@ -17,9 +17,18 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256Unsafe
 
 import scala.util.Try
-
 import AuthenticatedUtxo.ProverType
 
+/**
+  * We implement Ethereum-style authenticated UTXO for the moment, so all the parties replicate the full UTXO set
+  * Thus we have only prover implemented
+  * Further it would be a good idea to implement 2-party model from https://eprint.iacr.org/2016/994, so miners store
+  * full state
+  *
+  * @param store
+  * @param proverOpt
+  * @param version
+  */
 case class AuthenticatedUtxo(store: LSMStore,
                              proverOpt: Option[ProverType], //todo: externalize the type with the parameter
                              override val version: VersionTag) extends
@@ -32,7 +41,7 @@ case class AuthenticatedUtxo(store: LSMStore,
   assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
     s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
-  val prover = proverOpt.getOrElse {
+  lazy val prover = proverOpt.getOrElse {
     val p = new ProverType() //todo: feed it with genesis state
     log.debug("Starting building a tree for UTXO set")
     store.getAll { case (k, v) =>
