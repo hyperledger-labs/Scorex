@@ -2,11 +2,15 @@ package examples.tailchain.core
 
 import com.google.common.primitives.Ints
 import scorex.core.serialization.Serializer
+import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
 
-case class PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byte])
+case class PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byte]) {
+  override def toString: String =
+    s"PartialProof(${Base58.encode(id)},${Base58.encode(rootHash)},${Base58.encode(proof)})"
+}
 
 object PartialProof extends Serializer[PartialProof] {
 
