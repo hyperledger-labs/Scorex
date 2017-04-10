@@ -15,6 +15,7 @@ class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction])
 
   override def timestamp: Timestamp = ???
 
+  //todo: for Dmitry: implement
   override def json: Json = ???
 
   override def parentId: ModifierId = ???
@@ -25,9 +26,10 @@ class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction])
   override val modifierTypeId: ModifierTypeId = TModifier.Block
 
   //todo: check statically or dynamically output size
-  override def id: ModifierId = ???
+  override def id: ModifierId = header.id
 
   override type M = this.type
 
+  //todo: for Dmitry: implement
   override def serializer: Serializer[TBlock.this.type] = ???
 }

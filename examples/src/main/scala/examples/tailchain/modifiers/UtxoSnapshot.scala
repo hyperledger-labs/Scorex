@@ -9,16 +9,18 @@ class UtxoSnapshot extends TModifier {
   override def parentId: ModifierId = ???
 
   // with Dotty is would be Seq[TX] | Nothing
-  override def transactions: Option[Seq[SimpleBoxTransaction]] = ???
+  override def transactions: Option[Seq[SimpleBoxTransaction]] = None
 
   override val modifierTypeId: ModifierTypeId = TModifier.UtxoSnapshot
 
   //todo: check statically or dynamically output size
   override def id: ModifierId = ???
 
+  //todo: for Dmitry: implement
   override def json: Json = ???
 
   override type M = this.type
 
+  //todo: for Dmitry: implement
   override def serializer: Serializer[UtxoSnapshot.this.type] = ???
 }
