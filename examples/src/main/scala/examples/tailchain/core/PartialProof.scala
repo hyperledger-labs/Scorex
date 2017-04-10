@@ -12,7 +12,7 @@ case class PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byt
     s"PartialProof(${Base58.encode(id)},${Base58.encode(rootHash)},${Base58.encode(proof)})"
 }
 
-object PartialProof extends Serializer[PartialProof] {
+object PartialProofSerializer extends Serializer[PartialProof] {
 
   val HardLimit = 5000 // we assume that serialized partial proof is no more than 5K, more than enough for any imaginable case
 

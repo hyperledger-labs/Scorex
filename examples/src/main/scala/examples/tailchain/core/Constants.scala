@@ -11,10 +11,10 @@ object Constants {
   val hashfn = Blake2b256
 
   type StateRoot = Array[Byte]
-  val stateRootLength = hashfn.DigestSize
+  val StateRootLength = hashfn.DigestSize
 
   type TransactionsRoot = Array[Byte]
-  val txRootLength = hashfn.DigestSize
+  val TxRootLength = hashfn.DigestSize
 }
 
 object Algos extends App {
