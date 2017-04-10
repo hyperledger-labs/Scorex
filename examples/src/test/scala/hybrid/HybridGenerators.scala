@@ -56,7 +56,7 @@ trait HybridGenerators extends CoreGenerators {
     fee <- positiveLongGen
     timestamp <- positiveLongGen
     from: IndexedSeq[(PrivateKey25519, Long)] <- smallInt.flatMap(i => Gen.listOfN(i + 1, privGen).map(_.toIndexedSeq))
-    to: IndexedSeq[(PublicKey25519Proposition, Long)] <- smallInt.flatMap(i => Gen.listOfN(i + 1, pGen).map(_.toIndexedSeq))
+    to: IndexedSeq[(PublicKey25519Proposition, Long)] <- smallInt.flatMap(i => Gen.listOfN(i, pGen).map(_.toIndexedSeq))
   } yield SimpleBoxTransaction(from, to, fee, timestamp)
 
   lazy val blockIdGen: Gen[BlockId] = genBytesList(Block.BlockIdLength)
