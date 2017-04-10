@@ -1,7 +1,6 @@
 package examples.curvepos.transaction
 
 import com.google.common.primitives.Longs
-import io.circe.Json
 import scorex.core.serialization.{JsonSerializable, Serializer}
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -9,6 +8,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scala.util.Try
 import io.circe.Json
 import io.circe.syntax._
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 
@@ -30,9 +30,12 @@ case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Propo
   override def serializer: Serializer[PublicKey25519NoncedBox] = PublicKey25519NoncedBoxSerializer
 }
 
-object PublicKey25519NoncedBoxSerializer extends Serializer[PublicKey25519NoncedBox] {
+object PublicKey25519NoncedBox {
+  val BoxKeyLength = FastCryptographicHash.DigestSize
+  val BoxLength = Curve25519.KeyLength + 2 * 8
+}
 
-  val PublicKey25519NoncedBoxLength = Curve25519.KeyLength + 16
+object PublicKey25519NoncedBoxSerializer extends Serializer[PublicKey25519NoncedBox] {
 
   override def toBytes(obj: PublicKey25519NoncedBox): Array[Byte] = {
     obj.proposition.pubKeyBytes ++ Longs.toByteArray(obj.nonce) ++ Longs.toByteArray(obj.value)
