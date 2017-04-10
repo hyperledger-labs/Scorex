@@ -7,6 +7,7 @@ import examples.tailchain.core.{Constants, Ticket, TicketSerializer}
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
 import scorex.crypto.encode.Base58
 
@@ -26,8 +27,7 @@ case class BlockHeader(override val parentId: ModifierId,
 
   override val modifierTypeId: ModifierTypeId = TModifier.Header
 
-  //todo: for Dmitry: implement as hash of the header
-  override lazy val id: ModifierId = Array.fill(32)(1.toByte)
+  override lazy val id: ModifierId = FastCryptographicHash(serializer.toBytes(this))
 
   override lazy val json: Json = Map(
     "id" -> Base58.encode(id).asJson,
