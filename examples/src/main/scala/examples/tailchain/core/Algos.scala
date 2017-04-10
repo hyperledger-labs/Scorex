@@ -20,7 +20,7 @@ object Algos extends App {
   def generateTicket(utxos: IndexedSeq[AuthenticatedUtxo],
                      st: Array[Byte],
                      minerPubKey: Array[Byte],
-                     ctr: Long): Try[Ticket] = {
+                     ctr: Long): Try[Ticket] = Try {
     require(utxos.size == k)
 
     var seed = hashfn(Longs.toByteArray(ctr))
@@ -29,7 +29,7 @@ object Algos extends App {
       val id = hashfn(seed ++ minerPubKey ++ Ints.toByteArray(idx))
       val proof = utxo.lookupProof(id).get
       seed = id
-      PartialProof(id, utxo.rootHash, pr, proof)
+      PartialProof(id, utxo.rootHash, proof)
     }
 
     Ticket(minerPubKey, ctr, partialProofs)
