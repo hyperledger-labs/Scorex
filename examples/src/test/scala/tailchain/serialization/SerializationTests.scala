@@ -24,7 +24,6 @@ class SerializationTests extends PropSpec
     forAll(ticketGen) { b: Ticket =>
       val serializer = TicketSerializer
       val parsed = serializer.parseBytes(serializer.toBytes(b)).get
-      b.nonce shouldBe parsed.nonce
       b.minerKey shouldEqual parsed.minerKey
       serializer.toBytes(b) shouldEqual serializer.toBytes(parsed)
     }

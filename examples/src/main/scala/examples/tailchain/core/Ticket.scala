@@ -10,10 +10,9 @@ import scorex.crypto.signatures.Curve25519
 import scala.annotation.tailrec
 import scala.util.Try
 
-case class Ticket(minerKey: Array[Byte], nonce: Long, partialProofs: Seq[PartialProof]) extends JsonSerializable {
+case class Ticket(minerKey: Array[Byte], partialProofs: Seq[PartialProof]) extends JsonSerializable {
   override lazy val json: Json = Map(
     "minerKey" -> Base58.encode(minerKey).asJson,
-    "nonce" -> nonce.asJson,
     "partialProofs" -> partialProofs.map(_.json).asJson
   ).asJson
 }
@@ -28,7 +27,7 @@ object TicketSerializer extends Serializer[Ticket] {
       require(bytes.length == bytes.length.toShort)
       Shorts.toByteArray(bytes.length.toShort) ++ bytes
     }
-    obj.minerKey ++ Longs.toByteArray(obj.nonce) ++ proofsBytes.reduce(_ ++ _)
+    obj.minerKey ++ proofsBytes.reduce(_ ++ _)
   }
 
 
@@ -45,8 +44,7 @@ object TicketSerializer extends Serializer[Ticket] {
     }
 
     val minerKey = bytes.slice(0, MinerKeySize)
-    val nonce = Longs.fromByteArray(bytes.slice(MinerKeySize, MinerKeySize + 8))
-    val proofs = parseProofs(MinerKeySize + 8).reverse
-    Ticket(minerKey, nonce, proofs)
+    val proofs = parseProofs(MinerKeySize).reverse
+    Ticket(minerKey, proofs)
   }
 }

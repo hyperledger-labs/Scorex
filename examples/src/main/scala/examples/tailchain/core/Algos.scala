@@ -40,7 +40,7 @@ object Algos extends App {
       PartialProof(id, utxo.rootHash, proof)
     }
 
-    Ticket(minerPubKey, ctr, partialProofs)
+    Ticket(minerPubKey, partialProofs)
   }
 
   def pow(parentId: Array[Byte],

@@ -16,9 +16,8 @@ trait TailchainGenerators extends ExamplesCommonGenerators {
 
   val ticketGen: Gen[Ticket] = for {
     minerKey: Array[Byte] <- genBytesList(TicketSerializer.MinerKeySize)
-    nonce: Long <- Arbitrary.arbitrary[Long]
     partialProofs: Seq[PartialProof] <- Gen.nonEmptyListOf(partialProofGen)
-  } yield Ticket(minerKey, nonce, partialProofs)
+  } yield Ticket(minerKey, partialProofs)
 
   val blockHeaderGen: Gen[BlockHeader] = for {
     parentId: Array[Byte] <- genBytesList(Constants.hashfn.DigestSize)
@@ -33,5 +32,4 @@ trait TailchainGenerators extends ExamplesCommonGenerators {
     body: Seq[SimpleBoxTransaction] <- Gen.listOf(simpleBoxTransactionGen)
     timestamp: Long <- Arbitrary.arbitrary[Long]
   } yield TBlock(header, body, timestamp)
-
 }
