@@ -6,6 +6,7 @@ import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
 
+//todo: write a test for serialization
 case class PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byte]) extends Serializer[PartialProof] {
 
   import PartialProof._
@@ -33,3 +34,11 @@ object PartialProof {
 }
 
 case class Ticket(minerKey: Array[Byte], nonce: Array[Byte], partialProofs: IndexedSeq[PartialProof])
+  extends Serializer[Ticket] {
+
+  override def toBytes(obj: Ticket): Array[Byte] = minerKey ++ nonce ++ partialProofs.reduce(_ ++ _)
+
+
+  //todo: for Dmitry: implement
+  override def parseBytes(bytes: Array[Byte]): Try[Ticket] = ???
+}
