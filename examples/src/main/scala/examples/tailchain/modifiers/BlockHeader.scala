@@ -7,7 +7,6 @@ import examples.tailchain.core.{Constants, Ticket, TicketSerializer}
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
 import scorex.crypto.encode.Base58
 
