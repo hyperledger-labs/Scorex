@@ -1,6 +1,9 @@
 package examples.tailchain.core
 
-import scala.util.Random
+import com.google.common.primitives.{Ints, Longs}
+import examples.tailchain.utxo.AuthenticatedUtxo
+
+import scala.util.{Random, Try}
 
 
 object Algos extends App {
@@ -14,7 +17,23 @@ object Algos extends App {
     }.sorted
   }
 
+  def generateTicket(utxos: IndexedSeq[AuthenticatedUtxo],
+                     st: Array[Byte],
+                     minerPubKey: Array[Byte],
+                     ctr: Long): Try[Ticket] = Try {
+    require(utxos.size == k)
 
+    var seed = hashfn(Longs.toByteArray(ctr))
+
+    val partialProofs = utxos.zipWithIndex.map { case (utxo, idx) =>
+      val id = hashfn(seed ++ minerPubKey ++ Ints.toByteArray(idx))
+      val proof = utxo.lookupProof(id).get
+      seed = id
+      PartialProof(id, utxo.rootHash, proof)
+    }
+
+    Ticket(minerPubKey, ctr, partialProofs)
+  }
 
   println(chooseSnapshots(9000, Array.fill(32)(Random.nextInt(100).toByte)))
 }
