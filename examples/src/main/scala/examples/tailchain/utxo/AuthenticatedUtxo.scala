@@ -140,6 +140,8 @@ case class AuthenticatedUtxo(store: LSMStore,
     val bytes = store.getAll().drop(Random.nextInt(size-1)).next()._2.data
     PublicKey25519NoncedBoxSerializer.parseBytes(bytes)
   }.flatten
+
+  def withVersion(version: VersionTag): AuthenticatedUtxo = this.copy(version = version)
 }
 
 object AuthenticatedUtxo {
@@ -156,30 +158,33 @@ object AuthenticatedUtxo {
     })
   }
 
+  //todo: fees
+  def changes(txs: Seq[SimpleBoxTransaction]): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+    Try {
+      type SC = Seq[StateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
+
+      val initial = (Seq(): SC, 0L) //no reward additional to tx fees
+
+      //todo: reward is not used
+      val (ops, reward) =
+      txs.foldLeft(initial) { case ((os, f), tx) =>
+        (os ++
+          (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)): SC)
+          ++ tx.newBoxes.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
+          f + tx.fee)
+      }
+
+      StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
+    }
 
   def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
-    type SC = Seq[StateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
 
     mod match {
       case h: BlockHeader =>
         Success(StateChanges(Seq()))
 
-      //todo: fees
       case ps: TBlock =>
-        Try {
-          val initial = (Seq(): SC, 0L)
-
-          //todo: reward is not used
-          val (ops, reward) =
-            ps.transactions.map(_.foldLeft(initial) { case ((os, f), tx) =>
-              (os ++
-                (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)): SC)
-                ++ tx.newBoxes.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
-                f + tx.fee)
-            }).getOrElse((Seq(): SC, 0L)) //no reward additional to tx fees
-
-          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
-        }
+        changes(ps.transactions.getOrElse(Seq()))
 
         //todo: implement
       case u: UtxoSnapshot => ???
