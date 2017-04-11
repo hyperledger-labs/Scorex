@@ -79,7 +79,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
     log.debug(s"Applying modifier to wallet: ${Base58.encode(modifier.id)}")
     val changes = HBoxStoredState.changes(modifier).get
 
-    val newBoxes = changes.toAppend.filter(s => secretByPublicImage(s.proposition).isDefined).map { box =>
+    val newBoxes = changes.toAppend.filter(s => secretByPublicImage(s.box.proposition).isDefined).map(_.box).map { box =>
       val boxTransaction = modifier.transactions.getOrElse(Seq())
         .find(t => t.newBoxes.exists(tb => tb.id sameElements box.id))
       val txId = boxTransaction.map(_.id).getOrElse(Array.fill(32)(0: Byte))
@@ -88,7 +88,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
       ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
     }
 
-    val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
+    val boxIdsToRemove = changes.toRemove.view.map(_.boxId).map(ByteArrayWrapper.apply)
     val newBoxIds: ByteArrayWrapper = ByteArrayWrapper(newBoxes.toArray.flatMap(_._1.data) ++
       boxIds.filter(bi => !boxIdsToRemove.exists(_.data sameElements bi)).flatten)
     store.update(ByteArrayWrapper(modifier.id), boxIdsToRemove, Seq(BoxIdsKey -> newBoxIds) ++ newBoxes)

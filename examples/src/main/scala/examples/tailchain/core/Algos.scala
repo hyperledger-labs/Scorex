@@ -9,7 +9,7 @@ import examples.tailchain.modifiers.BlockHeader
 import examples.tailchain.utxo.AuthenticatedUtxo
 import io.iohk.iodb.LSMStore
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.StateChanges
+import scorex.core.transaction.state.{Insertion, StateChanges}
 import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
 import scorex.crypto.signatures.Curve25519
 
@@ -23,7 +23,7 @@ object Algos extends App {
   def chooseSnapshots(chainLength: Int, publicKey: Array[Byte]): Seq[Int] = {
     (1 to k).map { i =>
       val h = BigInt(1, hashfn(publicKey ++ Array(i.toByte))).mod(n).toInt + (chainLength - n)
-      if (h > 0) h else 1
+      if (h >= 0) h else 0
     }.sorted
   }
 
@@ -100,7 +100,7 @@ object Algos extends App {
   val pk1 = PublicKey25519Proposition(Array.fill(32)(Random.nextInt(100).toByte))
   val b1 = PublicKey25519NoncedBox(pk1, 1L, 10)
   val b2 = PublicKey25519NoncedBox(pk1, 2L, 20)
-  val u2 = u1.applyChanges(StateChanges(Set(), Set(b1, b2)), Array.fill(32)(Random.nextInt(100).toByte)).get
+  val u2 = u1.applyChanges(StateChanges(Seq(Insertion(b1), Insertion(b2))), Array.fill(32)(Random.nextInt(100).toByte)).get
 
 
   val headerOpt = pow(Array.fill(32)(0: Byte), Array.fill(32)(0: Byte), u2.rootHash, pk1.pubKeyBytes,

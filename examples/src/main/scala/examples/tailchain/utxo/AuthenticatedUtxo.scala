@@ -9,10 +9,10 @@ import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.StateChanges
+import scorex.core.transaction.state.{Insertion, Removal, StateChangeOperation, StateChanges}
 import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup}
+import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256Unsafe
 
@@ -85,16 +85,29 @@ case class AuthenticatedUtxo(store: LSMStore,
 
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[AuthenticatedUtxo] = Try {
-    val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
-    val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${Base58.encode(newVersion)}. " +
-      s"Removing boxes with ids ${boxIdsToRemove.map(b => Base58.encode(b.data))}, " +
-      s"adding boxes ${boxesToAdd.map(b => Base58.encode(b._1.data))}")
-    assert(store.lastVersionID.isEmpty || boxIdsToRemove.forall(i => closedBox(i.data).isDefined))
-    store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
-    val newSt = AuthenticatedUtxo(store, None, newVersion)
-    assert(boxIdsToRemove.forall(box => newSt.closedBox(box.data).isEmpty), s"Removed box is still in state")
+    log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${Base58.encode(newVersion)}")
+
+    val (boxIdsToRemove, boxesToAdd) = changes.operations
+      .foldLeft(Seq[Array[Byte]]() -> Seq[PublicKey25519NoncedBox]()) {case ((btr, bta), op) =>
+      op match {
+        case Insertion(b) =>
+          prover.performOneOperation(Insert(b.id, b.bytes))
+          (btr, bta :+ b)
+        case Removal(bid) =>
+          assert(store.get(ByteArrayWrapper(bid)).isDefined)
+          prover.performOneOperation(Remove(bid))
+          (btr :+ bid, bta)
+      }
+    }
+
+    prover.generateProof()
+    val toRemove = boxIdsToRemove.map(ByteArrayWrapper.apply)
+    val toAdd = boxesToAdd.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
+    store.update(ByteArrayWrapper(newVersion), toRemove, toAdd)
+
+    val newSt = AuthenticatedUtxo(store, Some(prover), newVersion)
+    assert(boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
     assert(newSt.version sameElements newVersion, s"New version don't match")
     newSt
   }
@@ -138,21 +151,27 @@ object AuthenticatedUtxo {
 
 
   def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+    type SC = Seq[StateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
+
     mod match {
       case h: BlockHeader =>
-        Success(StateChanges(Set(), Set()))
+        Success(StateChanges(Seq()))
 
       //todo: fees
       case ps: TBlock =>
         Try {
-          val initial = (Set(): Set[Array[Byte]], Set(): Set[PublicKey25519NoncedBox], 0L)
+          val initial = (Seq(): SC, 0L)
 
-          val (toRemove: Set[Array[Byte]], toAdd: Set[PublicKey25519NoncedBox], reward) =
-            ps.transactions.map(_.foldLeft(initial) { case ((sr, sa, f), tx) =>
-              (sr ++ tx.boxIdsToOpen.toSet, sa ++ tx.newBoxes.toSet, f + tx.fee)
-            }).getOrElse((Set(), Set(), 0L)) //no reward additional to tx fees
+          //todo: reward is not used
+          val (ops, reward) =
+            ps.transactions.map(_.foldLeft(initial) { case ((os, f), tx) =>
+              (os ++
+                (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)): SC)
+                ++ tx.newBoxes.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
+                f + tx.fee)
+            }).getOrElse((Seq(): SC, 0L)) //no reward additional to tx fees
 
-          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd)
+          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
         }
 
         //todo: implement

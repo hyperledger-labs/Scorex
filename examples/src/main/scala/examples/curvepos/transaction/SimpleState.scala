@@ -6,7 +6,7 @@ import examples.curvepos.transaction.SimpleState.EmptyVersion
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{MinimalState, StateChanges}
+import scorex.core.transaction.state.{Insertion, MinimalState, Removal, StateChanges}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
@@ -38,10 +38,11 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
   }
 
   override def applyChanges(change: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleState] = Try {
-    val rmap = change.boxIdsToRemove.foldLeft(storage) { case (m, id) => m - ByteBuffer.wrap(id) }
+    val rmap = change.toRemove.foldLeft(storage) { case (m, r) => m - ByteBuffer.wrap(r.boxId) }
 
-    val amap = change.toAppend.foldLeft(rmap) { case (m, b) =>
-      require(b.value >= 0)
+    val amap = change.toAppend.foldLeft(rmap) { case (m, a) =>
+      val b = a.box
+      assert(b.value >= 0)
       m + (ByteBuffer.wrap(b.id) -> b)
     }
     SimpleState(newVersion, amap)
@@ -87,8 +88,9 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
     val gen = block.generator
 
     val txChanges = block.txs.map(tx => changes(tx)).map(_.get)
-    val toRemove = txChanges.flatMap(_.toRemove).map(_.id).toSet
-    val toAppendFrom = txChanges.flatMap(_.toAppend).toSet
+    val toRemove = txChanges.flatMap(_.toRemove).map(_.id).map(id =>
+      Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id))
+    val toAppendFrom = txChanges.flatMap(_.toAppend)
     val (generator, withoutGenerator) = toAppendFrom.partition(_.proposition.address == gen.address)
     val generatorBox: PublicKey25519NoncedBox = (generator ++ boxesOf(gen)).headOption match {
       case Some(oldBox) =>
@@ -96,10 +98,11 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
       case None =>
         PublicKey25519NoncedBox(gen, 1, generatorReward)
     }
-    val toAppend = withoutGenerator + generatorBox
-    require(toAppend.forall(_.value >= 0))
+    val toAppend = (withoutGenerator ++ Seq(generatorBox)).map(b =>
+      Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b))
+    assert(toAppend.forall(_.box.value >= 0))
 
-    StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend)
+    StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove ++ toAppend)
   }
 }
 

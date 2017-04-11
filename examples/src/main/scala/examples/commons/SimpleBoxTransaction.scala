@@ -119,10 +119,9 @@ object SimpleBoxTransaction {
 
     val timestamp = System.currentTimeMillis()
     SimpleBoxTransaction(from.map(t => t._1 -> t._2), to, fee, timestamp)
-
   }
-
 }
+
 
 object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {
 

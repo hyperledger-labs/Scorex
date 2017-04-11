@@ -21,10 +21,8 @@ ST <: MinimalState[P, B, TX, PM, ST]] extends StateTests[P, TX, PM, B, ST] {
     forAll(stateChangesGenerator) { c =>
       val newState = state.applyChanges(c, Array.fill(32)(Random.nextInt(Byte.MaxValue).toByte)).get
       c.toAppend.foreach { b =>
-        newState.closedBox(b.id).isDefined shouldBe true
+        newState.closedBox(b.box.id).isDefined shouldBe true
       }
     }
   }
-
-
 }

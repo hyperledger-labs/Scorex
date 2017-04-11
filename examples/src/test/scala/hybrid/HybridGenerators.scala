@@ -18,7 +18,7 @@ import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
-import scorex.core.transaction.state.{PrivateKey25519, StateChanges}
+import scorex.core.transaction.state.{Insertion, PrivateKey25519, StateChanges}
 import scorex.core.transaction.wallet.WalletBox
 
 import scala.concurrent.duration._
@@ -89,7 +89,7 @@ trait HybridGenerators extends ExamplesCommonGenerators {
   } yield PublicKey25519NoncedBox(proposition, nonce, value)
 
   lazy val stateChangesGen: Gen[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = noncedBoxGen
-    .map(b => StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set(b)))
+    .map(b => StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(b))))
 
   lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
     createdAt <- positiveLongGen
