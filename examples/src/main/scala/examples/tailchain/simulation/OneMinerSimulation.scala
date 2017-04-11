@@ -5,6 +5,7 @@ import java.io.File
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.tailchain.core.{Algos, Constants}
 import examples.tailchain.modifiers.{BlockHeader, TBlock}
 import examples.tailchain.utxo.AuthenticatedUtxo
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
@@ -35,9 +36,29 @@ object OneMinerSimulation extends App {
 
   def currentHeight: Int = lastHeaderOpt.map(_._1).getOrElse(0)
 
-  def generateTransactions(utxo: AuthenticatedUtxo): Seq[SimpleBoxTransaction] = ???
+  def generateTransactions(richBoxes: Seq[PublicKey25519NoncedBox]): Seq[SimpleBoxTransaction] =
+    richBoxes.map { b =>
+      SimpleBoxTransaction.apply(
+        from = IndexedSeq(minerPrivKey -> b.nonce),
+        to = IndexedSeq(minerPubKey -> 5, minerPubKey -> (b.value - 5)),
+        0, System.currentTimeMillis())
+    }
 
-  def generateBlock(): TBlock = ???
+  def generateBlock(txs: Seq[SimpleBoxTransaction],
+                    currentUtxo: AuthenticatedUtxo,
+                    miningUtxos: IndexedSeq[AuthenticatedUtxo]): (TBlock, Seq[PublicKey25519NoncedBox]) = {
+    //todo: fix, hashchain instead of Merkle tree atm
+    val txsHash = hashfn(txs.map(_.bytes).reduce(_ ++ _))
+
+    val changes = AuthenticatedUtxo.changes(txs).get
+    currentUtxo.applyChanges(changes, defaultId)
+
+    val h = Algos.pow(defaultId, txsHash, currentUtxo.rootHash, minerPubKey.pubKeyBytes,
+      miningUtxos, Constants.Difficulty, 1000).get.get
+
+    val newRichBoxes = txs.flatMap(_.newBoxes).filter(_.value > 5)
+    TBlock(h, txs, System.currentTimeMillis()) -> newRichBoxes
+  }
 
   val cuDir = new File("/tmp/cu" + experimentId)
   cuDir.mkdirs()
@@ -62,19 +83,12 @@ object OneMinerSimulation extends App {
     Seq[ByteArrayWrapper](),
     genesisBoxes.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
   )
-  val currentUtxo = AuthenticatedUtxo(currentUtxoStore, genesisBoxes.size, None, defaultId)
+  var currentUtxo = AuthenticatedUtxo(currentUtxoStore, genesisBoxes.size, None, defaultId)
 
-  val txs = genesisBoxes.map { b =>
-    SimpleBoxTransaction.apply(
-      from = IndexedSeq(minerPrivKey -> b.nonce),
-      to = IndexedSeq(minerPubKey -> 5, minerPubKey -> (b.value - 5)),
-      0, System.currentTimeMillis())
-  }
-
-  val changes = AuthenticatedUtxo.changes(txs)
-  currentUtxo.applyChanges()
-
-  currentUtxo.a
+  val txs = generateTransactions(genesisBoxes)
+  val (b1, newBoxes) = generateBlock(txs, currentUtxo, IndexedSeq(currentUtxo))
+  println(b1.json)
+  println(newBoxes.head.json)
 
   (1 to blocksNum) foreach {bn =>
     println("current height: " + currentHeight)
