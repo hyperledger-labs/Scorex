@@ -16,7 +16,7 @@ import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remov
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256Unsafe
 
-import scala.util.{Success, Try}
+import scala.util.{Random, Success, Try}
 import AuthenticatedUtxo.ProverType
 
 /**
@@ -30,6 +30,7 @@ import AuthenticatedUtxo.ProverType
   * @param version
   */
 case class AuthenticatedUtxo(store: LSMStore,
+                             size: Int,
                              proverOpt: Option[ProverType], //todo: externalize the type with the parameter
                              override val version: VersionTag) extends
   BoxMinimalState[PublicKey25519Proposition,
@@ -40,6 +41,7 @@ case class AuthenticatedUtxo(store: LSMStore,
 
   import PublicKey25519NoncedBox.{BoxKeyLength, BoxLength}
 
+  assert(size >= 0)
   assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
     s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
@@ -106,7 +108,7 @@ case class AuthenticatedUtxo(store: LSMStore,
     val toAdd = boxesToAdd.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
     store.update(ByteArrayWrapper(newVersion), toRemove, toAdd)
 
-    val newSt = AuthenticatedUtxo(store, Some(prover), newVersion)
+    val newSt = AuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
     assert(boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
     assert(newSt.version sameElements newVersion, s"New version don't match")
     newSt
@@ -118,7 +120,7 @@ case class AuthenticatedUtxo(store: LSMStore,
     } else {
       log.debug(s"Rollback HBoxStoredState to ${Base58.encode(version)} from version $lastVersionString")
       store.rollback(ByteArrayWrapper(version))
-      AuthenticatedUtxo(store, None, version)
+      AuthenticatedUtxo(store, store.getAll().size, None, version) //todo: more efficient rollback, rollback prover
     }
   }
 
@@ -133,6 +135,11 @@ case class AuthenticatedUtxo(store: LSMStore,
   }
 
   def isEmpty: Boolean = store.getAll().isEmpty
+
+  def randomElement: Try[PublicKey25519NoncedBox] = Try{
+    val bytes = store.getAll().drop(Random.nextInt(size-1)).next()._2.data
+    PublicKey25519NoncedBoxSerializer.parseBytes(bytes)
+  }.flatten
 }
 
 object AuthenticatedUtxo {
@@ -196,7 +203,8 @@ object AuthenticatedUtxo {
     })
     val version = stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
 
-    AuthenticatedUtxo(stateStorage, None, version)
+    //todo: more efficient size detection, prover init
+    AuthenticatedUtxo(stateStorage, stateStorage.getAll().size, None, version)
   }
 
   def genesisState(settings: Settings, initialBlocks: Seq[TModifier]): AuthenticatedUtxo = {

@@ -3,8 +3,9 @@ package examples.tailchain.simulation
 import java.io.File
 
 import com.google.common.primitives.Longs
+import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.tailchain.modifiers.BlockHeader
+import examples.tailchain.modifiers.{BlockHeader, TBlock}
 import examples.tailchain.utxo.AuthenticatedUtxo
 import io.iohk.iodb.LSMStore
 import scorex.core.transaction.state.PrivateKey25519Companion
@@ -33,6 +34,10 @@ object OneMinerSimulation extends App {
 
   def currentHeight: Int = lastHeaderOpt.map(_._1).getOrElse(0)
 
+  def generateTransactions(utxo: AuthenticatedUtxo): Seq[SimpleBoxTransaction] = ???
+
+  def generateBlock(): TBlock = ???
+
   val cuDir = new File("/tmp/cu" + experimentId)
   cuDir.mkdirs()
 
@@ -48,7 +53,9 @@ object OneMinerSimulation extends App {
   )
 
   val currentUtxoStore = new LSMStore(cuDir)
-  val currentUtxo = AuthenticatedUtxo(currentUtxoStore, None, defaultId)
+  val currentUtxo = AuthenticatedUtxo(currentUtxoStore, 1, None, defaultId)
+
+
 
 
 

@@ -95,7 +95,7 @@ object Algos extends App {
   new File("/tmp/utxo").delete()
   new File("/tmp/utxo").mkdirs()
   val store = new LSMStore(new File("/tmp/utxo"))
-  val u1 = AuthenticatedUtxo(store, None, Array.fill(32)(0: Byte))
+  val u1 = AuthenticatedUtxo(store, 0, None, Array.fill(32)(0: Byte))
 
   val pk1 = PublicKey25519Proposition(Array.fill(32)(Random.nextInt(100).toByte))
   val b1 = PublicKey25519NoncedBox(pk1, 1L, 10)
