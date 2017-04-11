@@ -40,8 +40,11 @@ case class HMemPool(unconfirmed: Map[ByteArrayWrapper, SimpleBoxTransaction])
     unconfirmed.values.toSeq.sortBy(-_.fee).take(limit)
 
   override def filter(condition: (SimpleBoxTransaction) => Boolean): HMemPool = {
-    HMemPool(unconfirmed.filter(tx => condition(tx._2)))
+    if(unconfirmed.exists(t => condition(t._2))) this
+    else HMemPool(unconfirmed.filter(tx => condition(tx._2)))
   }
+
+  override def size: Int = unconfirmed.size
 }
 
 
