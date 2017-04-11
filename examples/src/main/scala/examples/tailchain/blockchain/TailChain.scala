@@ -1,7 +1,6 @@
 package examples.tailchain.blockchain
 
 import examples.commons.SimpleBoxTransaction
-import examples.hybrid.mining.MiningConstants
 import examples.tailchain.modifiers.{TBlock, TModifier}
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.block.BlockValidator
@@ -13,13 +12,13 @@ import scorex.core.utils.ScorexLogging
 import scala.util.Try
 
 class TailChain(version: ModifierId,
-                settings: MiningConstants,
                 validators: Seq[BlockValidator[TBlock]])
   extends History[PublicKey25519Proposition,
     SimpleBoxTransaction,
     TModifier,
     TailChainSyncInfo,
     TailChain] with ScorexLogging {
+
   /**
     * Is there's no history, even genesis block
     */
