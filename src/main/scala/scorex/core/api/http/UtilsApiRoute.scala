@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.Route
 import io.circe._
 import io.circe.syntax._
 import io.swagger.annotations._
-import scorex.core.crypto.hash.{FastCryptographicHash, DoubleCryptographicHash}
+import scorex.core.crypto.hash.{FastCryptographicHash}
 import scorex.crypto.encode.Base58
 import scorex.core.settings.Settings
 
@@ -25,7 +25,7 @@ case class UtilsApiRoute(override val settings: Settings)(implicit val context: 
   }
 
   override val route = pathPrefix("utils") {
-    seedRoute ~ length ~ hashFast ~ hashSecure
+    seedRoute ~ length ~ hashBlake2b
   }
 
   @Path("/seed")
@@ -51,36 +51,16 @@ case class UtilsApiRoute(override val settings: Settings)(implicit val context: 
     }
   }
 
-  @Path("/hash/secure")
-  @ApiOperation(value = "Hash", notes = "Return FastCryptographicHash of specified message", httpMethod = "POST")
+  @Path("/hash/blake2b")
+  @ApiOperation(value = "Hash", notes = "Return Blake2b hash of specified message", httpMethod = "POST")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "message", value = "Message to hash", required = true, paramType = "body", dataType = "String")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "Json with error or json like {\"message\": \"your message\",\"hash\": \"your message hash\"}")
   ))
-  def hashFast: Route = {
-    path("hash" / "secure") {
-      entity(as[String]) { message =>
-        withAuth {
-          postJsonRoute {
-            SuccessApiResponse(Map("message" -> message, "hash" -> Base58.encode(DoubleCryptographicHash(message))).asJson)
-          }
-        }
-      }
-    }
-  }
-
-  @Path("/hash/fast")
-  @ApiOperation(value = "Hash", notes = "Return  SecureCryptographicHash of specified message", httpMethod = "POST")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "message", value = "Message to hash", required = true, paramType = "body", dataType = "String")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with error or json like {\"message\": \"your message\",\"hash\": \"your message hash\"}")
-  ))
-  def hashSecure: Route = {
-    path("hash" / "fast") {
+  def hashBlake2b: Route = {
+    path("hash" / "blake2b") {
       entity(as[String]) { message =>
         withAuth {
           postJsonRoute {

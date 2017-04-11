@@ -41,8 +41,12 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
 
   override def receive: Receive = {
     case StartMining =>
-      mining = true
-      self ! MineBlock
+      if (settings.blockGenerationDelay >= 1.minute) {
+        log.info("Mining is disabled for blockGenerationDelay >= 1 minute")
+      } else {
+        mining = true
+        self ! MineBlock
+      }
 
     case MineBlock =>
       if (mining) {
@@ -71,7 +75,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
           log.info(s"Starting new block mining for ${Base58.encode(h.bestPowId)}:${Base58.encode(h.bestPosId)}")
           (h.bestPowId, h.bestPosId, Seq()) //new step
         }
-        val pubkey = if(w.publicKeys.nonEmpty) w.publicKeys.head else w.generateNewSecret().publicKeys.head
+        val pubkey = if (w.publicKeys.nonEmpty) w.publicKeys.head else w.generateNewSecret().publicKeys.head
 
         val p = Promise[Option[PowBlock]]()
         cancellableOpt = Some(Cancellable.run() { status =>
@@ -80,7 +84,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
             var attemps = 0
 
             while (status.nonCancelled && foundBlock.isEmpty) {
-              foundBlock = powIteration(parentId, prevPosId, brothers, difficulty, settings, pubkey)
+              foundBlock = powIteration(parentId, prevPosId, brothers, difficulty, settings, pubkey, settings.blockGenerationDelay)
               attemps = attemps + 1
               if (attemps % 100 == 99) {
                 log.debug(s"100 hashes tried, difficulty is $difficulty")
@@ -112,7 +116,6 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
 }
 
 object PowMiner extends App {
-  lazy val HashesPerSecond = 20
 
   case object StartMining
 
@@ -126,7 +129,7 @@ object PowMiner extends App {
                    difficulty: BigInt,
                    settings: MiningSettings,
                    proposition: PublicKey25519Proposition,
-                   hashesPerSecond: Int = HashesPerSecond
+                   blockGenerationDelay: FiniteDuration
                   ): Option[PowBlock] = {
     val nonce = Random.nextLong()
 
@@ -143,7 +146,7 @@ object PowMiner extends App {
       } else {
         None
       }
-    Thread.sleep(1000 / hashesPerSecond)
+    Thread.sleep(blockGenerationDelay.toMillis)
     foundBlock
   }
 }

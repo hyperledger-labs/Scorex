@@ -37,4 +37,6 @@ trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewC
   def filter(txs: Seq[TX]): M = filter(t => !txs.exists(_.id sameElements t.id))
 
   def filter(condition: TX => Boolean): M
+
+  def size: Int
 }

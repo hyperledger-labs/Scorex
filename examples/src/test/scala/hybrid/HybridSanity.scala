@@ -11,9 +11,16 @@ import org.scalacheck.rng.Seed
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, StateChanges}
-import scorex.testkit.BlockchainSanity
+import scorex.testkit.{BlockchainPerformance, BlockchainSanity}
 
 class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
+  SimpleBoxTransaction,
+  HybridBlock,
+  HybridSyncInfo,
+  PublicKey25519NoncedBox,
+  SimpleBoxTransactionMemPool,
+  HBoxStoredState,
+  HybridHistory] with BlockchainPerformance[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock,
   HybridSyncInfo,

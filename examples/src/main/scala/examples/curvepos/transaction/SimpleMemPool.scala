@@ -45,4 +45,6 @@ class SimpleMemPool extends MemoryPool[SimpleTransaction, SimpleMemPool] {
     unconfTxs.filter(tx => condition(tx._2)).foreach(tx => unconfTxs.remove(tx._1))
     this
   }
+
+  override def size: Int = unconfTxs.size
 }

@@ -36,7 +36,7 @@ object OneMinerSimulation extends App {
   val cuDir = new File("/tmp/cu" + experimentId)
   cuDir.mkdirs()
 
-  val minerKeys = PrivateKey25519Companion.generateKeys(scorex.utils.randomBytes(32))
+  val minerKeys = PrivateKey25519Companion.generateKeys(scorex.utils.Random.randomBytes(32))
   val minerPubKey = minerKeys._2
   val minerPrivKey = minerKeys._1
 
