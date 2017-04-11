@@ -6,10 +6,11 @@ import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.transaction.MemoryPool
 import scorex.core.utils.ScorexLogging
 
+import scala.collection.concurrent.TrieMap
 import scala.util.{Success, Try}
 
 
-case class HMemPool(unconfirmed: Map[ByteArrayWrapper, SimpleBoxTransaction])
+case class HMemPool(unconfirmed: TrieMap[ByteArrayWrapper, SimpleBoxTransaction])
   extends MemoryPool[SimpleBoxTransaction, HMemPool] with ScorexLogging {
   override type NVCT = HMemPool
 
@@ -24,24 +25,32 @@ case class HMemPool(unconfirmed: Map[ByteArrayWrapper, SimpleBoxTransaction])
   override def getAll(ids: Seq[ModifierId]): Seq[SimpleBoxTransaction] = ids.flatMap(getById)
 
   //modifiers
-  override def put(tx: SimpleBoxTransaction): Try[HMemPool] =
-  Success(HMemPool(unconfirmed + (key(tx.id) -> tx)))
+  override def put(tx: SimpleBoxTransaction): Try[HMemPool] = Success {
+    unconfirmed.put(key(tx.id), tx)
+    this
+  }
 
-  override def put(txs: Iterable[SimpleBoxTransaction]): Try[HMemPool] =
-    Success(HMemPool(unconfirmed ++ txs.map(tx => key(tx.id) -> tx)))
+  //todo
+  override def put(txs: Iterable[SimpleBoxTransaction]): Try[HMemPool] = Success(putWithoutCheck(txs))
 
-  override def putWithoutCheck(txs: Iterable[SimpleBoxTransaction]): HMemPool =
-    HMemPool(unconfirmed ++ txs.map(tx => key(tx.id) -> tx))
+  override def putWithoutCheck(txs: Iterable[SimpleBoxTransaction]): HMemPool = {
+    txs.foreach(tx => unconfirmed.put(key(tx.id), tx))
+    this
+  }
 
-  override def remove(tx: SimpleBoxTransaction): HMemPool =
-    HMemPool(unconfirmed - key(tx.id))
+  override def remove(tx: SimpleBoxTransaction): HMemPool = {
+    unconfirmed.remove(key(tx.id))
+    this
+  }
 
   override def take(limit: Int): Iterable[SimpleBoxTransaction] =
     unconfirmed.values.toSeq.sortBy(-_.fee).take(limit)
 
   override def filter(condition: (SimpleBoxTransaction) => Boolean): HMemPool = {
-    if(unconfirmed.exists(t => condition(t._2))) this
-    else HMemPool(unconfirmed.filter(tx => condition(tx._2)))
+    unconfirmed.retain { (k, v) =>
+      condition(v)
+    }
+    this
   }
 
   override def size: Int = unconfirmed.size
@@ -49,5 +58,5 @@ case class HMemPool(unconfirmed: Map[ByteArrayWrapper, SimpleBoxTransaction])
 
 
 object HMemPool {
-  lazy val emptyPool: HMemPool = HMemPool(Map())
+  lazy val emptyPool: HMemPool = HMemPool(TrieMap())
 }
