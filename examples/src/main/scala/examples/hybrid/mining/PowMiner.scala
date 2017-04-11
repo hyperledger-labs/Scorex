@@ -41,8 +41,12 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
 
   override def receive: Receive = {
     case StartMining =>
-      mining = true
-      self ! MineBlock
+      if (settings.blockGenerationDelay >= 1.minute) {
+        log.info("Mining is disabled for blockGenerationDelay >= 1 minute")
+      } else {
+        mining = true
+        self ! MineBlock
+      }
 
     case MineBlock =>
       if (mining) {
@@ -71,7 +75,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
           log.info(s"Starting new block mining for ${Base58.encode(h.bestPowId)}:${Base58.encode(h.bestPosId)}")
           (h.bestPowId, h.bestPosId, Seq()) //new step
         }
-        val pubkey = if(w.publicKeys.nonEmpty) w.publicKeys.head else w.generateNewSecret().publicKeys.head
+        val pubkey = if (w.publicKeys.nonEmpty) w.publicKeys.head else w.generateNewSecret().publicKeys.head
 
         val p = Promise[Option[PowBlock]]()
         cancellableOpt = Some(Cancellable.run() { status =>
