@@ -4,7 +4,7 @@ import java.io.File
 
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
-import examples.tailchain.modifiers.TModifier
+import examples.tailchain.modifiers.{BlockHeader, TBlock, TModifier, UtxoSnapshot}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -16,7 +16,7 @@ import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256Unsafe
 
-import scala.util.Try
+import scala.util.{Success, Try}
 import AuthenticatedUtxo.ProverType
 
 /**
@@ -74,7 +74,12 @@ case class AuthenticatedUtxo(store: LSMStore,
 
   //Validate transactions in block and generator box
   override def validate(mod: TModifier): Try[Unit] = Try {
-    ???
+    assert(mod.parentId.sameElements(version))
+
+    mod match {
+      case u: UtxoSnapshot => if (!this.isEmpty) throw new Exception("Utxo Set already imported")
+      case _ =>
+    }
     super.validate(mod).get
   }
 
@@ -113,6 +118,8 @@ case class AuthenticatedUtxo(store: LSMStore,
     prover.performOneOperation(l).get
     prover.generateProof()
   }
+
+  def isEmpty: Boolean = store.getAll().isEmpty
 }
 
 object AuthenticatedUtxo {
@@ -131,15 +138,12 @@ object AuthenticatedUtxo {
 
 
   def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
-    ???
-    /*mod match {
-      case pb: PowBlock =>
-        val proposition: PublicKey25519Proposition = pb.generatorProposition
-        val nonce: Long = SimpleBoxTransaction.nonceFromDigest(mod.id)
-        val value: Long = 1
-        val toAdd = PublicKey25519NoncedBox(proposition, nonce, value)
-        Success(StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set(toAdd)))
-      case ps: PosBlock =>
+    mod match {
+      case h: BlockHeader =>
+        Success(StateChanges(Set(), Set()))
+
+      //todo: fees
+      case ps: TBlock =>
         Try {
           val initial = (Set(): Set[Array[Byte]], Set(): Set[PublicKey25519NoncedBox], 0L)
 
@@ -148,12 +152,12 @@ object AuthenticatedUtxo {
               (sr ++ tx.boxIdsToOpen.toSet, sa ++ tx.newBoxes.toSet, f + tx.fee)
             }).getOrElse((Set(), Set(), 0L)) //no reward additional to tx fees
 
-          //for PoS forger reward box, we use block Id as a nonce
-          val forgerNonce = Longs.fromByteArray(ps.id.take(8))
-          val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, reward)
-          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd ++ Set(forgerBox))
+          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd)
         }
-    }*/
+
+        //todo: implement
+      case u: UtxoSnapshot => ???
+    }
   }
 
   def readOrGenerate(settings: Settings): AuthenticatedUtxo = {
