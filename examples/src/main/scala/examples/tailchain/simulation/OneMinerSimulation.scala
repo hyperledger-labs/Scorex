@@ -63,6 +63,10 @@ object OneMinerSimulation extends App {
   val cuDir = new File("/tmp/cu" + experimentId)
   cuDir.mkdirs()
 
+  val muDir = new File("/tmp/mu" + experimentId)
+  muDir.mkdirs()
+
+
   val minerKeys = PrivateKey25519Companion.generateKeys(scorex.utils.Random.randomBytes(32))
   val minerPubKey = minerKeys._2
   val minerPrivKey = minerKeys._1
@@ -85,10 +89,24 @@ object OneMinerSimulation extends App {
   )
   var currentUtxo = AuthenticatedUtxo(currentUtxoStore, genesisBoxes.size, None, defaultId)
 
+
+  val miningUtxoStore = new LSMStore(muDir)
+  miningUtxoStore.update(
+    ByteArrayWrapper(defaultId),
+    Seq[ByteArrayWrapper](),
+    genesisBoxes.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
+  )
+  var miningUtxo = AuthenticatedUtxo(miningUtxoStore, genesisBoxes.size, None, defaultId)
+
+
   val txs = generateTransactions(genesisBoxes)
   val (b1, newBoxes) = generateBlock(txs, currentUtxo, IndexedSeq(currentUtxo))
   println(b1.json)
   println(newBoxes.head.json)
+
+  miningUtxo.applyModifier(b1)
+
+  assert(miningUtxo.rootHash sameElements currentUtxo.rootHash)
 
   (1 to blocksNum) foreach {bn =>
     println("current height: " + currentHeight)
