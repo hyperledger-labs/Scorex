@@ -47,13 +47,15 @@ class HWalletSpecification extends PropSpec
 
   property("Wallet should add boxes where he is recipient") {
     forAll(simpleBoxTransactionGen, noncedBoxGen) { (txIn, box) =>
-      val toWithMyPubkey: IndexedSeq[(PublicKey25519Proposition, Long)] =
-        txIn.to.map(p => (ss.publicImage, p._2 + 1))
-      val tx = txIn.copy(to = toWithMyPubkey)
+      whenever(txIn.to.nonEmpty) {
+        val toWithMyPubkey: IndexedSeq[(PublicKey25519Proposition, Long)] =
+          txIn.to.map(p => (ss.publicImage, p._2 + 1))
+        val tx = txIn.copy(to = toWithMyPubkey)
 
-      val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, Array(), EmptySignature)
-      val boxes = w.scanPersistent(pb).boxes()
-      boxes.exists(b => b.transactionId sameElements tx.id) shouldBe true
+        val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, Array(), EmptySignature)
+        val boxes = w.scanPersistent(pb).boxes()
+        boxes.exists(b => b.transactionId sameElements tx.id) shouldBe true
+      }
     }
   }
 

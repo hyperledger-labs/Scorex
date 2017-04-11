@@ -4,13 +4,13 @@ import java.io.File
 
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.crypto.hash.DoubleCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
+import scorex.crypto.hash.Blake2b256
 
 import scala.collection.mutable
 import scala.util.Try
@@ -42,7 +42,7 @@ PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
 
   override def generateNewSecret(): DefaultWallet25519[TX, PMOD] = {
     val nonce = lastNonce + 1
-    val randomSeed = DoubleCryptographicHash(Bytes.concat(Ints.toByteArray(nonce), seed))
+    val randomSeed = Blake2b256(Bytes.concat(Ints.toByteArray(nonce), seed))
     val (priv, pub) = PrivateKey25519Companion.generateKeys(randomSeed)
 
     dbSecrets.put(pub.pubKeyBytes, priv.privKeyBytes)
