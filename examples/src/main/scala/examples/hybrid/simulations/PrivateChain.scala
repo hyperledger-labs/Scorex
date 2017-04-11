@@ -17,6 +17,7 @@ import scorex.crypto.encode.Base58
 import scala.annotation.tailrec
 import scala.reflect.io.Path
 import scala.util.{Random, Try}
+import scala.concurrent.duration._
 
 /**
   * Private chain attack simulation
@@ -45,7 +46,8 @@ object PrivateChain extends App with ScorexLogging {
 
     @tailrec
     def step(): PowBlock = {
-      PowMiner.powIteration(parentId, prevPosId, brothers, difficulty, settings, proposition, hashesPerSecond) match {
+      val delay = (1000 / hashesPerSecond).seconds
+      PowMiner.powIteration(parentId, prevPosId, brothers, difficulty, settings, proposition, delay) match {
         case Some(block) => block
         case None => step()
       }

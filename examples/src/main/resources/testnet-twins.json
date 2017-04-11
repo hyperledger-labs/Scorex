@@ -23,6 +23,6 @@
   "maxRollback": 100,
   "offlineGeneration": false,
   "testnet": true,
-  "blockGenerationDelay": 100,
+  "blockGenerationDelay": 50,
   "cors": true
 }
