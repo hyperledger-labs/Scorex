@@ -95,16 +95,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 }
 
 object HBoxStoredState {
-  def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
-    require(tx.from.size == tx.signatures.size)
-    require(tx.to.forall(_._2 >= 0))
-    require(tx.fee >= 0)
-    require(tx.timestamp >= 0)
-    require(tx.from.zip(tx.signatures).forall { case ((prop, _), proof) =>
-      proof.isValid(prop, tx.messageToSign)
-    })
-  }
-
+  def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = tx.semanticValidity
 
   def changes(mod: HybridBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     mod match {
