@@ -11,7 +11,8 @@ import examples.tailchain.utxo.AuthenticatedUtxo
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.transaction.state.PrivateKey25519Companion
 
-import scala.util.Random
+import scala.collection.mutable
+import scala.util.{Random, Try}
 
 
 object OneMinerSimulation extends App {
@@ -20,22 +21,18 @@ object OneMinerSimulation extends App {
 
   type Height = Int
 
-  val blocksNum = 5
-  val experimentId = Random.nextInt(5000)
+  val experimentId = Random.nextInt(500000)
 
-  val headersChain = Map[Height, BlockHeader]()
-
+  val headersChain = mutable.Map[Height, BlockHeader]()
 
   val bcDir = new File("/tmp/bc" + experimentId)
   bcDir.mkdirs()
 
-  val fullBlocksStore = new LSMStore(bcDir)
+  val fullBlocksStore = new LSMStore(bcDir, keySize = 4)
 
   val defaultId = Array.fill(32)(0: Byte)
 
-  def lastHeaderOpt: Option[(Int, BlockHeader)] = headersChain.lastOption
-
-  def currentHeight: Int = lastHeaderOpt.map(_._1).getOrElse(0)
+  def currentHeight: Int = Try(headersChain.keySet.max).getOrElse(0)
 
   def generateTransactions(richBoxes: Seq[PublicKey25519NoncedBox]): Seq[SimpleBoxTransaction] =
     richBoxes.map { b =>
@@ -101,11 +98,29 @@ object OneMinerSimulation extends App {
 
 
   var generatingBoxes: Seq[PublicKey25519NoncedBox] = genesisBoxes
+
+  val blocksNum = 500
   (1 to blocksNum) foreach { bn =>
     println("current height: " + currentHeight)
     val txs = generateTransactions(generatingBoxes)
-    val (b1, newBoxes, uu) = generateBlock(txs, currentUtxo, IndexedSeq(miningUtxo))
+    val (block, newBoxes, uu) = generateBlock(txs, currentUtxo, IndexedSeq(miningUtxo))
     generatingBoxes = newBoxes
     currentUtxo = uu
+
+    val height = currentHeight + 1
+    headersChain += height -> block.header
+
+    val blockBytes = block.bytes
+    val headerBytes = block.header.bytes
+
+    println(s"Utxo size: ${currentUtxo.size}")
+    println(s"Header size: ${headerBytes.length}")
+    println(s"Block size: ${blockBytes.length}")
+
+    fullBlocksStore.update(
+      ByteArrayWrapper(Ints.toByteArray(height)),
+      Seq(),
+      Seq(ByteArrayWrapper(Ints.toByteArray(height)) -> ByteArrayWrapper(blockBytes))
+    )
   }
 }
