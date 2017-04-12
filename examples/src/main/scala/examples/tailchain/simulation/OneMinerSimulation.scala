@@ -6,7 +6,7 @@ import com.google.common.primitives.{Ints, Longs}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.tailchain.core.{Algos, Constants}
-import examples.tailchain.modifiers.{BlockHeader, TBlock}
+import examples.tailchain.modifiers.{BlockHeader, TBlock, TBlockSerializer}
 import examples.tailchain.utxo.AuthenticatedUtxo
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.transaction.state.PrivateKey25519Companion
@@ -94,14 +94,27 @@ object OneMinerSimulation extends App {
     Seq[ByteArrayWrapper](),
     genesisBoxes.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
   )
-  var miningUtxo = AuthenticatedUtxo(miningUtxoStore, genesisBoxes.size, None, defaultId)
 
+  var miningHeight = 0
+  var miningUtxo = AuthenticatedUtxo(miningUtxoStore, genesisBoxes.size, None, defaultId)
 
   var generatingBoxes: Seq[PublicKey25519NoncedBox] = genesisBoxes
 
-  val blocksNum = 500
+  val blocksNum = 50
   (1 to blocksNum) foreach { bn =>
     println("current height: " + currentHeight)
+
+    val newMiningHeight = Algos.chooseSnapshots(currentHeight, minerPubKey.pubKeyBytes).head
+
+    println("mining height: " + newMiningHeight)
+
+    if(newMiningHeight > miningHeight){
+      val mbb = fullBlocksStore.get(ByteArrayWrapper(Ints.toByteArray(newMiningHeight))).get.data
+      val mb = TBlockSerializer.parseBytes(mbb).get
+      miningUtxo = miningUtxo.applyModifier(mb).get
+      miningHeight = newMiningHeight
+    }
+
     val txs = generateTransactions(generatingBoxes)
     val (block, newBoxes, uu) = generateBlock(txs, currentUtxo, IndexedSeq(miningUtxo))
     generatingBoxes = newBoxes
@@ -113,7 +126,8 @@ object OneMinerSimulation extends App {
     val blockBytes = block.bytes
     val headerBytes = block.header.bytes
 
-    println(s"Utxo size: ${currentUtxo.size}")
+    println(s"Current utxo size: ${currentUtxo.size}")
+    println(s"Mining utxo size: ${miningUtxo.size}")
     println(s"Header size: ${headerBytes.length}")
     println(s"Block size: ${blockBytes.length}")
 
@@ -123,4 +137,6 @@ object OneMinerSimulation extends App {
       Seq(ByteArrayWrapper(Ints.toByteArray(height)) -> ByteArrayWrapper(blockBytes))
     )
   }
+
+  println(s"Headers chain: $headersChain")
 }
