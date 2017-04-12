@@ -39,7 +39,7 @@ object Algos extends App {
       val id = hashfn(seed ++ minerPubKey ++ Ints.toByteArray(idx))
       val proof = utxo.lookupProof(id).get
       seed = id
-      PartialProof(id, utxo.rootHash, proof)
+      proof
     }
 
     Ticket(minerPubKey, partialProofs)
@@ -84,7 +84,7 @@ object Algos extends App {
     //todo: is proof malleability possible?
     header.ticket.partialProofs.zip(miningStateRoots).zipWithIndex.foreach{case ((pp, sroot), idx) =>
       val id = hashfn(seed ++ minerKey ++ Ints.toByteArray(idx))
-      val v = new BatchAVLVerifier(sroot, pp.proof, keyLength = BoxKeyLength, valueLength = BoxLength)
+      val v = new BatchAVLVerifier(sroot, pp, keyLength = BoxKeyLength, valueLength = BoxLength)
       v.performOneOperation(Lookup(id)).get
       seed = id
     }

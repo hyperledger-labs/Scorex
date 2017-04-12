@@ -7,16 +7,9 @@ import examples.tailchain.modifiers.{BlockHeader, TBlock}
 import org.scalacheck.{Arbitrary, Gen}
 
 trait TailchainGenerators extends ExamplesCommonGenerators {
-
-  val partialProofGen: Gen[PartialProof] = for {
-    id: Array[Byte] <- genBytesList(PartialProofSerializer.IdSize)
-    rootHash: Array[Byte] <- genBytesList(PartialProofSerializer.RootSize)
-    proof: Array[Byte] <- nonEmptyBytesGen
-  } yield PartialProof(id: Array[Byte], rootHash: Array[Byte], proof: Array[Byte])
-
   val ticketGen: Gen[Ticket] = for {
     minerKey: Array[Byte] <- genBytesList(TicketSerializer.MinerKeySize)
-    partialProofs: Seq[PartialProof] <- Gen.nonEmptyListOf(partialProofGen)
+    partialProofs: Seq[Array[Byte]] <- Gen.nonEmptyListOf(nonEmptyBytesGen)
   } yield Ticket(minerKey, partialProofs)
 
   val blockHeaderGen: Gen[BlockHeader] = for {

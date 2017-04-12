@@ -5,7 +5,7 @@ import java.io.File
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.tailchain.core.{Algos, Constants}
+import examples.tailchain.core.{Algos, Constants, TicketSerializer}
 import examples.tailchain.modifiers.{BlockHeader, TBlock, TBlockSerializer}
 import examples.tailchain.utxo.AuthenticatedUtxo
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
@@ -71,7 +71,7 @@ object OneMinerSimulation extends App {
 
   //creating genesis state & block
 
-  val genesisBoxes = (1 to 1000) map { i =>
+  val genesisBoxes = (1 to 5000) map { i =>
     PublicKey25519NoncedBox(
       minerPubKey,
       Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
@@ -100,7 +100,7 @@ object OneMinerSimulation extends App {
 
   var generatingBoxes: Seq[PublicKey25519NoncedBox] = genesisBoxes
 
-  val blocksNum = 50
+  val blocksNum = 500
   (1 to blocksNum) foreach { bn =>
     println("current height: " + currentHeight)
 
@@ -129,6 +129,7 @@ object OneMinerSimulation extends App {
     println(s"Current utxo size: ${currentUtxo.size}")
     println(s"Mining utxo size: ${miningUtxo.size}")
     println(s"Header size: ${headerBytes.length}")
+    println(s"Ticket size: ${TicketSerializer.toBytes(block.header.ticket).length}")
     println(s"Block size: ${blockBytes.length}")
 
     fullBlocksStore.update(

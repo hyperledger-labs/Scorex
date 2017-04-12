@@ -1,6 +1,6 @@
 package tailchain.serialization
 
-import examples.tailchain.core.{PartialProof, PartialProofSerializer, Ticket, TicketSerializer}
+import examples.tailchain.core.{Ticket, TicketSerializer}
 import examples.tailchain.modifiers.{BlockHeader, BlockHeaderSerializer, TBlock, TBlockSerializer}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -11,14 +11,6 @@ class SerializationTests extends PropSpec
   with GeneratorDrivenPropertyChecks
   with Matchers
   with TailchainGenerators {
-
-  property("PartialProof serialization") {
-    forAll(partialProofGen) { b: PartialProof =>
-      val serializer = PartialProofSerializer
-      val parsed = serializer.parseBytes(serializer.toBytes(b)).get
-      serializer.toBytes(b) shouldEqual serializer.toBytes(parsed)
-    }
-  }
 
   property("Ticket serialization") {
     forAll(ticketGen) { b: Ticket =>
