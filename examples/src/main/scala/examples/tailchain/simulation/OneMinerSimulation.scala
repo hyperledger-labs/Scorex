@@ -1,6 +1,6 @@
 package examples.tailchain.simulation
 
-import java.io.File
+import java.io.{File, FileWriter}
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.SimpleBoxTransaction
@@ -100,15 +100,13 @@ object OneMinerSimulation extends App {
 
   var generatingBoxes: Seq[PublicKey25519NoncedBox] = genesisBoxes
 
+  log("Current height,Mining height,Current utxo size,Mining utxo size,Work valid,Header size,Ticket size,Proof size,Block size")
+
   val blocksNum = 500
   (1 to blocksNum) foreach { bn =>
-    println("current height: " + currentHeight)
-
     val newMiningHeight = Algos.chooseSnapshots(currentHeight, minerPubKey.pubKeyBytes).head
 
-    println("mining height: " + newMiningHeight)
-
-    if(newMiningHeight > miningHeight){
+    if (newMiningHeight > miningHeight) {
       val mbb = fullBlocksStore.get(ByteArrayWrapper(Ints.toByteArray(newMiningHeight))).get.data
       val mb = TBlockSerializer.parseBytes(mbb).get
       miningUtxo = miningUtxo.applyModifier(mb).get
@@ -127,14 +125,7 @@ object OneMinerSimulation extends App {
     val headerBytes = block.header.bytes
 
     val wvalid = Algos.validatePow(block.header, IndexedSeq(miningUtxo.rootHash), Constants.Difficulty)
-    println("Work valid: " + wvalid)
-
-    println(s"Current utxo size: ${currentUtxo.size}")
-    println(s"Mining utxo size: ${miningUtxo.size}")
-    println(s"Header size: ${headerBytes.length}")
-    println(s"Ticket size: ${TicketSerializer.toBytes(block.header.ticket).length}")
-    println(s"Proof size: ${block.header.ticket.partialProofs.head.length}")
-    println(s"Block size: ${blockBytes.length}")
+    log(s"$currentHeight,$newMiningHeight,${currentUtxo.size},${miningUtxo.size},$wvalid,${headerBytes.length},${TicketSerializer.toBytes(block.header.ticket).length},${block.header.ticket.partialProofs.head.length},${blockBytes.length}")
 
     fullBlocksStore.update(
       ByteArrayWrapper(Ints.toByteArray(height)),
@@ -143,5 +134,13 @@ object OneMinerSimulation extends App {
     )
   }
 
-  println(s"Headers chain: $headersChain")
+  def log(str: String): Unit = {
+    val resultsFile = new FileWriter("/tmp/results.csv", true)
+    try {
+      resultsFile.write(str + "\n")
+    } finally {
+      resultsFile.close()
+    }
+  }
+
 }
