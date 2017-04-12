@@ -12,8 +12,8 @@ import scorex.core.consensus.History
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.{GetLocalObjects, ResponseFromLocal}
 import scorex.core.settings.Settings
-import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 import scorex.crypto.encode.Base58
 
@@ -55,7 +55,12 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   def pool: Route = path("pool") {
     getJsonRoute {
       getMempool() match {
-        case Success(pool: MP) => SuccessApiResponse(pool.take(1000).map(_.json).asJson)
+        case Success(pool: MP) => SuccessApiResponse(
+          Map(
+            "size" -> pool.size.asJson,
+            "transactions" -> pool.take(1000).map(_.json).asJson
+          ).asJson
+        )
         case Failure(e) => ApiException(e)
       }
     }

@@ -80,6 +80,17 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
   ).asJson
 
   override def toString: String = s"SimpleBoxTransaction(${json.noSpaces})"
+
+  lazy val semanticValidity: Try[Unit] = Try {
+    require(from.size == signatures.size)
+    require(to.forall(_._2 >= 0))
+    require(fee >= 0)
+    require(timestamp >= 0)
+    require(from.zip(signatures).forall { case ((prop, _), proof) =>
+      proof.isValid(prop, messageToSign)
+    })
+  }
+
 }
 
 
@@ -106,8 +117,12 @@ object SimpleBoxTransaction {
 
   //TODO seq of recipients and amounts
   def create(w: HWallet, recipient: PublicKey25519Proposition, amount: Long, fee: Long): Try[SimpleBoxTransaction] = Try {
+    var s = 0L
 
-    val from: IndexedSeq[(PrivateKey25519, Long, Long)] = w.boxes().flatMap { b =>
+    val from: IndexedSeq[(PrivateKey25519, Long, Long)] = w.boxes().sortBy(_.createdAt).takeWhile { b =>
+      s = s + b.box.value
+      s < amount + b.box.value
+    }.flatMap { b =>
       w.secretByPublicImage(b.box.proposition).map(s => (s, b.box.nonce, b.box.value))
     }.toIndexedSeq
     val canSend = from.map(_._3).sum
