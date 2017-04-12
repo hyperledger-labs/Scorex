@@ -85,10 +85,9 @@ case class AuthenticatedUtxo(store: LSMStore,
     super.validate(mod).get
   }
 
+  //todo: newVersion is not used
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[AuthenticatedUtxo] = Try {
-
-    log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${Base58.encode(newVersion)}")
 
     val (boxIdsToRemove, boxesToAdd) = changes.operations
       .foldLeft(Seq[Array[Byte]]() -> Seq[PublicKey25519NoncedBox]()) {case ((btr, bta), op) =>
@@ -104,6 +103,11 @@ case class AuthenticatedUtxo(store: LSMStore,
     }
 
     prover.generateProof()
+
+    val newVersion = rootHash
+
+    log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${Base58.encode(newVersion)}")
+
     val toRemove = boxIdsToRemove.map(ByteArrayWrapper.apply)
     val toAdd = boxesToAdd.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
     store.update(ByteArrayWrapper(newVersion), toRemove, toAdd)
@@ -140,8 +144,6 @@ case class AuthenticatedUtxo(store: LSMStore,
     val bytes = store.getAll().drop(Random.nextInt(size-1)).next()._2.data
     PublicKey25519NoncedBoxSerializer.parseBytes(bytes)
   }.flatten
-
-  def withVersion(version: VersionTag): AuthenticatedUtxo = this.copy(version = version)
 }
 
 object AuthenticatedUtxo {

@@ -15,11 +15,12 @@ import scala.util.Random
 
 
 object OneMinerSimulation extends App {
+
   import examples.tailchain.core.Constants.hashfn
 
   type Height = Int
 
-  val blocksNum = 1
+  val blocksNum = 5
   val experimentId = Random.nextInt(5000)
 
   val headersChain = Map[Height, BlockHeader]()
@@ -46,18 +47,18 @@ object OneMinerSimulation extends App {
 
   def generateBlock(txs: Seq[SimpleBoxTransaction],
                     currentUtxo: AuthenticatedUtxo,
-                    miningUtxos: IndexedSeq[AuthenticatedUtxo]): (TBlock, Seq[PublicKey25519NoncedBox]) = {
+                    miningUtxos: IndexedSeq[AuthenticatedUtxo]): (TBlock, Seq[PublicKey25519NoncedBox], AuthenticatedUtxo) = {
     //todo: fix, hashchain instead of Merkle tree atm
     val txsHash = hashfn(txs.map(_.bytes).reduce(_ ++ _))
 
     val changes = AuthenticatedUtxo.changes(txs).get
-    currentUtxo.applyChanges(changes, defaultId)
+    val updUtxo = currentUtxo.applyChanges(changes, scorex.utils.Random.randomBytes()).get
 
     val h = Algos.pow(defaultId, txsHash, currentUtxo.rootHash, minerPubKey.pubKeyBytes,
       miningUtxos, Constants.Difficulty, 1000).get.get
 
     val newRichBoxes = txs.flatMap(_.newBoxes).filter(_.value > 5)
-    TBlock(h, txs, System.currentTimeMillis()) -> newRichBoxes
+    (TBlock(h, txs, System.currentTimeMillis()), newRichBoxes, updUtxo)
   }
 
   val cuDir = new File("/tmp/cu" + experimentId)
@@ -73,7 +74,7 @@ object OneMinerSimulation extends App {
 
   //creating genesis state & block
 
-  val genesisBoxes = (1 to 1000) map {i =>
+  val genesisBoxes = (1 to 1000) map { i =>
     PublicKey25519NoncedBox(
       minerPubKey,
       Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
@@ -99,16 +100,12 @@ object OneMinerSimulation extends App {
   var miningUtxo = AuthenticatedUtxo(miningUtxoStore, genesisBoxes.size, None, defaultId)
 
 
-  val txs = generateTransactions(genesisBoxes)
-  val (b1, newBoxes) = generateBlock(txs, currentUtxo, IndexedSeq(currentUtxo))
-  println(b1.json)
-  println(newBoxes.head.json)
-
-  miningUtxo.applyModifier(b1)
-
-  assert(miningUtxo.rootHash sameElements currentUtxo.rootHash)
-
-  (1 to blocksNum) foreach {bn =>
+  var generatingBoxes: Seq[PublicKey25519NoncedBox] = genesisBoxes
+  (1 to blocksNum) foreach { bn =>
     println("current height: " + currentHeight)
+    val txs = generateTransactions(generatingBoxes)
+    val (b1, newBoxes, uu) = generateBlock(txs, currentUtxo, IndexedSeq(miningUtxo))
+    generatingBoxes = newBoxes
+    currentUtxo = uu
   }
 }
