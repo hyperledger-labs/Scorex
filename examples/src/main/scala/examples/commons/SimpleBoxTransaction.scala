@@ -6,6 +6,7 @@ import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.wallet.HWallet
 import io.circe.Json
 import io.circe.syntax._
+import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.BoxTransaction
@@ -86,6 +87,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     require(to.forall(_._2 >= 0))
     require(fee >= 0)
     require(timestamp >= 0)
+    require(boxIdsToOpen.map(to => ByteArrayWrapper(to)).distinct.size == boxIdsToOpen.size)
     require(from.zip(signatures).forall { case ((prop, _), proof) =>
       proof.isValid(prop, messageToSign)
     })
