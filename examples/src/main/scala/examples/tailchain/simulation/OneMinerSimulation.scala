@@ -3,7 +3,7 @@ package examples.tailchain.simulation
 import java.io.File
 
 import com.google.common.primitives.{Ints, Longs}
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
+import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.tailchain.core.{Algos, Constants, TicketSerializer}
 import examples.tailchain.modifiers.{BlockHeader, TBlock, TBlockSerializer}
@@ -52,7 +52,7 @@ object OneMinerSimulation extends App {
     val updUtxo = currentUtxo.applyChanges(changes, scorex.utils.Random.randomBytes()).get
 
     val h = Algos.pow(defaultId, txsHash, currentUtxo.rootHash, minerPubKey.pubKeyBytes,
-      miningUtxos, Constants.Difficulty, 1000).get.get
+      miningUtxos, Constants.Difficulty, 10000).get.get
 
     val newRichBoxes = txs.flatMap(_.newBoxes).filter(_.value > 5)
     (TBlock(h, txs, System.currentTimeMillis()), newRichBoxes, updUtxo)
@@ -79,7 +79,7 @@ object OneMinerSimulation extends App {
     )
   }
 
-  val currentUtxoStore = new LSMStore(cuDir)
+  val currentUtxoStore = new LSMStore(cuDir, keepVersions = 1)
   currentUtxoStore.update(
     ByteArrayWrapper(defaultId),
     Seq[ByteArrayWrapper](),
@@ -88,7 +88,7 @@ object OneMinerSimulation extends App {
   var currentUtxo = AuthenticatedUtxo(currentUtxoStore, genesisBoxes.size, None, defaultId)
 
 
-  val miningUtxoStore = new LSMStore(muDir)
+  val miningUtxoStore = new LSMStore(muDir, keepVersions = 1)
   miningUtxoStore.update(
     ByteArrayWrapper(defaultId),
     Seq[ByteArrayWrapper](),
@@ -126,10 +126,14 @@ object OneMinerSimulation extends App {
     val blockBytes = block.bytes
     val headerBytes = block.header.bytes
 
+    val wvalid = Algos.validatePow(block.header, IndexedSeq(miningUtxo.rootHash), Constants.Difficulty)
+    println("Work valid: " + wvalid)
+
     println(s"Current utxo size: ${currentUtxo.size}")
     println(s"Mining utxo size: ${miningUtxo.size}")
     println(s"Header size: ${headerBytes.length}")
     println(s"Ticket size: ${TicketSerializer.toBytes(block.header.ticket).length}")
+    println(s"Proof size: ${block.header.ticket.partialProofs.head.length}")
     println(s"Block size: ${blockBytes.length}")
 
     fullBlocksStore.update(
