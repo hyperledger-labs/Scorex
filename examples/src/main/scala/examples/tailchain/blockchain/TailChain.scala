@@ -30,10 +30,8 @@ class TailChain(version: ModifierId,
 
   override def drop(modifierId: ModifierId): TailChain = ???
 
-  //todo: output should be ID | Seq[ID]
   override def openSurfaceIds(): Seq[ModifierId] = ???
 
-  //todo: argument should be ID | Seq[ID]
   override def continuationIds(from: ModifierIds, size: Int): Option[ModifierIds] = ???
 
   override def syncInfo(answer: Boolean): TailChainSyncInfo = ???

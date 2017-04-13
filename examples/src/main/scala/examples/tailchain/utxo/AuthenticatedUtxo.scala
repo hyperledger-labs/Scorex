@@ -130,11 +130,13 @@ case class AuthenticatedUtxo(store: LSMStore,
 
   private def lastVersionString = store.lastVersionID.map(v => Base58.encode(v.data)).getOrElse("None")
 
-  def lookupProof(id: Array[Byte]): Try[Array[Byte]] = Try {
-    require(id.length == BoxKeyLength)
-    val l = Lookup(id)
-    prover.generateProof() // todo: check prover's state in more elegant way, by calling something like ".isClean()"
-    prover.performOneOperation(l).get
+  def lookupProof(ids: Seq[Array[Byte]]): Try[Array[Byte]] = Try {
+    ids.foreach { id =>
+      require(id.length == BoxKeyLength)
+      val l = Lookup(id)
+      prover.generateProof() // todo: check prover's state in more elegant way, by calling something like ".isClean()"
+      prover.performOneOperation(l).get
+    }
     prover.generateProof()
   }
 

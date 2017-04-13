@@ -13,7 +13,7 @@ import scorex.core.transaction.state.{Insertion, StateChanges}
 import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
 import scorex.crypto.signatures.Curve25519
 
-import scala.util.{Random, Success, Try}
+import scala.util.{Failure, Random, Success, Try}
 
 
 object Algos extends App {
@@ -35,10 +35,11 @@ object Algos extends App {
 
     var seed = hashfn(Longs.toByteArray(ctr))
 
-    val partialProofs = utxos.zipWithIndex.map { case (utxo, idx) =>
-      val id = hashfn(seed ++ minerPubKey ++ Ints.toByteArray(idx))
-      val proof = utxo.lookupProof(id).get
-      seed = id
+    val partialProofs = utxos.zipWithIndex.map { case (utxo, stateIndex) =>
+      val ids = (0 until NElementsInProof) map (elementIndex => hashfn(seed ++ minerPubKey ++
+        Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
+      val proof = utxo.lookupProof(ids).get
+      seed = hashfn(ids.reduce(_ ++ _)) //TODO do we need it?
       proof
     }
 
@@ -82,14 +83,20 @@ object Algos extends App {
     var seed = hashfn(Longs.toByteArray(nonce))
 
     //todo: is proof malleability possible?
-    header.ticket.partialProofs.zip(miningStateRoots).zipWithIndex.foreach{case ((pp, sroot), idx) =>
-      val id = hashfn(seed ++ minerKey ++ Ints.toByteArray(idx))
+    header.ticket.partialProofs.zip(miningStateRoots).zipWithIndex.foreach { case ((pp, sroot), stateIndex) =>
+      val ids = (0 until NElementsInProof) map (elementIndex => hashfn(seed ++ minerKey ++
+        Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
+
       val v = new BatchAVLVerifier(sroot, pp, keyLength = BoxKeyLength, valueLength = BoxLength)
-      v.performOneOperation(Lookup(id)).get
-      seed = id
+      ids.foreach(id => v.performOneOperation(Lookup(id)).get)
+      seed = hashfn(ids.reduce(_ ++ _)) //TODO do we need it?
     }
 
     true
+  }.recoverWith {
+    case e =>
+      e.printStackTrace
+      Failure(e)
   }.getOrElse(false)
 
   new File("/tmp/utxo").delete()

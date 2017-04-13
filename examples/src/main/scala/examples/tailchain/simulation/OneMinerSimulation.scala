@@ -138,6 +138,7 @@ object OneMinerSimulation extends App {
   }
 
   def log(str: String): Unit = {
+    println(str)
     val resultsFile = new FileWriter(s"/tmp/oms/results-$experimentId.csv", true)
     try {
       resultsFile.write(str + "\n")
