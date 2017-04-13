@@ -1,6 +1,7 @@
 package examples.tailchain.simulation
 
-import java.io.{File, FileWriter}
+import java.io.{File, FileOutputStream, FileWriter}
+import java.nio.file.{Files, Paths}
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.SimpleBoxTransaction
@@ -8,6 +9,7 @@ import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.tailchain.core.{Algos, Constants, TicketSerializer}
 import examples.tailchain.modifiers.{BlockHeader, TBlock, TBlockSerializer}
 import examples.tailchain.utxo.AuthenticatedUtxo
+import io.iohk.iodb.Store._
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.transaction.state.PrivateKey25519Companion
 
@@ -25,10 +27,11 @@ object OneMinerSimulation extends App {
 
   val headersChain = mutable.Map[Height, BlockHeader]()
 
-  val bcDir = new File("/tmp/bc" + experimentId)
+  val bcDir = new File("/tmp/oms/bc" + experimentId)
   bcDir.mkdirs()
 
-  val fullBlocksStore = new LSMStore(bcDir, keySize = 4)
+  val fullBlocksStore = new FullBlockStore(bcDir, keySize = 4)
+  //  val fullBlocksStore = new LSMStore(bcDir, keySize = 4)
 
   val defaultId = Array.fill(32)(0: Byte)
 
@@ -58,10 +61,10 @@ object OneMinerSimulation extends App {
     (TBlock(h, txs, System.currentTimeMillis()), newRichBoxes, updUtxo)
   }
 
-  val cuDir = new File("/tmp/cu" + experimentId)
+  val cuDir = new File("/tmp/oms/cu" + experimentId)
   cuDir.mkdirs()
 
-  val muDir = new File("/tmp/mu" + experimentId)
+  val muDir = new File("/tmp/oms/mu" + experimentId)
   muDir.mkdirs()
 
 
@@ -135,12 +138,34 @@ object OneMinerSimulation extends App {
   }
 
   def log(str: String): Unit = {
-    val resultsFile = new FileWriter("/tmp/results.csv", true)
+    val resultsFile = new FileWriter(s"/tmp/oms/results-$experimentId.csv", true)
     try {
       resultsFile.write(str + "\n")
     } finally {
       resultsFile.close()
     }
+  }
+
+
+  class FullBlockStore(dir: File, keySize: Int) {
+    type K = ByteArrayWrapper
+    type V = ByteArrayWrapper
+
+    def update(versionID: VersionID, toRemove: Iterable[K], toUpdate: Iterable[(K, V)]): Unit = {
+      toUpdate.foreach { tu =>
+        val fos = new FileOutputStream(filenameFromKey(tu._1))
+        fos.write(tu._2.data)
+        fos.close()
+      }
+    }
+
+    def get(key: K): Option[V] = {
+      val path = Paths.get(filenameFromKey(key))
+      Some(ByteArrayWrapper(Files.readAllBytes(path)))
+    }
+
+    private def filenameFromKey(k: K): String = dir.getAbsolutePath + "/block-" + Ints.fromByteArray(k.data)
+
   }
 
 }
