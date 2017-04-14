@@ -105,7 +105,7 @@ object OneMinerSimulation extends App {
 
   log("Current height,Mining height,Current utxo size,Mining utxo size,Work valid,Header size,Ticket size,Proof size,Block size")
 
-  val blocksNum = 500
+  val blocksNum = 50000
   (1 to blocksNum) foreach { bn =>
     val newMiningHeight = Algos.chooseSnapshots(currentHeight, minerPubKey.pubKeyBytes).head
 
