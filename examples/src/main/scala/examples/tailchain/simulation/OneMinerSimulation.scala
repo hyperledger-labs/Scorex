@@ -8,10 +8,11 @@ import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.tailchain.core.{Algos, Constants, TicketSerializer}
 import examples.tailchain.modifiers.{BlockHeader, TBlock, TBlockSerializer}
-import examples.tailchain.utxo.AuthenticatedUtxo
-import io.iohk.iodb.Store._
-import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.transaction.state.PrivateKey25519Companion
+import examples.tailchain.utxo.PersistentAuthenticatedUtxo
+import io.iohk.iodb.ByteArrayWrapper
+import io.iohk.iodb.Store.VersionID
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.state.{Insertion, PrivateKey25519Companion, StateChanges}
 
 import scala.collection.mutable
 import scala.util.{Random, Try}
@@ -46,12 +47,12 @@ object OneMinerSimulation extends App {
     }
 
   def generateBlock(txs: Seq[SimpleBoxTransaction],
-                    currentUtxo: AuthenticatedUtxo,
-                    miningUtxos: IndexedSeq[AuthenticatedUtxo]): (TBlock, Seq[PublicKey25519NoncedBox], AuthenticatedUtxo) = {
+                    currentUtxo: InMemoryAuthenticatedUtxo,
+                    miningUtxos: IndexedSeq[InMemoryAuthenticatedUtxo]): (TBlock, Seq[PublicKey25519NoncedBox], InMemoryAuthenticatedUtxo) = {
     //todo: fix, hashchain instead of Merkle tree atm
     val txsHash = hashfn(txs.map(_.bytes).reduce(_ ++ _))
 
-    val changes = AuthenticatedUtxo.changes(txs).get
+    val changes = PersistentAuthenticatedUtxo.changes(txs).get
     val updUtxo = currentUtxo.applyChanges(changes, scorex.utils.Random.randomBytes()).get
 
     val h = Algos.pow(defaultId, txsHash, currentUtxo.rootHash, minerPubKey.pubKeyBytes,
@@ -82,30 +83,21 @@ object OneMinerSimulation extends App {
     )
   }
 
-  val currentUtxoStore = new LSMStore(cuDir, keepVersions = 1)
-  currentUtxoStore.update(
-    ByteArrayWrapper(defaultId),
-    Seq[ByteArrayWrapper](),
-    genesisBoxes.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
-  )
-  var currentUtxo = AuthenticatedUtxo(currentUtxoStore, genesisBoxes.size, None, defaultId)
+  val genesisChanges: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
+    StateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
 
-
-  val miningUtxoStore = new LSMStore(muDir, keepVersions = 1)
-  miningUtxoStore.update(
-    ByteArrayWrapper(defaultId),
-    Seq[ByteArrayWrapper](),
-    genesisBoxes.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
-  )
+  var currentUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
 
   var miningHeight = 0
-  var miningUtxo = AuthenticatedUtxo(miningUtxoStore, genesisBoxes.size, None, defaultId)
+  var miningUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
+
+  assert(currentUtxo.rootHash sameElements miningUtxo.rootHash)
 
   var generatingBoxes: Seq[PublicKey25519NoncedBox] = genesisBoxes
 
   log("Current height,Mining height,Current utxo size,Mining utxo size,Work valid,Header size,Ticket size,Proof size,Block size")
 
-  val blocksNum = 500
+  val blocksNum = 10000
   (1 to blocksNum) foreach { bn =>
     val newMiningHeight = Algos.chooseSnapshots(currentHeight, minerPubKey.pubKeyBytes).head
 
@@ -166,7 +158,5 @@ object OneMinerSimulation extends App {
     }
 
     private def filenameFromKey(k: K): String = dir.getAbsolutePath + "/block-" + Ints.fromByteArray(k.data)
-
   }
-
 }

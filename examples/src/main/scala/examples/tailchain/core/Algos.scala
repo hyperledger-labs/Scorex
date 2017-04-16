@@ -6,7 +6,7 @@ import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.curvepos.transaction.PublicKey25519NoncedBox._
 import examples.tailchain.modifiers.BlockHeader
-import examples.tailchain.utxo.AuthenticatedUtxo
+import examples.tailchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import io.iohk.iodb.LSMStore
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{Insertion, StateChanges}
@@ -102,7 +102,7 @@ object Algos extends App {
   new File("/tmp/utxo").delete()
   new File("/tmp/utxo").mkdirs()
   val store = new LSMStore(new File("/tmp/utxo"))
-  val u1 = AuthenticatedUtxo(store, 0, None, Array.fill(32)(0: Byte))
+  val u1 = PersistentAuthenticatedUtxo(store, 0, None, Array.fill(32)(0: Byte))
 
   val pk1 = PublicKey25519Proposition(Array.fill(32)(Random.nextInt(100).toByte))
   val b1 = PublicKey25519NoncedBox(pk1, 1L, 10)

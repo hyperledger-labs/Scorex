@@ -1,14 +1,14 @@
 package examples.tailchain.modifiers
 
 import examples.commons.SimpleBoxTransaction
-import examples.tailchain.utxo.AuthenticatedUtxo
+import examples.tailchain.utxo.PersistentAuthenticatedUtxo
 import io.circe.Json
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.serialization.Serializer
 
 class UtxoSnapshot(override val parentId: ModifierId,
                    header: BlockHeader,
-                   utxo: AuthenticatedUtxo) extends TModifier {
+                   utxo: PersistentAuthenticatedUtxo) extends TModifier {
   // with Dotty is would be Seq[TX] | Nothing
   override def transactions: Option[Seq[SimpleBoxTransaction]] = None
 
