@@ -11,7 +11,8 @@ libraryDependencies ++= Seq(
   "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"
 )
 
-mainClass in assembly := Some("examples.hybrid.HybridApp")
+//mainClass in assembly := Some("examples.hybrid.HybridApp")
+mainClass in assembly := Some("examples.tailchain.simulation.OneMinerSimulation")
 
 assemblyJarName in assembly := "twinsChain.jar"
 
