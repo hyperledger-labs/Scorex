@@ -30,7 +30,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
   assert(size >= 0)
 
   override lazy val prover = proverOpt.getOrElse {
-    val p = new ProverType(keyLength = BoxKeyLength, valueLength = BoxLength) //todo: feed it with genesis state
+    val p = new ProverType(keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength)) //todo: feed it with genesis state
     log.debug("Starting building a tree for UTXO set")
 
     //todo: init?

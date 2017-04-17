@@ -62,7 +62,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
   override lazy val prover = proverOpt.getOrElse {
-    val p = new ProverType(keyLength = BoxKeyLength, valueLength = BoxLength) //todo: feed it with genesis state
+    val p = new ProverType(keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength)) //todo: feed it with genesis state
     log.debug("Starting building a tree for UTXO set")
     store.getAll { case (k, v) =>
       p.performOneOperation(Insert(k.data, v.data))
