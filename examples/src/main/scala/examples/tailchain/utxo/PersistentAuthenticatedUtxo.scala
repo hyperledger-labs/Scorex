@@ -17,7 +17,23 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256Unsafe
 
 import scala.util.{Random, Success, Try}
-import AuthenticatedUtxo.ProverType
+import PersistentAuthenticatedUtxo.ProverType
+
+trait AuthenticatedUtxo {
+  import PublicKey25519NoncedBox.BoxKeyLength
+
+  def prover: ProverType
+
+  def lookupProof(ids: Seq[Array[Byte]]): Try[Array[Byte]] = Try {
+    prover.generateProof() // todo: check prover's state in more elegant way, by calling something like ".isClean()"
+    ids.foreach { id =>
+      require(id.length == BoxKeyLength)
+      val l = Lookup(id)
+      prover.performOneOperation(l).get
+    }
+    prover.generateProof()
+  }
+}
 
 /**
   * We implement Ethereum-style authenticated UTXO for the moment, so all the parties replicate the full UTXO set
@@ -29,15 +45,15 @@ import AuthenticatedUtxo.ProverType
   * @param proverOpt
   * @param version
   */
-case class AuthenticatedUtxo(store: LSMStore,
-                             size: Int,
-                             proverOpt: Option[ProverType], //todo: externalize the type with the parameter
-                             override val version: VersionTag) extends
+case class PersistentAuthenticatedUtxo(store: LSMStore,
+                                       size: Int,
+                                       proverOpt: Option[ProverType], //todo: externalize the type with the parameter
+                                       override val version: VersionTag) extends
   BoxMinimalState[PublicKey25519Proposition,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
     TModifier,
-    AuthenticatedUtxo] with ScorexLogging {
+    PersistentAuthenticatedUtxo] with AuthenticatedUtxo with ScorexLogging {
 
   import PublicKey25519NoncedBox.{BoxKeyLength, BoxLength}
 
@@ -45,7 +61,7 @@ case class AuthenticatedUtxo(store: LSMStore,
   assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
     s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
-  lazy val prover = proverOpt.getOrElse {
+  override lazy val prover = proverOpt.getOrElse {
     val p = new ProverType(keyLength = BoxKeyLength, valueLength = BoxLength) //todo: feed it with genesis state
     log.debug("Starting building a tree for UTXO set")
     store.getAll { case (k, v) =>
@@ -56,11 +72,11 @@ case class AuthenticatedUtxo(store: LSMStore,
     p
   }
 
-  lazy val rootHash = prover.digest
+  lazy val rootHash: Array[Byte] = prover.digest
 
-  override type NVCT = AuthenticatedUtxo
+  override type NVCT = PersistentAuthenticatedUtxo
 
-  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = AuthenticatedUtxo.semanticValidity(tx)
+  override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = PersistentAuthenticatedUtxo.semanticValidity(tx)
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
     store.get(ByteArrayWrapper(boxId))
@@ -72,7 +88,7 @@ case class AuthenticatedUtxo(store: LSMStore,
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
   override def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
-    AuthenticatedUtxo.changes(mod)
+    PersistentAuthenticatedUtxo.changes(mod)
 
   //Validate transactions in block and generator box
   override def validate(mod: TModifier): Try[Unit] = Try {
@@ -87,7 +103,7 @@ case class AuthenticatedUtxo(store: LSMStore,
 
   //todo: newVersion is not used
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
-                            newVersion: VersionTag): Try[AuthenticatedUtxo] = Try {
+                            newVersion: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
 
     val (boxIdsToRemove, boxesToAdd) = changes.operations
       .foldLeft(Seq[Array[Byte]]() -> Seq[PublicKey25519NoncedBox]()) {case ((btr, bta), op) =>
@@ -110,35 +126,26 @@ case class AuthenticatedUtxo(store: LSMStore,
 
     val toRemove = boxIdsToRemove.map(ByteArrayWrapper.apply)
     val toAdd = boxesToAdd.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
+
     store.update(ByteArrayWrapper(newVersion), toRemove, toAdd)
 
-    val newSt = AuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
+    val newSt = PersistentAuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
     assert(boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
     assert(newSt.version sameElements newVersion, s"New version don't match")
     newSt
   }
 
-  override def rollbackTo(version: VersionTag): Try[AuthenticatedUtxo] = Try {
+  override def rollbackTo(version: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
     if (store.lastVersionID.exists(_.data sameElements version)) {
       this
     } else {
       log.debug(s"Rollback HBoxStoredState to ${Base58.encode(version)} from version $lastVersionString")
       store.rollback(ByteArrayWrapper(version))
-      AuthenticatedUtxo(store, store.getAll().size, None, version) //todo: more efficient rollback, rollback prover
+      PersistentAuthenticatedUtxo(store, store.getAll().size, None, version) //todo: more efficient rollback, rollback prover
     }
   }
 
   private def lastVersionString = store.lastVersionID.map(v => Base58.encode(v.data)).getOrElse("None")
-
-  def lookupProof(ids: Seq[Array[Byte]]): Try[Array[Byte]] = Try {
-    prover.generateProof() // todo: check prover's state in more elegant way, by calling something like ".isClean()"
-    ids.foreach { id =>
-      require(id.length == BoxKeyLength)
-      val l = Lookup(id)
-      prover.performOneOperation(l).get
-    }
-    prover.generateProof()
-  }
 
   def isEmpty: Boolean = store.getAll().isEmpty
 
@@ -148,7 +155,7 @@ case class AuthenticatedUtxo(store: LSMStore,
   }.flatten
 }
 
-object AuthenticatedUtxo {
+object PersistentAuthenticatedUtxo {
 
   type ProverType = BatchAVLProver[Blake2b256Unsafe]
 
@@ -195,7 +202,7 @@ object AuthenticatedUtxo {
     }
   }
 
-  def readOrGenerate(settings: Settings): AuthenticatedUtxo = {
+  def readOrGenerate(settings: Settings): PersistentAuthenticatedUtxo = {
     val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
     val dataDir = dataDirOpt.get
 
@@ -213,10 +220,10 @@ object AuthenticatedUtxo {
     val version = stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
 
     //todo: more efficient size detection, prover init
-    AuthenticatedUtxo(stateStorage, stateStorage.getAll().size, None, version)
+    PersistentAuthenticatedUtxo(stateStorage, stateStorage.getAll().size, None, version)
   }
 
-  def genesisState(settings: Settings, initialBlocks: Seq[TModifier]): AuthenticatedUtxo = {
+  def genesisState(settings: Settings, initialBlocks: Seq[TModifier]): PersistentAuthenticatedUtxo = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
       state.changes(mod).flatMap(cs => state.applyChanges(cs, mod.id)).get
     }
