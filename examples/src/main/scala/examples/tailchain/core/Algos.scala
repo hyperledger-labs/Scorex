@@ -87,7 +87,7 @@ object Algos extends App {
       val ids = (0 until NElementsInProof) map (elementIndex => hashfn(seed ++ minerKey ++
         Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
 
-      val v = new BatchAVLVerifier(sroot, pp, keyLength = BoxKeyLength, valueLength = BoxLength)
+      val v = new BatchAVLVerifier(sroot, pp, keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength))
       ids.foreach(id => v.performOneOperation(Lookup(id)).get)
       seed = hashfn(ids.reduce(_ ++ _)) //TODO do we need it?
     }
