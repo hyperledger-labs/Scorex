@@ -98,7 +98,9 @@ object OneMinerSimulation extends App {
   log("Current height,Mining height,Current utxo size,Mining utxo size,Work valid,Header size,Ticket size,Proof size,Block size")
 
   val blocksNum = 10000
-  (1 to blocksNum) foreach { bn =>
+  (1 to blocksNum) foreach { _ =>
+    val t0 = System.currentTimeMillis()
+
     val newMiningHeight = Algos.chooseSnapshots(currentHeight, minerPubKey.pubKeyBytes).head
 
     if (newMiningHeight > miningHeight) {
@@ -127,6 +129,8 @@ object OneMinerSimulation extends App {
       Seq(),
       Seq(ByteArrayWrapper(Ints.toByteArray(height)) -> ByteArrayWrapper(blockBytes))
     )
+
+    println((System.currentTimeMillis() - t0) / 1000.0 + " seconds")
   }
 
   def log(str: String): Unit = {

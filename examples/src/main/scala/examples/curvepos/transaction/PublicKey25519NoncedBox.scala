@@ -32,14 +32,16 @@ case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Propo
 
 object PublicKey25519NoncedBox {
   val BoxKeyLength = FastCryptographicHash.DigestSize
-  val BoxLength = Curve25519.KeyLength + 2 * 8
+  val BoxLength: Int = Curve25519.KeyLength + 2 * 8
 }
 
 object PublicKey25519NoncedBoxSerializer extends Serializer[PublicKey25519NoncedBox] {
 
-  override def toBytes(obj: PublicKey25519NoncedBox): Array[Byte] = {
-    obj.proposition.pubKeyBytes ++ Longs.toByteArray(obj.nonce) ++ Longs.toByteArray(obj.value)
-  }
+  override def toBytes(obj: PublicKey25519NoncedBox): Array[Byte] =
+    obj.proposition.pubKeyBytes ++
+      Longs.toByteArray(obj.nonce) ++
+      Longs.toByteArray(obj.value)
+
 
   override def parseBytes(bytes: Array[Byte]): Try[PublicKey25519NoncedBox] = Try {
     val pk = PublicKey25519Proposition(bytes.take(32))
