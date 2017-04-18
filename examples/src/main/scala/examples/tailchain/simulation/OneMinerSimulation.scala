@@ -14,6 +14,7 @@ import io.iohk.iodb.Store.VersionID
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{Insertion, PrivateKey25519Companion, StateChanges}
 
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 import scala.util.{Random, Try}
 
@@ -31,7 +32,7 @@ object OneMinerSimulation extends App {
   val bcDir = new File("/tmp/oms/bc" + experimentId)
   bcDir.mkdirs()
 
-  val fullBlocksStore = new FullBlockStore(bcDir, keySize = 4)
+  val fullBlocksStore = new MemoryFullBlockStore
   //  val fullBlocksStore = new LSMStore(bcDir, keySize = 4)
 
   val defaultId = Array.fill(32)(0: Byte)
@@ -104,8 +105,7 @@ object OneMinerSimulation extends App {
     val newMiningHeight = Algos.chooseSnapshots(currentHeight, minerPubKey.pubKeyBytes).head
 
     if (newMiningHeight > miningHeight) {
-      val mbb = fullBlocksStore.get(ByteArrayWrapper(Ints.toByteArray(newMiningHeight))).get.data
-      val mb = TBlockSerializer.parseBytes(mbb).get
+      val mb = fullBlocksStore.get(ByteArrayWrapper(Ints.toByteArray(newMiningHeight))).get
       miningUtxo = miningUtxo.applyModifier(mb).get
       miningHeight = newMiningHeight
     }
@@ -127,7 +127,7 @@ object OneMinerSimulation extends App {
     fullBlocksStore.update(
       ByteArrayWrapper(Ints.toByteArray(height)),
       Seq(),
-      Seq(ByteArrayWrapper(Ints.toByteArray(height)) -> ByteArrayWrapper(blockBytes))
+      Seq(ByteArrayWrapper(Ints.toByteArray(height)) -> block)
     )
 
     println((System.currentTimeMillis() - t0) / 1000.0 + " seconds")
@@ -163,4 +163,22 @@ object OneMinerSimulation extends App {
 
     private def filenameFromKey(k: K): String = dir.getAbsolutePath + "/block-" + Ints.fromByteArray(k.data)
   }
+
+  class MemoryFullBlockStore {
+    type K = ByteArrayWrapper
+    type V = TBlock
+
+    val map: TrieMap[K, V] = TrieMap()
+
+    def update(versionID: VersionID, toRemove: Iterable[K], toUpdate: Iterable[(K, V)]): Unit = {
+      toUpdate.foreach { tu =>
+        map.put(tu._1, tu._2)
+      }
+    }
+
+    def get(key: K): Option[V] = {
+      map.get(key)
+    }
+  }
+
 }
