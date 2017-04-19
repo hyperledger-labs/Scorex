@@ -7,7 +7,7 @@ import com.google.common.primitives.{Ints, Longs}
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.tailchain.core.{Algos, Constants, TicketSerializer}
-import examples.tailchain.modifiers.{BlockHeader, TBlock, TBlockSerializer}
+import examples.tailchain.modifiers.{BlockHeader, TBlock}
 import examples.tailchain.utxo.PersistentAuthenticatedUtxo
 import io.iohk.iodb.ByteArrayWrapper
 import io.iohk.iodb.Store.VersionID
@@ -26,6 +26,7 @@ object OneMinerSimulation extends App {
   type Height = Int
 
   val experimentId = Random.nextInt(500000)
+  val NewBoxesPerBlock = 5000
 
   val headersChain = mutable.Map[Height, BlockHeader]()
 
@@ -39,13 +40,14 @@ object OneMinerSimulation extends App {
 
   def currentHeight: Int = Try(headersChain.keySet.max).getOrElse(0)
 
-  def generateTransactions(richBoxes: Seq[PublicKey25519NoncedBox]): Seq[SimpleBoxTransaction] =
-    richBoxes.map { b =>
+  def generateTransactions(richBoxes: Seq[PublicKey25519NoncedBox]): Seq[SimpleBoxTransaction] = {
+    Seq(richBoxes.find(_.value > NewBoxesPerBlock + 1).get).map { b =>
       SimpleBoxTransaction.apply(
         from = IndexedSeq(minerPrivKey -> b.nonce),
-        to = IndexedSeq(minerPubKey -> 5, minerPubKey -> (b.value - 5)),
+        to = (minerPubKey -> (b.value - NewBoxesPerBlock)) +: (0 until NewBoxesPerBlock).map(_ => minerPubKey -> 1L),
         0, System.currentTimeMillis())
     }
+  }
 
   def generateBlock(txs: Seq[SimpleBoxTransaction],
                     currentUtxo: InMemoryAuthenticatedUtxo,
@@ -122,6 +124,7 @@ object OneMinerSimulation extends App {
     val headerBytes = block.header.bytes
 
     val wvalid = Algos.validatePow(block.header, IndexedSeq(miningUtxo.rootHash), Constants.Difficulty)
+    require(wvalid)
     log(s"$currentHeight,$newMiningHeight,${currentUtxo.size},${miningUtxo.size},$wvalid,${headerBytes.length},${TicketSerializer.toBytes(block.header.ticket).length},${block.header.ticket.partialProofs.head.length},${blockBytes.length}")
 
     fullBlocksStore.update(
