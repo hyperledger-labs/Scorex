@@ -19,7 +19,7 @@ import scala.collection.mutable
 import scala.util.{Random, Try}
 
 
-object OneMinerSimulation extends App {
+object OneMinerSimulation extends App with Simulators {
 
   import examples.tailchain.core.Constants.hashfn
 
@@ -36,9 +36,13 @@ object OneMinerSimulation extends App {
   val fullBlocksStore = new MemoryFullBlockStore
   //  val fullBlocksStore = new LSMStore(bcDir, keySize = 4)
 
-  val defaultId = Array.fill(32)(0: Byte)
-
   def currentHeight: Int = Try(headersChain.keySet.max).getOrElse(0)
+
+  val cuDir = new File("/tmp/oms/cu" + experimentId)
+  cuDir.mkdirs()
+
+  val muDir = new File("/tmp/oms/mu" + experimentId)
+  muDir.mkdirs()
 
   def generateTransactions(richBoxes: Seq[PublicKey25519NoncedBox]): Seq[SimpleBoxTransaction] = {
     Seq(richBoxes.find(_.value > NewBoxesPerBlock + 1).get).map { b =>
@@ -48,33 +52,6 @@ object OneMinerSimulation extends App {
         0, System.currentTimeMillis())
     }
   }
-
-  def generateBlock(txs: Seq[SimpleBoxTransaction],
-                    currentUtxo: InMemoryAuthenticatedUtxo,
-                    miningUtxos: IndexedSeq[InMemoryAuthenticatedUtxo]): (TBlock, Seq[PublicKey25519NoncedBox], InMemoryAuthenticatedUtxo) = {
-    //todo: fix, hashchain instead of Merkle tree atm
-    val txsHash = hashfn(scorex.core.utils.concatBytes(txs.map(_.bytes)))
-
-    val changes = PersistentAuthenticatedUtxo.changes(txs).get
-    val updUtxo = currentUtxo.applyChanges(changes, scorex.utils.Random.randomBytes()).get
-
-    val h = Algos.pow(defaultId, txsHash, currentUtxo.rootHash, minerPubKey.pubKeyBytes,
-      miningUtxos, Constants.Difficulty, 10000).get.get
-
-    val newRichBoxes = txs.flatMap(_.newBoxes).filter(_.value > 5)
-    (TBlock(h, txs, System.currentTimeMillis()), newRichBoxes, updUtxo)
-  }
-
-  val cuDir = new File("/tmp/oms/cu" + experimentId)
-  cuDir.mkdirs()
-
-  val muDir = new File("/tmp/oms/mu" + experimentId)
-  muDir.mkdirs()
-
-
-  val minerKeys = PrivateKey25519Companion.generateKeys(scorex.utils.Random.randomBytes(32))
-  val minerPubKey = minerKeys._2
-  val minerPrivKey = minerKeys._1
 
   //creating genesis state & block
 
