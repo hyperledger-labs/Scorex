@@ -6,7 +6,7 @@ import scorex.crypto.hash.Blake2b256
 object Constants {
   val n = 20
   val k = 1
-  val NElementsInProof = 2
+  val NElementsInProof = 10
 
   val hashfn = Blake2b256
 
