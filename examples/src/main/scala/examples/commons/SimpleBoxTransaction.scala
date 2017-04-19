@@ -148,9 +148,9 @@ object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {
       Ints.toByteArray(m.signatures.length),
       Ints.toByteArray(m.from.length),
       Ints.toByteArray(m.to.length),
-      m.signatures.foldLeft(Array[Byte]())((a, b) => a ++ b.bytes),
-      m.from.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2)),
-      m.to.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2))
+      m.signatures.foldLeft(Array[Byte]())((a, b) => Bytes.concat(a, b.bytes)),
+      m.from.foldLeft(Array[Byte]())((a, b) => Bytes.concat(a, b._1.bytes, Longs.toByteArray(b._2))),
+      m.to.foldLeft(Array[Byte]())((a, b) => Bytes.concat(a, b._1.bytes, Longs.toByteArray(b._2)))
     )
   }
 
