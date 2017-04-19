@@ -1,6 +1,9 @@
+2.0.0-M5
+--------
+
 * Issue #19 fixed
 * MapDB dependency removed
-* 
+* StateChanges reworked
 
 2.0.0-M4
 --------
