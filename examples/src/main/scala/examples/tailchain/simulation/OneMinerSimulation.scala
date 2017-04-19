@@ -53,7 +53,7 @@ object OneMinerSimulation extends App {
                     currentUtxo: InMemoryAuthenticatedUtxo,
                     miningUtxos: IndexedSeq[InMemoryAuthenticatedUtxo]): (TBlock, Seq[PublicKey25519NoncedBox], InMemoryAuthenticatedUtxo) = {
     //todo: fix, hashchain instead of Merkle tree atm
-    val txsHash = hashfn(txs.map(_.bytes).reduce(_ ++ _))
+    val txsHash = hashfn(scorex.core.utils.concatBytes(txs.map(_.bytes)))
 
     val changes = PersistentAuthenticatedUtxo.changes(txs).get
     val updUtxo = currentUtxo.applyChanges(changes, scorex.utils.Random.randomBytes()).get

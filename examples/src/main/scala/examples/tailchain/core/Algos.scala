@@ -39,7 +39,7 @@ object Algos extends App {
       val ids = (0 until NElementsInProof) map (elementIndex => hashfn(seed ++ minerPubKey ++
         Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
       val proof = utxo.lookupProof(ids).get
-      seed = hashfn(ids.reduce(_ ++ _)) //TODO do we need it?
+      seed = hashfn(scorex.core.utils.concatFixLengthBytes(ids)) //TODO do we need it?
       proof
     }
 
@@ -89,7 +89,7 @@ object Algos extends App {
 
       val v = new BatchAVLVerifier(sroot, pp, keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength))
       ids.foreach(id => v.performOneOperation(Lookup(id)).get)
-      seed = hashfn(ids.reduce(_ ++ _)) //TODO do we need it?
+      seed = hashfn(scorex.core.utils.concatFixLengthBytes(ids)) //TODO do we need it?
     }
 
     true

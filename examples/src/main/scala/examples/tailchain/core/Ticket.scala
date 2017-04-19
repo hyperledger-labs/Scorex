@@ -1,6 +1,6 @@
 package examples.tailchain.core
 
-import com.google.common.primitives.Shorts
+import com.google.common.primitives.{Bytes, Shorts}
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.serialization.{JsonSerializable, Serializer}
@@ -28,7 +28,8 @@ object TicketSerializer extends Serializer[Ticket] {
       require(bytes.length == bytes.length.toShort)
       Shorts.toByteArray(bytes.length.toShort) ++ bytes
     }
-    obj.minerKey ++ Shorts.toByteArray(obj.partialProofs.length.toShort) ++ proofsBytes.reduce(_ ++ _)
+    Bytes.concat(obj.minerKey, Shorts.toByteArray(obj.partialProofs.length.toShort),
+      scorex.core.utils.concatBytes(proofsBytes))
   }
 
 

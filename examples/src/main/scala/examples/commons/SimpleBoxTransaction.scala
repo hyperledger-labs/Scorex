@@ -46,10 +46,10 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
   }
 
   lazy val hashNoNonces = FastCryptographicHash(
-    to.map(_._1.pubKeyBytes).reduce(_ ++ _) ++
-      unlockers.map(_.closedBoxId).reduce(_ ++ _) ++
-      Longs.toByteArray(timestamp) ++
-      Longs.toByteArray(fee)
+    Bytes.concat(scorex.core.utils.concatFixLengthBytes(to.map(_._1.pubKeyBytes)),
+      scorex.core.utils.concatFixLengthBytes(unlockers.map(_.closedBoxId)),
+      Longs.toByteArray(timestamp),
+      Longs.toByteArray(fee))
   )
 
   override lazy val newBoxes: Traversable[PublicKey25519NoncedBox] = to.zipWithIndex.map { case ((prop, value), idx) =>

@@ -11,8 +11,8 @@ abstract class BoxTransaction[P <: Proposition, BX <: Box[P]] extends Transactio
   val newBoxes: Traversable[BX]
 
   override lazy val messageToSign: Array[Byte] =
-    Bytes.concat(if (newBoxes.nonEmpty) newBoxes.map(_.bytes).reduce(_ ++ _) else Array[Byte](),
-      unlockers.map(_.closedBoxId).reduce(_ ++ _),
+    Bytes.concat(if (newBoxes.nonEmpty) scorex.core.utils.concatBytes(newBoxes.map(_.bytes)) else Array[Byte](),
+      scorex.core.utils.concatFixLengthBytes(unlockers.map(_.closedBoxId)),
       Longs.toByteArray(timestamp),
       Longs.toByteArray(fee))
 }

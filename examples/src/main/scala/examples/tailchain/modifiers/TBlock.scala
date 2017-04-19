@@ -44,10 +44,10 @@ object TBlockSerializer extends Serializer[TBlock] {
     val txBytes: Array[Byte] = if (obj.body.isEmpty) {
       Array()
     } else {
-      obj.body.map { tx =>
+      scorex.core.utils.concatBytes(obj.body.map { tx =>
         val transactionBytes = SimpleBoxTransactionCompanion.toBytes(tx)
         Shorts.toByteArray(transactionBytes.length.toShort) ++ transactionBytes
-      }.reduce(_ ++ _)
+      })
     }
     val headerBytes = BlockHeaderSerializer.toBytes(obj.header)
     Longs.toByteArray(obj.timestamp) ++ Shorts.toByteArray(headerBytes.length.toShort) ++ headerBytes ++ txBytes
