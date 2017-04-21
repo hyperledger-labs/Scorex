@@ -8,10 +8,11 @@ trait SPVGenerators extends ExamplesCommonGenerators {
 
   val blockHeaderGen: Gen[Header] = for {
     parentId: Array[Byte] <- genBytesList(Constants.hashfn.DigestSize)
+    innerchainLinks: Seq[Array[Byte]] <- Gen.listOf(genBytesList(Constants.hashfn.DigestSize)).map(_.take(128))
     txRoot: Array[Byte] <- genBytesList(Constants.hashfn.DigestSize)
     stateRoot: Array[Byte] <- genBytesList(Constants.hashfn.DigestSize)
     timestamp: Long <- Arbitrary.arbitrary[Long].map(t => Math.abs(t))
     powNonce: Int <- Arbitrary.arbitrary[Int]
-  } yield Header(parentId, stateRoot, txRoot, timestamp, powNonce)
+  } yield Header(parentId, innerchainLinks, stateRoot, txRoot, timestamp, powNonce)
 
 }

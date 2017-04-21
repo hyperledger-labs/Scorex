@@ -4,8 +4,8 @@ import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.spv.Header
 import examples.trimchain.core.Constants._
-import examples.trimchain.simulation.OneMinerSimulation._
 import examples.trimchain.simulation.InMemoryAuthenticatedUtxo
+import examples.trimchain.simulation.OneMinerSimulation._
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -31,11 +31,10 @@ object SPVSimulator extends App with ScorexLogging {
   val genesisUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
   val stateRoot = genesisUtxo.rootHash
 
-  val genesisHeader: Header = Header(defaultId: BlockId, stateRoot, defaultId, 0L, 0)
+  val genesisHeader: Header = Header(defaultId: BlockId, Seq(), stateRoot, defaultId, 0L, 0)
 
   val headerChain = genChain(100, Seq(genesisHeader))
   headerChain.reverse.map(println)
-
 
 
   @tailrec
@@ -52,14 +51,11 @@ object SPVSimulator extends App with ScorexLogging {
                stateRoot: Array[Byte],
                transactionsRoot: Array[Byte],
                timestamp: Block.Timestamp): Header = {
+    val innerChainLinks: Seq[Array[Byte]] = ???
     @tailrec
     def loop(): Header = {
       val nonce = Random.nextInt
-      val header = Header(parentId: BlockId,
-        stateRoot: Array[Byte],
-        transactionsRoot: Array[Byte],
-        timestamp: Block.Timestamp,
-        nonce: Int)
+      val header = Header(parentId, innerChainLinks, stateRoot, transactionsRoot, timestamp, nonce)
       if (correctWorkDone(header.id, difficulty)) header
       else loop()
     }
