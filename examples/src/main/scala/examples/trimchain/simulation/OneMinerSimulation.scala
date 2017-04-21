@@ -1,4 +1,4 @@
-package examples.trimchain.simulation
+package examples.tailchain.simulation
 
 import java.io.{File, FileOutputStream, FileWriter}
 import java.nio.file.{Files, Paths}
@@ -6,13 +6,12 @@ import java.nio.file.{Files, Paths}
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.trimchain.core.{Algos, Constants, TicketSerializer}
-import examples.trimchain.modifiers.{BlockHeader, TBlock}
-import examples.trimchain.utxo.PersistentAuthenticatedUtxo
+import examples.tailchain.core.{Algos, Constants, TicketSerializer}
+import examples.tailchain.modifiers.{BlockHeader, TBlock}
 import io.iohk.iodb.ByteArrayWrapper
 import io.iohk.iodb.Store.VersionID
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{Insertion, PrivateKey25519Companion, StateChanges}
+import scorex.core.transaction.state.{Insertion, StateChanges}
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
@@ -21,7 +20,7 @@ import scala.util.{Random, Try}
 
 object OneMinerSimulation extends App with Simulators {
 
-  import examples.trimchain.core.Constants.hashfn
+  import examples.tailchain.core.Constants.hashfn
 
   type Height = Int
 
@@ -45,10 +44,18 @@ object OneMinerSimulation extends App with Simulators {
   muDir.mkdirs()
 
   def generateTransactions(richBoxes: Seq[PublicKey25519NoncedBox]): Seq[SimpleBoxTransaction] = {
-    Seq(richBoxes.find(_.value > NewBoxesPerBlock + 1).get).map { b =>
+    /*
+        Seq(richBoxes.find(_.value > NewBoxesPerBlock + 1).get).map { b =>
+          SimpleBoxTransaction.apply(
+            from = IndexedSeq(minerPrivKey -> b.nonce),
+            to = (minerPubKey -> (b.value - NewBoxesPerBlock)) +: (0 until NewBoxesPerBlock).map(_ => minerPubKey -> 1L),
+            0, System.currentTimeMillis())
+        }
+    */
+    richBoxes.filter(_.value > 1).take(NewBoxesPerBlock).map { b =>
       SimpleBoxTransaction.apply(
         from = IndexedSeq(minerPrivKey -> b.nonce),
-        to = (minerPubKey -> (b.value - NewBoxesPerBlock)) +: (0 until NewBoxesPerBlock).map(_ => minerPubKey -> 1L),
+        to = IndexedSeq(minerPubKey -> b.value / 2, minerPubKey -> (b.value - (b.value / 2))),
         0, System.currentTimeMillis())
     }
   }
