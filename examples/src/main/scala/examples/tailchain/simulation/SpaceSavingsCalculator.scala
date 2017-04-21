@@ -12,11 +12,11 @@ object SpaceSavingsCalculator extends App {
 
   val outSize = PublicKey25519NoncedBox.BoxLength
 
-  val file = new File("/home/kushti/garbage/results.csv")
+  val file = new File("/home/pozharko/Code/papers/tailchain/results-20.csv")
 
   val lines = scala.io.Source.fromFile(file).getLines().toIndexedSeq
 
-  println(lines.head)
+//  println(lines.head)
 
   val data = lines.tail.take(finish).map(_.split(","))
 
@@ -26,6 +26,7 @@ object SpaceSavingsCalculator extends App {
 
   val currentUtxoSizes = data.map(_.apply(2)).map(_.toLong * outSize)
 
+  println(s"height,full,spv,light,mining,f/s,f/l,f/m")
   (start to finish).foreach{h =>
     val fullChain = blockSizes.take(h).sum
     val lightChain = headerSizes.take(h - eta).sum + blockSizes.slice(h - eta, h).sum
@@ -38,7 +39,6 @@ object SpaceSavingsCalculator extends App {
 
     val miningSet = lightSet + currentUtxoSizes(h - eta - 1)
 
-    println(s"height: $h, full: $fullSet, spv: $spvchain, light: $lightSet, mining: $miningSet, " +
-      s"f/s: ${fullSet/spvchain.toDouble}, f/l: ${fullSet / lightSet.toDouble}, f/m: ${fullSet / miningSet.toDouble}")
+    println(s"$h,$fullSet,$spvchain,$lightSet,$miningSet,${fullSet/spvchain.toDouble},${fullSet / lightSet.toDouble},${fullSet / miningSet.toDouble}")
   }
 }
