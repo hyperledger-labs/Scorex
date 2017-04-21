@@ -2,6 +2,7 @@ package examples.spv
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.SimpleBoxTransaction
+import examples.spv.Constants._
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
@@ -11,8 +12,6 @@ import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
-import Constants._
-
 
 import scala.util.Try
 
@@ -36,6 +35,9 @@ case class Header(parentId: BlockId,
     "timestamp" -> timestamp.asJson,
     "nonce" -> nonce.asJson
   ).asJson
+
+
+  override def toString: String = s"Header(${json.noSpaces})"
 
   override type M = Header
 
