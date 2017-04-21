@@ -3,9 +3,9 @@ package examples.spv.simulation
 import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.spv.Header
-import examples.tailchain.core.Constants._
-import examples.tailchain.simulation.InMemoryAuthenticatedUtxo
-import examples.tailchain.simulation.OneMinerSimulation._
+import examples.trimchain.core.Constants._
+import examples.trimchain.simulation.OneMinerSimulation._
+import examples.trimchain.simulation.InMemoryAuthenticatedUtxo
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition

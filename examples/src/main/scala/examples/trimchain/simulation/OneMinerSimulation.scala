@@ -1,4 +1,4 @@
-package examples.tailchain.simulation
+package examples.trimchain.simulation
 
 import java.io.{File, FileOutputStream, FileWriter}
 import java.nio.file.{Files, Paths}
@@ -6,8 +6,8 @@ import java.nio.file.{Files, Paths}
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.tailchain.core.{Algos, Constants, TicketSerializer}
-import examples.tailchain.modifiers.{BlockHeader, TBlock}
+import examples.trimchain.core.{Algos, Constants, TicketSerializer}
+import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import io.iohk.iodb.ByteArrayWrapper
 import io.iohk.iodb.Store.VersionID
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -20,7 +20,7 @@ import scala.util.{Random, Try}
 
 object OneMinerSimulation extends App with Simulators {
 
-  import examples.tailchain.core.Constants.hashfn
+  import examples.trimchain.core.Constants.hashfn
 
   type Height = Int
 
