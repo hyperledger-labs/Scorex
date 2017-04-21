@@ -17,6 +17,7 @@ import Constants._
 import scala.util.Try
 
 case class Header(parentId: BlockId,
+                  stateRoot: Array[Byte],
                   transactionsRoot: Array[Byte],
                   timestamp: Block.Timestamp,
                   nonce: Int) extends PersistentNodeViewModifier[PublicKey25519Proposition, SimpleBoxTransaction] {
@@ -29,10 +30,11 @@ case class Header(parentId: BlockId,
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
+    "transactionsRoot" -> Base58.encode(transactionsRoot).asJson,
+    "stateRoot" -> Base58.encode(stateRoot).asJson,
     "parentId" -> Base58.encode(parentId).asJson,
     "timestamp" -> timestamp.asJson,
-    "nonce" -> nonce.asJson,
-    "transactionsRoot" -> Base58.encode(transactionsRoot).asJson
+    "nonce" -> nonce.asJson
   ).asJson
 
   override type M = Header
@@ -42,15 +44,16 @@ case class Header(parentId: BlockId,
 
 object HeaderSerializer extends Serializer[Header] {
   override def toBytes(h: Header): Array[Byte] = {
-    Bytes.concat(h.parentId, h.transactionsRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce))
+    Bytes.concat(h.parentId, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce))
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Header] = Try {
     val parentId = bytes.slice(0, 32)
     val transactionsRoot = bytes.slice(32, 64)
-    val timestamp = Longs.fromByteArray(bytes.slice(64, 72))
-    val nonce = Ints.fromByteArray(bytes.slice(72, 76))
-    Header(parentId, transactionsRoot, timestamp, nonce)
+    val stateRoot = bytes.slice(64, 96)
+    val timestamp = Longs.fromByteArray(bytes.slice(96, 104))
+    val nonce = Ints.fromByteArray(bytes.slice(104, 108))
+    Header(parentId, stateRoot, transactionsRoot, timestamp, nonce)
   }
 
 }
