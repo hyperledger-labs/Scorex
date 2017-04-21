@@ -1,4 +1,4 @@
-package examples.tailchain.core
+package examples.trimchain.core
 
 import com.google.common.primitives.{Bytes, Shorts}
 import io.circe.Json

@@ -1,4 +1,4 @@
-package examples.tailchain.core
+package examples.trimchain.core
 
 import scorex.crypto.hash.Blake2b256
 

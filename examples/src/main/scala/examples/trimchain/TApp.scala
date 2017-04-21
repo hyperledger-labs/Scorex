@@ -1,4 +1,4 @@
-package examples.tailchain
+package examples.trimchain
 
 import akka.actor.{ActorRef, Props}
 import examples.commons.SimpleBoxTransaction

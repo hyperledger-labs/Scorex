@@ -1,4 +1,4 @@
-package examples.tailchain
+package examples.trimchain
 
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion, SimpleBoxTransactionMemPool}
 import examples.curvepos.transaction.PublicKey25519NoncedBox

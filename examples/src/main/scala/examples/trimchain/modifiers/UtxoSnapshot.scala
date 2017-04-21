@@ -1,7 +1,7 @@
-package examples.tailchain.modifiers
+package examples.trimchain.modifiers
 
 import examples.commons.SimpleBoxTransaction
-import examples.tailchain.utxo.PersistentAuthenticatedUtxo
+import examples.trimchain.utxo.PersistentAuthenticatedUtxo
 import io.circe.Json
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.serialization.Serializer

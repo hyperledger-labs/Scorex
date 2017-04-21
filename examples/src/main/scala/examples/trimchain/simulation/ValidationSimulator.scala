@@ -1,9 +1,9 @@
-package examples.tailchain.simulation
+package examples.trimchain.simulation
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.tailchain.core.Constants._
-import examples.tailchain.core.{Algos, Constants}
+import examples.trimchain.core.Constants._
+import examples.trimchain.core.{Algos, Constants}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{Insertion, StateChanges}
 

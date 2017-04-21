@@ -1,10 +1,10 @@
-package examples.tailchain.modifiers
+package examples.trimchain.modifiers
 
 import com.google.common.primitives.Longs
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.mining.MiningConstants
-import examples.tailchain.core.Constants._
-import examples.tailchain.core.{Constants, Ticket, TicketSerializer}
+import examples.trimchain.core.Constants._
+import examples.trimchain.core.{Constants, Ticket, TicketSerializer}
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}

@@ -1,11 +1,11 @@
-package examples.tailchain.simulation
+package examples.trimchain.simulation
 
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.tailchain.core.{Algos, Constants}
-import examples.tailchain.core.Constants._
-import examples.tailchain.modifiers.TBlock
-import examples.tailchain.utxo.PersistentAuthenticatedUtxo
+import examples.trimchain.core.{Algos, Constants}
+import examples.trimchain.core.Constants._
+import examples.trimchain.modifiers.TBlock
+import examples.trimchain.utxo.PersistentAuthenticatedUtxo
 import scorex.core.transaction.state.PrivateKey25519Companion
 
 trait Simulators {

@@ -1,12 +1,12 @@
-package tailchain
+package trimchain
 
 import commons.ExamplesCommonGenerators
 import examples.commons.SimpleBoxTransaction
-import examples.tailchain.core._
-import examples.tailchain.modifiers.{BlockHeader, TBlock}
+import examples.trimchain.core._
+import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import org.scalacheck.{Arbitrary, Gen}
 
-trait TailchainGenerators extends ExamplesCommonGenerators {
+trait TrimchainGenerators extends ExamplesCommonGenerators {
   val ticketGen: Gen[Ticket] = for {
     minerKey: Array[Byte] <- genBytesList(TicketSerializer.MinerKeySize)
     partialProofs: Seq[Array[Byte]] <- Gen.nonEmptyListOf(nonEmptyBytesGen)

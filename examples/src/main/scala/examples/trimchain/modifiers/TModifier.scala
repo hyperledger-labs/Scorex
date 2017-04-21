@@ -1,4 +1,4 @@
-package examples.tailchain.modifiers
+package examples.trimchain.modifiers
 
 import examples.commons.SimpleBoxTransaction
 import scorex.core.PersistentNodeViewModifier

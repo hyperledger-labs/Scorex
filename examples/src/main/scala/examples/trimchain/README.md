@@ -1,2 +1,2 @@
-TailChain consensus protocol implementation
+TrimChain consensus protocol implementation
 ===========================================

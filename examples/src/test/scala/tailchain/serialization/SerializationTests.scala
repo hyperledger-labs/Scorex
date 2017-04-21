@@ -1,16 +1,16 @@
-package tailchain.serialization
+package trimchain.serialization
 
-import examples.tailchain.core.{Ticket, TicketSerializer}
-import examples.tailchain.modifiers.{BlockHeader, BlockHeaderSerializer, TBlock, TBlockSerializer}
+import examples.trimchain.core.{Ticket, TicketSerializer}
+import examples.trimchain.modifiers.{BlockHeader, BlockHeaderSerializer, TBlock, TBlockSerializer}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import tailchain.TailchainGenerators
+import trimchain.TrimchainGenerators
 
 class SerializationTests extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks
   with Matchers
-  with TailchainGenerators {
+  with TrimchainGenerators {
 
   property("Ticket serialization") {
     forAll(ticketGen) { b: Ticket =>

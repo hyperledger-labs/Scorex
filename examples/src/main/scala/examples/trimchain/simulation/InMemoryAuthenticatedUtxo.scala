@@ -1,9 +1,9 @@
-package examples.tailchain.simulation
+package examples.trimchain.simulation
 
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
-import examples.tailchain.modifiers.{TModifier, UtxoSnapshot}
-import examples.tailchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
+import examples.trimchain.modifiers.{TModifier, UtxoSnapshot}
+import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.transaction.state.{Insertion, Removal, StateChanges}
@@ -12,7 +12,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{Insert, Lookup, Remove}
 
 import scala.util.Try
-import examples.tailchain.utxo.PersistentAuthenticatedUtxo.ProverType
+import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 
 /**
   * Only for simulations where chain grows strictly linearly. No rollback support.

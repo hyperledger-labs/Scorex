@@ -1,12 +1,12 @@
-package examples.tailchain.core
+package examples.trimchain.core
 
 import java.io.File
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.curvepos.transaction.PublicKey25519NoncedBox._
-import examples.tailchain.modifiers.BlockHeader
-import examples.tailchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
+import examples.trimchain.modifiers.BlockHeader
+import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import io.iohk.iodb.LSMStore
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{Insertion, StateChanges}
@@ -95,7 +95,7 @@ object Algos extends App {
     true
   }.recoverWith {
     case e =>
-      e.printStackTrace
+      e.printStackTrace()
       Failure(e)
   }.getOrElse(false)
 

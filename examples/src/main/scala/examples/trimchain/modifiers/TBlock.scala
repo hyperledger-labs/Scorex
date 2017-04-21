@@ -1,4 +1,4 @@
-package examples.tailchain.modifiers
+package examples.trimchain.modifiers
 
 import com.google.common.primitives.{Longs, Shorts}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}

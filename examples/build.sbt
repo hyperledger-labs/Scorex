@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
 )
 
 //mainClass in assembly := Some("examples.hybrid.HybridApp")
-mainClass in assembly := Some("examples.tailchain.simulation.OneMinerSimulation")
+mainClass in assembly := Some("examples.trimchain.simulation.OneMinerSimulation")
 
 assemblyJarName in assembly := "twinsChain.jar"
 
