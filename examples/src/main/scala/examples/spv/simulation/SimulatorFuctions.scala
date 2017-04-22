@@ -29,7 +29,7 @@ trait SimulatorFuctions {
   }
 
   @tailrec
-  final def genChain(height: Int, difficulty: BigInt, stateRoot: Array[Byte], acc: Seq[Header]): Seq[Header] = if (height == 0) {
+  final def genChain(height: Int, difficulty: BigInt, stateRoot: Array[Byte], acc: IndexedSeq[Header]): Seq[Header] = if (height == 0) {
     acc.reverse
   } else {
     val block = genBlock(difficulty, acc, stateRoot, defaultId, System.currentTimeMillis())
@@ -38,20 +38,21 @@ trait SimulatorFuctions {
 
 
   def genBlock(difficulty: BigInt,
-               parents: Seq[Header],
+               parents: IndexedSeq[Header],
                stateRoot: Array[Version],
                transactionsRoot: Array[Version],
                timestamp: Timestamp): Header = {
-    def generateInnerchain(curDifficulty: BigInt, acc: Seq[Header]): Seq[Header] = {
-      parents.find(h => curDifficulty <= blockIdDifficulty(h.id)) match {
-        case Some(headerNow) =>
-          generateInnerchain(curDifficulty * 2, acc :+ headerNow)
-        case None =>
+    def generateInnerchain(curDifficulty: BigInt, lastIndex: Int, acc: Seq[Header]): Seq[Header] = {
+      parents.indexWhere(h => curDifficulty <= blockIdDifficulty(h.id), lastIndex) match {
+        case -1 =>
           acc
+        case index =>
+          val headerNow = parents(index)
+          generateInnerchain(curDifficulty * 2, index, acc :+ headerNow)
       }
     }
     val parentId = parents.head.id
-    val innerChainLinks: Seq[Header] = generateInnerchain(difficulty, Seq[Header]())
+    val innerChainLinks: Seq[Header] = generateInnerchain(difficulty, 0, Seq[Header]())
 
 
     @tailrec
