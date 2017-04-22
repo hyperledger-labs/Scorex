@@ -13,7 +13,7 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
   val genesisHeader: Header = genGenesisHeader(genesisUtxo.rootHash, minerKeys._2)
 
-  val headerChain = genChain(100, genesisUtxo.rootHash, Seq(genesisHeader))
+  val headerChain = genChain(100, Difficulty, genesisUtxo.rootHash, Seq(genesisHeader))
   headerChain.foreach(println)
 
   val lastBlock = headerChain.last

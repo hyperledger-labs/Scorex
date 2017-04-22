@@ -29,11 +29,11 @@ trait SimulatorFuctions {
   }
 
   @tailrec
-  final def genChain(height: Int, stateRoot: Array[Byte], acc: Seq[Header]): Seq[Header] = if (height == 0) {
+  final def genChain(height: Int, difficulty: BigInt, stateRoot: Array[Byte], acc: Seq[Header]): Seq[Header] = if (height == 0) {
     acc.reverse
   } else {
-    val block = genBlock(Difficulty, acc, stateRoot, defaultId, System.currentTimeMillis())
-    genChain(height - 1, stateRoot, block +: acc)
+    val block = genBlock(difficulty, acc, stateRoot, defaultId, System.currentTimeMillis())
+    genChain(height - 1, difficulty, stateRoot, block +: acc)
   }
 
 
