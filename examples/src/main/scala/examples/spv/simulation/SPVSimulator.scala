@@ -34,8 +34,14 @@ object SPVSimulator extends App with ScorexLogging {
   val genesisHeader: Header = Header(defaultId: BlockId, Seq(), stateRoot, defaultId, 0L, 0)
 
   val headerChain = genChain(100, Seq(genesisHeader))
-  headerChain.reverse.map(println)
+  headerChain.reverse.foreach(println)
 
+  val lastBlock = headerChain.head
+  var minDiff = Difficulty
+  lastBlock.innerchainLinks.foreach{id =>
+    println(minDiff + " => " + blockIdDifficulty(id))
+    minDiff = minDiff * 2
+  }
 
   @tailrec
   def genChain(height: Int, acc: Seq[Header]): Seq[Header] = if (height == 0) {
@@ -52,7 +58,7 @@ object SPVSimulator extends App with ScorexLogging {
                transactionsRoot: Array[Byte],
                timestamp: Block.Timestamp): Header = {
     def generateInnerchain(curDifficulty: BigInt, acc: Seq[Header]): Seq[Header] = {
-      parents.find(h => curDifficulty <= blockDifficulty(h)) match {
+      parents.find(h => curDifficulty <= blockIdDifficulty(h.id)) match {
         case Some(headerNow) =>
           generateInnerchain(curDifficulty * 2, acc :+ headerNow)
         case None =>
@@ -78,8 +84,8 @@ object SPVSimulator extends App with ScorexLogging {
     BigInt(1, id) < target
   }
 
-  def blockDifficulty(h: Header): BigInt = {
-    val blockTarget = BigInt(1, h.id)
+  def blockIdDifficulty(id: Array[Byte]): BigInt = {
+    val blockTarget = BigInt(1, id)
     examples.spv.Constants.MaxTarget / blockTarget
   }
 
