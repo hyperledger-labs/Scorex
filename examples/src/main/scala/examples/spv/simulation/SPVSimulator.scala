@@ -41,29 +41,46 @@ object SPVSimulator extends App with ScorexLogging {
   def genChain(height: Int, acc: Seq[Header]): Seq[Header] = if (height == 0) {
     acc
   } else {
-    val block = genBlock(Difficulty, acc.head.id, stateRoot, defaultId, System.currentTimeMillis())
+    val block = genBlock(Difficulty, acc, stateRoot, defaultId, System.currentTimeMillis())
     genChain(height - 1, block +: acc)
   }
 
 
   def genBlock(difficulty: BigInt,
-               parentId: BlockId,
+               parents: Seq[Header],
                stateRoot: Array[Byte],
                transactionsRoot: Array[Byte],
                timestamp: Block.Timestamp): Header = {
-    val innerChainLinks: Seq[Array[Byte]] = ???
-    @tailrec
-    def loop(): Header = {
-      val nonce = Random.nextInt
-      val header = Header(parentId, innerChainLinks, stateRoot, transactionsRoot, timestamp, nonce)
-      if (correctWorkDone(header.id, difficulty)) header
-      else loop()
+    def generateInnerchain(curDifficulty: BigInt, acc: Seq[Header]): Seq[Header] = {
+      parents.find(h => curDifficulty <= blockDifficulty(h)) match {
+        case Some(headerNow) =>
+          generateInnerchain(curDifficulty * 2, acc :+ headerNow)
+        case None =>
+          acc
+      }
     }
-    loop()
+    val parentId = parents.head.id
+    val innerChainLinks: Seq[Header] = generateInnerchain(difficulty, Seq[Header]())
+
+
+    @tailrec
+    def generateHeader(): Header = {
+      val nonce = Random.nextInt
+      val header = Header(parentId, innerChainLinks.map(_.id), stateRoot, transactionsRoot, timestamp, nonce)
+      if (correctWorkDone(header.id, difficulty)) header
+      else generateHeader()
+    }
+    generateHeader()
   }
 
   def correctWorkDone(id: Array[Byte], difficulty: BigInt): Boolean = {
     val target = examples.spv.Constants.MaxTarget / difficulty
     BigInt(1, id) < target
   }
+
+  def blockDifficulty(h: Header): BigInt = {
+    val blockTarget = BigInt(1, h.id)
+    examples.spv.Constants.MaxTarget / blockTarget
+  }
+
 }
