@@ -29,6 +29,8 @@ case class Header(parentId: BlockId,
 
   override lazy val id: ModifierId = hashfn(bytes)
 
+  lazy val realDifficulty: BigInt = Algos.blockIdDifficulty(id)
+
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
     "innerchainLinks" -> innerchainLinks.map(l => Base58.encode(l).asJson).asJson,

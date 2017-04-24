@@ -2,7 +2,7 @@ package examples.spv.simulation
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.spv.Header
+import examples.spv.{Algos, Header}
 import examples.trimchain.core.Constants._
 import examples.trimchain.simulation.InMemoryAuthenticatedUtxo
 import scorex.core.block.Block._
@@ -42,23 +42,25 @@ trait SimulatorFuctions {
                stateRoot: Array[Version],
                transactionsRoot: Array[Version],
                timestamp: Timestamp): Header = {
-    def generateInnerchain(curDifficulty: BigInt, lastIndex: Int, acc: Seq[Header]): Seq[Header] = {
-      parents.indexWhere(h => curDifficulty <= blockIdDifficulty(h.id), lastIndex) match {
-        case -1 =>
-          acc
-        case index =>
-          val headerNow = parents(index)
-          generateInnerchain(curDifficulty * 2, index, acc :+ headerNow)
+    val parent = parents.head
+    def generateInnerchain(curDifficulty: BigInt, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = {
+      if (parent.realDifficulty > curDifficulty) {
+        generateInnerchain(curDifficulty * 2, acc :+ parent.id)
+      } else {
+        parent.innerchainLinks.find(pId => Algos.blockIdDifficulty(pId) > curDifficulty) match {
+          case Some(id) => generateInnerchain(curDifficulty * 2, acc :+ id)
+          case _ => acc
+        }
       }
     }
     val parentId = parents.head.id
-    val innerChainLinks: Seq[Header] = generateInnerchain(difficulty, 0, Seq[Header]())
+    val innerChainLinksIds: Seq[Array[Byte]] = generateInnerchain(difficulty, Seq[Array[Byte]]())
 
 
     @tailrec
     def generateHeader(): Header = {
       val nonce = Random.nextInt
-      val header = Header(parentId, innerChainLinks.map(_.id), stateRoot, transactionsRoot, timestamp, nonce)
+      val header = Header(parentId, innerChainLinksIds, stateRoot, transactionsRoot, timestamp, nonce)
       if (correctWorkDone(header.id, difficulty)) header
       else generateHeader()
     }
@@ -68,11 +70,6 @@ trait SimulatorFuctions {
   def correctWorkDone(id: Array[Version], difficulty: BigInt): Boolean = {
     val target = examples.spv.Constants.MaxTarget / difficulty
     BigInt(1, id) < target
-  }
-
-  def blockIdDifficulty(id: Array[Version]): BigInt = {
-    val blockTarget = BigInt(1, id)
-    examples.spv.Constants.MaxTarget / blockTarget
   }
 
   def genGenesisHeader(stateRoot: Array[Byte], minerPubKey: PublicKey25519Proposition): Header = {

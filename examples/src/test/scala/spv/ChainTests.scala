@@ -1,5 +1,6 @@
 package spv
 
+import examples.spv.Algos
 import examples.spv.simulation.SimulatorFuctions
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -15,12 +16,13 @@ class ChainTests extends PropSpec
   with SimulatorFuctions {
 
 
-  val Height = 10000
+  val Height = 160000
   val Difficulty = BigInt(1)
   val stateRoot = Blake2b256("")
   val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
 
   val genesis = genGenesisHeader(stateRoot, minerKeys._2)
+  val st = System.currentTimeMillis()
   val blockchain = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
   val lastBlock = blockchain.last
 
@@ -33,8 +35,8 @@ class ChainTests extends PropSpec
 
     var currentDifficulty = Difficulty
     interLinks.foreach { id =>
-      println(blockIdDifficulty(id) + " => " + currentDifficulty)
-      blockIdDifficulty(id) should be >= currentDifficulty
+      println(Algos.blockIdDifficulty(id) + " => " + currentDifficulty)
+      Algos.blockIdDifficulty(id) should be >= currentDifficulty
       currentDifficulty = currentDifficulty * 2
     }
   }

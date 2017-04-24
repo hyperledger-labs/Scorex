@@ -1,6 +1,6 @@
 package examples.spv.simulation
 
-import examples.spv.Header
+import examples.spv.{Algos, Header}
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
 
@@ -19,7 +19,7 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
   val lastBlock = headerChain.last
   var minDiff = Difficulty
   lastBlock.innerchainLinks.foreach { id =>
-    println(minDiff + " => " + blockIdDifficulty(id))
+    println(minDiff + " => " + Algos.blockIdDifficulty(id))
     minDiff = minDiff * 2
   }
 
