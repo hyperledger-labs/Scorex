@@ -22,14 +22,12 @@ class ChainTests extends PropSpec
   val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
 
   val genesis = genGenesisHeader(stateRoot, minerKeys._2)
-//  val st = System.currentTimeMillis()
-  val blockchain = genChain(Height, Difficulty, stateRoot, genesis, IndexedSeq(genesis))
-//  println(System.currentTimeMillis() - st)
-  val lastBlock = blockchain.last
+  val headerChain = genChain(Height, Difficulty, stateRoot, genesis, IndexedSeq(genesis))
+  val lastBlock = headerChain.last
   val lastInnerLinks = lastBlock.interlinks
 
   property("SPVSimulator generate chain starting from genesis") {
-    blockchain.head shouldBe genesis
+    headerChain.head shouldBe genesis
   }
 
   property("First innerchain links is to genesis") {
@@ -40,10 +38,14 @@ class ChainTests extends PropSpec
     var currentDifficulty = Difficulty
     lastInnerLinks.length should be > 1
     lastInnerLinks.tail.foreach { id =>
-      println(Algos.blockIdDifficulty(id) + " >= " + currentDifficulty)
       Algos.blockIdDifficulty(id) should be >= currentDifficulty
       currentDifficulty = currentDifficulty * 2
     }
+  }
+
+  property("Generated SPV proof is correct") {
+    val proof = Algos.constructSPVProof(5, 5, headerChain, Difficulty).get
+    proof.validate.get
   }
 
 }

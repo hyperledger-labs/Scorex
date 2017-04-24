@@ -43,7 +43,7 @@ object Algos {
           val header = headerById(interHeader.interlinks(i))
           loop(header +: acc)
         } else {
-          acc.reverse.tail
+          acc.reverse.tail.reverse
         }
       }
       val interchain = loop(Seq(firstSuffix))
@@ -53,11 +53,11 @@ object Algos {
         constructProof(i - 1)
       }
     }
-    val (depth, proof) = constructProof(firstSuffix.interlinks.length)
+    val (depth, interchain) = constructProof(firstSuffix.interlinks.length)
     val difficulty: BigInt = inDifficulty * Math.pow(2, depth).toInt
-    proof.foreach(p => require(p.realDifficulty >= difficulty, s"${p.realDifficulty} >= $difficulty | ${Base58.encode(p.id)}"))
+    interchain.foreach(p => require(p.realDifficulty >= difficulty, s"${p.realDifficulty} >= $difficulty | ${Base58.encode(p.id)}"))
 
-    SPVProof(m, k, difficulty, proof, suffix)
+    SPVProof(m, k, depth, difficulty, interchain, suffix)
   }
 
 }
