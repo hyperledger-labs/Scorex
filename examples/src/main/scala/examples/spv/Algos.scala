@@ -1,5 +1,6 @@
 package examples.spv
 
+import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.block.Block._
 
 object Algos {
@@ -21,6 +22,10 @@ object Algos {
       }
     }
     genesis.id +: generateInnerchain(initialDifficulty, Seq[Array[Byte]]())
+  }
+
+  def constructSPVProof(m: Int, blockchain: Map[ByteArrayWrapper, Header]): SPVProof = {
+    ???
   }
 
 }

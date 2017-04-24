@@ -1,6 +1,6 @@
 package examples.spv.simulation
 
-import examples.spv.{Algos, Header}
+import examples.spv.Algos
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
@@ -22,5 +22,6 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
     println(minDiff + " => " + Algos.blockIdDifficulty(id) + " => " + (headerChain.length - headerChain.indexWhere(_.id sameElements id)))
     minDiff = minDiff * 2
   }
+
 
 }
