@@ -17,7 +17,7 @@ import scala.annotation.tailrec
 import scala.util.Try
 
 case class Header(parentId: BlockId,
-                  innerchainLinks: Seq[Array[Byte]],
+                  interlinks: Seq[Array[Byte]],
                   stateRoot: Array[Byte],
                   transactionsRoot: Array[Byte],
                   timestamp: Block.Timestamp,
@@ -33,7 +33,7 @@ case class Header(parentId: BlockId,
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
-    "innerchainLinks" -> innerchainLinks.map(l => Base58.encode(l).asJson).asJson,
+    "innerchainLinks" -> interlinks.map(l => Base58.encode(l).asJson).asJson,
     "transactionsRoot" -> Base58.encode(transactionsRoot).asJson,
     "stateRoot" -> Base58.encode(stateRoot).asJson,
     "parentId" -> Base58.encode(parentId).asJson,
@@ -52,7 +52,7 @@ case class Header(parentId: BlockId,
 object HeaderSerializer extends Serializer[Header] {
   override def toBytes(h: Header): Array[Byte] = {
     Bytes.concat(h.parentId, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce),
-      scorex.core.utils.concatBytes(h.innerchainLinks))
+      scorex.core.utils.concatBytes(h.interlinks))
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Header] = Try {

@@ -44,23 +44,12 @@ trait SimulatorFuctions {
                transactionsRoot: Array[Version],
                timestamp: Timestamp): Header = {
     val parent = parents.head
-    def generateInnerchain(curDifficulty: BigInt, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = {
-      if (parent.realDifficulty >= curDifficulty) {
-        generateInnerchain(curDifficulty * 2, acc :+ parent.id)
-      } else {
-        parent.innerchainLinks.find(pId => Algos.blockIdDifficulty(pId) >= curDifficulty) match {
-          case Some(id) if !(id sameElements genesis.id) => generateInnerchain(curDifficulty * 2, acc :+ id)
-          case _ => acc
-        }
-      }
-    }
-    val innerChainLinksIds: Seq[Array[Byte]] = genesis.id +: generateInnerchain(difficulty, Seq[Array[Byte]]())
-
+    val interlinks: Seq[Array[Byte]] = Algos.constructInterlinks(parent, genesis, difficulty)
 
     @tailrec
     def generateHeader(): Header = {
       val nonce = Random.nextInt
-      val header = Header(parent.id, innerChainLinksIds, stateRoot, transactionsRoot, timestamp, nonce)
+      val header = Header(parent.id, interlinks, stateRoot, transactionsRoot, timestamp, nonce)
       if (correctWorkDone(header.id, difficulty)) header
       else generateHeader()
     }

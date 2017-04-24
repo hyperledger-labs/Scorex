@@ -26,7 +26,7 @@ class ChainTests extends PropSpec
   val blockchain = genChain(Height, Difficulty, stateRoot, genesis, IndexedSeq(genesis))
 //  println(System.currentTimeMillis() - st)
   val lastBlock = blockchain.last
-  val lastInnerLinks = lastBlock.innerchainLinks
+  val lastInnerLinks = lastBlock.interlinks
 
   property("SPVSimulator generate chain starting from genesis") {
     blockchain.head shouldBe genesis

@@ -18,7 +18,7 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
   val lastBlock = headerChain.last
   var minDiff = Difficulty
-  lastBlock.innerchainLinks.foreach { id =>
+  lastBlock.interlinks.foreach { id =>
     println(minDiff + " => " + Algos.blockIdDifficulty(id) + " => " + (headerChain.length - headerChain.indexWhere(_.id sameElements id)))
     minDiff = minDiff * 2
   }
