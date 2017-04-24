@@ -16,25 +16,31 @@ class ChainTests extends PropSpec
   with SimulatorFuctions {
 
 
-  val Height = 160000
+  val Height = 50000
   val Difficulty = BigInt(1)
   val stateRoot = Blake2b256("")
   val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
 
   val genesis = genGenesisHeader(stateRoot, minerKeys._2)
-  val st = System.currentTimeMillis()
-  val blockchain = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
+//  val st = System.currentTimeMillis()
+  val blockchain = genChain(Height, Difficulty, stateRoot, genesis, IndexedSeq(genesis))
+//  println(System.currentTimeMillis() - st)
   val lastBlock = blockchain.last
+  val lastInnerLinks = lastBlock.innerchainLinks
 
   property("SPVSimulator generate chain starting from genesis") {
     blockchain.head shouldBe genesis
   }
 
-  property("Last block interlinks are correct") {
-    val interLinks = lastBlock.innerchainLinks
+  property("First innerchain links is to genesis") {
+    lastInnerLinks.head shouldEqual genesis.id
+  }
 
+  property("Last block interlinks are correct") {
     var currentDifficulty = Difficulty
-    interLinks.foreach { id =>
+    lastInnerLinks.length should be > 1
+    lastInnerLinks.tail.foreach { id =>
+      println(Algos.blockIdDifficulty(id) + " >= " + currentDifficulty)
       Algos.blockIdDifficulty(id) should be >= currentDifficulty
       currentDifficulty = currentDifficulty * 2
     }

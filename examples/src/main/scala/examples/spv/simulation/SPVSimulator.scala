@@ -14,7 +14,7 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
   val genesis = genGenesisHeader(stateRoot, minerKeys._2)
   val st = System.currentTimeMillis()
-  val headerChain = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
+  val headerChain = genChain(Height, Difficulty, stateRoot, genesis, IndexedSeq(genesis))
 
   val lastBlock = headerChain.last
   var minDiff = Difficulty

@@ -29,38 +29,38 @@ trait SimulatorFuctions {
   }
 
   @tailrec
-  final def genChain(height: Int, difficulty: BigInt, stateRoot: Array[Byte], acc: IndexedSeq[Header]): Seq[Header] = if (height == 0) {
+  final def genChain(height: Int, difficulty: BigInt, stateRoot: Array[Byte], genesis: Header, acc: IndexedSeq[Header]): Seq[Header] = if (height == 0) {
     acc.reverse
   } else {
-    val block = genBlock(difficulty, acc, stateRoot, defaultId, System.currentTimeMillis())
-    genChain(height - 1, difficulty, stateRoot, block +: acc)
+    val block = genBlock(difficulty, genesis, acc, stateRoot, defaultId, System.currentTimeMillis())
+    genChain(height - 1, difficulty, stateRoot, genesis, block +: acc)
   }
 
 
   def genBlock(difficulty: BigInt,
+               genesis: Header,
                parents: IndexedSeq[Header],
                stateRoot: Array[Version],
                transactionsRoot: Array[Version],
                timestamp: Timestamp): Header = {
     val parent = parents.head
     def generateInnerchain(curDifficulty: BigInt, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = {
-      if (parent.realDifficulty > curDifficulty) {
+      if (parent.realDifficulty >= curDifficulty) {
         generateInnerchain(curDifficulty * 2, acc :+ parent.id)
       } else {
-        parent.innerchainLinks.find(pId => Algos.blockIdDifficulty(pId) > curDifficulty) match {
-          case Some(id) => generateInnerchain(curDifficulty * 2, acc :+ id)
+        parent.innerchainLinks.find(pId => Algos.blockIdDifficulty(pId) >= curDifficulty) match {
+          case Some(id) if !(id sameElements genesis.id) => generateInnerchain(curDifficulty * 2, acc :+ id)
           case _ => acc
         }
       }
     }
-    val parentId = parents.head.id
-    val innerChainLinksIds: Seq[Array[Byte]] = generateInnerchain(difficulty, Seq[Array[Byte]]())
+    val innerChainLinksIds: Seq[Array[Byte]] = genesis.id +: generateInnerchain(difficulty, Seq[Array[Byte]]())
 
 
     @tailrec
     def generateHeader(): Header = {
       val nonce = Random.nextInt
-      val header = Header(parentId, innerChainLinksIds, stateRoot, transactionsRoot, timestamp, nonce)
+      val header = Header(parent.id, innerChainLinksIds, stateRoot, transactionsRoot, timestamp, nonce)
       if (correctWorkDone(header.id, difficulty)) header
       else generateHeader()
     }
