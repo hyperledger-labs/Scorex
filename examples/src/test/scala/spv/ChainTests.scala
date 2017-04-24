@@ -35,11 +35,9 @@ class ChainTests extends PropSpec
 
     var currentDifficulty = Difficulty
     interLinks.foreach { id =>
-      println(Algos.blockIdDifficulty(id) + " => " + currentDifficulty)
       Algos.blockIdDifficulty(id) should be >= currentDifficulty
       currentDifficulty = currentDifficulty * 2
     }
   }
-
 
 }

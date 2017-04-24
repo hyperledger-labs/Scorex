@@ -3,23 +3,23 @@ package examples.spv.simulation
 import examples.spv.{Algos, Header}
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.hash.Blake2b256
 
 object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
-  val Difficulty = BigInt(1000)
-  val minerKeys = PrivateKey25519Companion.generateKeys(scorex.utils.Random.randomBytes(32))
+  val Height = 10000
+  val Difficulty = BigInt(1)
+  val stateRoot = Blake2b256("")
+  val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
 
-  val genesisUtxo = genGenesisState(minerKeys._2)
-
-  val genesisHeader: Header = genGenesisHeader(genesisUtxo.rootHash, minerKeys._2)
-
-  val headerChain = genChain(100, Difficulty, genesisUtxo.rootHash, IndexedSeq(genesisHeader))
-  headerChain.foreach(println)
+  val genesis = genGenesisHeader(stateRoot, minerKeys._2)
+  val st = System.currentTimeMillis()
+  val headerChain = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
 
   val lastBlock = headerChain.last
   var minDiff = Difficulty
   lastBlock.innerchainLinks.foreach { id =>
-    println(minDiff + " => " + Algos.blockIdDifficulty(id))
+    println(minDiff + " => " + Algos.blockIdDifficulty(id) + " => " + (headerChain.length - headerChain.indexWhere(_.id sameElements id)))
     minDiff = minDiff * 2
   }
 
