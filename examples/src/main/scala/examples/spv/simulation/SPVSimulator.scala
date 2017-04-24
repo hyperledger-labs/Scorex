@@ -19,9 +19,17 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
   val lastBlock = headerChain.last
   var minDiff = Difficulty
   lastBlock.interlinks.foreach { id =>
-    println(minDiff + " => " + Algos.blockIdDifficulty(id) + " => " + (headerChain.length - headerChain.indexWhere(_.id sameElements id)))
+
+    println(minDiff + " => " + Algos.blockIdDifficulty(id) + " => " +
+      (headerChain.length - headerChain.indexWhere(_.id sameElements id)))
+
     minDiff = minDiff * 2
   }
+
+  val proof = Algos.constructSPVProof(5, 5, headerChain, Difficulty).get
+  println(proof.suffix.length)
+  println(proof.interchain.length)
+  proof.validate.get
 
 
 }

@@ -2,6 +2,9 @@ package examples.spv
 
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.block.Block._
+import scorex.crypto.encode.Base58
+
+import scala.util.Try
 
 object Algos {
 
@@ -24,8 +27,37 @@ object Algos {
     genesis.id +: generateInnerchain(initialDifficulty, Seq[Array[Byte]]())
   }
 
-  def constructSPVProof(m: Int, blockchain: Map[ByteArrayWrapper, Header]): SPVProof = {
-    ???
+
+  def constructSPVProof(m: Int, k: Int, blockchain: Seq[Header], inDifficulty: BigInt): Try[SPVProof] = Try {
+    val (prefix: Seq[Header], suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
+    val firstSuffix = suffix.head
+
+    //TODO make efficient
+    val blockchainMap: Map[ByteArrayWrapper, Header] = blockchain.map(b => ByteArrayWrapper(b.id) -> b).toMap
+    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
+
+    def constructProof(i: Int): (Int, Seq[Header]) = {
+      def loop(acc: Seq[Header]): Seq[Header] = {
+        val interHeader = acc.head
+        if (interHeader.interlinks.length > i) {
+          val header = headerById(interHeader.interlinks(i))
+          loop(header +: acc)
+        } else {
+          acc.reverse.tail
+        }
+      }
+      val interchain = loop(Seq(firstSuffix))
+      if (interchain.length >= m) {
+        (i - 1, interchain)
+      } else {
+        constructProof(i - 1)
+      }
+    }
+    val (depth, proof) = constructProof(firstSuffix.interlinks.length)
+    val difficulty: BigInt = inDifficulty * Math.pow(2, depth).toInt
+    proof.foreach(p => require(p.realDifficulty >= difficulty, s"${p.realDifficulty} >= $difficulty | ${Base58.encode(p.id)}"))
+
+    SPVProof(m, k, difficulty, proof, suffix)
   }
 
 }
