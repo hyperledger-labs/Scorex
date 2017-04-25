@@ -13,6 +13,8 @@ object Algos {
     examples.spv.Constants.MaxTarget / blockTarget
   }
 
+  //TODO we may take genesis id from parent interlink
+  //    val genesisId = parent.interlinks.head
   def constructInterlinks(parent: Header, genesis: Header, initialDifficulty: BigInt): Seq[Array[Byte]] = {
     def generateInnerchain(curDifficulty: BigInt, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = {
       if (parent.realDifficulty >= curDifficulty) {

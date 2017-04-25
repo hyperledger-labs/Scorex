@@ -1,5 +1,7 @@
 package examples.spv
 
+import com.google.common.primitives.Bytes
+
 import scala.util.Try
 
 case class SPVProof(m: Int,
@@ -36,6 +38,11 @@ case class SPVProof(m: Int,
         ???
       }
     }
+  }
+
+  lazy val bytes: Array[Byte] = {
+    Bytes.concat(scorex.core.utils.concatBytes(interchain.map(_.bytes)),
+      scorex.core.utils.concatBytes(suffix.map(_.bytes)))
   }
 }
 

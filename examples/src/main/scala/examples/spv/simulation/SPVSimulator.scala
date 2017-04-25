@@ -7,7 +7,7 @@ import scorex.crypto.hash.Blake2b256
 
 object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
-  val Height = 10000
+  val Height = 500000
   val Difficulty = BigInt(1)
   val stateRoot = Blake2b256("")
   val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
@@ -25,11 +25,14 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
     minDiff = minDiff * 2
   }
+  println(lastBlock)
 
-  val proof = Algos.constructSPVProof(5, 5, headerChain, Difficulty).get
-  println(proof.suffix.length)
-  println(proof.interchain.length)
-  proof.validate.get
+  val k = 5
 
+  (1 to 20) foreach { m =>
+    val proof = Algos.constructSPVProof(m, k, headerChain, Difficulty).get
+    proof.validate.get
+    println(m + " => " + proof.bytes.length)
+  }
 
 }
