@@ -1,6 +1,7 @@
 package examples.spv
 
 import com.google.common.primitives.Bytes
+import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
@@ -12,13 +13,19 @@ case class SPVProof(m: Int,
   with Ordered[SPVProof] {
 
   lazy val validate: Try[Unit] = Try {
-    //    TODO that suffix is a chain
     require(suffix.length == k, s"${suffix.length} == $k")
+    suffix.foldRight(Array[Byte]()) { (a, b) =>
+      if (b.nonEmpty) {
+        require(b sameElements a.id)
+      }
+      a.parentId
+    }
 
     //    TODO that interchain is a chain at depth $depth
     val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
     require(interchain.length >= m, s"${interchain.length} >= $m")
     interchain.foreach(b => require(b.realDifficulty >= difficulty, s"$b: ${b.realDifficulty} >= $difficulty"))
+
   }
 
   override def compare(that: SPVProof): Int = {
