@@ -51,8 +51,19 @@ case class Header(parentId: BlockId,
 
 object HeaderSerializer extends Serializer[Header] {
   override def toBytes(h: Header): Array[Byte] = {
+    def interlinkBytes(links: Seq[Array[Byte]], acc: Array[Byte]): Array[Byte] = {
+      if (links.isEmpty) {
+        acc
+      } else {
+        val headLink: Array[Byte] = links.head
+        val repeating: Byte = links.count(_ sameElements headLink).toByte
+//        interlinkBytes(links.drop(repeating), Bytes.concat(Array(repeating), headLink, acc))
+        interlinkBytes(links.drop(repeating), Bytes.concat(acc, Array(repeating), headLink))
+      }
+    }
+    val ilb = interlinkBytes(h.interlinks, Array[Byte]())
     Bytes.concat(h.parentId, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce),
-      scorex.core.utils.concatBytes(h.interlinks))
+      ilb)
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Header] = Try {
@@ -63,8 +74,10 @@ object HeaderSerializer extends Serializer[Header] {
     val nonce = Ints.fromByteArray(bytes.slice(104, 108))
     @tailrec
     def parseInnerchainLinks(index: Int, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = if (bytes.length > index) {
-      val link: Array[Byte] = bytes.slice(index, index + 32)
-      parseInnerchainLinks(index + 32, acc :+ link)
+      val repeatN: Int = bytes.slice(index, index + 1).head
+      val link: Array[Byte] = bytes.slice(index + 1, index + 33)
+      val links: Seq[Array[Byte]] = Array.fill(repeatN)(link)
+      parseInnerchainLinks(index + 33, acc ++ links)
     } else {
       acc
     }
