@@ -1,16 +1,14 @@
 package examples.spv
 
 import com.google.common.primitives.Bytes
-import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
 case class SPVProof(m: Int,
                     k: Int,
                     i: Int,
-                    interchain: Seq[Header], suffix: Seq[Header]) extends
-  Comparable[SPVProof]
-  with Ordered[SPVProof] {
+                    interchain: Seq[Header],
+                    suffix: Seq[Header]) extends Comparable[SPVProof] with Ordered[SPVProof] {
 
   lazy val validate: Try[Unit] = Try {
     require(suffix.length == k, s"${suffix.length} == $k")
@@ -20,6 +18,8 @@ case class SPVProof(m: Int,
       }
       a.parentId
     }
+
+    require(suffix.head.interlinks(i) sameElements interchain.last.id)
 
     //    TODO that interchain is a chain at depth $depth
     val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
