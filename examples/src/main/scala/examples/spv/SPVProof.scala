@@ -25,12 +25,13 @@ case class SPVProof(m: Int,
     require(interchain.length >= m, s"${interchain.length} >= $m")
     interchain.foreach(b => require(b.realDifficulty >= difficulty, s"$b: ${b.realDifficulty} >= $difficulty"))
 
-    //    interchain.foldRight(Array[Byte]()) { (a, b) =>
-    //      if (b.nonEmpty) {
-    //        require(b sameElements a.id)
-    //      }
-    //      a.interlinks(i)
-    //    }
+    interchain.foldRight(Array[Byte]()) { (a, b) =>
+      if (b.nonEmpty) {
+        require(b sameElements a.id)
+      }
+      //last element may not contain a.interlinks(i)
+      Try(a.interlinks(i)).getOrElse(Array.fill(32)(0.toByte))
+    }
 
   }
 
