@@ -21,10 +21,16 @@ case class SPVProof(m: Int,
 
     require(suffix.head.interlinks(i) sameElements interchain.last.id)
 
-    //    TODO that interchain is a chain at depth $depth
     val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
     require(interchain.length >= m, s"${interchain.length} >= $m")
     interchain.foreach(b => require(b.realDifficulty >= difficulty, s"$b: ${b.realDifficulty} >= $difficulty"))
+
+    //    interchain.foldRight(Array[Byte]()) { (a, b) =>
+    //      if (b.nonEmpty) {
+    //        require(b sameElements a.id)
+    //      }
+    //      a.interlinks(i)
+    //    }
 
   }
 

@@ -25,7 +25,7 @@ object Algos {
         }
       }
     }
-    genesisId +: generateInnerchain(Constants.InitialDifficulty, Seq[Array[Byte]]())
+    genesisId +: generateInnerchain(Constants.InitialDifficulty * 2, Seq[Array[Byte]]())
   }
 
 
@@ -49,7 +49,7 @@ object Algos {
       }
       val interchain = loop(Seq(firstSuffix))
       if (interchain.length >= m) {
-        (i - 1, interchain)
+        (i, interchain)
       } else {
         constructProof(i - 1)
       }
