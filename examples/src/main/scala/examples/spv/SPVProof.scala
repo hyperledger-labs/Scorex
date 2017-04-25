@@ -6,8 +6,7 @@ import scala.util.Try
 
 case class SPVProof(m: Int,
                     k: Int,
-                    depth: Int,
-                    difficulty: BigInt,
+                    i: Int,
                     interchain: Seq[Header], suffix: Seq[Header]) extends
   Comparable[SPVProof]
   with Ordered[SPVProof] {
@@ -17,6 +16,7 @@ case class SPVProof(m: Int,
     require(suffix.length == k, s"${suffix.length} == $k")
 
     //    TODO that interchain is a chain at depth $depth
+    val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
     require(interchain.length >= m, s"${interchain.length} >= $m")
     interchain.foreach(b => require(b.realDifficulty >= difficulty, s"$b: ${b.realDifficulty} >= $difficulty"))
   }

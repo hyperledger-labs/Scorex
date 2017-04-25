@@ -13,7 +13,7 @@ object Algos {
     examples.spv.Constants.MaxTarget / blockTarget
   }
 
-  def constructInterlinks(parent: Header, initialDifficulty: BigInt): Seq[Array[Byte]] = {
+  def constructInterlinks(parent: Header): Seq[Array[Byte]] = {
     val genesisId = parent.interlinks.head
     def generateInnerchain(curDifficulty: BigInt, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = {
       if (parent.realDifficulty >= curDifficulty) {
@@ -25,7 +25,7 @@ object Algos {
         }
       }
     }
-    genesisId +: generateInnerchain(initialDifficulty, Seq[Array[Byte]]())
+    genesisId +: generateInnerchain(Constants.InitialDifficulty, Seq[Array[Byte]]())
   }
 
 
@@ -55,10 +55,8 @@ object Algos {
       }
     }
     val (depth, interchain) = constructProof(firstSuffix.interlinks.length)
-    val difficulty: BigInt = inDifficulty * Math.pow(2, depth).toInt
-    interchain.foreach(p => require(p.realDifficulty >= difficulty, s"${p.realDifficulty} >= $difficulty | ${Base58.encode(p.id)}"))
 
-    SPVProof(m, k, depth, difficulty, interchain, suffix)
+    SPVProof(m, k, depth, interchain, suffix)
   }
 
 }

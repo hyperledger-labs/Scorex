@@ -43,7 +43,7 @@ trait SimulatorFuctions {
                transactionsRoot: Array[Version],
                timestamp: Timestamp): Header = {
     val parent = parents.head
-    val interlinks: Seq[Array[Byte]] = if (parents.length > 1) Algos.constructInterlinks(parent, difficulty)
+    val interlinks: Seq[Array[Byte]] = if (parents.length > 1) Algos.constructInterlinks(parent)
     else Seq(parent.id)
 
     @tailrec
