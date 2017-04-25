@@ -29,22 +29,22 @@ trait SimulatorFuctions {
   }
 
   @tailrec
-  final def genChain(height: Int, difficulty: BigInt, stateRoot: Array[Byte], genesis: Header, acc: IndexedSeq[Header]): Seq[Header] = if (height == 0) {
+  final def genChain(height: Int, difficulty: BigInt, stateRoot: Array[Byte], acc: IndexedSeq[Header]): Seq[Header] = if (height == 0) {
     acc.reverse
   } else {
-    val block = genBlock(difficulty, genesis, acc, stateRoot, defaultId, System.currentTimeMillis())
-    genChain(height - 1, difficulty, stateRoot, genesis, block +: acc)
+    val block = genBlock(difficulty, acc, stateRoot, defaultId, System.currentTimeMillis())
+    genChain(height - 1, difficulty, stateRoot, block +: acc)
   }
 
 
   def genBlock(difficulty: BigInt,
-               genesis: Header,
                parents: IndexedSeq[Header],
                stateRoot: Array[Version],
                transactionsRoot: Array[Version],
                timestamp: Timestamp): Header = {
     val parent = parents.head
-    val interlinks: Seq[Array[Byte]] = Algos.constructInterlinks(parent, genesis, difficulty)
+    val interlinks: Seq[Array[Byte]] = if (parents.length > 1) Algos.constructInterlinks(parent, difficulty)
+    else Seq(parent.id)
 
     @tailrec
     def generateHeader(): Header = {

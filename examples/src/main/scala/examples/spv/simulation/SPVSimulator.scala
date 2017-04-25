@@ -7,14 +7,14 @@ import scorex.crypto.hash.Blake2b256
 
 object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
-  val Height = 500000
+  val Height = 5000
   val Difficulty = BigInt(1)
   val stateRoot = Blake2b256("")
   val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
 
   val genesis = genGenesisHeader(stateRoot, minerKeys._2)
   val st = System.currentTimeMillis()
-  val headerChain = genChain(Height, Difficulty, stateRoot, genesis, IndexedSeq(genesis))
+  val headerChain = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
 
   val lastBlock = headerChain.last
   var minDiff = Difficulty

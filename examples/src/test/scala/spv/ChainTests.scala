@@ -22,7 +22,7 @@ class ChainTests extends PropSpec
   val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
 
   val genesis = genGenesisHeader(stateRoot, minerKeys._2)
-  val headerChain = genChain(Height, Difficulty, stateRoot, genesis, IndexedSeq(genesis))
+  val headerChain = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
   val lastBlock = headerChain.last
   val lastInnerLinks = lastBlock.interlinks
 
