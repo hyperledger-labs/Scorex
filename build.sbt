@@ -1,7 +1,7 @@
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.1",
+  scalaVersion := "2.12.2",
   organization := "org.scorexfoundation",
   version := "2.0.0-M5-SNAPSHOT"
 )
