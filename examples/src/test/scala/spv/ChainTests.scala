@@ -61,9 +61,31 @@ class ChainTests extends PropSpec
     }
   }
 
+  property("Compare SPV proofs with different suffix") {
+    forAll(mkGen) { mk =>
+      val proof = Algos.constructSPVProof(mk._1, mk._2, headerChain).get
+      val smallerChainProof = Algos.constructSPVProof(mk._1, mk._2, headerChain.dropRight(1)).get
+      (proof > smallerChainProof) shouldBe true
+    }
+  }
+
+  property("Compare SPV proofs with fork in a suffix") {
+    forAll(mkGen) { mk =>
+      whenever(mk._2 > 2) {
+        val commonChain = headerChain.dropRight(2)
+        val block = genBlock(Difficulty, commonChain.reverse.toIndexedSeq, stateRoot, defaultId, System.currentTimeMillis())
+        val smallerForkChain = commonChain :+ block
+        val proof = Algos.constructSPVProof(mk._1, mk._2, headerChain).get
+        val proof2 = Algos.constructSPVProof(mk._1, mk._2, smallerForkChain).get
+        (proof > proof2) shouldBe true
+      }
+    }
+  }
+
+
   val mkGen = for {
     m <- Gen.choose(1, 100)
-    k <- Gen.choose(1, 100)
+    k <- Gen.choose(2, 100)
   } yield (m, k)
 
 }
