@@ -33,6 +33,7 @@ case class SPVProof(m: Int,
       Try(a.interlinks(i)).getOrElse(Array.fill(32)(0.toByte))
     }
 
+    //TODO check that genesis links are correct
   }
 
   override def compare(that: SPVProof): Int = {
@@ -49,6 +50,8 @@ case class SPVProof(m: Int,
         ourIndex - theirIndex
       } else {
         //no common block in suffix
+        val b = ??? //most recent common block
+
         ???
       }
     }

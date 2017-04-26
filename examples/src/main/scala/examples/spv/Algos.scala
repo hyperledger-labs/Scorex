@@ -2,7 +2,6 @@ package examples.spv
 
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.block.Block._
-import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
@@ -29,7 +28,10 @@ object Algos {
   }
 
 
-  def constructSPVProof(m: Int, k: Int, blockchain: Seq[Header], inDifficulty: BigInt): Try[SPVProof] = Try {
+  def constructSPVProof(m: Int, k: Int, blockchain: Seq[Header]): Try[SPVProof] = Try {
+    assert(m + k < blockchain.length)
+    assert(m > 0)
+    assert(k > 0)
     val (prefix: Seq[Header], suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
     val firstSuffix = suffix.head
 

@@ -2,6 +2,7 @@ package spv
 
 import examples.spv.Algos
 import examples.spv.simulation.SimulatorFuctions
+import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.state.PrivateKey25519Companion
@@ -44,8 +45,25 @@ class ChainTests extends PropSpec
   }
 
   property("Generated SPV proof is correct") {
-    val proof = Algos.constructSPVProof(5, 5, headerChain, Difficulty).get
-    proof.validate.get
+    forAll(mkGen) { mk =>
+      val proof = Algos.constructSPVProof(mk._1, mk._2, headerChain).get
+      proof.validate.get
+    }
   }
+
+  property("Compare correct and incorrect SPV proofs") {
+    forAll(mkGen) { mk =>
+      val proof = Algos.constructSPVProof(mk._1, mk._2, headerChain).get
+      val incompleteIntercahin = proof.interchain.filter(e => false)
+      val incorrectProof = proof.copy(interchain = incompleteIntercahin)
+      incorrectProof.validate.isSuccess shouldBe false
+      (proof > incorrectProof) shouldBe true
+    }
+  }
+
+  val mkGen = for {
+    m <- Gen.choose(1, 100)
+    k <- Gen.choose(1, 100)
+  } yield (m, k)
 
 }

@@ -30,7 +30,7 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
   val k = 5
 
   (1 to 20) foreach { m =>
-    val proof = Algos.constructSPVProof(m, k, headerChain, Difficulty).get
+    val proof = Algos.constructSPVProof(m, k, headerChain).get
     proof.validate.get
     println(m + " => " + proof.bytes.length)
   }
