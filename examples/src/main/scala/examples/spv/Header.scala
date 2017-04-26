@@ -57,13 +57,14 @@ object HeaderSerializer extends Serializer[Header] {
       } else {
         val headLink: Array[Byte] = links.head
         val repeating: Byte = links.count(_ sameElements headLink).toByte
-//        interlinkBytes(links.drop(repeating), Bytes.concat(Array(repeating), headLink, acc))
         interlinkBytes(links.drop(repeating), Bytes.concat(acc, Array(repeating), headLink))
       }
     }
-    val ilb = interlinkBytes(h.interlinks, Array[Byte]())
-    Bytes.concat(h.parentId, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce),
-      ilb)
+    Bytes.concat(bytesWithoutInterlinks(h), interlinkBytes(h.interlinks, Array[Byte]()))
+  }
+
+  def bytesWithoutInterlinks(h: Header): Array[Byte] = {
+    Bytes.concat(h.parentId, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce))
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Header] = Try {
