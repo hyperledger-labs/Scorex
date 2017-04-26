@@ -18,7 +18,7 @@ object Algos {
       if (parent.realDifficulty >= curDifficulty) {
         generateInnerchain(curDifficulty * 2, acc :+ parent.id)
       } else {
-        parent.interlinks.find(pId => Algos.blockIdDifficulty(pId) >= curDifficulty) match {
+        parent.interlinks.find(pId => blockIdDifficulty(pId) >= curDifficulty) match {
           case Some(id) if !(id sameElements genesisId) => generateInnerchain(curDifficulty * 2, acc :+ id)
           case _ => acc
         }
@@ -29,9 +29,8 @@ object Algos {
 
 
   def constructSPVProof(m: Int, k: Int, blockchain: Seq[Header]): Try[SPVProof] = Try {
-    assert(m + k < blockchain.length)
-    assert(m > 0)
-    assert(k > 0)
+    assert(m > 0 && m < blockchain.length, s"$m > 0 && $m < ${blockchain.length}")
+    assert(k > 0 && k < blockchain.length, s"$k > 0 && $k < ${blockchain.length}")
     val (prefix: Seq[Header], suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
     val firstSuffix = suffix.head
 
