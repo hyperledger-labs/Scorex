@@ -5,7 +5,7 @@ import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.{MinimalState, StateChanges}
+import scorex.core.transaction.state.{MinimalState, Removal, StateChanges}
 import scorex.testkit.TestkitHelpers
 
 trait StateChangesGenerationTest[P <: Proposition,
@@ -24,17 +24,21 @@ HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] with Test
     check { _ =>
       val block = genValidModifier(history)
       val blockChanges = state.changes(block).get
-      val existingBoxIds = blockChanges.boxIdsToRemove.filter(bi => state.closedBox(bi).isDefined)
-      val changes: StateChanges[P, B] = blockChanges.copy(boxIdsToRemove = existingBoxIds)
+
+      val changes: StateChanges[P, B] = StateChanges(blockChanges.operations.flatMap{op =>
+        op match {
+          case rm: Removal[P, B] if state.closedBox(rm.boxId).isEmpty => None
+          case _ => Some(op)
+        }
+      })
+
       val newState = state.applyChanges(changes, block.id).get
       changes.toAppend.foreach { b =>
-        newState.closedBox(b.id).isDefined shouldBe true
+        newState.closedBox(b.box.id).isDefined shouldBe true
       }
-      changes.boxIdsToRemove.foreach { bId =>
-        newState.closedBox(bId).isDefined shouldBe false
+      changes.toRemove.foreach { r =>
+        newState.closedBox(r.boxId).isDefined shouldBe false
       }
     }
   }
-
-
 }

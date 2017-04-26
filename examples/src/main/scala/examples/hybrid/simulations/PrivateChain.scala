@@ -1,8 +1,8 @@
 package examples.hybrid.simulations
 
+import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
-import examples.hybrid.mempool.HMemPool
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.FileFunctions
@@ -26,7 +26,7 @@ object PrivateChain extends App with ScorexLogging {
 
   val proposition = PublicKey25519Proposition(scorex.utils.Random.randomBytes(32))
 
-  def genesisState(): (HybridHistory, HBoxStoredState, HWallet, HMemPool)  = {
+  def genesisState(): (HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool)  = {
     // May be taken from HybridNodeViewHolder.genesisState
     ???
   }

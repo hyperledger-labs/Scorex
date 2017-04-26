@@ -1,12 +1,9 @@
 package examples.hybrid.history
 
-import java.math.BigInteger
-
 import com.google.common.primitives.Longs
+import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, PosForger}
-import examples.hybrid.state.SimpleBoxTransaction
-import io.iohk.iodb.Store._
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier._

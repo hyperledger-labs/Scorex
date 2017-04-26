@@ -38,7 +38,7 @@ MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
   def applyChanges(changes: StateChanges[P, BX], newVersion: VersionTag): Try[MS]
 
   def applyModifier(mod: M): Try[MS] = {
-    validate(mod) flatMap { r =>
+    validate(mod) flatMap {_ =>
       changes(mod).flatMap(cs => applyChanges(cs, mod.id))
     }
   }

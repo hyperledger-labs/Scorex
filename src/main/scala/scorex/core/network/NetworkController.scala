@@ -12,7 +12,7 @@ import scorex.core.network.peer.PeerManager
 import scorex.core.settings.Settings
 import scorex.core.utils.ScorexLogging
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -48,8 +48,8 @@ class NetworkController(settings: Settings,
         val myHost = uri.getHost
         val myAddrs = InetAddress.getAllByName(myHost)
 
-        NetworkInterface.getNetworkInterfaces.exists { intf =>
-          intf.getInterfaceAddresses.exists { intfAddr =>
+        NetworkInterface.getNetworkInterfaces.asScala.exists { intf =>
+          intf.getInterfaceAddresses.asScala.exists { intfAddr =>
             val extAddr = intfAddr.getAddress
             myAddrs.contains(extAddr)
           }

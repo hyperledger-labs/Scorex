@@ -1,11 +1,12 @@
-package examples.hybrid.state
+package examples.commons
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
+import examples.commons.SimpleBoxTransaction._
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.state.SimpleBoxTransaction._
 import examples.hybrid.wallet.HWallet
 import io.circe.Json
 import io.circe.syntax._
+import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.BoxTransaction
@@ -45,10 +46,10 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
   }
 
   lazy val hashNoNonces = FastCryptographicHash(
-    to.map(_._1.pubKeyBytes).reduce(_ ++ _) ++
-      unlockers.map(_.closedBoxId).reduce(_ ++ _) ++
-      Longs.toByteArray(timestamp) ++
-      Longs.toByteArray(fee)
+    Bytes.concat(scorex.core.utils.concatFixLengthBytes(to.map(_._1.pubKeyBytes)),
+      scorex.core.utils.concatFixLengthBytes(unlockers.map(_.closedBoxId)),
+      Longs.toByteArray(timestamp),
+      Longs.toByteArray(fee))
   )
 
   override lazy val newBoxes: Traversable[PublicKey25519NoncedBox] = to.zipWithIndex.map { case ((prop, value), idx) =>
@@ -86,6 +87,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     require(to.forall(_._2 >= 0))
     require(fee >= 0)
     require(timestamp >= 0)
+    require(boxIdsToOpen.map(to => ByteArrayWrapper(to)).distinct.size == boxIdsToOpen.size)
     require(from.zip(signatures).forall { case ((prop, _), proof) =>
       proof.isValid(prop, messageToSign)
     })
@@ -134,10 +136,9 @@ object SimpleBoxTransaction {
 
     val timestamp = System.currentTimeMillis()
     SimpleBoxTransaction(from.map(t => t._1 -> t._2), to, fee, timestamp)
-
   }
-
 }
+
 
 object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {
 
@@ -147,9 +148,9 @@ object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {
       Ints.toByteArray(m.signatures.length),
       Ints.toByteArray(m.from.length),
       Ints.toByteArray(m.to.length),
-      m.signatures.foldLeft(Array[Byte]())((a, b) => a ++ b.bytes),
-      m.from.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2)),
-      m.to.foldLeft(Array[Byte]())((a, b) => a ++ b._1.bytes ++ Longs.toByteArray(b._2))
+      m.signatures.foldLeft(Array[Byte]())((a, b) => Bytes.concat(a, b.bytes)),
+      m.from.foldLeft(Array[Byte]())((a, b) => Bytes.concat(a, b._1.bytes, Longs.toByteArray(b._2))),
+      m.to.foldLeft(Array[Byte]())((a, b) => Bytes.concat(a, b._1.bytes, Longs.toByteArray(b._2)))
     )
   }
 

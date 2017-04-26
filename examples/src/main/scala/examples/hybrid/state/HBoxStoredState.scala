@@ -3,13 +3,14 @@ package examples.hybrid.state
 import java.io.File
 
 import com.google.common.primitives.Longs
+import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.StateChanges
+import scorex.core.transaction.state.{Insertion, Removal, StateChangeOperation, StateChanges}
 import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -47,7 +48,6 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   //Validate transactions in block and generator box
   //todo: move validation to history
   override def validate(mod: HPMOD): Try[Unit] = Try {
-    super.validate(mod).get
     mod match {
       case b: PowBlock =>
         //coinbase transaction is generated implicitly when block is applied to state, no validation needed
@@ -66,8 +66,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {
-    val boxIdsToRemove = changes.boxIdsToRemove.map(ByteArrayWrapper.apply)
-    val boxesToAdd = changes.toAppend.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
+    val boxIdsToRemove = changes.toRemove.view.map(_.boxId).map(ByteArrayWrapper.apply)
+    val boxesToAdd = changes.toAppend.view.map(_.box).map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
     log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${Base58.encode(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => Base58.encode(b.data))}, " +
@@ -103,21 +103,26 @@ object HBoxStoredState {
         val proposition: PublicKey25519Proposition = pb.generatorProposition
         val nonce: Long = SimpleBoxTransaction.nonceFromDigest(mod.id)
         val value: Long = 1
-        val toAdd = PublicKey25519NoncedBox(proposition, nonce, value)
-        Success(StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set(toAdd)))
+        val minerBox = PublicKey25519NoncedBox(proposition, nonce, value)
+        Success(StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(minerBox))))
       case ps: PosBlock =>
         Try {
-          val initial = (Set(): Set[Array[Byte]], Set(): Set[PublicKey25519NoncedBox], 0L)
+          val initial = (Seq(): Seq[Array[Byte]], Seq(): Seq[PublicKey25519NoncedBox], 0L)
 
-          val (toRemove: Set[Array[Byte]], toAdd: Set[PublicKey25519NoncedBox], reward) =
+          val (toRemove: Seq[Array[Byte]], toAdd: Seq[PublicKey25519NoncedBox], reward) =
             ps.transactions.map(_.foldLeft(initial) { case ((sr, sa, f), tx) =>
               (sr ++ tx.boxIdsToOpen.toSet, sa ++ tx.newBoxes.toSet, f + tx.fee)
-            }).getOrElse((Set(), Set(), 0L)) //no reward additional to tx fees
+            }).getOrElse((Seq(), Seq(), 0L)) //no reward additional to tx fees
 
           //for PoS forger reward box, we use block Id as a nonce
           val forgerNonce = Longs.fromByteArray(ps.id.take(8))
           val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, reward)
-          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAdd ++ Set(forgerBox))
+
+          val ops: Seq[StateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+            toRemove.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)) ++
+              toAdd.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)) ++
+              Seq(Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](forgerBox))
+          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
         }
     }
   }

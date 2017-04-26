@@ -6,7 +6,7 @@ lazy val commonSettings = Seq(
   version := "2.0.0-M5-SNAPSHOT"
 )
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.2"
 organization := "org.scorexfoundation"
 version := "2.0.0-M5-SNAPSHOT"
 
@@ -25,10 +25,6 @@ val apiDependencies = Seq(
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
   "io.swagger" %% "swagger-scala-module" % "1.0.3",
-  // "io.swagger" % "swagger-core" % "1.5.10",
-  // "io.swagger" % "swagger-annotations" % "1.5.10",
-  // "io.swagger" % "swagger-models" % "1.5.10",
-  // "io.swagger" % "swagger-jaxrs" % "1.5.10",
   "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.+",
   "com.typesafe.akka" %% "akka-http" % "10.+"
 )
@@ -48,14 +44,13 @@ val testingDependencies = Seq(
 
 libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.+",
-  "org.consensusresearch" %% "scrypto" % "1.2.+"
+  "org.scorexfoundation" %% "scrypto" % "1.2.1"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 
 
 //todo: is it needed?
 libraryDependencies += "org.atnos" %% "eff-cats" % "2.0.+"
-
 
 
 scalacOptions ++= Seq("-feature", "-deprecation")

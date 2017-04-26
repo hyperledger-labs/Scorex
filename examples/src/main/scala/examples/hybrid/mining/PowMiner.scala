@@ -1,10 +1,10 @@
 package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef}
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.hybrid.blocks.{HybridBlock, PowBlock, PowBlockCompanion, PowBlockHeader}
 import examples.hybrid.history.HybridHistory
-import examples.hybrid.mempool.HMemPool
-import examples.hybrid.state.{HBoxStoredState, SimpleBoxTransaction}
+import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.Cancellable
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
@@ -59,7 +59,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
         }
       }
 
-    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: HMemPool) =>
+    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: SimpleBoxTransactionMemPool) =>
 
       if (!cancellableOpt.forall(_.status.isCancelled)) {
         log.warn("Trying to run miner when the old one is still running")

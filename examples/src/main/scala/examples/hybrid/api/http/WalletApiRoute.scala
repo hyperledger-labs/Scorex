@@ -4,7 +4,7 @@ import javax.ws.rs.Path
 
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
-import examples.hybrid.state.SimpleBoxTransaction
+import examples.commons.SimpleBoxTransaction
 import io.circe.parser._
 import io.circe.syntax._
 import io.swagger.annotations._

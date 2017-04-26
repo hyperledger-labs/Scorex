@@ -2,11 +2,12 @@ package hybrid
 
 import java.io.File
 
+import commons.ExamplesCommonGenerators
+import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{PosBlock, PowBlock, PowBlockCompanion, PowBlockHeader}
 import examples.hybrid.history.{HistoryStorage, HybridHistory, HybridSyncInfo}
 import examples.hybrid.mining.MiningSettings
-import examples.hybrid.state.SimpleBoxTransaction
 import io.circe
 import io.iohk.iodb.LSMStore
 import org.scalacheck.{Arbitrary, Gen}
@@ -17,14 +18,13 @@ import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
-import scorex.core.transaction.state.{PrivateKey25519, StateChanges}
+import scorex.core.transaction.state.{Insertion, PrivateKey25519, StateChanges}
 import scorex.core.transaction.wallet.WalletBox
-import scorex.testkit.CoreGenerators
 
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait HybridGenerators extends CoreGenerators {
+trait HybridGenerators extends ExamplesCommonGenerators {
   val settings = new Settings with MiningSettings {
     override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
 
@@ -41,23 +41,6 @@ trait HybridGenerators extends CoreGenerators {
   } yield HybridSyncInfo(answer, pows, pos)
 
   lazy val signatureGen: Gen[Signature25519] = genBytesList(Signature25519.SignatureSize).map(Signature25519(_))
-
-  lazy val pGen: Gen[(PublicKey25519Proposition, Long)] = for {
-    prop <- propositionGen
-    long <- positiveLongGen
-  } yield (prop, long)
-
-  lazy val privGen: Gen[(PrivateKey25519, Long)] = for {
-    prop <- key25519Gen.map(_._1)
-    long <- positiveLongGen
-  } yield (prop, long)
-
-  lazy val simpleBoxTransactionGen: Gen[SimpleBoxTransaction] = for {
-    fee <- positiveLongGen
-    timestamp <- positiveLongGen
-    from: IndexedSeq[(PrivateKey25519, Long)] <- smallInt.flatMap(i => Gen.listOfN(i + 1, privGen).map(_.toIndexedSeq))
-    to: IndexedSeq[(PublicKey25519Proposition, Long)] <- smallInt.flatMap(i => Gen.listOfN(i, pGen).map(_.toIndexedSeq))
-  } yield SimpleBoxTransaction(from, to, fee, timestamp)
 
   lazy val blockIdGen: Gen[BlockId] = genBytesList(Block.BlockIdLength)
 
@@ -106,7 +89,7 @@ trait HybridGenerators extends CoreGenerators {
   } yield PublicKey25519NoncedBox(proposition, nonce, value)
 
   lazy val stateChangesGen: Gen[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = noncedBoxGen
-    .map(b => StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), Set(b)))
+    .map(b => StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(b))))
 
   lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
     createdAt <- positiveLongGen

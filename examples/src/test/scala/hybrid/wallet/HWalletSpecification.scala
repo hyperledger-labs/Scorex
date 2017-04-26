@@ -64,9 +64,7 @@ class HWalletSpecification extends PropSpec
       val existingBoxes = w.boxes()
       val boxToRemove = existingBoxes(Random.nextInt(existingBoxes.length)).box
 
-      val fromWithMyPubkey: IndexedSeq[(PublicKey25519Proposition, Long)] =
-        txIn.from.map(p => (boxToRemove.proposition, boxToRemove.nonce))
-      val tx = txIn.copy(from = fromWithMyPubkey)
+      val tx = txIn.copy(from = (boxToRemove.proposition, boxToRemove.nonce) +: txIn.from)
       tx.boxIdsToOpen.exists(id => id sameElements boxToRemove.id) shouldBe true
 
       val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, Array(), EmptySignature)
