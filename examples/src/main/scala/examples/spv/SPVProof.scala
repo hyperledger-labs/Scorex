@@ -1,6 +1,7 @@
 package examples.spv
 
-import com.google.common.primitives.Bytes
+import com.google.common.primitives.{Bytes, Shorts}
+import scorex.core.serialization.Serializer
 
 import scala.util.Try
 
@@ -57,9 +58,52 @@ case class SPVProof(m: Int,
     }
   }
 
-  lazy val bytes: Array[Byte] = {
-    Bytes.concat(scorex.core.utils.concatBytes(interchain.map(_.bytes)), suffix.head.bytes,
-      scorex.core.utils.concatBytes(suffix.tail.map(h => HeaderSerializer.bytesWithoutInterlinks(h))))
+}
+
+object SPVProofSerializer extends Serializer[SPVProof] {
+  override def toBytes(obj: SPVProof): Array[Byte] = {
+    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
+      val bytes = HeaderSerializer.bytesWithoutInterlinks(h)
+      Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
+    })
+    val interchainBytes = scorex.core.utils.concatBytes(obj.interchain.map { h =>
+      val bytes = h.bytes
+      Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
+    })
+    Bytes.concat(Array(obj.m.toByte, obj.k.toByte, obj.i.toByte),
+      Shorts.toByteArray(obj.suffix.head.bytes.length.toShort),
+      obj.suffix.head.bytes,
+      suffixTailBytes,
+      Shorts.toByteArray(obj.interchain.length.toShort),
+      interchainBytes)
+  }
+
+  override def parseBytes(bytes: Array[Byte]): Try[SPVProof] = Try {
+    val m = bytes.head
+    val k = bytes(1)
+    val i = bytes(2)
+    val headSuffixLength = Shorts.fromByteArray(bytes.slice(3, 5))
+    val headSuffix = HeaderSerializer.parseBytes(bytes.slice(5, 5 + headSuffixLength)).get
+    def parseSuffixes(index: Int, acc: Seq[Header]): (Int, Seq[Header]) = {
+      if (acc.length == k) (index, acc.reverse)
+      else {
+        val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
+        val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
+        val interlinks = Algos.constructInterlinks(acc.head)
+        parseSuffixes(index + 2 + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
+      }
+
+    }
+    var (index, suffix) = parseSuffixes(5 + headSuffixLength, Seq(headSuffix))
+    val interchainLength = Shorts.fromByteArray(bytes.slice(index, index + 2))
+    index = index + 2
+    val interchain = (0 until interchainLength) map { _ =>
+      val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
+      val header = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
+      index = index + 2 + l
+      header
+    }
+    SPVProof(m, k, i, interchain, suffix)
   }
 }
 
