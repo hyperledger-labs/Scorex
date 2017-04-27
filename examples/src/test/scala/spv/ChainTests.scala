@@ -1,7 +1,7 @@
 package spv
 
 import examples.spv.simulation.SimulatorFuctions
-import examples.spv.{Algos, SPVProofSerializer}
+import examples.spv.{Algos, KLS16ProofSerializer}
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -46,14 +46,14 @@ class ChainTests extends PropSpec
 
   property("Generated SPV proof is correct") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructSPVProof(mk._1, mk._2, headerChain).get
+      val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
       proof.validate.get
     }
   }
 
   property("Compare correct and incorrect SPV proofs") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructSPVProof(mk._1, mk._2, headerChain).get
+      val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
       val incompleteIntercahin = proof.interchain.filter(e => false)
       val incorrectProof = proof.copy(interchain = incompleteIntercahin)
       incorrectProof.validate.isSuccess shouldBe false
@@ -63,8 +63,8 @@ class ChainTests extends PropSpec
 
   property("Compare SPV proofs with different suffix") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructSPVProof(mk._1, mk._2, headerChain).get
-      val smallerChainProof = Algos.constructSPVProof(mk._1, mk._2, headerChain.dropRight(1)).get
+      val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+      val smallerChainProof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain.dropRight(1)).get
       (proof > smallerChainProof) shouldBe true
     }
   }
@@ -75,8 +75,8 @@ class ChainTests extends PropSpec
         val commonChain = headerChain.dropRight(2)
         val block = genBlock(Difficulty, commonChain.reverse.toIndexedSeq, stateRoot, defaultId, System.currentTimeMillis())
         val smallerForkChain = commonChain :+ block
-        val proof = Algos.constructSPVProof(mk._1, mk._2, headerChain).get
-        val proof2 = Algos.constructSPVProof(mk._1, mk._2, smallerForkChain).get
+        val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+        val proof2 = Algos.constructKLS16Proof(mk._1, mk._2, smallerForkChain).get
         (proof > proof2) shouldBe true
       }
     }
@@ -84,8 +84,8 @@ class ChainTests extends PropSpec
 
   property("SPV proof serialization") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructSPVProof(mk._1, mk._2, headerChain).get
-      val serializer = SPVProofSerializer
+      val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+      val serializer = KLS16ProofSerializer
       val parsed = serializer.parseBytes(serializer.toBytes(proof)).get
       serializer.toBytes(proof) shouldEqual serializer.toBytes(parsed)
       proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten

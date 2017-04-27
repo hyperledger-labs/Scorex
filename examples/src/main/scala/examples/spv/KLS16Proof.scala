@@ -5,11 +5,11 @@ import scorex.core.serialization.Serializer
 
 import scala.util.Try
 
-case class SPVProof(m: Int,
-                    k: Int,
-                    i: Int,
-                    interchain: Seq[Header],
-                    suffix: Seq[Header]) extends Comparable[SPVProof] with Ordered[SPVProof] {
+case class KLS16Proof(m: Int,
+                      k: Int,
+                      i: Int,
+                      interchain: Seq[Header],
+                      suffix: Seq[Header]) extends Comparable[KLS16Proof] with Ordered[KLS16Proof] {
 
   lazy val validate: Try[Unit] = Try {
     require(suffix.length == k, s"${suffix.length} == $k")
@@ -37,7 +37,7 @@ case class SPVProof(m: Int,
     //TODO check that genesis links are correct
   }
 
-  override def compare(that: SPVProof): Int = {
+  override def compare(that: KLS16Proof): Int = {
     if (that.validate.isFailure) {
       //TODO what is both are isFailure?
       1
@@ -60,8 +60,8 @@ case class SPVProof(m: Int,
 
 }
 
-object SPVProofSerializer extends Serializer[SPVProof] {
-  override def toBytes(obj: SPVProof): Array[Byte] = {
+object KLS16ProofSerializer extends Serializer[KLS16Proof] {
+  override def toBytes(obj: KLS16Proof): Array[Byte] = {
     val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
       val bytes = HeaderSerializer.bytesWithoutInterlinks(h)
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
@@ -78,7 +78,7 @@ object SPVProofSerializer extends Serializer[SPVProof] {
       interchainBytes)
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[SPVProof] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[KLS16Proof] = Try {
     val m = bytes.head
     val k = bytes(1)
     val i = bytes(2)
@@ -103,7 +103,7 @@ object SPVProofSerializer extends Serializer[SPVProof] {
       index = index + 2 + l
       header
     }
-    SPVProof(m, k, i, interchain, suffix)
+    KLS16Proof(m, k, i, interchain, suffix)
   }
 }
 

@@ -1,6 +1,6 @@
 package examples.spv.simulation
 
-import examples.spv.{Algos, SPVProofSerializer}
+import examples.spv.{Algos, KLS16ProofSerializer}
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
@@ -30,9 +30,9 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
   val k = 5
 
   (1 to 20) foreach { m =>
-    val proof = Algos.constructSPVProof(m, k, headerChain).get
+    val proof = Algos.constructKLS16Proof(m, k, headerChain).get
     proof.validate.get
-    println(m + " => " + SPVProofSerializer.toBytes(proof))
+    println(m + " => " + KLS16ProofSerializer.toBytes(proof))
   }
 
 }

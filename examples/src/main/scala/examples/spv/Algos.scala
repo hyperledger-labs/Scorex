@@ -28,7 +28,7 @@ object Algos {
   }
 
 
-  def constructSPVProof(m: Int, k: Int, blockchain: Seq[Header]): Try[SPVProof] = Try {
+  def constructKLS16Proof(m: Int, k: Int, blockchain: Seq[Header]): Try[KLS16Proof] = Try {
     assert(m > 0 && m < blockchain.length, s"$m > 0 && $m < ${blockchain.length}")
     assert(k > 0 && k < blockchain.length, s"$k > 0 && $k < ${blockchain.length}")
     val (prefix: Seq[Header], suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
@@ -57,7 +57,6 @@ object Algos {
     }
     val (depth, interchain) = constructProof(firstSuffix.interlinks.length)
 
-    SPVProof(m, k, depth, interchain, suffix)
+    KLS16Proof(m, k, depth, interchain, suffix)
   }
-
 }
