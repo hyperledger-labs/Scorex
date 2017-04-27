@@ -13,10 +13,9 @@ case class KLS16Proof(m: Int,
 
   lazy val validate: Try[Unit] = Try {
     require(suffix.length == k, s"${suffix.length} == $k")
+
     suffix.foldRight(Array[Byte]()) { (a, b) =>
-      if (b.nonEmpty) {
-        require(b sameElements a.id)
-      }
+      if (b.nonEmpty) require(b sameElements a.id)
       a.parentId
     }
 

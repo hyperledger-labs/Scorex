@@ -29,9 +29,10 @@ object Algos {
 
 
   def constructKLS16Proof(m: Int, k: Int, blockchain: Seq[Header]): Try[KLS16Proof] = Try {
-    assert(m > 0 && m < blockchain.length, s"$m > 0 && $m < ${blockchain.length}")
-    assert(k > 0 && k < blockchain.length, s"$k > 0 && $k < ${blockchain.length}")
-    val (prefix: Seq[Header], suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
+    require(m > 0 && m < blockchain.length, s"$m > 0 && $m < ${blockchain.length}")
+    require(k > 0 && k < blockchain.length, s"$k > 0 && $k < ${blockchain.length}")
+
+    val (_, suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
     val firstSuffix = suffix.head
 
     //TODO make efficient
@@ -48,15 +49,12 @@ object Algos {
           acc.reverse.tail.reverse
         }
       }
-      val interchain = loop(Seq(firstSuffix))
-      if (interchain.length >= m) {
-        (i, interchain)
-      } else {
-        constructProof(i - 1)
-      }
+      val innerchain = loop(Seq(firstSuffix))
+      if (innerchain.length >= m) (i, innerchain) else constructProof(i - 1)
     }
-    val (depth, interchain) = constructProof(firstSuffix.interlinks.length)
 
-    KLS16Proof(m, k, depth, interchain, suffix)
+    val (depth, innerchain) = constructProof(firstSuffix.interlinks.length)
+
+    KLS16Proof(m, k, depth, innerchain, suffix)
   }
 }
