@@ -11,7 +11,7 @@ case class KLS16Proof(m: Int,
                       innerchain: Seq[Header],
                       suffix: Seq[Header]) extends Comparable[KLS16Proof] with Ordered[KLS16Proof] {
 
-  lazy val validate: Try[Unit] = Try {
+  lazy val valid: Try[Unit] = Try {
     require(suffix.length == k, s"${suffix.length} == $k")
 
     suffix.foldRight(Array[Byte]()) { (a, b) =>
@@ -37,10 +37,10 @@ case class KLS16Proof(m: Int,
   }
 
   override def compare(that: KLS16Proof): Int = {
-    if (that.validate.isFailure) {
+    if (that.valid.isFailure) {
       //TODO what is both are isFailure?
       1
-    } else if (this.validate.isFailure) {
+    } else if (this.valid.isFailure) {
       -1
     } else {
       val ourIndex = this.suffix.reverse.indexWhere(h => that.suffix.exists(_.id sameElements h.id))
