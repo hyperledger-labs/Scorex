@@ -2,7 +2,7 @@ package examples.hybrid
 
 import akka.actor.{ActorRef, Props}
 import examples.commons.SimpleBoxTransaction
-import examples.hybrid.api.http.{DebugApiRoute, WalletApiRoute}
+import examples.hybrid.api.http.{DebugApiRoute, StatsApiRoute, WalletApiRoute}
 import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec}
 import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
@@ -37,13 +37,14 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val apiRoutes: Seq[ApiRoute] = Seq(
     DebugApiRoute(settings, nodeViewHolderRef),
     WalletApiRoute(settings, nodeViewHolderRef),
+    StatsApiRoute(settings, nodeViewHolderRef),
     UtilsApiRoute(settings),
     NodeViewApiRoute[P, TX](settings, nodeViewHolderRef),
     PeersApiRoute(peerManagerRef, networkController, settings)
   )
 
   override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[DebugApiRoute], typeOf[WalletApiRoute],
-    typeOf[NodeViewApiRoute[P, TX]], typeOf[PeersApiRoute])
+    typeOf[NodeViewApiRoute[P, TX]], typeOf[PeersApiRoute], typeOf[StatsApiRoute])
 
   val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
   val forger = actorSystem.actorOf(Props(classOf[PosForger], settings, nodeViewHolderRef))
