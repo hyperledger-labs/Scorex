@@ -8,7 +8,7 @@ import scala.util.Try
 case class KLS16Proof(m: Int,
                       k: Int,
                       i: Int,
-                      interchain: Seq[Header],
+                      innerchain: Seq[Header],
                       suffix: Seq[Header]) extends Comparable[KLS16Proof] with Ordered[KLS16Proof] {
 
   lazy val validate: Try[Unit] = Try {
@@ -19,13 +19,13 @@ case class KLS16Proof(m: Int,
       a.parentId
     }
 
-    require(suffix.head.interlinks(i) sameElements interchain.last.id)
+    require(suffix.head.interlinks(i) sameElements innerchain.last.id)
 
     val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
-    require(interchain.length >= m, s"${interchain.length} >= $m")
-    interchain.foreach(b => require(b.realDifficulty >= difficulty, s"$b: ${b.realDifficulty} >= $difficulty"))
+    require(innerchain.length >= m, s"${innerchain.length} >= $m")
+    innerchain.foreach(b => require(b.realDifficulty >= difficulty, s"$b: ${b.realDifficulty} >= $difficulty"))
 
-    interchain.foldRight(Array[Byte]()) { (a, b) =>
+    innerchain.foldRight(Array[Byte]()) { (a, b) =>
       if (b.nonEmpty) {
         require(b sameElements a.id)
       }
@@ -65,7 +65,7 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
       val bytes = HeaderSerializer.bytesWithoutInterlinks(h)
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
     })
-    val interchainBytes = scorex.core.utils.concatBytes(obj.interchain.map { h =>
+    val interchainBytes = scorex.core.utils.concatBytes(obj.innerchain.map { h =>
       val bytes = h.bytes
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
     })
@@ -73,7 +73,7 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
       Shorts.toByteArray(obj.suffix.head.bytes.length.toShort),
       obj.suffix.head.bytes,
       suffixTailBytes,
-      Shorts.toByteArray(obj.interchain.length.toShort),
+      Shorts.toByteArray(obj.innerchain.length.toShort),
       interchainBytes)
   }
 
@@ -88,7 +88,7 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
       else {
         val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
         val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
-        val interlinks = Algos.constructInterlinks(acc.head)
+        val interlinks = Algos.constructInterlinkVector(acc.head)
         parseSuffixes(index + 2 + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }
 

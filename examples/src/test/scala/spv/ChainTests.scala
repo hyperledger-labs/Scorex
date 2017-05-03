@@ -54,8 +54,8 @@ class ChainTests extends PropSpec
   property("Compare correct and incorrect SPV proofs") {
     forAll(mkGen) { mk =>
       val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
-      val incompleteIntercahin = proof.interchain.filter(e => false)
-      val incorrectProof = proof.copy(interchain = incompleteIntercahin)
+      val incompleteIntercahin = proof.innerchain.filter(e => false)
+      val incorrectProof = proof.copy(innerchain = incompleteIntercahin)
       incorrectProof.validate.isSuccess shouldBe false
       (proof > incorrectProof) shouldBe true
     }
