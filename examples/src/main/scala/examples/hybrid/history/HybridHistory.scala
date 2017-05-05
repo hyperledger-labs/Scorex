@@ -217,7 +217,7 @@ class HybridHistory(storage: HistoryStorage,
       val newPowDiff = bounded(newPowDiffUnlimited, oldPowDifficulty)
 
       val oldPosDifficulty = storage.getPoSDifficulty(lastPow.prevPosId)
-      val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * 8 / 10)
+      val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * settings.RParamX10 / 10)
       log.info(s"PoW difficulty changed at ${Base58.encode(posBlock.id)}: old $oldPowDifficulty, new $newPowDiff. " +
         s" last: $lastPow, head: ${powBlocks.head} | $brothersCount")
       log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")
