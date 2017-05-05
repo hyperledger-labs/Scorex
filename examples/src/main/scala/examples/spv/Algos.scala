@@ -30,9 +30,8 @@ object Algos {
     genesisId +: generateInnerchain(Constants.InitialDifficulty * 2, Seq[Array[Byte]]())
   }
 
-
   //Algorithm 8 from the MKZ paper
-  def constructMKZProof(m: Int, blockchain: Seq[Header]): Try[MKZProof] = {
+  def constructMKZProof(m: Int, blockchain: Seq[Header]): Try[MKZProof] = Try {
     require(m > 0 && m < blockchain.length, s"$m > 0 && $m < ${blockchain.length}")
 
     val k = m //according to the desc
@@ -65,16 +64,16 @@ object Algos {
     println("topchain: " + topSuperchain.length)
 
     val chainsDown = (i - 1).to(0, -1).map { ci =>
-      val c = constructInnerChain(prefix, ci, m)
-      println(s"$ci: ${c.length}")
-      c
+      constructInnerChain(prefix, ci, m)
     }
 
-    val proof = topSuperchain ++ chainsDown.reduce(_ ++ _)
+    val proofChains = Seq(topSuperchain) ++ chainsDown
 
-    println("proof size: " + proof.length)
+    val proofBytes = proofChains.reduce(_ ++ _).map(_.bytes).reduce(_ ++ _)
 
-    Failure(new Exception("not impl."))
+    println("proof bytes:" + proofBytes.length)
+
+    MKZProof(m, k, proofChains, suffix)
   }
 
   /**

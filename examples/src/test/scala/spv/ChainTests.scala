@@ -47,7 +47,7 @@ class ChainTests extends PropSpec
   property("Generated SPV proof is correct") {
     forAll(mkGen) { mk =>
       val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
-      proof.validate.get
+      proof.valid.get
     }
   }
 
@@ -56,7 +56,7 @@ class ChainTests extends PropSpec
       val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
       val incompleteIntercahin = proof.innerchain.filter(e => false)
       val incorrectProof = proof.copy(innerchain = incompleteIntercahin)
-      incorrectProof.validate.isSuccess shouldBe false
+      incorrectProof.valid.isSuccess shouldBe false
       (proof > incorrectProof) shouldBe true
     }
   }
