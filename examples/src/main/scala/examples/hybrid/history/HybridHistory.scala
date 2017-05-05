@@ -53,7 +53,7 @@ class HybridHistory(storage: HistoryStorage,
   val bestPowId = storage.bestPowId
   lazy val bestPosBlock = storage.bestPosBlock
   lazy val bestPowBlock = storage.bestPowBlock
-  lazy val bestBlock = if(pairCompleted) bestPosBlock else bestPowBlock
+  lazy val bestBlock = if (pairCompleted) bestPosBlock else bestPowBlock
 
   /**
     * Return specified number of PoW blocks, ordered back from last one
@@ -74,6 +74,10 @@ class HybridHistory(storage: HistoryStorage,
       }
     }
     loop(startBlock)
+  }
+
+  def lastBlockIds(startBlock: HybridBlock, count: Int): Seq[ModifierId] = {
+    chainBack(startBlock, _ => false, count - 1).get.map(_._2)
   }
 
   /**
@@ -131,7 +135,7 @@ class HybridHistory(storage: HistoryStorage,
                 }
               } else {
                 log.debug(s"New orphaned PoW block ${Base58.encode(powBlock.id)}")
-                ProgressInfo(None, Seq(), Seq())  //todo: fix
+                ProgressInfo(None, Seq(), Seq()) //todo: fix
               }
               storage.update(powBlock, None, isBest)
               mod
@@ -355,6 +359,7 @@ class HybridHistory(storage: HistoryStorage,
 
   /**
     * Go back though chain and get block ids until condition until
+    * None if parent block is not in chain
     */
   @tailrec
   private def chainBack(m: HybridBlock,
