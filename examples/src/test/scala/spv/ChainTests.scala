@@ -1,7 +1,7 @@
 package spv
 
 import examples.spv.simulation.SimulatorFuctions
-import examples.spv.{Algos, KLS16ProofSerializer}
+import examples.spv.{Algos, KLS16ProofSerializer, KMZProofSerializer}
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -82,7 +82,7 @@ class ChainTests extends PropSpec
     }
   }
 
-  property("SPV proof serialization") {
+  property("KLS16 proof serialization") {
     forAll(mkGen) { mk =>
       val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
       val serializer = KLS16ProofSerializer
@@ -90,6 +90,18 @@ class ChainTests extends PropSpec
       serializer.toBytes(proof) shouldEqual serializer.toBytes(parsed)
       proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
       //todo more checks that suffixses are the same
+    }
+  }
+
+  property("KMZ proof serialization") {
+    forAll(mkGen) { mk =>
+      val m = mk._1
+      val proof = Algos.constructKMZProof(m, headerChain).get
+      val serializer = KMZProofSerializer
+      val bytes = serializer.toBytes(proof)
+      val parsed = serializer.parseBytes(bytes).get
+      bytes shouldEqual serializer.toBytes(parsed)
+      proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
     }
   }
 
