@@ -27,7 +27,7 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
   val k = 5
 
-  Algos.constructMKZProof(m = 15, headerChain)
+  Algos.constructKMZProof(m = 25, headerChain)
 
 /*  (1 to 20) foreach { m =>
     val proof = Algos.constructKLS16Proof(m, k, headerChain).get

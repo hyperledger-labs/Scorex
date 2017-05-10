@@ -4,7 +4,7 @@ import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.block.Block._
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Try}
+import scala.util.Try
 
 object Algos {
 
@@ -30,8 +30,8 @@ object Algos {
     genesisId +: generateInnerchain(Constants.InitialDifficulty * 2, Seq[Array[Byte]]())
   }
 
-  //Algorithm 8 from the MKZ paper
-  def constructMKZProof(m: Int, blockchain: Seq[Header]): Try[MKZProof] = Try {
+  //Algorithm 8 from the KMZ paper
+  def constructKMZProof(m: Int, blockchain: Seq[Header]): Try[KMZProof] = Try {
     require(m > 0 && m < blockchain.length, s"$m > 0 && $m < ${blockchain.length}")
 
     val k = m //according to the desc
@@ -44,7 +44,7 @@ object Algos {
 
     val i = prefix.last.interlinks.size - 1
 
-    //Algorithm 6 from the MKZ paper
+    //Algorithm 6 from the KMZ paper
     def constructInnerChain(c: Seq[Header], i: Int, boundary: Int): Seq[Header] = {
 
       @tailrec
@@ -59,10 +59,7 @@ object Algos {
       stepThroughInnerchain(c.last, i, Seq(), boundary)
     }
 
-
     val topSuperchain = constructInnerChain(prefix, i, Int.MaxValue)
-    println("topchain: " + topSuperchain.length)
-
     val chainsDown = (i - 1).to(0, -1).map { ci =>
       constructInnerChain(prefix, ci, m)
     }
@@ -70,10 +67,13 @@ object Algos {
     val proofChains = Seq(topSuperchain) ++ chainsDown
 
     val proofBytes = proofChains.reduce(_ ++ _).map(_.bytes).reduce(_ ++ _)
+    val minProofBytes = proofChains.reduce(_ ++ _).toSet.toArray.map(_.bytes).reduce(_ ++ _)
 
+    proofChains.map(_.length).foreach(l => println("proofchain length: " + l))
     println("proof bytes:" + proofBytes.length)
+    println("min proof bytes:" + minProofBytes.length)
 
-    MKZProof(m, k, proofChains, suffix)
+    KMZProof(m, k, proofChains, suffix)
   }
 
   /**
