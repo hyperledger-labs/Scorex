@@ -125,7 +125,7 @@ object HWallet {
   def readOrGenerate(settings: Settings, seed: String): HWallet = {
     val wFile = walletFile(settings)
     wFile.mkdirs()
-    val boxesStorage = new LSMStore(wFile)
+    val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000)
 
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {

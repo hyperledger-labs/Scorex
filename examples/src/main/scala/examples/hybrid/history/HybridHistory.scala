@@ -426,7 +426,7 @@ object HybridHistory extends ScorexLogging {
   def readOrGenerate(dataDir: String, logDirOpt: Option[String], settings: MiningConstants): HybridHistory = {
     val iFile = new File(s"$dataDir/blocks")
     iFile.mkdirs()
-    val blockStorage = new LSMStore(iFile)
+    val blockStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)
 
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {

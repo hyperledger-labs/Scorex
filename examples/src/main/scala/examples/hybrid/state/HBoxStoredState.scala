@@ -135,7 +135,7 @@ object HBoxStoredState {
 
     val iFile = new File(s"$dataDir/state")
     iFile.mkdirs()
-    val stateStorage = new LSMStore(iFile)
+    val stateStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)
 
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {
