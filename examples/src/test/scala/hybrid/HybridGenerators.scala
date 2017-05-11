@@ -108,7 +108,7 @@ trait HybridGenerators extends ExamplesCommonGenerators {
     //we don't care about validation here
     val validators = Seq()
 
-    var history = new HybridHistory(storage, settings, validators)
+    var history = new HybridHistory(storage, settings, validators, None)
 
     val genesisBlock = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1478164225796L, -308545845552064644L,
       0, Array.fill(32)(0: Byte), PublicKey25519Proposition(scorex.utils.Random.randomBytes(32)), Seq())

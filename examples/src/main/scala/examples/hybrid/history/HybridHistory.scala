@@ -3,7 +3,7 @@ package examples.hybrid.history
 
 import java.io.File
 
-import examples.commons.SimpleBoxTransaction
+import examples.commons.{FileLogger, SimpleBoxTransaction}
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, MiningSettings}
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
@@ -15,7 +15,7 @@ import scorex.core.consensus.History
 import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{NetworkTime, ScorexLogging}
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
@@ -27,7 +27,8 @@ import scala.util.{Failure, Try}
   */
 class HybridHistory(storage: HistoryStorage,
                     settings: MiningConstants,
-                    validators: Seq[BlockValidator[HybridBlock]])
+                    validators: Seq[BlockValidator[HybridBlock]],
+                    statsLogger: Option[FileLogger])
   extends History[PublicKey25519Proposition,
     SimpleBoxTransaction,
     HybridBlock,
@@ -77,7 +78,7 @@ class HybridHistory(storage: HistoryStorage,
   }
 
   def lastBlockIds(startBlock: HybridBlock, count: Int): Seq[ModifierId] = {
-    chainBack(startBlock, _ => false, count - 1).get.map(_._2)
+    chainBack(startBlock, isGenesis, count - 1).get.map(_._2)
   }
 
   /**
@@ -146,7 +147,7 @@ class HybridHistory(storage: HistoryStorage,
           }
         }
         //        require(modifications.toApply.exists(_.id sameElements powBlock.id))
-        (new HybridHistory(storage, settings, validators), progress)
+        (new HybridHistory(storage, settings, validators, statsLogger), progress)
 
 
       case posBlock: PosBlock =>
@@ -169,11 +170,13 @@ class HybridHistory(storage: HistoryStorage,
         }
         storage.update(posBlock, Some(difficulties), isBest)
 
-        (new HybridHistory(storage, settings, validators), mod)
+        (new HybridHistory(storage, settings, validators, statsLogger), mod)
     }
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
       s"Best score is ${storage.bestChainScore}. " +
       s"Pair: ${Base58.encode(storage.bestPowId)}|${Base58.encode(storage.bestPosId)}")
+    statsLogger.foreach(l => l.appendString(NetworkTime.time() + ":" +
+      lastBlockIds(bestBlock, 50).map(Base58.encode).mkString(",")))
     res
   }
 
@@ -428,6 +431,8 @@ object HybridHistory extends ScorexLogging {
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)
 
+    val loggerOpt = logDirOpt.map(logFir => new FileLogger(logFir + "/tails.data"))
+
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {
         log.info("Closing block storage...")
@@ -441,6 +446,6 @@ object HybridHistory extends ScorexLogging {
       new SemanticBlockValidator(FastCryptographicHash)
     )
 
-    new HybridHistory(storage, settings, validators)
+    new HybridHistory(storage, settings, validators, loggerOpt)
   }
 }
