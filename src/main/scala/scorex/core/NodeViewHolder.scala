@@ -245,7 +245,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       log.debug(s"Sending extension of length ${ext.length}: ${ext.map(_._2).map(Base58.encode).mkString(",")}")
       log.debug("Comparison result is: " + comparison)
 
-      require(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)
+      if(!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
+        log.warn("Extension is empty while comparison is younger")
+      }
 
       sender() ! OtherNodeSyncingStatus(
         remote,
