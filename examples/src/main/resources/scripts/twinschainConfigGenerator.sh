@@ -4,7 +4,8 @@ my_dir="$(dirname "$0")"
 source "$my_dir/ips.sh"
 
 echo "Arguments: number of configs, data folder"
-for i in $(seq 1 $1);
+limit=$(($1+21))
+for i in $(seq 21 $limit);
 do
    folder="$2/data-$i"
    port=`expr 19000 + $i`
