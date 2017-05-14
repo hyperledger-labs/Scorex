@@ -81,7 +81,7 @@ class HybridHistorySpecification extends PropSpec
     compareAndCheck(history, youngerSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe HistoryComparisonResult.Younger
     compareAndCheck(history, equalsSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe HistoryComparisonResult.Younger
 
-    val betterForkSyncInfo = youngerSyncInfo
+    val betterForkSyncInfo = equalsSyncInfo
       .copy(lastPowBlockIds = lastIds.dropRight(1).tail ++ Array(Random.randomBytes(32), Random.randomBytes(32)))
       .copy(lastPosBlockId = Random.randomBytes(32))
 
