@@ -308,7 +308,7 @@ class HybridHistory(storage: HistoryStorage,
         } else HistoryComparisonResult.Younger
       case _ =>
         // +1 to include common block
-        val localSuffixLength = height - storage.heightOf(dSuffix.last).get + 1
+        val localSuffixLength = storage.heightOf(bestPowId).get - storage.heightOf(dSuffix.last).get
         val otherSuffixLength = dSuffix.length
 
         if (localSuffixLength < otherSuffixLength)

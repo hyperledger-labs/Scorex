@@ -67,6 +67,7 @@ class HybridHistorySpecification extends PropSpec
 
   property("History comparison") {
     assert(history.height >= HybridHistory.DifficultyRecalcPeriod)
+    //TODO test for completed pairs
     assert(!history.pairCompleted)
 
     val equalsSyncInfo: HybridSyncInfo = history.syncInfo(false)
