@@ -69,24 +69,19 @@ class HybridHistorySpecification extends PropSpec
     assert(history.height >= HybridHistory.DifficultyRecalcPeriod)
     //TODO test for completed pairs
     assert(!history.pairCompleted)
+    testHistory(history)
 
-    val equalsSyncInfo: HybridSyncInfo = history.syncInfo(false)
-    val lastIds  = equalsSyncInfo.lastPowBlockIds
-    lastIds.last shouldEqual history.bestPowId
-    compareAndCheck(history, equalsSyncInfo) shouldBe HistoryComparisonResult.Equal
-    compareAndCheck(history, equalsSyncInfo.copy(lastPowBlockIds = lastIds.tail)) shouldBe HistoryComparisonResult.Equal
+    //complete pair
+    forAll(posBlockGen) { posR =>
+      if (!history.pairCompleted) {
+        val posBlock = posR.copy(parentId = history.bestPowId)
+        history = history.append(posBlock).get._1
+        history.bestBlock.encodedId shouldBe posBlock.encodedId
+      }
+    }
 
-    val youngerSyncInfo = equalsSyncInfo.copy(lastPowBlockIds = lastIds.dropRight(1))
-    compareAndCheck(history, youngerSyncInfo) shouldBe HistoryComparisonResult.Younger
-
-    compareAndCheck(history, youngerSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe HistoryComparisonResult.Younger
-    compareAndCheck(history, equalsSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe HistoryComparisonResult.Younger
-
-    val betterForkSyncInfo = equalsSyncInfo
-      .copy(lastPowBlockIds = lastIds.dropRight(1).tail ++ Array(Random.randomBytes(32), Random.randomBytes(32)))
-      .copy(lastPosBlockId = Random.randomBytes(32))
-
-    compareAndCheck(history, betterForkSyncInfo) shouldBe HistoryComparisonResult.Older
+    assert(history.pairCompleted)
+    testHistory(history)
 
   }
 
@@ -99,5 +94,27 @@ class HybridHistorySpecification extends PropSpec
     }
     comparison
   }
+
+  def testHistory(history: HybridHistory): Unit = {
+    val equalsSyncInfo: HybridSyncInfo = history.syncInfo(false)
+    val lastIds = equalsSyncInfo.lastPowBlockIds
+    lastIds.last shouldEqual history.bestPowId
+    compareAndCheck(history, equalsSyncInfo) shouldBe HistoryComparisonResult.Equal
+    compareAndCheck(history, equalsSyncInfo.copy(lastPowBlockIds = lastIds.tail)) shouldBe HistoryComparisonResult.Equal
+
+    val youngerSyncInfo = equalsSyncInfo.copy(lastPowBlockIds = lastIds.dropRight(1))
+    compareAndCheck(history, youngerSyncInfo) shouldBe HistoryComparisonResult.Younger
+
+    compareAndCheck(history, youngerSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe HistoryComparisonResult.Younger
+    val posDiffComparison = if(history.pairCompleted) HistoryComparisonResult.Older else HistoryComparisonResult.Younger
+    compareAndCheck(history, equalsSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe posDiffComparison
+
+    val betterForkSyncInfo = equalsSyncInfo
+      .copy(lastPowBlockIds = lastIds.dropRight(1).tail ++ Array(Random.randomBytes(32), Random.randomBytes(32)))
+      .copy(lastPosBlockId = Random.randomBytes(32))
+
+    compareAndCheck(history, betterForkSyncInfo) shouldBe HistoryComparisonResult.Older
+  }
+
 
 }
