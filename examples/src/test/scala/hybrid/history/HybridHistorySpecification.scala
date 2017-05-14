@@ -1,12 +1,14 @@
 package hybrid.history
 
-import examples.hybrid.history.HybridHistory
+import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import hybrid.HybridGenerators
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.NodeViewModifier.ModifierId
+import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.crypto.encode.Base58
+import scorex.utils.Random
 
 
 class HybridHistorySpecification extends PropSpec
@@ -25,10 +27,12 @@ class HybridHistorySpecification extends PropSpec
       if (history.height <= HybridHistory.DifficultyRecalcPeriod) {
         val posBlock = posR.copy(parentId = history.bestPowId)
         history = history.append(posBlock).get._1
+        history.bestBlock.encodedId shouldBe posBlock.encodedId
 
         val powBlock = powR.copy(parentId = history.bestPowId, prevPosId = history.bestPosId, brothers = Seq(),
           brothersCount = 0)
         history = history.append(powBlock).get._1
+        history.bestBlock.encodedId shouldBe powBlock.encodedId
 
         history.modifierById(posBlock.id).isDefined shouldBe true
         history.modifierById(powBlock.id).isDefined shouldBe true
@@ -59,6 +63,40 @@ class HybridHistorySpecification extends PropSpec
         startList.exists(sl => sl._2 sameElements c._2) shouldBe false
       }
     }
+  }
+
+  property("History comparison") {
+    assert(history.height >= HybridHistory.DifficultyRecalcPeriod)
+    assert(!history.pairCompleted)
+
+    val equalsSyncInfo: HybridSyncInfo = history.syncInfo(false)
+    val lastIds  = equalsSyncInfo.lastPowBlockIds
+    lastIds.last shouldEqual history.bestPowId
+    compareAndCheck(history, equalsSyncInfo) shouldBe HistoryComparisonResult.Equal
+    compareAndCheck(history, equalsSyncInfo.copy(lastPowBlockIds = lastIds.tail)) shouldBe HistoryComparisonResult.Equal
+
+    val youngerSyncInfo = equalsSyncInfo.copy(lastPowBlockIds = lastIds.dropRight(1))
+    compareAndCheck(history, youngerSyncInfo) shouldBe HistoryComparisonResult.Younger
+
+    compareAndCheck(history, youngerSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe HistoryComparisonResult.Younger
+    compareAndCheck(history, equalsSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe HistoryComparisonResult.Younger
+
+    val betterForkSyncInfo = youngerSyncInfo
+      .copy(lastPowBlockIds = lastIds.dropRight(1).tail ++ Array(Random.randomBytes(32), Random.randomBytes(32)))
+      .copy(lastPosBlockId = Random.randomBytes(32))
+
+    compareAndCheck(history, betterForkSyncInfo) shouldBe HistoryComparisonResult.Older
+
+  }
+
+  def compareAndCheck(history: HybridHistory, syncInfo: HybridSyncInfo, networkChunkSize: Int = 10): HistoryComparisonResult.Value = {
+    val extensionOpt = history.continuationIds(syncInfo.startingPoints, networkChunkSize)
+    val comparison = history.compare(syncInfo)
+    if (comparison == HistoryComparisonResult.Younger) {
+      println(extensionOpt)
+      extensionOpt.nonEmpty shouldBe true
+    }
+    comparison
   }
 
 }

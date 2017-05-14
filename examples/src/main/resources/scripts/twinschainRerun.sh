@@ -13,7 +13,8 @@ do
 #   ssh ubuntu@$ip "sed -i '/\"addedMaxDelay\"/c\    \"addedMaxDelay\": 0,' /home/ubuntu/data/settings.json"
    ssh ubuntu@$ip "sed -i '/\"targetBlockDelayMillis\"/c\    \"targetBlockDelayMillis\": 60000,' /home/ubuntu/data/settings.json"
 
-#   ssh ubuntu@$ip "nohup java -jar -XX:-UseGCOverheadLimit /home/ubuntu/data/twinsChain.jar /home/ubuntu/data/settings.json > /tmp/l.log 2>&1 &"
+   ssh ubuntu@$ip "nohup java -jar -XX:-UseGCOverheadLimit /home/ubuntu/data/twinsChain.jar /home/ubuntu/data/settings.json > /tmp/l.log 2>&1 &"
+   sleep 30
 done
 
 
