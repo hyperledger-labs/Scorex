@@ -92,6 +92,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
     val newBoxIds: ByteArrayWrapper = ByteArrayWrapper(newBoxes.toArray.flatMap(_._1.data) ++
       boxIds.filter(bi => !boxIdsToRemove.exists(_.data sameElements bi)).flatten)
     store.update(ByteArrayWrapper(modifier.id), boxIdsToRemove, Seq(BoxIdsKey -> newBoxIds) ++ newBoxes)
+    log.debug(s"Successfully applied modifier to wallet: ${Base58.encode(modifier.id)}")
 
     HWallet(seed, store)
   }
@@ -102,6 +103,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
     } else {
       log.debug(s"Rolling back wallet to: ${Base58.encode(to)}")
       store.rollback(ByteArrayWrapper(to))
+      log.debug(s"Successfully rolled back wallet to: ${Base58.encode(to)}")
       HWallet(seed, store)
     }
   }
