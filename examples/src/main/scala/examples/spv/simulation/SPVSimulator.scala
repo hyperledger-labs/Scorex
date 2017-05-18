@@ -18,14 +18,6 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
   val lastBlock = headerChain.last
   var minDiff = Difficulty
-/*
-  lastBlock.interlinks.foreach { id =>
-    println(minDiff + " => " + Algos.blockIdDifficulty(id) + " => " +
-      (headerChain.length - headerChain.indexWhere(_.id sameElements id)))
-    minDiff = minDiff * 2
-  }
-  println(lastBlock)
-*/
 
   val k = 6
 
@@ -36,8 +28,5 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
     val blockNum = proof.suffix.length + proof.prefixProofs.flatten.length
     println(m + " => " + KMZProofSerializer.toBytes(proof).length + "," + blockNum)
   }
-
-  val proof = Algos.constructKMZProof(2, k, headerChain).get
-//  println(proof)
 
 }
