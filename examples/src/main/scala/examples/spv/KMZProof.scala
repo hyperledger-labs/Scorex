@@ -20,10 +20,11 @@ case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[
 }
 
 object KMZProofSerializer extends Serializer[KMZProof] {
+
+
   override def toBytes(obj: KMZProof): Array[Byte] = {
     val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
-      val bytes = HeaderSerializer.bytesWithoutInterlinks(h)
-      Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
+      HeaderSerializer.bytesWithoutInterlinks(h)
     })
     val prefixHeaders: Map[String, Header] = obj.prefixProofs.flatten.map(h => h.encodedId -> h).toMap
     val prefixHeadersBytes: Array[Byte] = prefixHeaders.flatMap { h =>
@@ -50,14 +51,14 @@ object KMZProofSerializer extends Serializer[KMZProof] {
     val k = bytes(1)
     val headSuffixLength = Shorts.fromByteArray(bytes.slice(2, 4))
     val headSuffix = HeaderSerializer.parseBytes(bytes.slice(4, 4 + headSuffixLength)).get
+    val l = HeaderSerializer.BytesWithoutInterlinksLength
 
     def parseSuffixes(index: Int, acc: Seq[Header]): (Int, Seq[Header]) = {
       if (acc.length == k) (index, acc.reverse)
       else {
-        val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
-        val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
+        val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index, index + l)).get
         val interlinks = Algos.constructInterlinkVector(acc.head)
-        parseSuffixes(index + 2 + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
+        parseSuffixes(index + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }
     }
     var (index, suffix) = parseSuffixes(4 + headSuffixLength, Seq(headSuffix))

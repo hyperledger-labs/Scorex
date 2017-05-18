@@ -63,6 +63,8 @@ object HeaderSerializer extends Serializer[Header] {
     Bytes.concat(bytesWithoutInterlinks(h), interlinkBytes(h.interlinks, Array[Byte]()))
   }
 
+  val BytesWithoutInterlinksLength = 108
+
   def bytesWithoutInterlinks(h: Header): Array[Byte] = {
     Bytes.concat(h.parentId, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce))
   }
