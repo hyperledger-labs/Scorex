@@ -8,6 +8,8 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.crypto.hash.Blake2b256
 
+import scala.util.{Failure, Try}
+
 
 class ChainTests extends PropSpec
   with PropertyChecks
@@ -95,12 +97,19 @@ class ChainTests extends PropSpec
 
   property("KMZ proof serialization") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructKMZProof(mk._1, mk._2, headerChain).get
-      val serializer = KMZProofSerializer
-      val bytes = serializer.toBytes(proof)
-      val parsed = serializer.parseBytes(bytes).get
-      bytes shouldEqual serializer.toBytes(parsed)
-      proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
+      Try {
+        val proof = Algos.constructKMZProof(mk._1, mk._2, headerChain).get
+        val serializer = KMZProofSerializer
+        val bytes = serializer.toBytes(proof)
+        val parsed = serializer.parseBytes(bytes).get
+        bytes shouldEqual serializer.toBytes(parsed)
+        proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
+      }.recoverWith {
+        case e =>
+          e.printStackTrace()
+          System.exit(1)
+          Failure(e)
+      }
     }
   }
 
