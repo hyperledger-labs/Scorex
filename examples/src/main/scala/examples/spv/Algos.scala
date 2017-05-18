@@ -31,10 +31,10 @@ object Algos {
   }
 
   //Algorithm 8 from the KMZ paper
-  def constructKMZProof(m: Int, blockchain: Seq[Header]): Try[KMZProof] = Try {
+  def constructKMZProof(m: Int, k: Int, blockchain: Seq[Header]): Try[KMZProof] = Try {
     require(m > 0 && m < blockchain.length, s"$m > 0 && $m < ${blockchain.length}")
+    require(k > 0 && m < blockchain.length, s"$k > 0 && $k < ${blockchain.length}")
 
-    val k = m //according to the desc
     val (prefix, suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
 
     //TODO make efficient

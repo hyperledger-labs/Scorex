@@ -95,8 +95,7 @@ class ChainTests extends PropSpec
 
   property("KMZ proof serialization") {
     forAll(mkGen) { mk =>
-      val m = mk._1
-      val proof = Algos.constructKMZProof(m, headerChain).get
+      val proof = Algos.constructKMZProof(mk._1, mk._2, headerChain).get
       val serializer = KMZProofSerializer
       val bytes = serializer.toBytes(proof)
       val parsed = serializer.parseBytes(bytes).get
