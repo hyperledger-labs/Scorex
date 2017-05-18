@@ -8,8 +8,8 @@ import scala.util.Try
 
 case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[Header]) {
   lazy val valid: Try[Unit] = Try {
-    require(suffix.length == k, "Wrong suffix length")
-    prefixProofs.foreach(p => require(p.length <= m, s"${p.length} <= $m"))
+    require(suffix.length >= k, "Wrong suffix length")
+//    prefixProofs.foreach(p => require(p.length <= m, s"${p.length} <= $m"))
 
     suffix.foldRight(Array[Byte]()) { (a, b) =>
       if (b.nonEmpty) require(b sameElements a.id)

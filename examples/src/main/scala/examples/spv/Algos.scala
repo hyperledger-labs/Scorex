@@ -87,10 +87,10 @@ object Algos {
     def constructInnerChain(c: Seq[Header], i: Int, boundary: Header): Seq[Header] = {
       @tailrec
       def stepThroughInnerchain(B: Header, mu: Int, collected: Seq[Header], boundary: Header): Seq[Header] = {
-        if (B.id sameElements boundary.id) {
+        if (B.encodedId == boundary.encodedId || B.interlinks.length < mu) {
           collected
         } else {
-          val blockId = B.interlinks(mu)
+          val blockId = B.interlinks(mu - 1)
           val newB = headerById(blockId)
           stepThroughInnerchain(newB, mu, collected :+ newB, boundary)
         }
@@ -104,8 +104,8 @@ object Algos {
       } else {
         val newB = if (acc.head.length >= m) acc.head.head else boundary
         val inC: Seq[Header] = constructInnerChain(prefix, i, boundary)
-        val a: Seq[Seq[Header]] = acc
-        constructProofChains(newB, i - 1, a ++ Seq(inC))
+        val newAcc: Seq[Seq[Header]] = if (inC.length >= m) acc ++ Seq(inC) else acc
+        constructProofChains(newB, i - 1, newAcc)
       }
     }
 
