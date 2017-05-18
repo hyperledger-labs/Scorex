@@ -33,7 +33,8 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
   Seq(6, 15, 30, 50, 100, 127) foreach { m =>
     val proof = Algos.constructKMZProof(m, k, headerChain).get
     proof.valid.get
-    println(m + " => " + KMZProofSerializer.toBytes(proof).length)
+    val blockNum = proof.suffix.length + proof.prefixProofs.flatten.length
+    println(m + " => " + KMZProofSerializer.toBytes(proof).length + "," + blockNum)
   }
 
   val proof = Algos.constructKMZProof(2, k, headerChain).get
