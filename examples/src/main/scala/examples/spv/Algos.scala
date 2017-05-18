@@ -66,12 +66,6 @@ object Algos {
 
     val proofChains = Seq(topSuperchain) ++ chainsDown
 
-    val proofBytes = proofChains.reduce(_ ++ _).map(_.bytes).reduce(_ ++ _)
-    val minProofBytes = proofChains.reduce(_ ++ _).toSet.toArray.map(_.bytes).reduce(_ ++ _)
-
-    proofChains.map(_.length).foreach(l => println("proofchain length: " + l))
-    println("proof bytes:" + proofBytes.length)
-    println("min proof bytes:" + minProofBytes.length)
 
     KMZProof(m, k, proofChains, suffix)
   }
