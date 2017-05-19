@@ -1,6 +1,6 @@
 {
   "p2p": {
-    "name": "local-testnet",
+    "name": "generatorNode-local",
     "bindAddress": "0.0.0.0",
     "upnp": false,
     "upnpGatewayTimeout": 7000,

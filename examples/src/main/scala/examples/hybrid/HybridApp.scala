@@ -60,7 +60,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   localInterface
   nodeViewSynchronizer
 
-  if (settings.nodeName == "node1") {
+  if (settings.nodeName.startsWith("generatorNode")) {
     log.info("Starting transactions generation")
     val generator: ActorRef = actorSystem.actorOf(Props(classOf[SimpleBoxTransactionGenerator], nodeViewHolderRef))
     generator ! StartGeneration(FiniteDuration(10, SECONDS))
