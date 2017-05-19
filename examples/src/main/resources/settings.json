@@ -9,7 +9,7 @@
     "knownPeers": [
       "127.0.0.2:9088"
     ],
-    "addedMaxDelay": 2000,
+    "addedMaxDelay": 0,
     "maxConnections": 10,
     "handshakeTimeout": 2000
   },
