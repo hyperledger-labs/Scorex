@@ -66,7 +66,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
     if (source.isEmpty) {
-      val msg = Message(InvSpec, Right(Transaction.ModifierTypeId -> Seq(m.id)), None)
+      val msg = Message(InvSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
       networkControllerRef ! SendToNetwork(msg, Broadcast)
     }
 
