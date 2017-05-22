@@ -10,7 +10,7 @@
       "127.0.0.2:9088"
     ],
     "addedMaxDelay": 500,
-    "maxConnections": 10
+    "maxConnections": 1
   },
   "RparamX10": 8,
   "targetBlockDelayMillis": 10000,
