@@ -9,7 +9,7 @@
     "knownPeers": [
       "127.0.0.2:9088"
     ],
-    "addedMaxDelay": 500,
+    "addedMaxDelay": 0,
     "maxConnections": 1
   },
   "RparamX10": 8,
