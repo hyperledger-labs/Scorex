@@ -16,10 +16,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Success
 
-class MiningController[P <: Proposition, TX <: Transaction[P]]
+class MiningController[T, P <: Proposition, TX <: Transaction[P]]
 (settings: Settings,
  historySynchronizer: ActorRef,
- viewHolder: NodeViewHolder[P, TX, _]
+ viewHolder: NodeViewHolder[T, P, TX, _]
 ) extends Actor
   with ScorexLogging {
 
@@ -87,7 +87,7 @@ class MiningController[P <: Proposition, TX <: Transaction[P]]
   }
 
   def newWorkers(count: Int): Seq[ActorRef] = (1 to count).map { i =>
-    context.watch(context.actorOf(Props(classOf[Miner[P, TX]],
+    context.watch(context.actorOf(Props(classOf[Miner[T, P, TX]],
       settings,
       historySynchronizer,
       viewHolder

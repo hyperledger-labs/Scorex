@@ -5,7 +5,7 @@ import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
-trait PublicKeyNoncedBox[PKP <: PublicKey25519Proposition] extends Box[PKP] {
+trait PublicKeyNoncedBox[PKP <: PublicKey25519Proposition, T] extends Box[PKP, T] {
   val nonce: Long
 
   lazy val id: Array[Byte] = PublicKeyNoncedBox.idFromBox(proposition, nonce)
@@ -13,7 +13,7 @@ trait PublicKeyNoncedBox[PKP <: PublicKey25519Proposition] extends Box[PKP] {
   lazy val publicKey = proposition
 
   override def equals(obj: Any): Boolean = obj match {
-    case acc: PublicKeyNoncedBox[PKP] => (acc.id sameElements this.id) && acc.value == this.value
+    case acc: PublicKeyNoncedBox[PKP, T] => (acc.id sameElements this.id) && acc.value == this.value
     case _ => false
   }
 

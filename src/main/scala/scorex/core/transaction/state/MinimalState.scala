@@ -12,11 +12,11 @@ import scala.util.Try
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
 
-trait MinimalState[P <: Proposition,
-BX <: Box[P],
+trait MinimalState[T, P <: Proposition,
+BX <: Box[P, T],
 TX <: Transaction[P],
 M <: PersistentNodeViewModifier[P, TX],
-MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
+MS <: MinimalState[T, P, BX, TX, M, MS]] extends NodeViewComponent {
   self: MS =>
 
   def version: VersionTag
@@ -33,9 +33,9 @@ MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
 
   def boxesOf(proposition: P): Seq[BX]
 
-  def changes(mod: M): Try[StateChanges[P, BX]]
+  def changes(mod: M): Try[StateChanges[T, P, BX]]
 
-  def applyChanges(changes: StateChanges[P, BX], newVersion: VersionTag): Try[MS]
+  def applyChanges(changes: StateChanges[T, P, BX], newVersion: VersionTag): Try[MS]
 
   def applyModifier(mod: M): Try[MS] = {
     validate(mod) flatMap {_ =>

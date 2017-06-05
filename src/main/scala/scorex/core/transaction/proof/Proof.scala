@@ -11,8 +11,8 @@ import scorex.core.transaction.state.Secret
   * A proof is non-interactive and thus serializable
   */
 
-trait Proof[P <: Proposition] extends BytesSerializable {
-  def isValid(proposition: P, message: Array[Byte]): Boolean
+trait Proof[+P <: Proposition] extends BytesSerializable {
+  def isValid(proposition: Proposition, message: Array[Byte]): Boolean
 }
 
 trait ProofOfKnowledge[S <: Secret, P <: ProofOfKnowledgeProposition[S]] extends Proof[P]

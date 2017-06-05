@@ -27,7 +27,7 @@ trait SecretCompanion[S <: Secret] {
 
   type PR <: ProofOfKnowledge[S, _ <: ProofOfKnowledgeProposition[S]]
 
-  def owns(secret: S, box: Box[_]): Boolean
+  def owns(secret: S, box: Box[_, Any]): Boolean
 
   def sign(secret: S, message: Array[Byte]): PR
 
@@ -63,7 +63,7 @@ object PrivateKey25519Companion extends SecretCompanion[PrivateKey25519] {
 
   override type PR = Signature25519
 
-  override def owns(secret: PrivateKey25519, box: Box[_]): Boolean = {
+  override def owns(secret: PrivateKey25519, box: Box[_, Any]): Boolean = {
     box.proposition match {
       case p: PublicKey25519Proposition => p.pubKeyBytes sameElements secret.publicKeyBytes
       case _ => false

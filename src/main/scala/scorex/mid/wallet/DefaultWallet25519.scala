@@ -23,7 +23,7 @@ import scala.util.Try
 case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition],
 PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
 (settings: Settings)
-  extends Wallet[PublicKey25519Proposition, TX, PMOD, DefaultWallet25519[TX, PMOD]] {
+  extends Wallet[Any, PublicKey25519Proposition, TX, PMOD, DefaultWallet25519[TX, PMOD]] {
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
@@ -51,7 +51,7 @@ PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, TX]] = ???
 
-  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, _ <: PublicKeyNoncedBox[PublicKey25519Proposition]]] = ???
+  override def boxes(): Seq[WalletBox[Any, PublicKey25519Proposition, _ <: PublicKeyNoncedBox[PublicKey25519Proposition, Any]]] = ???
 
   override def publicKeys: Set[PublicKey25519Proposition] =
     dbSecrets.keySet.map(PublicKey25519Proposition.apply).toSet

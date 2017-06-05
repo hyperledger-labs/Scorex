@@ -12,28 +12,28 @@ import scorex.crypto.encode.Base58
 import scala.util.Try
 
 //TODO why do we need transactionId and createdAt
-case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
+case class WalletBox[T, P <: Proposition, B <: Box[P, T]](box: B, transactionId: Array[Byte], createdAt: Long)
                                                    (subclassDeser: Serializer[B]) extends BytesSerializable {
-  override type M = WalletBox[P, B]
+  override type M = WalletBox[T, P, B]
 
-  override def serializer: Serializer[WalletBox[P, B]] = new WalletBoxSerializer(subclassDeser)
+  override def serializer: Serializer[WalletBox[T, P, B]] = new WalletBoxSerializer(subclassDeser)
 
   override def toString: String = s"WalletBox($box, ${Base58.encode(transactionId)}, $createdAt)"
 }
 
 
-class WalletBoxSerializer[P <: Proposition, B <: Box[P]](subclassDeser: Serializer[B]) extends Serializer[WalletBox[P, B]] {
-  override def toBytes(box: WalletBox[P, B]): Array[Byte] = {
+class WalletBoxSerializer[T, P <: Proposition, B <: Box[P, T]](subclassDeser: Serializer[B]) extends Serializer[WalletBox[T, P, B]] {
+  override def toBytes(box: WalletBox[T, P, B]): Array[Byte] = {
     Bytes.concat(box.transactionId, Longs.toByteArray(box.createdAt), box.box.bytes)
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[WalletBox[P, B]] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[WalletBox[T, P, B]] = Try {
     val txId = bytes.slice(0, NodeViewModifier.ModifierIdSize)
     val createdAt = Longs.fromByteArray(
       bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8))
     val boxB = bytes.slice(NodeViewModifier.ModifierIdSize + 8, bytes.length)
     val box: B = subclassDeser.parseBytes(boxB).get
-    WalletBox[P, B](box, txId, createdAt)(subclassDeser)
+    WalletBox[T, P, B](box, txId, createdAt)(subclassDeser)
   }
 }
 
@@ -90,7 +90,7 @@ object WalletTransaction {
   * @tparam P
   * @tparam TX
   */
-trait Wallet[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX], W <: Wallet[P, TX, PMOD, W]]
+trait Wallet[T, P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX], W <: Wallet[T, P, TX, PMOD, W]]
   extends Vault[P, TX, PMOD, W] {
   self: W =>
 
@@ -102,7 +102,7 @@ trait Wallet[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewM
 
   def historyTransactions: Seq[WalletTransaction[P, TX]]
 
-  def boxes(): Seq[WalletBox[P, _ <: Box[P]]]
+  def boxes(): Seq[WalletBox[T, P, _ <: Box[P, T]]]
 
   def publicKeys: Set[PI]
 

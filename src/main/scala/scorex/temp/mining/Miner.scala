@@ -12,10 +12,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.{Failure, Try}
 
-class Miner[P <: Proposition, TX <: Transaction[P]]
+class Miner[T, P <: Proposition, TX <: Transaction[P]]
 (settings: Settings,
  historySynchronizer: ActorRef,
- viewHolder: NodeViewHolder[P, TX, _])
+ viewHolder: NodeViewHolder[T, P, TX, _])
   extends Actor with ScorexLogging {
 
   // BlockGenerator is trying to generate a new block every $blockGenerationDelay.

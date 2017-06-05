@@ -1,7 +1,7 @@
 package scorex.core.transaction.proof
 
 import scorex.core.serialization.Serializer
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
@@ -15,7 +15,7 @@ case class Signature25519(signature: Array[Byte]) extends ProofOfKnowledge[Priva
   require(signature.isEmpty || signature.length == Curve25519.SignatureLength,
     s"${signature.length} != ${Curve25519.SignatureLength}")
 
-  override def isValid(proposition: PublicKey25519Proposition, message: Array[Byte]): Boolean =
+  override def isValid(proposition: Proposition, message: Array[Byte]): Boolean =
     Curve25519.verify(signature, message, proposition.bytes)
 
   override type M = Signature25519
