@@ -29,7 +29,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
                                 signatures: IndexedSeq[Signature25519],
                                 override val fee: Long,
                                 override val timestamp: Long) extends
-  BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
+  BoxTransaction[PublicKey25519Proposition, Long, PublicKey25519NoncedBox] {
 
   override type M = SimpleBoxTransaction
 

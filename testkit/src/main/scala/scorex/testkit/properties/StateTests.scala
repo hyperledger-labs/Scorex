@@ -9,11 +9,11 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.testkit.{CoreGenerators, TestkitHelpers}
 
-trait StateTests[P <: Proposition,
+trait StateTests[T, P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
-B <: Box[P],
-ST <: MinimalState[P, B, TX, PM, ST]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers
+B <: Box[P, T],
+ST <: MinimalState[T, P, B, TX, PM, ST]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers
   with PropertyChecks with CoreGenerators {
 
   val state: ST

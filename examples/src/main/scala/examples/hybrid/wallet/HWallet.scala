@@ -20,7 +20,7 @@ import scala.util.Try
 
 
 case class HWallet(seed: Array[Byte], store: LSMStore)
-  extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock, HWallet]
+  extends Wallet[Long, PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock, HWallet]
     with ScorexLogging {
 
   override type S = PrivateKey25519
@@ -35,12 +35,12 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
   }
 
   private lazy val walletBoxSerializer =
-    new WalletBoxSerializer[PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)
+    new WalletBoxSerializer[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)
 
   //not implemented intentionally for now
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleBoxTransaction]] = ???
 
-  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+  override def boxes(): Seq[WalletBox[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     boxIds
       .flatMap(id => store.get(ByteArrayWrapper(id)))
       .map(_.data)
@@ -84,7 +84,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
         .find(t => t.newBoxes.exists(tb => tb.id sameElements box.id))
       val txId = boxTransaction.map(_.id).getOrElse(Array.fill(32)(0: Byte))
       val ts = boxTransaction.map(_.timestamp).getOrElse(modifier.timestamp)
-      val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, ts)(PublicKey25519NoncedBoxSerializer)
+      val wb = WalletBox[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, ts)(PublicKey25519NoncedBoxSerializer)
       ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
     }
 

@@ -15,7 +15,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
                         chainTransactions: Map[TransactionId, SimpleTransaction] = Map(),
                         offchainTransactions: Map[TransactionId, SimpleTransaction] = Map(),
                         currentBalance: Long = 0)
-  extends Wallet[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleWallet] {
+  extends Wallet[Long, PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleWallet] {
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
 
@@ -43,7 +43,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleTransaction]] = ???
 
-  override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = Seq()
+  override def boxes(): Seq[WalletBox[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] = Seq()
 
   override def scanOffchain(tx: SimpleTransaction): SimpleWallet = tx match {
     case sp: SimplePayment =>

@@ -7,13 +7,13 @@ import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{MinimalState, StateChanges}
 
-trait StateRollbackTest[P <: Proposition,
+trait StateRollbackTest[T, P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
-B <: Box[P],
-ST <: MinimalState[P, B, TX, PM, ST]] extends StateTests[P, TX, PM, B, ST] {
+B <: Box[P, T],
+ST <: MinimalState[T, P, B, TX, PM, ST]] extends StateTests[T, P, TX, PM, B, ST] {
 
-  val stateChangesGenerator: Gen[StateChanges[P, B]]
+  val stateChangesGenerator: Gen[StateChanges[T, P, B]]
 
   property("State version updates as expected") {
 

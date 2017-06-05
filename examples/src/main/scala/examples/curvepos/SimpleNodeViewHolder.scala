@@ -12,7 +12,7 @@ import scorex.crypto.signatures.Curve25519
 import scala.util.{Failure, Success}
 
 class SimpleNodeViewHolder(settings: Settings)
-  extends NodeViewHolder[PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {
+  extends NodeViewHolder[Long, PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {
 
 
   override val networkChunkSize: Int = settings.networkChunkSize

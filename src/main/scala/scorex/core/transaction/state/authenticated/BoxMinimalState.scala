@@ -27,30 +27,6 @@ trait BoxMinimalState[T, P <: Proposition, BX <: Box[P, T], BTX <: BoxTransactio
     * @param tx - transaction to check against the state
     * @return
     */
-  /*override def validate(tx: BTX): Try[Unit] = {
-    val statefulValid = {
-      val boxesSumTry = tx.unlockers.foldLeft[Try[Long]](Success(0L)) { case (partialRes, unlocker) =>
-        partialRes.flatMap { partialSum =>
-          closedBox(unlocker.closedBoxId) match {
-            case Some(box) =>
-              unlocker.boxKey.isValid(box.proposition, tx.messageToSign) match {
-                case true => Success(partialSum + box.value.asInstanceOf[Long])
-                case false => Failure(new Exception("Incorrect unlocker"))
-              }
-            case None => Failure(new Exception(s"Box for unlocker $unlocker is not in the state"))
-          }
-        }
-      }
-
-      boxesSumTry flatMap { openSum =>
-        tx.newBoxes.map(_.value).sum == openSum - tx.fee match {
-          case true => Success[Unit](Unit)
-          case false => Failure(new Exception("Negative fee"))
-        }
-      }
-    }
-    statefulValid.flatMap(_ => semanticValidity(tx))
-  }*/
 
   def semanticValidity(tx: BTX): Try[Unit]
 }

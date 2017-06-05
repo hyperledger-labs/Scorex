@@ -18,8 +18,8 @@ class SerializationTests extends PropSpec
 
   property("WalletBox serialization") {
     val walletBoxSerializer =
-      new WalletBoxSerializer[PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)
-    forAll(walletBoxGen) { b: WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox] =>
+      new WalletBoxSerializer[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)
+    forAll(walletBoxGen) { b: WalletBox[Long, PublicKey25519Proposition, PublicKey25519NoncedBox] =>
       val parsed = walletBoxSerializer.parseBytes(walletBoxSerializer.toBytes(b)).get
       walletBoxSerializer.toBytes(parsed) shouldEqual walletBoxSerializer.toBytes(b)
     }

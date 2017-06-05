@@ -25,8 +25,8 @@ object ValidationSimulator extends App with Simulators {
     )
   }
 
-  val genesisChanges: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
-    StateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
+  val genesisChanges: StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox] =
+    StateChanges(genesisBoxes.map(box => Insertion[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
 
   val genesisUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
   val rootHash = genesisUtxo.rootHash

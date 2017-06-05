@@ -15,7 +15,7 @@ import scorex.crypto.signatures.Curve25519
 case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Proposition,
                                    override val nonce: Long,
                                    override val value: Long
-                                  ) extends PublicKeyNoncedBox[PublicKey25519Proposition] with JsonSerializable {
+                                  ) extends PublicKeyNoncedBox[PublicKey25519Proposition, Long] with JsonSerializable {
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
