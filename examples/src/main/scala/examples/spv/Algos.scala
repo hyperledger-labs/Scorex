@@ -71,19 +71,19 @@ object Algos {
     KMZProof(m, k, proofChains, suffix)
   }
 
-  def constructKMZProof(m: Int, k: Int, blockchain: Seq[Header]): Try[KMZProof] = Try {
-    require(m > 0 && m < blockchain.length, s"$m > 0 && $m < ${blockchain.length}")
-    require(k > 0 && m < blockchain.length, s"$k > 0 && $k < ${blockchain.length}")
+  def constructKMZProof(m: Int, k: Int, C: Seq[Header]): Try[KMZProof] = Try {
+    require(m > 0 && m < C.length, s"$m > 0 && $m < ${C.length}")
+    require(k > 0 && m < C.length, s"$k > 0 && $k < ${C.length}")
 
-    val (prefix, suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
+    val (prefix, suffix: Seq[Header]) = C.splitAt(C.length - k)
 
     //TODO make efficient
-    val blockchainMap: Map[ByteArrayWrapper, Header] = blockchain.map(b => ByteArrayWrapper(b.id) -> b).toMap
+    val blockchainMap: Map[ByteArrayWrapper, Header] = C.map(b => ByteArrayWrapper(b.id) -> b).toMap
     def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
 
     val i = prefix.last.interlinks.size - 1
 
-    //Algorithm 6 from the KMZ paper
+    //Algorithm 3 from the KMZ paper
     def constructInnerChain(c: Seq[Header], i: Int, boundary: Header): Seq[Header] = {
       @tailrec
       def stepThroughInnerchain(B: Header, mu: Int, collected: Seq[Header], boundary: Header): Seq[Header] = {
@@ -98,19 +98,25 @@ object Algos {
       stepThroughInnerchain(c.last, i, Seq(), boundary)
     }
 
-    def constructProofChains(boundary: Header, i: Int, acc: Seq[Seq[Header]]): Seq[Seq[Header]] = {
+    //Algorithm 3 from the KMZ paper
+    def prove(boundary: Header, i: Int, acc: Seq[Seq[Header]]): Seq[Seq[Header]] = {
       if (i == 0) {
         acc
       } else {
-        val newB = if (acc.head.length >= m) acc.head.head else boundary
         val inC: Seq[Header] = constructInnerChain(prefix, i, boundary)
+        val (newIn, newB) = if (inC.length >= m) {
+          (constructInnerChain(prefix, i, inC(inC.length - m)), inC(inC.length - m))
+        } else {
+          (inC, boundary)
+        }
+
         val newAcc: Seq[Seq[Header]] = if (inC.length >= m) acc ++ Seq(inC) else acc
-        constructProofChains(newB, i - 1, newAcc)
+        prove(newB, i - 1, newAcc)
       }
     }
 
-    val boundary = blockchain.head
-    val proofChains = constructProofChains(boundary, i, Seq(constructInnerChain(prefix, i, boundary)))
+    val boundary = C.head
+    val proofChains = prove(boundary, i, Seq(constructInnerChain(prefix, i, boundary)))
 
     KMZProof(m, k, proofChains, suffix)
   }
