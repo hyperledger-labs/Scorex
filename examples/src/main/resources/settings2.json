@@ -1,4 +1,4 @@
- {
+{
   "p2p": {
     "name": "node2",
     "bindAddress": "127.0.0.2",
@@ -9,9 +9,11 @@
     "knownPeers": [
       "127.0.0.1:9084"
     ],
-    "addedMaxDelay": 1000,
+    "addedMaxDelay": 0,
     "maxConnections": 10
   },
+  "RparamX10": 8,
+  "targetBlockDelayMillis": 10000,
   "walletPassword": "cookies2",
   "walletSeed": "genesiso1",
   "walletDir": "/tmp/scorex/data2/wallet",
@@ -24,5 +26,9 @@
   "blockGenerationDelay": 100,
   "cors": false,
   "agent": "2-Hop",
-  "version": [0, 0, 1]
+  "version": [
+    0,
+    0,
+    1
+  ]
 }

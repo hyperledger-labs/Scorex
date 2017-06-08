@@ -6,7 +6,9 @@ import examples.hybrid.state.HBoxStoredState
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.utils.ScorexLogging
 
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Random, Success, Try}
@@ -14,7 +16,7 @@ import scala.util.{Failure, Random, Success, Try}
 /**
   * Generator of SimpleBoxTransaction inside a wallet
   */
-class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
+class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
   import SimpleBoxTransactionGenerator._
 
@@ -25,18 +27,25 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor {
     case CurrentView(_, state: HBoxStoredState, wallet: HWallet, _) =>
       generate(wallet) match {
         case Success(tx) =>
-          println(s"Local tx with with ${tx.from.size} inputs, ${tx.to.size} outputs")
+          log.info(s"Local tx with with ${tx.from.size} inputs, ${tx.to.size} outputs. Valid: ${tx.semanticValidity}")
           viewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
         case Failure(e) =>
           e.printStackTrace()
       }
   }
 
+  private val ex: ArrayBuffer[Array[Byte]] = ArrayBuffer()
+
   def generate(wallet: HWallet): Try[SimpleBoxTransaction] = {
+    if (Random.nextInt(100) == 1) ex.clear()
+
     val pubkeys = wallet.publicKeys.toSeq
-    //todo multiple recipients
-    val recipient = pubkeys(Random.nextInt(pubkeys.size))
-    SimpleBoxTransaction.create(wallet, recipient, Random.nextInt(100), Random.nextInt(100))
+    if (pubkeys.size < 10) wallet.generateNewSecret()
+    val recipients = scala.util.Random.shuffle(pubkeys).take(Random.nextInt(pubkeys.size))
+      .map(r => (r, Random.nextInt(100).toLong))
+    val tx = SimpleBoxTransaction.create(wallet, recipients, Random.nextInt(100), ex)
+    tx.map(t => t.boxIdsToOpen.foreach(id => ex += id))
+    tx
   }
 }
 

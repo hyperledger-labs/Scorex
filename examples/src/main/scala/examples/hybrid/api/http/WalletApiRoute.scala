@@ -58,7 +58,7 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
                 val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
                 val recipient: PublicKey25519Proposition = PublicKey25519Proposition(Base58.decode((json \\ "recipient").head.asString.get).get)
                 val fee: Long = (json \\ "fee").head.asNumber.flatMap(_.toLong).getOrElse(DefaultFee)
-                val tx = SimpleBoxTransaction.create(wallet, recipient, amount, fee).get
+                val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, amount)), fee).get
                 nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
                 tx.json
               } match {
