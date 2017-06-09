@@ -31,17 +31,18 @@ class ChainTests extends PropSpec
   val lastInnerLinks = lastBlock.interlinks
 
   property("constructInnerChain contains all blocks at the level if no boundary provided") {
-    //TODO make efficient
     val blockchainMap: Map[ByteArrayWrapper, Header] = headerChain.map(b => ByteArrayWrapper(b.id) -> b).toMap
     def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
 
     def check(mu: Int): Unit = {
       val innerChain = Algos.constructInnerChain(lastBlock, mu, genesis, headerById)
-      val filtered = headerChain.count(h => h.realDifficulty >= BigInt(2).pow(mu) && (h.encodedId != genesis.encodedId))
-      filtered shouldBe innerChain.length
+      val filtered = headerChain.filter(h => h.realDifficulty >= BigInt(2).pow(mu) && h != lastBlock && h != genesis)
+      filtered.length == innerChain.length
     }
     check(1)
   }
+
+
 
   property("SPVSimulator generate chain starting from genesis") {
     headerChain.head shouldBe genesis
@@ -57,6 +58,13 @@ class ChainTests extends PropSpec
     lastInnerLinks.tail.foreach { id =>
       Algos.blockIdDifficulty(id) should be >= currentDifficulty
       currentDifficulty = currentDifficulty * 2
+    }
+  }
+
+  property("Generated KMZ proof is correct") {
+    forAll(mkGen) { mk =>
+      val proof = Algos.constructKMZProof(mk._1, mk._2, headerChain).get
+      proof.valid.get
     }
   }
 

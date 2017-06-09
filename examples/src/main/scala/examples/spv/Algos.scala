@@ -47,10 +47,10 @@ object Algos {
       if (i == 0) {
         acc
       } else {
-        val inC: Seq[Header] = constructInnerChain(prefix.last, i, boundary, headerById)
+        val inC: Seq[Header] = constructInnerChain(suffix.head, i, boundary, headerById)
         inC.foreach(h => assert(h.realDifficulty >= i * Constants.InitialDifficulty))
         val (newIn, newB) = if (inC.length >= m) {
-          (constructInnerChain(prefix.last, i, inC(inC.length - m), headerById), inC(inC.length - m))
+          (constructInnerChain(suffix.head, i, inC(inC.length - m), headerById), inC(inC.length - m))
         } else {
           (inC, boundary)
         }
@@ -61,7 +61,7 @@ object Algos {
     }
 
     val boundary = C.head
-    val proofChains = prove(boundary, i, Seq(constructInnerChain(prefix.last, i, boundary, headerById)))
+    val proofChains = prove(boundary, i, Seq())
 
     KMZProof(m, k, proofChains, suffix)
   }
