@@ -2,6 +2,7 @@ package examples.spv
 
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.block.Block._
+import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -30,73 +31,14 @@ object Algos {
     genesisId +: generateInnerchain(Constants.InitialDifficulty * 2, Seq[Array[Byte]]())
   }
 
-  //Algorithm 8 from the KMZ paper
-  def constructKMZProofOld(m: Int, k: Int, blockchain: Seq[Header]): Try[KMZProof] = Try {
-    require(m > 0 && m < blockchain.length, s"$m > 0 && $m < ${blockchain.length}")
-    require(k > 0 && m < blockchain.length, s"$k > 0 && $k < ${blockchain.length}")
-
-    val (prefix, suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
-
-    //TODO make efficient
-    val blockchainMap: Map[ByteArrayWrapper, Header] = blockchain.map(b => ByteArrayWrapper(b.id) -> b).toMap
-
-    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
-
-    val i = prefix.last.interlinks.size - 1
-
-    //Algorithm 6 from the KMZ paper
-    def constructInnerChain(c: Seq[Header], i: Int, boundary: Int): Seq[Header] = {
-
-      @tailrec
-      def stepThroughInnerchain(b: Header, level: Int, collected: Seq[Header], boundary: Int): Seq[Header] = {
-        if (b.interlinks.size <= level || collected.size == boundary) collected
-        else {
-          val blockId = b.interlinks(i)
-          val newB = headerById(blockId)
-          stepThroughInnerchain(newB, level, collected :+ newB, boundary)
-        }
-      }
-
-      stepThroughInnerchain(c.last, i, Seq(), boundary)
-    }
-
-    val topSuperchain = constructInnerChain(prefix, i, Int.MaxValue)
-    val chainsDown = (i - 1).to(0, -1).map { ci =>
-      constructInnerChain(prefix, ci, m)
-    }
-
-    val proofChains = Seq(topSuperchain) ++ chainsDown
-
-
-    KMZProof(m, k, proofChains, suffix)
-  }
-
   def constructKMZProof(m: Int, k: Int, C: Seq[Header]): Try[KMZProof] = Try {
     require(m > 0 && m < C.length, s"$m > 0 && $m < ${C.length}")
     require(k > 0 && m < C.length, s"$k > 0 && $k < ${C.length}")
 
     val (prefix, suffix: Seq[Header]) = C.splitAt(C.length - k)
-
-    //TODO make efficient
-    val blockchainMap: Map[ByteArrayWrapper, Header] = C.map(b => ByteArrayWrapper(b.id) -> b).toMap
-    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
+    stringChain(C)
 
     val i = prefix.last.interlinks.size - 1
-
-    //Algorithm 3 from the KMZ paper
-    def constructInnerChain(c: Seq[Header], i: Int, boundary: Header): Seq[Header] = {
-      @tailrec
-      def stepThroughInnerchain(B: Header, mu: Int, collected: Seq[Header], boundary: Header): Seq[Header] = {
-        if (B.encodedId == boundary.encodedId || B.interlinks.length < mu) {
-          collected
-        } else {
-          val blockId = B.interlinks(mu - 1)
-          val newB = headerById(blockId)
-          stepThroughInnerchain(newB, mu, collected :+ newB, boundary)
-        }
-      }
-      stepThroughInnerchain(c.last, i, Seq(), boundary)
-    }
 
     //Algorithm 3 from the KMZ paper
     def prove(boundary: Header, i: Int, acc: Seq[Seq[Header]]): Seq[Seq[Header]] = {
@@ -104,13 +46,14 @@ object Algos {
         acc
       } else {
         val inC: Seq[Header] = constructInnerChain(prefix, i, boundary)
+        inC.foreach(h => assert(h.realDifficulty >= i * Constants.InitialDifficulty))
         val (newIn, newB) = if (inC.length >= m) {
           (constructInnerChain(prefix, i, inC(inC.length - m)), inC(inC.length - m))
         } else {
           (inC, boundary)
         }
 
-        val newAcc: Seq[Seq[Header]] = if (inC.length >= m) acc ++ Seq(inC) else acc
+        val newAcc: Seq[Seq[Header]] = if (newIn.length >= m) acc ++ Seq(newIn) else acc
         prove(newB, i - 1, newAcc)
       }
     }
@@ -120,6 +63,28 @@ object Algos {
 
     KMZProof(m, k, proofChains, suffix)
   }
+
+  //Algorithm 3 from the KMZ paper
+  def constructInnerChain(c: Seq[Header], mu: Int, boundary: Header): Seq[Header] = {
+    //TODO make efficient
+    val blockchainMap: Map[ByteArrayWrapper, Header] = c.map(b => ByteArrayWrapper(b.id) -> b).toMap
+    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
+
+    @tailrec
+    def stepThroughInnerchain(B: Header, collected: Seq[Header], boundary: Header): Seq[Header] = {
+      val blockIdTry = Try(B.interlinks(mu))
+
+      if (B.encodedId == boundary.encodedId || blockIdTry.isFailure) {
+        collected
+      } else {
+        val blockId = blockIdTry.get
+        val newB = headerById(blockId)
+        stepThroughInnerchain(newB, collected :+ newB, boundary)
+      }
+    }
+    stepThroughInnerchain(c.last, Seq(), boundary).reverse
+  }
+
 
   /**
     * Constructs SPV Proof from KLS16 paper
@@ -162,4 +127,8 @@ object Algos {
 
     KLS16Proof(m, k, depth, innerchain, suffix)
   }
+
+  //debug method
+  def stringChain(c: Seq[Header]): String = c.map(h => h.realDifficulty + "-" + Base58.encode(h.id).take(4)).mkString(",")
+
 }

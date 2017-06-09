@@ -29,6 +29,16 @@ class ChainTests extends PropSpec
   val lastBlock = headerChain.last
   val lastInnerLinks = lastBlock.interlinks
 
+  property("constructInnerChain contains all blocks at the level if no boundary provided") {
+    def check(mu: Int): Unit = {
+      println("!! " + mu)
+      val innerChain = Algos.constructInnerChain(headerChain, mu, genesis)
+      val filtered = headerChain.count(h => h.realDifficulty >= BigInt(2).pow(mu) && (h.encodedId != genesis.encodedId))
+      filtered shouldBe innerChain.length
+    }
+    check(1)
+  }
+
   property("SPVSimulator generate chain starting from genesis") {
     headerChain.head shouldBe genesis
   }
@@ -112,7 +122,6 @@ class ChainTests extends PropSpec
       }
     }
   }
-
 
   val mkGen = for {
     m <- Gen.choose(1, 100)

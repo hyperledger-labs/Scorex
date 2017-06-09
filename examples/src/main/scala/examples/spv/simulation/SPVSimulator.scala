@@ -7,7 +7,7 @@ import scorex.crypto.hash.Blake2b256
 
 object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
-  val Height = 50000
+  val Height = 500000
   val Difficulty = BigInt(1)
   val stateRoot = Blake2b256("")
   val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
@@ -26,7 +26,8 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
     val proof = Algos.constructKMZProof(m, k, headerChain).get
     proof.valid.get
     val blockNum = proof.suffix.length + proof.prefixProofs.flatten.length
-    println(m + " => " + KMZProofSerializer.toBytes(proof).length + "," + blockNum + "," + proof.prefixProofs.map(_.length).mkString("|"))
+    println("!!," + m + " => " + KMZProofSerializer.toBytes(proof).length + "," + blockNum)
   }
+
 
 }
