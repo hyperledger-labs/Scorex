@@ -39,16 +39,18 @@ object Algos {
     stringChain(C)
 
     val i = prefix.last.interlinks.size - 1
+    val blockchainMap: Map[ByteArrayWrapper, Header] = C.map(b => ByteArrayWrapper(b.id) -> b).toMap
+    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
 
     //Algorithm 3 from the KMZ paper
     def prove(boundary: Header, i: Int, acc: Seq[Seq[Header]]): Seq[Seq[Header]] = {
       if (i == 0) {
         acc
       } else {
-        val inC: Seq[Header] = constructInnerChain(prefix, i, boundary)
+        val inC: Seq[Header] = constructInnerChain(prefix.last, i, boundary, headerById)
         inC.foreach(h => assert(h.realDifficulty >= i * Constants.InitialDifficulty))
         val (newIn, newB) = if (inC.length >= m) {
-          (constructInnerChain(prefix, i, inC(inC.length - m)), inC(inC.length - m))
+          (constructInnerChain(prefix.last, i, inC(inC.length - m), headerById), inC(inC.length - m))
         } else {
           (inC, boundary)
         }
@@ -59,16 +61,16 @@ object Algos {
     }
 
     val boundary = C.head
-    val proofChains = prove(boundary, i, Seq(constructInnerChain(prefix, i, boundary)))
+    val proofChains = prove(boundary, i, Seq(constructInnerChain(prefix.last, i, boundary, headerById)))
 
     KMZProof(m, k, proofChains, suffix)
   }
 
   //Algorithm 3 from the KMZ paper
-  def constructInnerChain(c: Seq[Header], mu: Int, boundary: Header): Seq[Header] = {
-    //TODO make efficient
-    val blockchainMap: Map[ByteArrayWrapper, Header] = c.map(b => ByteArrayWrapper(b.id) -> b).toMap
-    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
+  def constructInnerChain(startBlock: Header,
+                          mu: Int,
+                          boundary: Header,
+                          headerById: Array[Byte] => Header): Seq[Header] = {
 
     @tailrec
     def stepThroughInnerchain(B: Header, collected: Seq[Header], boundary: Header): Seq[Header] = {
@@ -82,7 +84,7 @@ object Algos {
         stepThroughInnerchain(newB, collected :+ newB, boundary)
       }
     }
-    stepThroughInnerchain(c.last, Seq(), boundary).reverse
+    stepThroughInnerchain(startBlock, Seq(), boundary).reverse
   }
 
 

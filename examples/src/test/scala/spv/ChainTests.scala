@@ -1,7 +1,8 @@
 package spv
 
 import examples.spv.simulation.SimulatorFuctions
-import examples.spv.{Algos, KLS16ProofSerializer, KMZProofSerializer}
+import examples.spv.{Algos, Header, KLS16ProofSerializer, KMZProofSerializer}
+import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -30,9 +31,12 @@ class ChainTests extends PropSpec
   val lastInnerLinks = lastBlock.interlinks
 
   property("constructInnerChain contains all blocks at the level if no boundary provided") {
+    //TODO make efficient
+    val blockchainMap: Map[ByteArrayWrapper, Header] = headerChain.map(b => ByteArrayWrapper(b.id) -> b).toMap
+    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
+
     def check(mu: Int): Unit = {
-      println("!! " + mu)
-      val innerChain = Algos.constructInnerChain(headerChain, mu, genesis)
+      val innerChain = Algos.constructInnerChain(lastBlock, mu, genesis, headerById)
       val filtered = headerChain.count(h => h.realDifficulty >= BigInt(2).pow(mu) && (h.encodedId != genesis.encodedId))
       filtered shouldBe innerChain.length
     }

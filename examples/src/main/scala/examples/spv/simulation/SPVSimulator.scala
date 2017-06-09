@@ -21,12 +21,13 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
   val k = 6
 
+  println("Chain constructed!")
 
   Seq(6, 15, 30, 50, 100, 127) foreach { m =>
     val proof = Algos.constructKMZProof(m, k, headerChain).get
     proof.valid.get
     val blockNum = proof.suffix.length + proof.prefixProofs.flatten.length
-    println("!!," + m + " => " + KMZProofSerializer.toBytes(proof).length + "," + blockNum)
+    println( m + " => " + KMZProofSerializer.toBytes(proof).length + "," + blockNum)
   }
 
 
