@@ -8,13 +8,13 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{MinimalState, Removal, StateChanges}
 import scorex.testkit.TestkitHelpers
 
-trait StateChangesGenerationTest[P <: Proposition,
+trait StateChangesGenerationTest[T, P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
-B <: Box[P],
-ST <: MinimalState[P, B, TX, PM, ST],
+B <: Box[P, T],
+ST <: MinimalState[T, P, B, TX, PM, ST],
 SI <: SyncInfo,
-HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] with TestkitHelpers {
+HT <: History[P, TX, PM, SI, HT]] extends StateTests[T, P, TX, PM, B, ST] with TestkitHelpers {
 
   val history: HT
 
@@ -25,9 +25,9 @@ HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] with Test
       val block = genValidModifier(history)
       val blockChanges = state.changes(block).get
 
-      val changes: StateChanges[P, B] = StateChanges(blockChanges.operations.flatMap{op =>
+      val changes: StateChanges[T, P, B] = StateChanges(blockChanges.operations.flatMap{op =>
         op match {
-          case rm: Removal[P, B] if state.closedBox(rm.boxId).isEmpty => None
+          case rm: Removal[T, P, B] if state.closedBox(rm.boxId).isEmpty => None
           case _ => Some(op)
         }
       })

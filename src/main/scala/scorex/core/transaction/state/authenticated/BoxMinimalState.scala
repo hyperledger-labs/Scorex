@@ -1,7 +1,7 @@
 package scorex.core.transaction.state.authenticated
 
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.transaction.box.Box
+import scorex.core.transaction.box.{Box}
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -10,8 +10,8 @@ import scorex.utils._
 import scala.util.{Failure, Success, Try}
 
 
-trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, BX], M <: PersistentNodeViewModifier[P, BTX], BMS <: BoxMinimalState[P, BX, BTX, M, BMS]]
-  extends MinimalState[P, BX, BTX, M, BMS] {
+trait BoxMinimalState[T, P <: Proposition, BX <: Box[P, T], BTX <: BoxTransaction[P, T, BX], M <: PersistentNodeViewModifier[P, BTX], BMS <: BoxMinimalState[T, P, BX, BTX, M, BMS]]
+  extends MinimalState[T, P, BX, BTX, M, BMS] {
   self: BMS =>
 
   /**
@@ -27,30 +27,6 @@ trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, B
     * @param tx - transaction to check against the state
     * @return
     */
-  override def validate(tx: BTX): Try[Unit] = {
-    val statefulValid = {
-      val boxesSumTry = tx.unlockers.foldLeft[Try[Long]](Success(0L)) { case (partialRes, unlocker) =>
-        partialRes.flatMap { partialSum =>
-          closedBox(unlocker.closedBoxId) match {
-            case Some(box) =>
-              unlocker.boxKey.isValid(box.proposition, tx.messageToSign) match {
-                case true => Success(partialSum + box.value)
-                case false => Failure(new Exception("Incorrect unlocker"))
-              }
-            case None => Failure(new Exception(s"Box for unlocker $unlocker is not in the state"))
-          }
-        }
-      }
-
-      boxesSumTry flatMap { openSum =>
-        tx.newBoxes.map(_.value).sum == openSum - tx.fee match {
-          case true => Success[Unit](Unit)
-          case false => Failure(new Exception("Negative fee"))
-        }
-      }
-    }
-    statefulValid.flatMap(_ => semanticValidity(tx))
-  }
 
   def semanticValidity(tx: BTX): Try[Unit]
 }

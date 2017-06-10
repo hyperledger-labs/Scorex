@@ -16,7 +16,7 @@ import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remov
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256Unsafe
 
-import scala.util.{Random, Success, Try}
+import scala.util.{Failure, Random, Success, Try}
 import PersistentAuthenticatedUtxo.ProverType
 
 trait AuthenticatedUtxo {
@@ -49,7 +49,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
                                        size: Int,
                                        proverOpt: Option[ProverType], //todo: externalize the type with the parameter
                                        override val version: VersionTag) extends
-  BoxMinimalState[PublicKey25519Proposition,
+  BoxMinimalState[Long, PublicKey25519Proposition,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
     TModifier,
@@ -87,7 +87,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
   //there's no easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  override def changes(mod: TModifier): Try[StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     PersistentAuthenticatedUtxo.changes(mod)
 
   //Validate transactions in block and generator box
@@ -101,8 +101,33 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     super.validate(mod).get
   }
 
+  override def validate(tx: SimpleBoxTransaction): Try[Unit] = {
+    val statefulValid = {
+      val boxesSumTry = tx.unlockers.foldLeft[Try[Long]](Success(0L)) { case (partialRes, unlocker) =>
+        partialRes.flatMap { partialSum =>
+          closedBox(unlocker.closedBoxId) match {
+            case Some(box) =>
+              unlocker.boxKey.isValid(box.proposition, tx.messageToSign) match {
+                case true => Success(partialSum + box.value)
+                case false => Failure(new Exception("Incorrect unlocker"))
+              }
+            case None => Failure(new Exception(s"Box for unlocker $unlocker is not in the state"))
+          }
+        }
+      }
+
+      boxesSumTry flatMap { openSum =>
+        tx.newBoxes.map(_.value).sum == openSum - tx.fee match {
+          case true => Success[Unit](Unit)
+          case false => Failure(new Exception("Negative fee"))
+        }
+      }
+    }
+    statefulValid.flatMap(_ => semanticValidity(tx))
+  }
+
   //todo: newVersion is not used
-  override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
+  override def applyChanges(changes: StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
 
     val (boxIdsToRemove, boxesToAdd) = changes.operations
@@ -170,9 +195,9 @@ object PersistentAuthenticatedUtxo {
   }
 
   //todo: fees
-  def changes(txs: Seq[SimpleBoxTransaction]): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  def changes(txs: Seq[SimpleBoxTransaction]): Try[StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     Try {
-      type SC = Seq[StateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
+      type SC = Seq[StateChangeOperation[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]]
 
       val initial = (Seq(): SC, 0L) //no reward additional to tx fees
 
@@ -180,15 +205,15 @@ object PersistentAuthenticatedUtxo {
       val (ops, reward) =
       txs.foldLeft(initial) { case ((os, f), tx) =>
         (os ++
-          (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)): SC)
-          ++ tx.newBoxes.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
+          (tx.boxIdsToOpen.map(id => Removal[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](id)): SC)
+          ++ tx.newBoxes.map(b => Insertion[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
           f + tx.fee)
       }
 
-      StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
+      StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
     }
 
-  def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+  def changes(mod: TModifier): Try[StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
 
     mod match {
       case h: BlockHeader =>

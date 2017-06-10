@@ -2,10 +2,10 @@ package scorex.core.transaction
 
 import com.google.common.primitives.{Bytes, Longs}
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.box.{Box, BoxUnlocker}
+import scorex.core.transaction.box.{BoxUnlocker, Box}
 
 
-abstract class BoxTransaction[P <: Proposition, BX <: Box[P]] extends Transaction[P] {
+abstract class BoxTransaction[P <: Proposition, T, BX <: Box[P, T]] extends Transaction[P] {
 
   val unlockers: Traversable[BoxUnlocker[P]]
   val newBoxes: Traversable[BX]

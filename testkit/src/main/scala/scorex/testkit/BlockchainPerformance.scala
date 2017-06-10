@@ -11,11 +11,11 @@ import scorex.testkit.properties._
 /**
   * Performance test for implementations
   */
-trait BlockchainPerformance[P <: Proposition,
+trait BlockchainPerformance[T, P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier[P, TX],
 SI <: SyncInfo,
-B <: Box[P],
+B <: Box[P, T],
 MPool <: MemoryPool[TX, MPool],
-ST <: MinimalState[P, B, TX, PM, ST],
+ST <: MinimalState[T, P, B, TX, PM, ST],
 HT <: History[P, TX, PM, SI, HT]] extends MempoolFilterPerformanceTest[P, TX, MPool]

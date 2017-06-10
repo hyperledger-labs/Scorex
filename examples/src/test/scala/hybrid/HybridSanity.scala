@@ -13,14 +13,14 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, StateChanges}
 import scorex.testkit.{BlockchainPerformance, BlockchainSanity}
 
-class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
+class HybridSanity extends BlockchainSanity[Long, PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock,
   HybridSyncInfo,
   PublicKey25519NoncedBox,
   SimpleBoxTransactionMemPool,
   HBoxStoredState,
-  HybridHistory] with BlockchainPerformance[PublicKey25519Proposition,
+  HybridHistory] with BlockchainPerformance[Long, PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock,
   HybridSyncInfo,
@@ -38,7 +38,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   //Generators
   override val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen
 
-  override val stateChangesGenerator: Gen[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  override val stateChangesGenerator: Gen[StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     stateChangesGen
 
   override def genValidModifier(curHistory: HybridHistory): HybridBlock = {

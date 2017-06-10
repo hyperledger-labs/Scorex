@@ -12,11 +12,11 @@ import scorex.crypto.encode.Base58
 
 import scala.util.{Failure, Try}
 
-case class TransactionChanges[P <: Proposition, BX <: Box[P]](toRemove: Set[BX], toAppend: Set[BX], minerReward: Long)
+case class TransactionChanges[P <: Proposition, BX <: Box[P, Long]](toRemove: Set[BX], toAppend: Set[BX], minerReward: Long)
 
 case class SimpleState(override val version: VersionTag = EmptyVersion,
                        storage: Map[ByteBuffer, PublicKey25519NoncedBox] = Map()) extends ScorexLogging
-  with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
+  with MinimalState[Long, PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
 
   def isEmpty: Boolean = version sameElements EmptyVersion
 
@@ -37,7 +37,7 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
     Try(this)
   }
 
-  override def applyChanges(change: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleState] = Try {
+  override def applyChanges(change: StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleState] = Try {
     val rmap = change.toRemove.foldLeft(storage) { case (m, r) => m - ByteBuffer.wrap(r.boxId) }
 
     val amap = change.toAppend.foldLeft(rmap) { case (m, a) =>
@@ -83,13 +83,13 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
     }
   }
 
-  override def changes(block: SimpleBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = Try {
+  override def changes(block: SimpleBlock): Try[StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] = Try {
     val generatorReward = block.txs.map(_.fee).sum
     val gen = block.generator
 
     val txChanges = block.txs.map(tx => changes(tx)).map(_.get)
     val toRemove = txChanges.flatMap(_.toRemove).map(_.id).map(id =>
-      Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id))
+      Removal[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](id))
     val toAppendFrom = txChanges.flatMap(_.toAppend)
     val (generator, withoutGenerator) = toAppendFrom.partition(_.proposition.address == gen.address)
     val generatorBox: PublicKey25519NoncedBox = (generator ++ boxesOf(gen)).headOption match {
@@ -99,10 +99,10 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
         PublicKey25519NoncedBox(gen, 1, generatorReward)
     }
     val toAppend = (withoutGenerator ++ Seq(generatorBox)).map(b =>
-      Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b))
+      Insertion[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](b))
     assert(toAppend.forall(_.box.value >= 0))
 
-    StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove ++ toAppend)
+    StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove ++ toAppend)
   }
 }
 

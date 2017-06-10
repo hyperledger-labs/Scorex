@@ -30,14 +30,14 @@ import scala.util.{Failure, Success}
   * @tparam P
   * @tparam TX
   */
-trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
+trait NodeViewHolder[T, P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
   extends Actor with ScorexLogging {
 
   import NodeViewHolder._
 
   type SI <: SyncInfo
   type HIS <: History[P, TX, PMOD, SI, HIS]
-  type MS <: MinimalState[P, _, TX, PMOD, MS]
+  type MS <: MinimalState[T, P, _, TX, PMOD, MS]
   type VL <: Vault[P, TX, PMOD, VL]
   type MP <: MemoryPool[TX, MP]
 

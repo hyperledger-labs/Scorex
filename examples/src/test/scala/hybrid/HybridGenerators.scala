@@ -88,14 +88,14 @@ trait HybridGenerators extends ExamplesCommonGenerators {
     value <- positiveLongGen
   } yield PublicKey25519NoncedBox(proposition, nonce, value)
 
-  lazy val stateChangesGen: Gen[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = noncedBoxGen
-    .map(b => StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(b))))
+  lazy val stateChangesGen: Gen[StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] = noncedBoxGen
+    .map(b => StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(b))))
 
-  lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
+  lazy val walletBoxGen: Gen[WalletBox[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
     createdAt <- positiveLongGen
     txId <- genBytesList(NodeViewModifier.ModifierIdSize)
     box: PublicKey25519NoncedBox <- noncedBoxGen
-  } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
+  } yield WalletBox[Long, PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
 
   def generateHistory: HybridHistory = {
     val dataDir = s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}"

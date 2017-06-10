@@ -11,7 +11,7 @@ import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{Insert, Lookup, Remove}
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 
 /**
@@ -19,7 +19,7 @@ import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
   */
 case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], override val version: VersionTag)
   extends
-    BoxMinimalState[PublicKey25519Proposition,
+    BoxMinimalState[Long, PublicKey25519Proposition,
       PublicKey25519NoncedBox,
       SimpleBoxTransaction,
       TModifier,
@@ -53,7 +53,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
   //there's no easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  override def changes(mod: TModifier): Try[StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     PersistentAuthenticatedUtxo.changes(mod)
 
   //Validate transactions in block and generator box
@@ -66,8 +66,33 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
     super.validate(mod).get
   }
 
+  override def validate(tx: SimpleBoxTransaction): Try[Unit] = {
+    val statefulValid = {
+      val boxesSumTry = tx.unlockers.foldLeft[Try[Long]](Success(0L)) { case (partialRes, unlocker) =>
+        partialRes.flatMap { partialSum =>
+          closedBox(unlocker.closedBoxId) match {
+            case Some(box) =>
+              unlocker.boxKey.isValid(box.proposition, tx.messageToSign) match {
+                case true => Success(partialSum + box.value)
+                case false => Failure(new Exception("Incorrect unlocker"))
+              }
+            case None => Failure(new Exception(s"Box for unlocker $unlocker is not in the state"))
+          }
+        }
+      }
+
+      boxesSumTry flatMap { openSum =>
+        tx.newBoxes.map(_.value).sum == openSum - tx.fee match {
+          case true => Success[Unit](Unit)
+          case false => Failure(new Exception("Negative fee"))
+        }
+      }
+    }
+    statefulValid.flatMap(_ => semanticValidity(tx))
+  }
+
   //todo: newVersion is not used
-  override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
+  override def applyChanges(changes: StateChanges[Long, PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[InMemoryAuthenticatedUtxo] = Try {
 
     changes.operations foreach { op =>

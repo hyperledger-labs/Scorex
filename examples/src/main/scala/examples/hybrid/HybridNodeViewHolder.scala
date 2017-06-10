@@ -16,7 +16,7 @@ import scorex.core.{NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
 
 
-class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[PublicKey25519Proposition,
+class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Long, PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock] {
   override val networkChunkSize: Int = settings.networkChunkSize
