@@ -22,7 +22,6 @@ case class Header(parentId: BlockId,
                   transactionsRoot: Array[Byte],
                   timestamp: Block.Timestamp,
                   nonce: Int) extends PersistentNodeViewModifier[PublicKey25519Proposition, SimpleBoxTransaction] {
-  // with Dotty is would be Seq[TX] | Nothing
   override def transactions: Option[Seq[SimpleBoxTransaction]] = None
 
   override val modifierTypeId: ModifierTypeId = 100: Byte
@@ -47,6 +46,11 @@ case class Header(parentId: BlockId,
   override type M = Header
 
   override def serializer: Serializer[Header] = HeaderSerializer
+
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case that: Header => id sameElements that.id
+    case _ => false
+  }
 }
 
 object HeaderSerializer extends Serializer[Header] {
@@ -62,6 +66,8 @@ object HeaderSerializer extends Serializer[Header] {
     }
     Bytes.concat(bytesWithoutInterlinks(h), interlinkBytes(h.interlinks, Array[Byte]()))
   }
+
+  val BytesWithoutInterlinksLength = 108
 
   def bytesWithoutInterlinks(h: Header): Array[Byte] = {
     Bytes.concat(h.parentId, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce))

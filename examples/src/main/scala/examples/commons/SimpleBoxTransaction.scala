@@ -117,11 +117,15 @@ object SimpleBoxTransaction {
     new SimpleBoxTransaction(fromPub, to, sigs, fee, timestamp)
   }
 
-  //TODO seq of recipients and amounts
-  def create(w: HWallet, recipient: PublicKey25519Proposition, amount: Long, fee: Long): Try[SimpleBoxTransaction] = Try {
+  def create(w: HWallet,
+             to: Seq[(PublicKey25519Proposition, Long)],
+             fee: Long,
+             boxesIdsToExclude: Seq[Array[Byte]] = Seq()): Try[SimpleBoxTransaction] = Try {
     var s = 0L
+    val amount = to.map(_._2).sum
 
-    val from: IndexedSeq[(PrivateKey25519, Long, Long)] = w.boxes().sortBy(_.createdAt).takeWhile { b =>
+    val from: IndexedSeq[(PrivateKey25519, Long, Long)] = w.boxes()
+      .filter(b => !boxesIdsToExclude.exists(_ sameElements b.box.id)).sortBy(_.createdAt).takeWhile { b =>
       s = s + b.box.value
       s < amount + b.box.value
     }.flatMap { b =>
@@ -130,12 +134,12 @@ object SimpleBoxTransaction {
     val canSend = from.map(_._3).sum
     val charge: (PublicKey25519Proposition, Long) = (w.publicKeys.head, canSend - amount - fee)
 
-    val to: IndexedSeq[(PublicKey25519Proposition, Long)] = IndexedSeq(charge, (recipient, amount))
+    val outputs: IndexedSeq[(PublicKey25519Proposition, Long)] = (to :+ charge).toIndexedSeq
 
-    require(from.map(_._3).sum - to.map(_._2).sum == fee)
+    require(from.map(_._3).sum - outputs.map(_._2).sum == fee)
 
     val timestamp = System.currentTimeMillis()
-    SimpleBoxTransaction(from.map(t => t._1 -> t._2), to, fee, timestamp)
+    SimpleBoxTransaction(from.map(t => t._1 -> t._2), outputs, fee, timestamp)
   }
 }
 

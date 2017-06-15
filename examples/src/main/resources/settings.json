@@ -9,10 +9,12 @@
     "knownPeers": [
       "127.0.0.2:9088"
     ],
-    "addedMaxDelay": 2000,
+    "addedMaxDelay": 0,
     "maxConnections": 10,
     "handshakeTimeout": 2000
   },
+  "RparamX10": 8,
+  "targetBlockDelayMillis": 10000,
   "walletPassword": "cookies",
   "walletSeed": "genesisoo",
   "walletDir": "/tmp/scorex/data/wallet",
@@ -22,7 +24,7 @@
   "rpcAllowed": [],
   "maxRollback": 100,
   "offlineGeneration": true,
-  "blockGenerationDelay": 60,
+  "blockGenerationDelay": 100,
   "cors": false,
   "agent": "2-Hop",
   "version": [0, 0, 1]

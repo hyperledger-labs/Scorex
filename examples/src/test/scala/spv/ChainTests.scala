@@ -1,12 +1,15 @@
 package spv
 
 import examples.spv.simulation.SimulatorFuctions
-import examples.spv.{Algos, KLS16ProofSerializer, KMZProofSerializer}
+import examples.spv.{Algos, Header, KLS16ProofSerializer, KMZProofSerializer}
+import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.crypto.hash.Blake2b256
+
+import scala.util.{Failure, Try}
 
 
 class ChainTests extends PropSpec
@@ -27,6 +30,20 @@ class ChainTests extends PropSpec
   val lastBlock = headerChain.last
   val lastInnerLinks = lastBlock.interlinks
 
+  property("constructInnerChain contains all blocks at the level if no boundary provided") {
+    val blockchainMap: Map[ByteArrayWrapper, Header] = headerChain.map(b => ByteArrayWrapper(b.id) -> b).toMap
+    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
+
+    def check(mu: Int): Unit = {
+      val innerChain = Algos.constructInnerChain(lastBlock, mu, genesis, headerById)
+      val filtered = headerChain.filter(h => h.realDifficulty >= BigInt(2).pow(mu) && h != lastBlock && h != genesis)
+      filtered.length == innerChain.length
+    }
+    check(1)
+  }
+
+
+
   property("SPVSimulator generate chain starting from genesis") {
     headerChain.head shouldBe genesis
   }
@@ -41,6 +58,13 @@ class ChainTests extends PropSpec
     lastInnerLinks.tail.foreach { id =>
       Algos.blockIdDifficulty(id) should be >= currentDifficulty
       currentDifficulty = currentDifficulty * 2
+    }
+  }
+
+  property("Generated KMZ proof is correct") {
+    forAll(mkGen) { mk =>
+      val proof = Algos.constructKMZProof(mk._1, mk._2, headerChain).get
+      proof.valid.get
     }
   }
 
@@ -95,16 +119,21 @@ class ChainTests extends PropSpec
 
   property("KMZ proof serialization") {
     forAll(mkGen) { mk =>
-      val m = mk._1
-      val proof = Algos.constructKMZProof(m, headerChain).get
-      val serializer = KMZProofSerializer
-      val bytes = serializer.toBytes(proof)
-      val parsed = serializer.parseBytes(bytes).get
-      bytes shouldEqual serializer.toBytes(parsed)
-      proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
+      Try {
+        val proof = Algos.constructKMZProof(mk._1, mk._2, headerChain).get
+        val serializer = KMZProofSerializer
+        val bytes = serializer.toBytes(proof)
+        val parsed = serializer.parseBytes(bytes).get
+        bytes shouldEqual serializer.toBytes(parsed)
+        proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
+      }.recoverWith {
+        case e =>
+          e.printStackTrace()
+          System.exit(1)
+          Failure(e)
+      }
     }
   }
-
 
   val mkGen = for {
     m <- Gen.choose(1, 100)

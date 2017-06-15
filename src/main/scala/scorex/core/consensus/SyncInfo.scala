@@ -7,6 +7,9 @@ import scorex.core.serialization.BytesSerializable
   * synchronization from
   */
 trait SyncInfo extends BytesSerializable {
+  /**
+    * Is this the answer for request
+    */
   def answer: Boolean
   def startingPoints: History.ModifierIds
 }

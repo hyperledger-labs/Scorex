@@ -25,7 +25,7 @@ import scala.util.{Failure, Try}
   * History storage
   * we store all the blocks, even if they are not in a main chain
   */
-class HybridHistory(storage: HistoryStorage,
+class HybridHistory(val storage: HistoryStorage,
                     settings: MiningConstants,
                     validators: Seq[BlockValidator[HybridBlock]],
                     statsLogger: Option[FileLogger])
@@ -49,7 +49,7 @@ class HybridHistory(storage: HistoryStorage,
       case (true, false) => ??? //shouldn't be
     }
 
-  val height = storage.height
+  val height:Long = storage.height
   val bestPosId = storage.bestPosId
   val bestPowId = storage.bestPowId
   lazy val bestPosBlock = storage.bestPosBlock
@@ -308,7 +308,7 @@ class HybridHistory(storage: HistoryStorage,
         } else HistoryComparisonResult.Younger
       case _ =>
         // +1 to include common block
-        val localSuffixLength = height - storage.heightOf(dSuffix.last).get + 1
+        val localSuffixLength = storage.heightOf(bestPowId).get - storage.heightOf(dSuffix.last).get
         val otherSuffixLength = dSuffix.length
 
         if (localSuffixLength < otherSuffixLength)

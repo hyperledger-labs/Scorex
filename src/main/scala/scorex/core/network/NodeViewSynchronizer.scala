@@ -64,9 +64,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     context.system.scheduler.schedule(2.seconds, 15.seconds)(self ! GetLocalSyncInfo)
   }
 
-  private def sendModifierIfLocal[M <: NodeViewModifier](m: M, source: Option[ConnectedPeer]): Unit =
-    if (source.isEmpty) {
-      val msg = Message(InvSpec, Right(Transaction.ModifierTypeId -> Seq(m.id)), None)
+  private def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
+      val msg = Message(InvSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
       networkControllerRef ! SendToNetwork(msg, Broadcast)
     }
 
@@ -76,8 +75,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case FailedModification(mod, throwable, source) =>
     //todo: ban source peer?
 
-    case SuccessfulTransaction(tx, source) => sendModifierIfLocal(tx, source)
-    case SuccessfulModification(mod, source) => sendModifierIfLocal(mod, source)
+    case SuccessfulTransaction(tx, source) => broadcastModifierInv(tx)
+    case SuccessfulModification(mod, source) => broadcastModifierInv(mod)
   }
 
   private def getLocalSyncInfo: Receive = {
@@ -124,7 +123,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
         case Younger =>
           juniors.add(remoteHost)
-          assert(extOpt.isDefined)
+          if(extOpt.isEmpty) {
+            log.warn("extOpt is empty for Younger brother")
+          }
           val ext = extOpt.get
           ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
             case (mid, mods) =>

@@ -1,6 +1,6 @@
 package examples.spv.simulation
 
-import examples.spv.Algos
+import examples.spv.{Algos, Header, KMZProofSerializer}
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
@@ -18,21 +18,20 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
   val lastBlock = headerChain.last
   var minDiff = Difficulty
-  lastBlock.interlinks.foreach { id =>
-    println(minDiff + " => " + Algos.blockIdDifficulty(id) + " => " +
-      (headerChain.length - headerChain.indexWhere(_.id sameElements id)))
-    minDiff = minDiff * 2
+
+  val k = 6
+
+  println(s"Chain of length $Height, k=$k")
+  println("m,proofLength,blockNum,uniqueBlockNum")
+
+  Seq(6, 15, 30, 50, 100, 127) foreach { m =>
+    val proof = Algos.constructKMZProof(m, k, headerChain).get
+    proof.valid.get
+    val blocks:Seq[Header] = proof.suffix ++ proof.prefixProofs.flatten
+    val blockNum = blocks.length
+    val uniqueBlockNum = blocks.map(_.encodedId).toSet.size
+    println( m + "," + KMZProofSerializer.toBytes(proof).length + "," + blockNum + "," + uniqueBlockNum)
   }
-  println(lastBlock)
 
-  val k = 5
-
-  Algos.constructKMZProof(m = 15, headerChain)
-
-/*  (1 to 20) foreach { m =>
-    val proof = Algos.constructKLS16Proof(m, k, headerChain).get
-    proof.validate.get
-    println(m + " => " + KLS16ProofSerializer.toBytes(proof))
-  }*/
 
 }
