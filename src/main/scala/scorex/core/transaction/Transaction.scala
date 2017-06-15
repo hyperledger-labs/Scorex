@@ -13,9 +13,9 @@ import scorex.core.transaction.box.proposition.Proposition
 abstract class Transaction[P <: Proposition] extends NodeViewModifier {
   override val modifierTypeId: Byte = Transaction.ModifierTypeId
 
-  val fee: Long
+  //val fee: Long
 
-  val timestamp: Long
+  //val timestamp: Long
 
   val messageToSign: Array[Byte]
 

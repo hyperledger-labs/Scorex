@@ -10,7 +10,11 @@ import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
-sealed trait SimpleTransaction extends Transaction[PublicKey25519Proposition]
+sealed trait SimpleTransaction extends Transaction[PublicKey25519Proposition]{
+  val fee: Long
+
+  val timestamp: Long
+}
 
 case class SimplePayment(sender: PublicKey25519Proposition,
                          recipient: PublicKey25519Proposition,

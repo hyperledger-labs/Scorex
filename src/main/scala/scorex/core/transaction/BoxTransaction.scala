@@ -10,6 +10,10 @@ abstract class BoxTransaction[P <: Proposition, BX <: Box[P]] extends Transactio
   val unlockers: Traversable[BoxUnlocker[P]]
   val newBoxes: Traversable[BX]
 
+  val fee: Long
+
+  val timestamp: Long
+
   override lazy val messageToSign: Array[Byte] =
     Bytes.concat(if (newBoxes.nonEmpty) scorex.core.utils.concatBytes(newBoxes.map(_.bytes)) else Array[Byte](),
       scorex.core.utils.concatFixLengthBytes(unlockers.map(_.closedBoxId)),
