@@ -15,7 +15,7 @@ class SimpleBlockTest extends PropSpec
 
 
   property("Block serialization") {
-    checkSerializationRoundtrip(blockGenerator, SimpleBlockCompanion)
+    checkSerializationRoundtrip(blockGenerator)
   }
 
 }
