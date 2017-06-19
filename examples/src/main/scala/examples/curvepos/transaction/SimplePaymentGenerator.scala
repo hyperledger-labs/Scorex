@@ -14,6 +14,7 @@ import scala.util.{Random, Try}
 import scala.concurrent.duration._
 
 class SimplePaymentGenerator(viewHolderRef: ActorRef, localInterfaceRef: ActorRef) {
+
   def generatePayment(amount: Long, to: PublicKey25519Proposition): Try[SimplePayment] = Try {
     implicit val timeout = Timeout(5.seconds)
 

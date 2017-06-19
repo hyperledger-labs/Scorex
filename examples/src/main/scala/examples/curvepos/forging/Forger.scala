@@ -4,12 +4,12 @@ import akka.actor.{Actor, ActorRef}
 import examples.curvepos.SimpleBlockchain
 import examples.curvepos.transaction._
 import scorex.core.LocalInterface.LocallyGeneratedModifier
-import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
+import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.utils.{ScorexLogging, NetworkTime}
+import scorex.core.utils.{NetworkTime, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -23,16 +23,14 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
 
   import Forger._
 
-  //should be a part of consensus, but for our app is okay
-  val TransactionsInBlock = 100
-
   //set to true for initial generator
   private var forging = forgerSettings.offlineGeneration
 
   private val hash = FastCryptographicHash
 
 
-  val InterBlocksDelay = 15 //in seconds
+  //in seconds
+  val InterBlocksDelay = 15
   val blockGenerationDelay = 500.millisecond
 
   override def preStart(): Unit = {
@@ -51,10 +49,9 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   }
 
   protected def calcTarget(lastBlock: SimpleBlock,
-                           state: SimpleState,
-                           generator: PublicKey25519Proposition): BigInt = {
+                           boxOpt: Option[PublicKey25519NoncedBox]): BigInt = {
     val eta = (NetworkTime.time() - lastBlock.timestamp) / 1000 //in seconds
-    val balance = state.boxesOf(generator).headOption.map(_.value).getOrElse(0L)
+    val balance = boxOpt.map(_.value).getOrElse(0L)
     BigInt(lastBlock.baseTarget) * eta * balance
   }
 
@@ -72,21 +69,20 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
     case StopMining =>
       forging = false
 
-    case CurrentView(history: SimpleBlockchain, state: SimpleState, wallet: SimpleWallet, memPool: SimpleMemPool) =>
-      log.info("Trying to generate a new block, chain length: " + history.height())
+    case info: RequiredForgingInfo =>
+      val lastBlock = info.lastBlock
+      log.info(s"Trying to generate a new block on top of $lastBlock")
+      lazy val toInclude = info.toInclude
 
-      val lastBlock = history.lastBlock
-      val generators: Set[PublicKey25519Proposition] = wallet.publicKeys
-      lazy val toInclude = state.filterValid(memPool.take(TransactionsInBlock).toSeq)
-
-      val generatedBlocks = generators.flatMap { generator =>
+      val generatedBlocks = info.gbs.flatMap { gb =>
+        val generator = gb._1
         val hit = calcHit(lastBlock, generator)
-        val target = calcTarget(lastBlock, state, generator)
+        val target = calcTarget(lastBlock, gb._2)
         if (hit < target) {
           Try {
             val timestamp = NetworkTime.time()
             val bt = calcBaseTarget(lastBlock, timestamp)
-            val secret: PrivateKey25519 = wallet.secretByPublicImage(generator).get
+            val secret = gb._3
 
             val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
             val signature = PrivateKey25519Companion.sign(secret, unsigned.serializer.messageToSign(unsigned))
@@ -102,11 +98,43 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
       context.system.scheduler.scheduleOnce(blockGenerationDelay)(self ! Forge)
 
     case Forge =>
-      viewHolderRef ! GetCurrentView
+      viewHolderRef ! Forger.getRequiredData
   }
 }
 
 object Forger {
+  //should be a part of consensus, but for our app is okay
+  val TransactionsInBlock = 100
+
+  val getRequiredData: GetDataFromCurrentView[SimpleBlockchain,
+    SimpleState,
+    SimpleWallet,
+    SimpleMemPool,
+    RequiredForgingInfo] = {
+    val f: CurrentView[SimpleBlockchain, SimpleState, SimpleWallet, SimpleMemPool] => RequiredForgingInfo = {
+      view: CurrentView[SimpleBlockchain, SimpleState, SimpleWallet, SimpleMemPool] =>
+        val toInclude = view.state.filterValid(view.pool.take(TransactionsInBlock).toSeq)
+        val lastBlock = view.history.lastBlock
+        val gbs: Seq[(PublicKey25519Proposition, Option[PublicKey25519NoncedBox], PrivateKey25519)] = {
+          view.vault.publicKeys.map { pk =>
+            val boxOpt: Option[PublicKey25519NoncedBox] = view.state.boxesOf(pk).headOption
+            val secret: PrivateKey25519 = view.vault.secretByPublicImage(pk).get
+            (pk, boxOpt, secret)
+          }.toSeq
+        }
+        RequiredForgingInfo(toInclude, lastBlock, gbs)
+    }
+    GetDataFromCurrentView[SimpleBlockchain,
+      SimpleState,
+      SimpleWallet,
+      SimpleMemPool,
+      RequiredForgingInfo](f)
+  }
+
+  case class RequiredForgingInfo(toInclude: Seq[SimpleTransaction],
+                                 lastBlock: SimpleBlock,
+                                 gbs: Seq[(PublicKey25519Proposition, Option[PublicKey25519NoncedBox], PrivateKey25519)])
+
 
   case object StartMining
 
