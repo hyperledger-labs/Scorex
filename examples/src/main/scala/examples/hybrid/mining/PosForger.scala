@@ -9,7 +9,7 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
-import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
+import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -27,36 +27,27 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
 
   var forging = false
 
-  val TransactionsPerBlock = 50
-
-  def pickTransactions(memPool: SimpleBoxTransactionMemPool, state: HBoxStoredState): Seq[SimpleBoxTransaction] =
-    memPool.take(TransactionsPerBlock).foldLeft(Seq[SimpleBoxTransaction]()) { case (collected, tx) =>
-      if (state.validate(tx).isSuccess &&
-        tx.boxIdsToOpen.forall(id => !collected.flatMap(_.boxIdsToOpen).exists(_ sameElements id))) collected :+ tx
-      else collected
-    }
-
 
   override def receive: Receive = {
     case StartForging =>
       forging = true
-      viewHolderRef ! GetCurrentView
+      viewHolderRef ! getRequiredData
 
-    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: SimpleBoxTransactionMemPool) =>
-      val target = MaxTarget / h.posDifficulty
+    //    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: SimpleBoxTransactionMemPool) =>
+    case pfi: PosForgingInfo =>
+      val target = MaxTarget / pfi.diff
 
-      val boxes = w.boxes().map(_.box).filter(box => s.closedBox(box.id).isDefined)
-      val boxKeys = boxes.flatMap(b => w.secretByPublicImage(b.proposition).map(s => (b, s)))
+      val boxKeys = pfi.boxKeys
 
       //last check on whether to forge at all
-      if (h.pairCompleted) {
+      if (pfi.pairCompleted) {
         self ! StopForging
       } else {
-        val powBlock = h.bestPowBlock
+        val powBlock = pfi.bestPowBlock
         log.debug(s"Trying to generate PoS block on top of ${powBlock.encodedId} with balance " +
           s"${boxKeys.map(_._1.value).sum}")
         val attachment = Random.randomBytes(settings.posAttachmentSize)
-        posIteration(powBlock, boxKeys, pickTransactions(m, s), attachment, target) match {
+        posIteration(powBlock, boxKeys, pfi.txsToInclude, attachment, target) match {
           case Some(posBlock) =>
             log.debug(s"Locally generated PoS block: $posBlock")
             forging = false
@@ -70,6 +61,9 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
 
     case StopForging =>
       forging = false
+    case m =>
+      println(s"!!! ${m}")
+      System.exit(2)
   }
 }
 
@@ -109,4 +103,44 @@ object PosForger extends ScorexLogging {
         boxKey._2)
     }
   }
+
+  case class PosForgingInfo(pairCompleted: Boolean,
+                            bestPowBlock: PowBlock,
+                            diff: Long,
+                            boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
+                            txsToInclude: Seq[SimpleBoxTransaction])
+
+  val getRequiredData: GetDataFromCurrentView[HybridHistory,
+    HBoxStoredState,
+    HWallet,
+    SimpleBoxTransactionMemPool,
+    PosForgingInfo] = {
+    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => PosForgingInfo = {
+      view: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] =>
+
+        val diff = view.history.posDifficulty
+        val pairCompleted = view.history.pairCompleted
+        val bestPowBlock = view.history.bestPowBlock
+        val boxes = view.vault.boxes().map(_.box).filter(box => view.state.closedBox(box.id).isDefined)
+        val boxKeys = boxes.flatMap(b => view.vault.secretByPublicImage(b.proposition).map(s => (b, s)))
+
+        val txs = view.pool.take(TransactionsPerBlock).foldLeft(Seq[SimpleBoxTransaction]()) { case (collected, tx) =>
+          if (view.state.validate(tx).isSuccess &&
+            tx.boxIdsToOpen.forall(id => !collected.flatMap(_.boxIdsToOpen)
+              .exists(_ sameElements id))) collected :+ tx
+          else collected
+        }
+
+        PosForgingInfo(pairCompleted, bestPowBlock, diff, boxKeys, txs)
+    }
+    GetDataFromCurrentView[HybridHistory,
+      HBoxStoredState,
+      HWallet,
+      SimpleBoxTransactionMemPool,
+      PosForgingInfo](f)
+
+  }
+
+  val TransactionsPerBlock = 50
+
 }
