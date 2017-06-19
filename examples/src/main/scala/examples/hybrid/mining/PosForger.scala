@@ -27,13 +27,11 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
 
   var forging = false
 
-
   override def receive: Receive = {
     case StartForging =>
       forging = true
       viewHolderRef ! getRequiredData
 
-    //    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: SimpleBoxTransactionMemPool) =>
     case pfi: PosForgingInfo =>
       val target = MaxTarget / pfi.diff
 
@@ -61,9 +59,6 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
 
     case StopForging =>
       forging = false
-    case m =>
-      println(s"!!! ${m}")
-      System.exit(2)
   }
 }
 

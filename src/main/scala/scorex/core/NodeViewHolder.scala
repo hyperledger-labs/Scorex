@@ -233,7 +233,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     case GetCurrentView =>
       sender() ! CurrentView(history(), minimalState(), vault(), memoryPool())
     case GetDataFromCurrentView(f) =>
-      f(CurrentView(history(), minimalState(), vault(), memoryPool()))
+      sender() ! f(CurrentView(history(), minimalState(), vault(), memoryPool()))
   }
 
   private def compareSyncInfo: Receive = {
