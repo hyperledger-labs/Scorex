@@ -230,8 +230,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   private def getCurrentInfo: Receive = {
-    case GetCurrentView =>
-      sender() ! CurrentView(history(), minimalState(), vault(), memoryPool())
     case GetDataFromCurrentView(f) =>
       sender() ! f(CurrentView(history(), minimalState(), vault(), memoryPool()))
   }
@@ -284,8 +282,6 @@ object NodeViewHolder {
   case object GetSyncInfo
 
   case class CurrentSyncInfo[SI <: SyncInfo](syncInfo: SyncInfo)
-
-  case object GetCurrentView
 
   case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 

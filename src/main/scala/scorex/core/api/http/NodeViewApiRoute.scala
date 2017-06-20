@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import io.circe.syntax._
 import io.swagger.annotations._
-import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView, GetDataFromCurrentView}
+import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.NodeViewModifier._
 import scorex.core.consensus.History
 import scorex.core.network.ConnectedPeer
