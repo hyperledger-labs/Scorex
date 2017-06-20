@@ -8,7 +8,7 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.Cancellable
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
-import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView, GetDataFromCurrentView}
+import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.block.Block.BlockId
 import scorex.core.crypto.hash.FastCryptographicHash
@@ -152,6 +152,12 @@ object PowMiner extends App {
 
   case object MineBlock
 
+  case class PowMiningInfo(pairCompleted: Boolean,
+                           powDifficulty: BigInt,
+                           bestPowBlock: PowBlock,
+                           bestPosId: ModifierId,
+                           pubkey: PublicKey25519Proposition)
+
   def powIteration(parentId: BlockId,
                    prevPosId: BlockId,
                    brothers: Seq[PowBlockHeader],
@@ -180,9 +186,3 @@ object PowMiner extends App {
   }
 
 }
-
-case class PowMiningInfo(pairCompleted: Boolean,
-                         powDifficulty: BigInt,
-                         bestPowBlock: PowBlock,
-                         bestPosId: ModifierId,
-                         pubkey: PublicKey25519Proposition)

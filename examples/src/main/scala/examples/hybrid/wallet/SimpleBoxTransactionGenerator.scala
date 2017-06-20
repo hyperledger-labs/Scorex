@@ -1,10 +1,11 @@
 package examples.hybrid.wallet
 
 import akka.actor.{Actor, ActorRef}
-import examples.commons.SimpleBoxTransaction
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
+import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
-import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
+import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 
@@ -20,12 +21,30 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor with 
 
   import SimpleBoxTransactionGenerator._
 
+  private val getRequiredData: GetDataFromCurrentView[HybridHistory,
+    HBoxStoredState,
+    HWallet,
+    SimpleBoxTransactionMemPool,
+    GeneratorInfo] = {
+    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => GeneratorInfo = {
+      view: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] =>
+        GeneratorInfo(generate(view.vault))
+    }
+    GetDataFromCurrentView[HybridHistory,
+      HBoxStoredState,
+      HWallet,
+      SimpleBoxTransactionMemPool,
+      GeneratorInfo](f)
+  }
+
+
   override def receive: Receive = {
     case StartGeneration(duration) =>
-      context.system.scheduler.schedule(duration, duration, viewHolderRef, GetCurrentView)
+      context.system.scheduler.schedule(duration, duration, viewHolderRef, getRequiredData)
 
-    case CurrentView(_, state: HBoxStoredState, wallet: HWallet, _) =>
-      generate(wallet) match {
+    //    case CurrentView(_, _, wallet: HWallet, _) =>
+    case gi: GeneratorInfo =>
+      gi.tx match {
         case Success(tx) =>
           log.info(s"Local tx with with ${tx.from.size} inputs, ${tx.to.size} outputs. Valid: ${tx.semanticValidity}")
           viewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
@@ -52,5 +71,7 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor with 
 object SimpleBoxTransactionGenerator {
 
   case class StartGeneration(delay: FiniteDuration)
+
+  case class GeneratorInfo(tx: Try[SimpleBoxTransaction])
 
 }
