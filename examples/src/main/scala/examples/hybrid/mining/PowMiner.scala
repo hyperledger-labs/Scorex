@@ -8,7 +8,8 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.Cancellable
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
-import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
+import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView, GetDataFromCurrentView}
+import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.block.Block.BlockId
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -31,6 +32,32 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
 
   private var cancellableOpt: Option[Cancellable] = None
   private var mining = false
+  private val getRequiredData: GetDataFromCurrentView[HybridHistory,
+    HBoxStoredState,
+    HWallet,
+    SimpleBoxTransactionMemPool,
+    PowMiningInfo] = {
+    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => PowMiningInfo = {
+      view: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] =>
+
+        val difficulty = view.history.powDifficulty
+        val pairCompleted = view.history.pairCompleted
+        val bestPowBlock = view.history.bestPowBlock
+        val bestPosId = view.history.bestPosId
+        val pubkey = if (view.vault.publicKeys.nonEmpty) {
+          view.vault.publicKeys.head
+        } else {
+          view.vault.generateNewSecret().publicKeys.head
+        }
+        PowMiningInfo(pairCompleted, difficulty, bestPowBlock, bestPosId, pubkey)
+    }
+    GetDataFromCurrentView[HybridHistory,
+      HBoxStoredState,
+      HWallet,
+      SimpleBoxTransactionMemPool,
+      PowMiningInfo](f)
+  }
+
 
   override def preStart(): Unit = {
     //todo: check for a last block (for what?)
@@ -54,28 +81,30 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
         cancellableOpt.forall(_.cancel())
 
         context.system.scheduler.scheduleOnce(50.millis) {
-          if (cancellableOpt.forall(_.status.isCancelled)) viewHolderRef ! GetCurrentView
+          println(getRequiredData)
+          if (cancellableOpt.forall(_.status.isCancelled)) viewHolderRef ! getRequiredData
           else self ! StartMining
         }
       }
 
-    case CurrentView(h: HybridHistory, s: HBoxStoredState, w: HWallet, m: SimpleBoxTransactionMemPool) =>
+    case pmi: PowMiningInfo =>
 
       if (!cancellableOpt.forall(_.status.isCancelled)) {
         log.warn("Trying to run miner when the old one is still running")
       } else {
-        val difficulty = h.powDifficulty
+        val difficulty = pmi.powDifficulty
+        val bestPowBlock = pmi.bestPowBlock
 
-        val (parentId, prevPosId, brothers) = if (!h.pairCompleted) {
+        val (parentId, prevPosId, brothers) = if (!pmi.pairCompleted) {
           //brother
-          log.info(s"Starting brother mining for ${Base58.encode(h.bestPowBlock.parentId)}:${Base58.encode(h.bestPowBlock.prevPosId)}")
-          val bs = h.bestPowBlock.brothers :+ h.bestPowBlock.header
-          (h.bestPowBlock.parentId, h.bestPowBlock.prevPosId, bs)
+          log.info(s"Starting brother mining for ${Base58.encode(bestPowBlock.parentId)}:${Base58.encode(bestPowBlock.prevPosId)}")
+          val bs = bestPowBlock.brothers :+ bestPowBlock.header
+          (bestPowBlock.parentId, bestPowBlock.prevPosId, bs)
         } else {
-          log.info(s"Starting new block mining for ${Base58.encode(h.bestPowId)}:${Base58.encode(h.bestPosId)}")
-          (h.bestPowId, h.bestPosId, Seq()) //new step
+          log.info(s"Starting new block mining for ${bestPowBlock.encodedId}:${Base58.encode(pmi.bestPosId)}")
+          (bestPowBlock.id, pmi.bestPosId, Seq()) //new step
         }
-        val pubkey = if (w.publicKeys.nonEmpty) w.publicKeys.head else w.generateNewSecret().publicKeys.head
+        val pubkey = pmi.pubkey
 
         val p = Promise[Option[PowBlock]]()
         cancellableOpt = Some(Cancellable.run() { status =>
@@ -149,4 +178,11 @@ object PowMiner extends App {
     Thread.sleep(blockGenerationDelay.toMillis)
     foundBlock
   }
+
 }
+
+case class PowMiningInfo(pairCompleted: Boolean,
+                         powDifficulty: BigInt,
+                         bestPowBlock: PowBlock,
+                         bestPosId: ModifierId,
+                         pubkey: PublicKey25519Proposition)

@@ -99,12 +99,6 @@ object PosForger extends ScorexLogging {
     }
   }
 
-  case class PosForgingInfo(pairCompleted: Boolean,
-                            bestPowBlock: PowBlock,
-                            diff: Long,
-                            boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
-                            txsToInclude: Seq[SimpleBoxTransaction])
-
   val getRequiredData: GetDataFromCurrentView[HybridHistory,
     HBoxStoredState,
     HWallet,
@@ -139,3 +133,9 @@ object PosForger extends ScorexLogging {
   val TransactionsPerBlock = 50
 
 }
+
+case class PosForgingInfo(pairCompleted: Boolean,
+                          bestPowBlock: PowBlock,
+                          diff: Long,
+                          boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
+                          txsToInclude: Seq[SimpleBoxTransaction])
