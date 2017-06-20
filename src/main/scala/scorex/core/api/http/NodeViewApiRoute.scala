@@ -8,6 +8,7 @@ import akka.pattern.ask
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView, GetDataFromCurrentView}
+import scorex.core.NodeViewModifier._
 import scorex.core.consensus.History
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.{GetLocalObjects, ResponseFromLocal}
@@ -45,16 +46,18 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   //TODO null?
   private val source: ConnectedPeer = null
 
-  def getHistory(): Try[HIS] = Try {
-    Await.result((nodeViewHolderRef ? GetCurrentView).mapTo[CurrentView[_, _ <: HIS, _, _]].map(_.history), 5.seconds)
-      .asInstanceOf[HIS]
+  case class OpenSurface(ids: Seq[ModifierId])
+
+  def getOpenSurface(): Try[OpenSurface] = Try {
+    def f(v: CurrentView[HIS, MS, VL, MP]): OpenSurface = OpenSurface(v.history.openSurfaceIds())
+    Await.result(nodeViewHolderRef ? GetDataFromCurrentView(f), 5.seconds).asInstanceOf[OpenSurface]
   }
 
   case class MempoolData(size: Int, transactions: Iterable[TX])
 
   def getMempool(): Try[MempoolData] = Try {
     def f(v: CurrentView[HIS, MS, VL, MP]): MempoolData = MempoolData(v.pool.size, v.pool.take(1000))
-    Await.result(nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, MempoolData](f), 5.seconds).asInstanceOf[MempoolData]
+    Await.result(nodeViewHolderRef ? GetDataFromCurrentView(f), 5.seconds).asInstanceOf[MempoolData]
   }
 
   @Path("/pool")
@@ -77,8 +80,8 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   @ApiOperation(value = "Ids of open surface", notes = "Ids of open surface in history", httpMethod = "GET")
   def openSurface: Route = path("openSurface") {
     getJsonRoute {
-      getHistory() match {
-        case Success(history: HIS) => SuccessApiResponse(history.openSurfaceIds().map(Base58.encode).asJson)
+      getOpenSurface() match {
+        case Success(os: OpenSurface) => SuccessApiResponse(os.ids.map(Base58.encode).asJson)
         case Failure(e) => ApiException(e)
       }
     }
