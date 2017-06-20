@@ -7,12 +7,15 @@ import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import io.circe.syntax._
 import io.swagger.annotations._
-import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView}
+import scorex.core.NodeViewHolder.{CurrentView, GetCurrentView, GetDataFromCurrentView}
 import scorex.core.consensus.History
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.{GetLocalObjects, ResponseFromLocal}
 import scorex.core.settings.Settings
+import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.transaction.state.MinimalState
+import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 import scorex.crypto.encode.Base58
@@ -36,6 +39,8 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   type PM <: PersistentNodeViewModifier[P, TX]
   type HIS <: History[P, TX, PM, _, _ <: History[P, TX, PM, _, _]]
   type MP <: MemoryPool[TX, _ <: MemoryPool[TX, _]]
+  type MS <: MinimalState[P, _ <: Box[P], TX, PM, _ <: MinimalState[P, _, TX, _, _]]
+  type VL <: Vault[P, TX, PM, _ <: Vault[P, TX, PM, _]]
 
   //TODO null?
   private val source: ConnectedPeer = null
@@ -45,9 +50,11 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
       .asInstanceOf[HIS]
   }
 
-  def getMempool(): Try[MP] = Try {
-    Await.result((nodeViewHolderRef ? GetCurrentView).mapTo[CurrentView[_, _, _, _ <: MP]].map(_.pool), 5.seconds)
-      .asInstanceOf[MP]
+  case class MempoolData(size: Int, transactions: Iterable[TX])
+
+  def getMempool(): Try[MempoolData] = Try {
+    def f(v: CurrentView[HIS, MS, VL, MP]): MempoolData = MempoolData(v.pool.size, v.pool.take(1000))
+    Await.result(nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, MempoolData](f), 5.seconds).asInstanceOf[MempoolData]
   }
 
   @Path("/pool")
@@ -55,10 +62,10 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   def pool: Route = path("pool") {
     getJsonRoute {
       getMempool() match {
-        case Success(pool: MP) => SuccessApiResponse(
+        case Success(mpd: MempoolData) => SuccessApiResponse(
           Map(
-            "size" -> pool.size.asJson,
-            "transactions" -> pool.take(1000).map(_.json).asJson
+            "size" -> mpd.size.asJson,
+            "transactions" -> mpd.transactions.map(_.json).asJson
           ).asJson
         )
         case Failure(e) => ApiException(e)
