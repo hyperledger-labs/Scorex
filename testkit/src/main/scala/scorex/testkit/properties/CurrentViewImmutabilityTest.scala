@@ -26,7 +26,8 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
 
   def genValidModifier(history: HT): PM
 
-  property("CurrentView should be immutable") {
+  //TODO test GetDataFromCurrentView?
+  ignore("CurrentView should be immutable") {
     check { _ =>
       val h = history
       val currentView = CurrentView[HT, ST, Wallet[P, TX, PM, _], MPool](history, state, wallet, mempool)
