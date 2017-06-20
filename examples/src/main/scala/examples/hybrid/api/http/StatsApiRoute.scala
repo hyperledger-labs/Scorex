@@ -4,10 +4,14 @@ import javax.ws.rs.Path
 
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
+import examples.commons.SimpleBoxTransactionMemPool
+import examples.hybrid.history.HybridHistory
+import examples.hybrid.state.HBoxStoredState
+import examples.hybrid.wallet.HWallet
 import io.circe.Json
 import io.circe.syntax._
 import io.swagger.annotations._
-import scorex.core.api.http.{ApiTry, SuccessApiResponse}
+import scorex.core.api.http.{ApiRouteWithFullView, ApiTry, SuccessApiResponse}
 import scorex.core.settings.Settings
 import scorex.crypto.encode.Base58
 
@@ -18,7 +22,8 @@ import scala.util.Try
 @Path("/stats")
 @Api(value = "/stats", produces = "application/json")
 case class StatsApiRoute(override val settings: Settings, nodeViewHolderRef: ActorRef)
-                        (implicit val context: ActorRefFactory) extends ApiRouteWithView {
+                        (implicit val context: ActorRefFactory)
+  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
 
   override val route = pathPrefix("stats") {
     tail ~ meanDifficulty

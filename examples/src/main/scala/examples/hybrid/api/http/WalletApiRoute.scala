@@ -4,12 +4,15 @@ import javax.ws.rs.Path
 
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
-import examples.commons.SimpleBoxTransaction
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
+import examples.hybrid.history.HybridHistory
+import examples.hybrid.state.HBoxStoredState
+import examples.hybrid.wallet.HWallet
 import io.circe.parser._
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
-import scorex.core.api.http.{ApiException, SuccessApiResponse}
+import scorex.core.api.http.{ApiException, ApiRouteWithFullView, SuccessApiResponse}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
@@ -22,7 +25,8 @@ import scala.util.{Failure, Success, Try}
 @Path("/wallet")
 @Api(value = "/wallet", produces = "application/json")
 case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: ActorRef)
-                         (implicit val context: ActorRefFactory) extends ApiRouteWithView {
+                         (implicit val context: ActorRefFactory)
+  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
 
   //TODO move to settings?
   val DefaultFee = 100
