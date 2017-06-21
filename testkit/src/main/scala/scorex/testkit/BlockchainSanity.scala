@@ -23,7 +23,6 @@ HT <: History[P, TX, PM, SI, HT]] extends HistoryAppendBlockTest[P, TX, PM, SI, 
   with WalletSecretsTest[P, TX, PM]
   with StateRollbackTest[P, TX, PM, B, ST]
   with MempoolTransactionsTest[P, TX, MPool]
-  with MempoolFilterPerformanceTest[P, TX, MPool]
   with StateChangesGenerationTest[P, TX, PM, B, ST, SI, HT] {
 
 
