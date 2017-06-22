@@ -88,7 +88,7 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
       else {
         val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
         val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
-        val interlinks = Algos.constructInterlinkVector(acc.head)
+        val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
         parseSuffixes(index + 2 + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }
 

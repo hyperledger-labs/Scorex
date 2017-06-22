@@ -2,7 +2,7 @@ package examples.spv.simulation
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.spv.{Algos, Header}
+import examples.spv.{SpvAlgos, Header}
 import examples.trimchain.core.Constants._
 import examples.trimchain.simulation.InMemoryAuthenticatedUtxo
 import scorex.core.block.Block._
@@ -43,7 +43,7 @@ trait SimulatorFuctions {
                transactionsRoot: Array[Version],
                timestamp: Timestamp): Header = {
     val parent = parents.head
-    val interlinks: Seq[Array[Byte]] = if (parents.length > 1) Algos.constructInterlinkVector(parent)
+    val interlinks: Seq[Array[Byte]] = if (parents.length > 1) SpvAlgos.constructInterlinkVector(parent)
     else Seq(parent.id)
 
     @tailrec

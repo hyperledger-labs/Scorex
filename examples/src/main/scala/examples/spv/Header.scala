@@ -28,7 +28,7 @@ case class Header(parentId: BlockId,
 
   override lazy val id: ModifierId = hashfn(bytes)
 
-  lazy val realDifficulty: BigInt = Algos.blockIdDifficulty(id)
+  lazy val realDifficulty: BigInt = SpvAlgos.blockIdDifficulty(id)
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
@@ -79,6 +79,7 @@ object HeaderSerializer extends Serializer[Header] {
     val stateRoot = bytes.slice(64, 96)
     val timestamp = Longs.fromByteArray(bytes.slice(96, 104))
     val nonce = Ints.fromByteArray(bytes.slice(104, 108))
+
     @tailrec
     def parseInnerchainLinks(index: Int, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = if (bytes.length > index) {
       val repeatN: Int = bytes.slice(index, index + 1).head
@@ -92,5 +93,4 @@ object HeaderSerializer extends Serializer[Header] {
 
     Header(parentId, innerchainLinks, stateRoot, transactionsRoot, timestamp, nonce)
   }
-
 }

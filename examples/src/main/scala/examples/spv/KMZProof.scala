@@ -56,7 +56,7 @@ object KMZProofSerializer extends Serializer[KMZProof] {
       if (acc.length == k) (index, acc.reverse)
       else {
         val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index, index + l)).get
-        val interlinks = Algos.constructInterlinkVector(acc.head)
+        val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
         parseSuffixes(index + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }
     }

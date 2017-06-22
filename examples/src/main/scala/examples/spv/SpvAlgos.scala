@@ -7,7 +7,7 @@ import scorex.crypto.encode.Base58
 import scala.annotation.tailrec
 import scala.util.Try
 
-object Algos {
+object SpvAlgos {
 
   def blockIdDifficulty(id: Array[Version]): BigInt = {
     val blockTarget = BigInt(1, id)
@@ -33,10 +33,9 @@ object Algos {
 
   def constructKMZProof(m: Int, k: Int, C: Seq[Header]): Try[KMZProof] = Try {
     require(m > 0 && m < C.length, s"$m > 0 && $m < ${C.length}")
-    require(k > 0 && m < C.length, s"$k > 0 && $k < ${C.length}")
+    require(k > 0 && k < C.length, s"$k > 0 && $k < ${C.length}")
 
     val (prefix, suffix: Seq[Header]) = C.splitAt(C.length - k)
-    stringChain(C)
 
     val i = prefix.last.interlinks.size - 1
     val blockchainMap: Map[ByteArrayWrapper, Header] = C.map(b => ByteArrayWrapper(b.id) -> b).toMap

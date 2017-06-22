@@ -1,6 +1,6 @@
 package examples.spv.simulation
 
-import examples.spv.{Algos, Header, KMZProofSerializer}
+import examples.spv.{SpvAlgos, Header, KMZProofSerializer}
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
@@ -25,7 +25,7 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
   println("m,proofLength,blockNum,uniqueBlockNum")
 
   Seq(6, 15, 30, 50, 100, 127) foreach { m =>
-    val proof = Algos.constructKMZProof(m, k, headerChain).get
+    val proof = SpvAlgos.constructKMZProof(m, k, headerChain).get
     proof.valid.get
     val blocks:Seq[Header] = proof.suffix ++ proof.prefixProofs.flatten
     val blockNum = blocks.length

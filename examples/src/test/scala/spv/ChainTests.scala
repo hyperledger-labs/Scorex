@@ -1,7 +1,7 @@
 package spv
 
 import examples.spv.simulation.SimulatorFuctions
-import examples.spv.{Algos, Header, KLS16ProofSerializer, KMZProofSerializer}
+import examples.spv.{SpvAlgos, Header, KLS16ProofSerializer, KMZProofSerializer}
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
@@ -35,7 +35,7 @@ class ChainTests extends PropSpec
     def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
 
     def check(mu: Int): Unit = {
-      val innerChain = Algos.constructInnerChain(lastBlock, mu, genesis, headerById)
+      val innerChain = SpvAlgos.constructInnerChain(lastBlock, mu, genesis, headerById)
       val filtered = headerChain.filter(h => h.realDifficulty >= BigInt(2).pow(mu) && h != lastBlock && h != genesis)
       filtered.length == innerChain.length
     }
@@ -56,28 +56,28 @@ class ChainTests extends PropSpec
     var currentDifficulty = Difficulty
     lastInnerLinks.length should be > 1
     lastInnerLinks.tail.foreach { id =>
-      Algos.blockIdDifficulty(id) should be >= currentDifficulty
+      SpvAlgos.blockIdDifficulty(id) should be >= currentDifficulty
       currentDifficulty = currentDifficulty * 2
     }
   }
 
   property("Generated KMZ proof is correct") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructKMZProof(mk._1, mk._2, headerChain).get
+      val proof = SpvAlgos.constructKMZProof(mk._1, mk._2, headerChain).get
       proof.valid.get
     }
   }
 
   property("Generated SPV proof is correct") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+      val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
       proof.valid.get
     }
   }
 
   property("Compare correct and incorrect SPV proofs") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+      val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
       val incompleteIntercahin = proof.innerchain.filter(e => false)
       val incorrectProof = proof.copy(innerchain = incompleteIntercahin)
       incorrectProof.valid.isSuccess shouldBe false
@@ -87,8 +87,8 @@ class ChainTests extends PropSpec
 
   property("Compare SPV proofs with different suffix") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
-      val smallerChainProof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain.dropRight(1)).get
+      val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+      val smallerChainProof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain.dropRight(1)).get
       (proof > smallerChainProof) shouldBe true
     }
   }
@@ -99,8 +99,8 @@ class ChainTests extends PropSpec
         val commonChain = headerChain.dropRight(2)
         val block = genBlock(Difficulty, commonChain.reverse.toIndexedSeq, stateRoot, defaultId, System.currentTimeMillis())
         val smallerForkChain = commonChain :+ block
-        val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
-        val proof2 = Algos.constructKLS16Proof(mk._1, mk._2, smallerForkChain).get
+        val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+        val proof2 = SpvAlgos.constructKLS16Proof(mk._1, mk._2, smallerForkChain).get
         (proof > proof2) shouldBe true
       }
     }
@@ -108,7 +108,7 @@ class ChainTests extends PropSpec
 
   property("KLS16 proof serialization") {
     forAll(mkGen) { mk =>
-      val proof = Algos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+      val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
       val serializer = KLS16ProofSerializer
       val parsed = serializer.parseBytes(serializer.toBytes(proof)).get
       serializer.toBytes(proof) shouldEqual serializer.toBytes(parsed)
@@ -120,7 +120,7 @@ class ChainTests extends PropSpec
   property("KMZ proof serialization") {
     forAll(mkGen) { mk =>
       Try {
-        val proof = Algos.constructKMZProof(mk._1, mk._2, headerChain).get
+        val proof = SpvAlgos.constructKMZProof(mk._1, mk._2, headerChain).get
         val serializer = KMZProofSerializer
         val bytes = serializer.toBytes(proof)
         val parsed = serializer.parseBytes(bytes).get
