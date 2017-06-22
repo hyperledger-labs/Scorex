@@ -230,8 +230,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   private def getCurrentInfo: Receive = {
-    case GetCurrentView =>
-      sender() ! CurrentView(history(), minimalState(), vault(), memoryPool())
+    case GetDataFromCurrentView(f) =>
+      sender() ! f(CurrentView(history(), minimalState(), vault(), memoryPool()))
   }
 
   private def compareSyncInfo: Receive = {
@@ -245,7 +245,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       log.debug(s"Sending extension of length ${ext.length}: ${ext.map(_._2).map(Base58.encode).mkString(",")}")
       log.debug("Comparison result is: " + comparison)
 
-      if(!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
+      if (!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
         log.warn("Extension is empty while comparison is younger")
       }
 
@@ -283,7 +283,7 @@ object NodeViewHolder {
 
   case class CurrentSyncInfo[SI <: SyncInfo](syncInfo: SyncInfo)
 
-  case object GetCurrentView
+  case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
   object EventType extends Enumeration {
     //finished modifier application, successful of failed
