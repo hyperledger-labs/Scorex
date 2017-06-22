@@ -81,7 +81,6 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
         cancellableOpt.forall(_.cancel())
 
         context.system.scheduler.scheduleOnce(50.millis) {
-          println(getRequiredData)
           if (cancellableOpt.forall(_.status.isCancelled)) viewHolderRef ! getRequiredData
           else self ! StartMining
         }
