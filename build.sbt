@@ -3,12 +3,12 @@ name := "scorex-core"
 lazy val commonSettings = Seq(
   scalaVersion := "2.12.2",
   organization := "org.scorexfoundation",
-  version := "2.0.0-M5-SNAPSHOT"
+  version := "2.0.0-RC1"
 )
 
 scalaVersion := "2.12.2"
 organization := "org.scorexfoundation"
-version := "2.0.0-M5-SNAPSHOT"
+version := "2.0.0-RC1"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
