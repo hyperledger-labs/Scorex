@@ -48,11 +48,6 @@ libraryDependencies ++= Seq(
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 
-
-//todo: is it needed?
-libraryDependencies += "org.atnos" %% "eff-cats" % "2.0.+"
-
-
 scalacOptions ++= Seq("-feature", "-deprecation")
 
 javaOptions ++= Seq(
@@ -67,7 +62,7 @@ publishMavenStyle := true
 
 publishArtifact in Test := false
 
-publishTo := {
+publishTo in ThisBuild := {
   val nexus = "https://oss.sonatype.org/"
   if (isSnapshot.value)
     Some("snapshots" at nexus + "content/repositories/snapshots")
