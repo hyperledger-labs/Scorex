@@ -5,3 +5,7 @@ scala:
 - 2.11.8
 script:
    - sbt "project examples" "test" && sbt test
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
