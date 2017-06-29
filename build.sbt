@@ -1,9 +1,24 @@
+
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
   scalaVersion := "2.12.2",
   organization := "org.scorexfoundation",
-  version := "2.0.0-RC1"
+  version := "2.0.0-RC1",
+  licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
+  homepage := Some(url("https://github.com/ScorexFoundation/Scorex")),
+  pomExtra := (
+    <scm>
+      <url>git@github.com:ScorexFoundation/Scorex.git</url>
+      <connection>scm:git:git@github.com:ScorexFoundation/Scorex.git</connection>
+    </scm>
+      <developers>
+        <developer>
+          <id>kushti</id>
+          <name>Alexander Chepurnoy</name>
+          <url>http://chepurnoy.org/</url>
+        </developer>
+      </developers>)
 )
 
 scalaVersion := "2.12.2"
@@ -73,23 +88,6 @@ publishTo in ThisBuild := {
 fork := true
 
 pomIncludeRepository := { _ => false }
-
-licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode"))
-
-homepage := Some(url("https://github.com/ScorexFoundation/Scorex"))
-
-pomExtra := (
-  <scm>
-    <url>git@github.com:ScorexFoundation/Scorex.git</url>
-    <connection>scm:git:git@github.com:ScorexFoundation/Scorex.git</connection>
-  </scm>
-    <developers>
-      <developer>
-        <id>kushti</id>
-        <name>Alexander Chepurnoy</name>
-        <url>http://chepurnoy.org/</url>
-      </developer>
-    </developers>)
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
