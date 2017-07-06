@@ -41,7 +41,7 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
   }
 
   //todo: implement
-  override def drop(modifierId: ModifierId): SimpleBlockchain = ???
+  override def reportInvalid(modifierId: ModifierId): SimpleBlockchain = ???
 
   override def openSurfaceIds(): Seq[ModifierId] = Seq(blockIds(height()))
 

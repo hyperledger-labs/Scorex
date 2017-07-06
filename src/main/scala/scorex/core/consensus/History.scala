@@ -65,7 +65,7 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   def append(modifier: PM): Try[(HT, ProgressInfo[PM])]
 
-  def drop(modifierId: ModifierId): HT
+  def reportInvalid(modifierId: ModifierId): HT
 
   //todo: output should be ID | Seq[ID]
   def openSurfaceIds(): Seq[ModifierId]
