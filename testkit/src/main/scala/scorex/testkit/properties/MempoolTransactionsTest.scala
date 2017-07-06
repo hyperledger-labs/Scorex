@@ -21,6 +21,4 @@ MPool <: MemoryPool[TX, MPool]] extends PropSpec
       m.getById(tx.id).isDefined shouldBe true
     }
   }
-
-
 }

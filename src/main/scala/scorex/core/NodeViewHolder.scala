@@ -109,15 +109,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
           case false => //applying modifiers
 
-            val newStateTry = progressInfo.rollbackNeeded match {
-              case false => minimalState().applyModifiers(progressInfo.toApply)
-
-              //todo: in case if better chain (.toApply) has an invalid block in the end,
-              // and mutable database is used under the hood, the system would be in the broken state until a valid
-              // fork of a better score will appear
-              case true => minimalState()
+            val newStateTry = if (progressInfo.rollbackNeeded) {
+              minimalState()
                 .rollbackTo(progressInfo.branchPoint.get)
                 .flatMap(_.applyModifiers(progressInfo.toApply))
+            } else {
+              minimalState().applyModifiers(progressInfo.toApply)
             }
 
             newStateTry match {

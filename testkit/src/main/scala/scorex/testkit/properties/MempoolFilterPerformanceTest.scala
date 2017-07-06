@@ -13,7 +13,7 @@ MPool <: MemoryPool[TX, MPool]] extends PropSpec with GeneratorDrivenPropertyChe
 
   val mempool: MPool
   val transactionGenerator: Gen[TX]
-  var initizlizedMempool: Option[MPool] = None
+  var initializedMempool: Option[MPool] = None
 
   property("Mempool should be able to store a lot of transactions") {
     var m: MPool = mempool
@@ -23,11 +23,11 @@ MPool <: MemoryPool[TX, MPool]] extends PropSpec with GeneratorDrivenPropertyChe
       }
     }
     m.size should be > 1000
-    initizlizedMempool = Some(m)
+    initializedMempool = Some(m)
   }
 
   property("Mempool filter of non-existing transaction should be fast") {
-    val m = initizlizedMempool.get
+    val m = initializedMempool.get
     forAll(transactionGenerator) { tx: TX =>
       val (time, _) = profile(m.filter(Seq(tx)))
       assert(time < 0.1)
@@ -35,13 +35,11 @@ MPool <: MemoryPool[TX, MPool]] extends PropSpec with GeneratorDrivenPropertyChe
   }
 
   property("Mempool filter of existing transaction should be fast") {
-    var m = initizlizedMempool.get
+    var m = initializedMempool.get
     forAll(transactionGenerator) { tx: TX =>
       m = m.put(tx).get
       val (time, _) = profile(m.filter(Seq(tx)))
       assert(time < 0.1)
     }
   }
-
-
 }
