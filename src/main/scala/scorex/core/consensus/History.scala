@@ -108,8 +108,8 @@ object History {
 
     require(branchPoint.isDefined == toRemove.nonEmpty)
 
-    lazy val rollbackNeeded = toRemove.nonEmpty
-    lazy val appendedId = toApply.last.id
+    lazy val rollbackNeeded: Boolean = toRemove.nonEmpty
+    lazy val appendedId: ModifierId = toApply.last.id
 
     override def toString: String = {
       s"Modifications(${branchPoint.map(Base58.encode)}, ${toRemove.map(_.encodedId)}, ${toApply.map(_.encodedId)})"
