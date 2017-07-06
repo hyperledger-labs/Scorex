@@ -27,7 +27,8 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   PublicKey25519NoncedBox,
   SimpleBoxTransactionMemPool,
   HBoxStoredState,
-  HybridHistory] with HybridGenerators {
+  HybridHistory]
+  with HybridGenerators {
 
   //Node view components
   override val history = generateHistory
@@ -41,7 +42,9 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   override val stateChangesGenerator: Gen[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     stateChangesGen
 
-  override def genValidModifier(curHistory: HybridHistory): HybridBlock = {
+  //Old Generator
+
+  /*override def genValidModifier(curHistory: HybridHistory): HybridBlock = {
     if (curHistory.pairCompleted) {
       for {
         timestamp: Long <- positiveLongGen
@@ -63,6 +66,55 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
         generator: PrivateKey25519 <- key25519Gen.map(_._1)
       } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
     }
+  }.apply(Gen.Parameters.default, Seed.random()).get*/
+
+  override def genValidModifier(curHistory: HybridHistory, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool : Int): HybridBlock = {
+
+    if (curHistory.pairCompleted) {
+      for {
+        timestamp: Long <- positiveLongGen
+        nonce: Long <- positiveLongGen
+        brothersCount: Byte <- positiveByteGen
+        proposition: PublicKey25519Proposition <- propositionGen
+        brothers <- Gen.listOfN(brothersCount, powHeaderGen)
+      } yield {
+        val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
+        val brothersHash: Array[Byte] = FastCryptographicHash(brotherBytes)
+        new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
+      }
+    } else {
+      if(mempoolTransactionFetchOption){
+        for {
+          timestamp: Long <- positiveLongGen
+          txs = simpleMempoolTransactionGen(noOfTransactionsFromMempool)
+          box: PublicKey25519NoncedBox <- noncedBoxGen
+          attach: Array[Byte] <- genBoundedBytes(0, 4096)
+          generator: PrivateKey25519 <- key25519Gen.map(_._1)
+        } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
+      }
+      else{
+        for {
+          timestamp: Long <- positiveLongGen
+          txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
+          box: PublicKey25519NoncedBox <- noncedBoxGen
+          attach: Array[Byte] <- genBoundedBytes(0, 4096)
+          generator: PrivateKey25519 <- key25519Gen.map(_._1)
+        } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
+      }
+    }
   }.apply(Gen.Parameters.default, Seed.random()).get
 
+  def simpleMempoolTransactionGen (noOfTransactionsFromMempool : Int) : Seq[SimpleBoxTransaction] = {
+    var randm = scala.util.Random
+    var a = 0
+    var txs = Seq[SimpleBoxTransaction]()
+    for (i <- 1 until noOfTransactionsFromMempool) {
+      var p = mempool.take(mempool.size-1).toVector({a = randm.nextInt(mempool.size-1); a})
+      mempool.remove(p)
+      txs = txs :+ p
+    }
+    txs
+  }
+
 }
+
