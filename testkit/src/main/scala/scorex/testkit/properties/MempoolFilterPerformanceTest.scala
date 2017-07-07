@@ -30,7 +30,7 @@ MPool <: MemoryPool[TX, MPool]] extends PropSpec with GeneratorDrivenPropertyChe
     val m = initializedMempool.get
     forAll(transactionGenerator) { tx: TX =>
       val (time, _) = profile(m.filter(Seq(tx)))
-      assert(time < 0.1)
+      assert(time < 0.2)
     }
   }
 

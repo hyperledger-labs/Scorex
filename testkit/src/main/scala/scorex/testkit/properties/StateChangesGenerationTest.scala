@@ -18,11 +18,11 @@ HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] with Test
 
   val history: HT
 
-  def genValidModifier(history: HT): PM
+  def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool : Int): PM
 
   property("State should be able to generate changes from block and apply them") {
     check { _ =>
-      val block = genValidModifier(history)
+      val block = genValidModifier(history, false, 0)
       val blockChanges = state.changes(block).get
 
       val changes: StateChanges[P, B] = StateChanges(blockChanges.operations.flatMap{op =>

@@ -17,12 +17,12 @@ HT <: History[P, TX, PM, SI, HT]] extends PropSpec with GeneratorDrivenPropertyC
   with ScorexLogging with TestkitHelpers {
   val history: HT
 
-  def genValidModifier(history: HT): PM
+  def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool : Int): PM
 
   property("Appended block is in history") {
     var h: HT = history
     check { _ =>
-      val b = genValidModifier(h)
+      val b = genValidModifier(h, false, 0)
       h.modifierById(b.id).isDefined shouldBe false
       h = h.append(b).get._1
       h.modifierById(b.id).isDefined shouldBe true
