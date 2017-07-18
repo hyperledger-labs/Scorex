@@ -138,7 +138,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
             case Failure(e) =>
               log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
-              val newHistoryCancelled = newHistory.reportInvalid(progressInfo.appendedId)
+              val newHistoryCancelled = newHistory.reportInvalid(pmod)
               nodeView = (newHistoryCancelled, minimalState(), vault(), memoryPool())
 
               notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
