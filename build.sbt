@@ -23,7 +23,7 @@ lazy val commonSettings = Seq(
 
 scalaVersion := "2.12.2"
 organization := "org.scorexfoundation"
-version := "2.0.0-RC1"
+version := "2.0.0-RC2-SNAPSHOT"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
