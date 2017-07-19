@@ -28,7 +28,7 @@ class TrimChain(version: ModifierId,
 
   override def append(modifier: TModifier): Try[(TrimChain, ProgressInfo[TModifier])] = ???
 
-  override def reportInvalid(modifierId: ModifierId): TrimChain = ???
+  override def reportInvalid(modifier: TModifier): TrimChain = ???
 
   override def openSurfaceIds(): Seq[ModifierId] = ???
 
