@@ -59,7 +59,7 @@ val testingDependencies = Seq(
 
 libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.+",
-  "org.scorexfoundation" %% "scrypto" % "1.2.1"
+  "org.scorexfoundation" %% "scrypto" % "1.2.2"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 

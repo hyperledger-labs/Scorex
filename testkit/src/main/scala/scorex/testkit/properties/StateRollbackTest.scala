@@ -24,7 +24,7 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
   val mempool: MPool
   val transactionGenerator: Gen[TX]
 
-  def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool : Int): PM
+  def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool: Int): PM
 
   def genValidTransactionPair(curHistory: HT): Seq[TX]
 
@@ -70,13 +70,12 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
   property("State changes application and rollback leads to rollback of changes") {
     var newState = state
     var rollbackVersionOpt: Option[Array[Byte]] = None
-    var trxnPair = genValidTransactionPair(history)
+    var txPair = genValidTransactionPair(history)
 
     check { _ =>
-
       rollbackVersionOpt match {
         case None =>
-          val randomTx = trxnPair(0)
+          val randomTx = txPair.head
           val block = genValidModifierCustomTransactions(history, randomTx)
           val blockChanges = newState.changes(block).get
 
@@ -90,7 +89,7 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
           rollbackVersionOpt = Some(newState.version)
 
         case Some(rollbackVersion) =>
-          val randomTx = trxnPair(1)
+          val randomTx = txPair(1)
           val block = genValidModifierCustomTransactions(history, randomTx)
           val blockChanges = newState.changes(block).get
 
@@ -120,11 +119,8 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
           // Since transactions are created in pair where the first transaction creates a box and the second transaction uses
           // this box, so once the pair has been utilized we need to use a new pair for the further iterations.
           rollbackVersionOpt = None
-          trxnPair = genValidTransactionPair(history)
-
+          txPair = genValidTransactionPair(history)
       }
     }
   }
-
-
 }

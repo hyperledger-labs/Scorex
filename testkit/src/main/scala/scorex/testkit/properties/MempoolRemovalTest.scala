@@ -21,10 +21,11 @@ SI <: SyncInfo] extends PropSpec with GeneratorDrivenPropertyChecks with Matcher
   val mempool: MPool
   val transactionGenerator: Gen[TX]
   val history: HT
-  def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool : Int): PM
+
+  def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool: Int): PM
 
   property("Transactions once added to block should be removed from Mempool") {
-    forAll(Gen.choose(1, 10)) { noOfTransactionsFromMempool : Int =>
+    forAll(Gen.choose(1, 10)) { noOfTransactionsFromMempool: Int =>
       var m: MPool = mempool
       var h: HT = history
       forAll(transactionGenerator) { tx: TX =>
@@ -35,7 +36,6 @@ SI <: SyncInfo] extends PropSpec with GeneratorDrivenPropertyChecks with Matcher
       (m.size + b.transactions.get.size) shouldEqual prevMempoolSize
     }
   }
-
 }
 
 
