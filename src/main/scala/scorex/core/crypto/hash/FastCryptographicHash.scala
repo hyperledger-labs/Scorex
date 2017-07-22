@@ -3,7 +3,7 @@ package scorex.core.crypto.hash
 import scorex.crypto.hash.{Blake2b256, CryptographicHash32}
 
 /**
- * Interface for fast and secure Blake2b hash function
+ * Interface for Blake2b hash function
  */
 
 object FastCryptographicHash extends CryptographicHash32 {
