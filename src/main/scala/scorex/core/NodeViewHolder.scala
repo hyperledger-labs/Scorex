@@ -10,7 +10,7 @@ import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.MinimalState
+import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -122,7 +122,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               val appliedTxs = appliedMods.flatMap(_.transactions).flatten
 
               val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter { tx =>
-                !appliedTxs.exists(t => t.id sameElements tx.id) && newMinState.validate(tx).isSuccess
+                !appliedTxs.exists(t => t.id sameElements tx.id) && {
+                  newMinState match {
+                    case v:TransactionValidation[TX] => v.validate(tx).isSuccess
+                    case _ => true
+                  }
+                }
               }
 
               //we consider that vault always able to perform a rollback needed

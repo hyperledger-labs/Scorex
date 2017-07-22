@@ -4,13 +4,14 @@ import com.google.common.primitives.Longs
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.serialization.Serializer
+import scorex.core.transaction.box.BoxUnlocker
 import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
-import scorex.core.transaction.Transaction
+import scorex.core.transaction.{BoxTransaction, Transaction}
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
-sealed trait SimpleTransaction extends Transaction[PublicKey25519Proposition]{
+sealed trait SimpleTransaction extends BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox]{
   val fee: Long
 
   val timestamp: Long
@@ -38,6 +39,9 @@ case class SimplePayment(sender: PublicKey25519Proposition,
   override lazy val messageToSign: Array[Byte] = id
 
   override lazy val serializer = SimplePaymentCompanion
+
+  override lazy val unlockers: Traversable[BoxUnlocker[PublicKey25519Proposition]] = ???
+  override lazy val newBoxes: Traversable[PublicKey25519NoncedBox] = ???
 }
 
 object SimplePaymentCompanion extends Serializer[SimplePayment] {

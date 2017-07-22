@@ -11,7 +11,7 @@ import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import io.iohk.iodb.ByteArrayWrapper
 import io.iohk.iodb.Store.VersionID
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{Insertion, StateChanges}
+import scorex.core.transaction.state.{Insertion, BoxStateChanges}
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
@@ -70,8 +70,8 @@ object OneMinerSimulation extends App with Simulators {
     )
   }
 
-  val genesisChanges: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
-    StateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
+  val genesisChanges: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
+    BoxStateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
 
   var currentUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
 

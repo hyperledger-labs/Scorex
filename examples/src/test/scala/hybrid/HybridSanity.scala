@@ -10,7 +10,7 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{PrivateKey25519, StateChanges}
+import scorex.core.transaction.state.{PrivateKey25519, BoxStateChanges}
 import scorex.testkit.{BlockchainPerformance, BlockchainSanity}
 
 class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
@@ -39,7 +39,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   //Generators
   override val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen
 
-  override val stateChangesGenerator: Gen[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  override val stateChangesGenerator: Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     stateChangesGen
 
   //Old Generator

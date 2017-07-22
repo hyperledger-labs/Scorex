@@ -5,7 +5,7 @@ import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.trimchain.core.Constants._
 import examples.trimchain.core.{Algos, Constants}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{Insertion, StateChanges}
+import scorex.core.transaction.state.{Insertion, BoxStateChanges}
 
 object ValidationSimulator extends App with Simulators {
 
@@ -25,8 +25,8 @@ object ValidationSimulator extends App with Simulators {
     )
   }
 
-  val genesisChanges: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
-    StateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
+  val genesisChanges: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
+    BoxStateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
 
   val genesisUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
   val rootHash = genesisUtxo.rootHash

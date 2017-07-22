@@ -6,17 +6,18 @@ import examples.curvepos.transaction.SimpleState.EmptyVersion
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{Insertion, MinimalState, Removal, StateChanges}
+import scorex.core.transaction.state.authenticated.BoxMinimalState
+import scorex.core.transaction.state._
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 case class TransactionChanges[P <: Proposition, BX <: Box[P]](toRemove: Set[BX], toAppend: Set[BX], minerReward: Long)
 
 case class SimpleState(override val version: VersionTag = EmptyVersion,
                        storage: Map[ByteBuffer, PublicKey25519NoncedBox] = Map()) extends ScorexLogging
-  with MinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState] {
+  with BoxMinimalState[PublicKey25519Proposition, PublicKey25519NoncedBox, SimpleTransaction, SimpleBlock, SimpleState]{
 
   def isEmpty: Boolean = version sameElements EmptyVersion
 
@@ -37,7 +38,7 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
     Try(this)
   }
 
-  override def applyChanges(change: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleState] = Try {
+  override def applyChanges(change: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox], newVersion: VersionTag): Try[SimpleState] = Try {
     val rmap = change.toRemove.foldLeft(storage) { case (m, r) => m - ByteBuffer.wrap(r.boxId) }
 
     val amap = change.toAppend.foldLeft(rmap) { case (m, a) =>
@@ -83,7 +84,7 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
     }
   }
 
-  override def changes(block: SimpleBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = Try {
+  override def changes(block: SimpleBlock): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = Try {
     val generatorReward = block.txs.map(_.fee).sum
     val gen = block.generator
 
@@ -102,8 +103,10 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
       Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b))
     assert(toAppend.forall(_.box.value >= 0))
 
-    StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove ++ toAppend)
+    BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove ++ toAppend)
   }
+
+  override def semanticValidity(tx: SimpleTransaction): Try[Unit] = Success()
 }
 
 object SimpleState {

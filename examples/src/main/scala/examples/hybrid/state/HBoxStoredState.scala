@@ -10,7 +10,7 @@ import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{Insertion, Removal, StateChangeOperation, StateChanges}
+import scorex.core.transaction.state.{Insertion, Removal, BoxStateChangeOperation, BoxStateChanges}
 import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -42,7 +42,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   //there's no easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: HPMOD): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  override def changes(mod: HPMOD): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     HBoxStoredState.changes(mod)
 
   //Validate transactions in block and generator box
@@ -64,7 +64,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     }
   }
 
-  override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
+  override def applyChanges(changes: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {
     val boxIdsToRemove = changes.toRemove.view.map(_.boxId).map(ByteArrayWrapper.apply)
     val boxesToAdd = changes.toAppend.view.map(_.box).map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
@@ -97,14 +97,14 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 object HBoxStoredState {
   def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = tx.semanticValidity
 
-  def changes(mod: HybridBlock): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+  def changes(mod: HybridBlock): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
     mod match {
       case pb: PowBlock =>
         val proposition: PublicKey25519Proposition = pb.generatorProposition
         val nonce: Long = SimpleBoxTransaction.nonceFromDigest(mod.id)
         val value: Long = 1
         val minerBox = PublicKey25519NoncedBox(proposition, nonce, value)
-        Success(StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(minerBox))))
+        Success(BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(minerBox))))
       case ps: PosBlock =>
         Try {
           val initial = (Seq(): Seq[Array[Byte]], Seq(): Seq[PublicKey25519NoncedBox], 0L)
@@ -118,11 +118,11 @@ object HBoxStoredState {
           val forgerNonce = Longs.fromByteArray(ps.id.take(8))
           val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, reward)
 
-          val ops: Seq[StateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+          val ops: Seq[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
             toRemove.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)) ++
               toAdd.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)) ++
               Seq(Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](forgerBox))
-          StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
+          BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
         }
     }
   }

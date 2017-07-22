@@ -3,23 +3,24 @@ package scorex.testkit.properties
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.transaction.{MemoryPool, Transaction}
+import scorex.core.transaction.{BoxTransaction, MemoryPool}
 import scorex.core.transaction.box.Box
-import scorex.core.transaction.box.proposition.{Proposition}
+import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state._
+import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 
 
 trait StateRollbackTest[P <: Proposition,
-TX <: Transaction[P],
+TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier[P, TX],
 B <: Box[P],
-ST <: MinimalState[P, B, TX, PM, ST],
+ST <: BoxMinimalState[P, B, TX, PM, ST],
 SI <: SyncInfo,
 HT <: History[P, TX, PM, SI, HT],
 MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with TestkitHelpers {
 
-  val stateChangesGenerator: Gen[StateChanges[P, B]]
+  val stateChangesGenerator: Gen[BoxStateChanges[P, B]]
   val history: HT
   val mempool: MPool
   val transactionGenerator: Gen[TX]
@@ -79,7 +80,7 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
           val block = genValidModifierCustomTransactions(history, randomTx)
           val blockChanges = newState.changes(block).get
 
-          val changes: StateChanges[P, B] = StateChanges(blockChanges.operations.flatMap { op =>
+          val changes: BoxStateChanges[P, B] = BoxStateChanges(blockChanges.operations.flatMap { op =>
             op match {
               case rm: Removal[P, B] if newState.closedBox(rm.boxId).isEmpty => None
               case _ => Some(op)
@@ -93,7 +94,7 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
           val block = genValidModifierCustomTransactions(history, randomTx)
           val blockChanges = newState.changes(block).get
 
-          val changes: StateChanges[P, B] = StateChanges(blockChanges.operations.flatMap { op =>
+          val changes: BoxStateChanges[P, B] = BoxStateChanges(blockChanges.operations.flatMap { op =>
             op match {
               case rm: Removal[P, B] if newState.closedBox(rm.boxId).isEmpty => None
               case _ => Some(op)
