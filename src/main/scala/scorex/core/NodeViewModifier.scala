@@ -2,14 +2,14 @@ package scorex.core
 
 import com.typesafe.config.ConfigFactory
 import scorex.core.NodeViewModifier.ModifierId
-import scorex.core.serialization.{BytesSerializable, JsonSerializable, Serializer}
+import scorex.core.serialization.{BytesSerializable, JsonSerializable}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
-trait NodeViewModifier extends BytesSerializable with JsonSerializable {
+sealed trait NodeViewModifier extends BytesSerializable with JsonSerializable {
   self =>
 
   import NodeViewModifier.{ModifierId, ModifierTypeId}
@@ -20,8 +20,9 @@ trait NodeViewModifier extends BytesSerializable with JsonSerializable {
   def id: ModifierId
 
   def encodedId: String = Base58.encode(id)
-
 }
+
+trait EphemerealNodeViewModifier extends NodeViewModifier
 
 /**
   * It is supposed that all the modifiers (offchain transactions, blocks, blockheaders etc)
