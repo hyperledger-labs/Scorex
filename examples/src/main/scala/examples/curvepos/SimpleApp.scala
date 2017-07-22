@@ -5,7 +5,7 @@ import examples.curvepos.forging.{Forger, ForgerSettings}
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import io.circe
 import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, UtilsApiRoute}
-import scorex.core.app.{Application, ApplicationVersion}
+import scorex.core.app.{Application, Version}
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings

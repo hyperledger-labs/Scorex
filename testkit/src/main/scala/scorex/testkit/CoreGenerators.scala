@@ -5,7 +5,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.ModifierId
-import scorex.core.app.ApplicationVersion
+import scorex.core.app.Version
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
@@ -35,10 +35,10 @@ trait CoreGenerators {
     modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
   } yield modifierTypeId -> modifiers
   lazy val appVersionGen = for {
-    fd <- Gen.choose(0, MaxVersion)
-    sd <- Gen.choose(0, MaxVersion)
-    td <- Gen.choose(0, MaxVersion)
-  } yield ApplicationVersion(fd, sd, td)
+    fd <- Gen.choose(0: Byte, Byte.MaxValue)
+    sd <- Gen.choose(0: Byte, Byte.MaxValue)
+    td <- Gen.choose(0: Byte, Byte.MaxValue)
+  } yield Version(fd, sd, td)
   lazy val inetSocketAddressGen = for {
     ip1 <- Gen.choose(0, MaxIp)
     ip2 <- Gen.choose(0, MaxIp)

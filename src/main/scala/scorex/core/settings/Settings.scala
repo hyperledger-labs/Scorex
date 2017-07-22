@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 
 import io.circe.Json
 import io.circe.parser.parse
-import scorex.core.app.ApplicationVersion
+import scorex.core.app.Version
 import scorex.core.transaction.box.proposition.Constants25519._
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -142,10 +142,10 @@ trait Settings extends ScorexLogging {
   lazy val agentName: String = settingsJSON.get("agent").flatMap(_.asString)
     .getOrElse(Random.alphanumeric.take(16).mkString)
 
-  lazy val appVersion: ApplicationVersion = settingsJSON.get("version").flatMap(_.asArray)
-    .map(_.flatMap(_.asNumber.flatMap(_.toInt))).map(_.toArray)
-    .map(ints => ApplicationVersion(ints(0), ints(1), ints(2)))
-    .getOrElse(ApplicationVersion(0, 0, 1))
+  lazy val appVersion: Version = settingsJSON.get("version").flatMap(_.asArray)
+    .map(_.flatMap(_.asNumber.flatMap(_.toByte))).map(_.toArray)
+    .map(arr => Version(arr(0), arr(1), arr(2)))
+    .getOrElse(Version(0, 0, 1))
 }
 
 object Settings {

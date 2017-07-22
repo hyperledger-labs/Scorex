@@ -3,21 +3,21 @@ package scorex.core.network
 import java.net.{InetAddress, InetSocketAddress}
 
 import com.google.common.primitives.{Ints, Longs}
-import scorex.core.app.{ApplicationVersion, ApplicationVersionSerializer}
+import scorex.core.app.{Version, ApplicationVersionSerializer}
 import scorex.core.serialization.{BytesSerializable, Serializer}
 
 import scala.util.Try
 
 
 case class Handshake(applicationName: String,
-                     applicationVersion: ApplicationVersion,
+                     protocolVersion: Version,
                      nodeName: String,
                      nodeNonce: Long,
                      declaredAddress: Option[InetSocketAddress],
                      time: Long) extends BytesSerializable {
 
   require(Option(applicationName).isDefined)
-  require(Option(applicationVersion).isDefined)
+  require(Option(protocolVersion).isDefined)
 
   override type M = Handshake
 
@@ -36,7 +36,7 @@ object HandshakeSerializer extends Serializer[Handshake] {
     val nodeNameBytes = obj.nodeName.getBytes
 
     Array(anb.size.toByte) ++ anb ++
-      obj.applicationVersion.bytes ++
+      obj.protocolVersion.bytes ++
       Array(nodeNameBytes.size.toByte) ++ nodeNameBytes ++
       Longs.toByteArray(obj.nodeNonce) ++
       Ints.toByteArray(fab.length) ++ fab ++
