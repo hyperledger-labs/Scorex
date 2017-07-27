@@ -1,21 +1,13 @@
 package scorex.core.api.http.swagger
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import com.github.swagger.akka.SwaggerHttpService
 import com.github.swagger.akka.model.{Contact, Info, License}
-import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import io.swagger.models.Swagger
 import scorex.core.settings.Settings
 
-import scala.reflect.runtime.universe.Type
-
-
-class SwaggerDocService(system: ActorSystem, val apiTypes: Seq[Type], settings: Settings)
-  extends SwaggerHttpService with HasActorSystem {
-
-  override implicit val actorSystem: ActorSystem = system
-  override implicit val materializer: ActorMaterializer = ActorMaterializer()
-
+class SwaggerDocService(system: ActorSystem, val apiClasses: Set[Class[_]], settings: Settings)
+  extends SwaggerHttpService {
   override val host = settings.bindAddress + ":" + settings.rpcPort
   override val apiDocsPath: String = "swagger"
 
@@ -26,6 +18,8 @@ class SwaggerDocService(system: ActorSystem, val apiTypes: Seq[Type], settings: 
     Some(Contact("Alex", "https://scorex-dev.groups.io/g/main", "alex.chepurnoy@iohk.io")),
     Some(License("License: Creative Commons CC0", "https://github.com/ScorexProject/Scorex/blob/master/COPYING"))
   )
+
+  private def prependSlashIfNecessary(path: String): String  = if(path.startsWith("/")) path else s"/$path"
 
   //Let swagger-ui determine the host and port
   override def swaggerConfig: Swagger = new Swagger().basePath(prependSlashIfNecessary(basePath)).info(info).scheme(scheme)

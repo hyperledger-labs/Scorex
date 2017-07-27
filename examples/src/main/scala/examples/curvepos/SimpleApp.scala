@@ -42,7 +42,7 @@ class SimpleApp(val settingsFilename: String) extends Application {
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoMessageSpec.type]],
       networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoMessageSpec))
 
-  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
+  override val apiTypes: Set[Class[_]] = Set(classOf[UtilsApiRoute], classOf[NodeViewApiRoute[P, TX]])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings),
     NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
 }
