@@ -40,7 +40,7 @@ val apiDependencies = Seq(
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
   "io.swagger" %% "swagger-scala-module" % "1.0.3",
-  "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.9.+",
+  "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.+",
   "com.typesafe.akka" %% "akka-http" % "10.+"
 )
 
