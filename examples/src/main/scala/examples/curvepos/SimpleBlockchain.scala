@@ -45,10 +45,9 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
 
   override def openSurfaceIds(): Seq[ModifierId] = Seq(blockIds(height()))
 
-  override def continuation(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[SimpleBlock]] =
-    continuationIds(from, size).map(_.map(_._2).map(modifierById).map(_.get))
-
-  override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+  override def continuationIds(info: SimpleSyncInfo,
+                               size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+    val from = info.startingPoints
     require(from.size == 1)
     require(from.head._1 == SimpleBlock.ModifierTypeId)
 
