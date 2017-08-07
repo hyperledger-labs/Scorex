@@ -5,8 +5,8 @@ import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.core.transaction.state.BoxStateChanges
+import scorex.mid.state.BoxMinimalState
 
 import scala.util.Random
 

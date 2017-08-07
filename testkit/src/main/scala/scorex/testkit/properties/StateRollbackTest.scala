@@ -7,7 +7,7 @@ import scorex.core.transaction.{BoxTransaction, MemoryPool}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state._
-import scorex.core.transaction.state.authenticated.BoxMinimalState
+import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 
 

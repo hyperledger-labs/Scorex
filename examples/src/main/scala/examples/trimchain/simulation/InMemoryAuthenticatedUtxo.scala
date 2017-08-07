@@ -6,13 +6,13 @@ import examples.trimchain.modifiers.{TModifier, UtxoSnapshot}
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{Insertion, Removal, BoxStateChanges}
-import scorex.core.transaction.state.authenticated.BoxMinimalState
+import scorex.core.transaction.state.{BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{Insert, Lookup, Remove}
 
 import scala.util.Try
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
+import scorex.mid.state.BoxMinimalState
 
 /**
   * Only for simulations where chain grows strictly linearly. No rollback support.

@@ -4,8 +4,8 @@ import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.core.transaction.{BoxTransaction, MemoryPool, Transaction}
+import scorex.mid.state.BoxMinimalState
 import scorex.testkit.properties._
 
 /**

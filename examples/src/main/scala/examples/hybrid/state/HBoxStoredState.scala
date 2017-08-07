@@ -10,10 +10,10 @@ import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{Insertion, Removal, BoxStateChangeOperation, BoxStateChanges}
-import scorex.core.transaction.state.authenticated.BoxMinimalState
+import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+import scorex.mid.state.BoxMinimalState
 
 import scala.util.{Success, Try}
 

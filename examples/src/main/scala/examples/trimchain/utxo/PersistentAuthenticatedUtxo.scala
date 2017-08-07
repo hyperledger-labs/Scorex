@@ -9,8 +9,7 @@ import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{Insertion, Removal, BoxStateChangeOperation, BoxStateChanges}
-import scorex.core.transaction.state.authenticated.BoxMinimalState
+import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
 import scorex.crypto.encode.Base58
@@ -18,6 +17,7 @@ import scorex.crypto.hash.Blake2b256Unsafe
 
 import scala.util.{Random, Success, Try}
 import PersistentAuthenticatedUtxo.ProverType
+import scorex.mid.state.BoxMinimalState
 
 trait AuthenticatedUtxo {
   import PublicKey25519NoncedBox.BoxKeyLength

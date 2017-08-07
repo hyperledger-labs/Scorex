@@ -1,8 +1,8 @@
-package scorex.core.transaction.state.authenticated
+package scorex.mid.state
 
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.transaction.box.Box
 import scorex.core.transaction.BoxTransaction
+import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.transaction.state.{BoxStateChanges, MinimalState, TransactionValidation}
@@ -10,7 +10,11 @@ import scorex.core.transaction.state.{BoxStateChanges, MinimalState, Transaction
 import scala.util.{Failure, Success, Try}
 
 
-trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, BX], M <: PersistentNodeViewModifier[P, BTX], BMS <: BoxMinimalState[P, BX, BTX, M, BMS]]
+trait BoxMinimalState[P <: Proposition,
+  BX <: Box[P],
+  BTX <: BoxTransaction[P, BX],
+  M <: PersistentNodeViewModifier[P, BTX],
+  BMS <: BoxMinimalState[P, BX, BTX, M, BMS]]
   extends MinimalState[P, BX, BTX, M, BMS] with TransactionValidation[BTX] {
   self: BMS =>
 
@@ -71,19 +75,4 @@ trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, B
   def semanticValidity(tx: BTX): Try[Unit]
 }
 
-/*
-todo: rewrite / uncomment
-trait AuthenticatedBoxMinimalState[P <: Proposition, BX <: Box[P], TX <: Transaction[P], M <: PersistentNodeViewModifier[P, TX], HashFunction <: CryptographicHash,
-AMS <: AuthenticatedBoxMinimalState[P, BX, TX, M, HashFunction, AMS]]
-  extends MinimalState[P, BX, TX, M, AMS] {
-  self: AMS =>
 
-  type ElementProof <: DataProof
-  type Storage <: StorageType
-
-  protected val boxesStorage: AuthenticatedDictionary[ElementProof, Storage]
-
-  def digest: HashFunction#Digest
-
-  val hashFunction: HashFunction
-}*/

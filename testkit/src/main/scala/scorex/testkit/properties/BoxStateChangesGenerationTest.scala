@@ -5,8 +5,8 @@ import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.{BoxTransaction, Transaction}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.core.transaction.state.{BoxStateChanges, Removal}
+import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 
 trait BoxStateChangesGenerationTest[P <: Proposition,

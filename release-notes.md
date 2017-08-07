@@ -2,7 +2,8 @@
 ---------
 * MinimalState interface made minimal
 * protocolVersion in P2P Handshake
-* Scrypto 1.2.2
+* Scrypto 1.2.3
+* BoxMinimalState moved to scorex.mid.state
 
 2.0.0-RC1
 ---------

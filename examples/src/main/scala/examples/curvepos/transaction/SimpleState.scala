@@ -6,10 +6,10 @@ import examples.curvepos.transaction.SimpleState.EmptyVersion
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.authenticated.BoxMinimalState
 import scorex.core.transaction.state._
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+import scorex.mid.state.BoxMinimalState
 
 import scala.util.{Failure, Success, Try}
 
