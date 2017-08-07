@@ -70,15 +70,11 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
   //todo: output should be ID | Seq[ID]
   def openSurfaceIds(): Seq[ModifierId]
 
-  //todo: argument should be ID | Seq[ID]
-  def continuation(from: ModifierIds, size: Int): Option[Seq[PM]] = {
-    continuationIds(from, size).map { ids =>
-      ids.map(_._2).flatMap(id => modifierById(id))
-    }
-  }
-
-  //todo: argument should be ID | Seq[ID]
-  def continuationIds(from: ModifierIds, size: Int): Option[ModifierIds]
+  /**
+    * Ids of modifiers, that node with info should download and apply to synchronize
+    * todo: argument should be ID | Seq[ID]
+    */
+  def continuationIds(info: SI, size: Int): Option[ModifierIds]
 
   def syncInfo(answer: Boolean): SI
 

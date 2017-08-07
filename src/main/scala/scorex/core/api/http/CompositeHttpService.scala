@@ -7,10 +7,7 @@ import akka.http.scaladsl.server.Route
 import scorex.core.api.http.swagger.{CorsSupport, SwaggerDocService}
 import scorex.core.settings.Settings
 
-import scala.reflect.runtime.universe.Type
-
-
-case class CompositeHttpService(system: ActorSystem, apiTypes: Seq[Type], routes: Seq[ApiRoute], settings: Settings)
+case class CompositeHttpService(system: ActorSystem, apiTypes: Set[Class[_]], routes: Seq[ApiRoute], settings: Settings)
   extends CorsSupport {
 
   implicit val actorSystem = system

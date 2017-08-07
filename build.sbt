@@ -50,9 +50,9 @@ val loggingDependencies = Seq(
 )
 
 val testingDependencies = Seq(
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.17" % "test",
-  "org.scalactic" %% "scalactic" % "3.0.1" % "test",
-  "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+  "com.typesafe.akka" %% "akka-testkit" % "2.5.3" % "test",
+  "org.scalactic" %% "scalactic" % "3.0.3" % "test",
+  "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.scalacheck" %% "scalacheck" % "1.13.+" % "test",
   "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"
 )
@@ -101,3 +101,52 @@ lazy val examples = Project(id = "examples", base = file(s"examples"))
 
 lazy val basics = Project(id = "scorex", base = file("."))
   .settings(commonSettings: _*)
+
+//publishing settings
+
+licenses in ThisBuild := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode"))
+
+homepage in ThisBuild := Some(url("https://github.com/ScorexFoundation/Scorex"))
+
+publishMavenStyle in ThisBuild := true
+
+publishArtifact in Test := false
+
+publishTo in ThisBuild := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases" at nexus + "service/local/staging/deploy/maven2")
+}
+
+credentials ++= (for {
+  username <- Option(System.getenv().get("SONATYPE_USERNAME"))
+  password <- Option(System.getenv().get("SONATYPE_PASSWORD"))
+} yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq
+
+fork in ThisBuild := true
+
+pomIncludeRepository in ThisBuild := { _ => false }
+
+licenses in ThisBuild := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode"))
+
+homepage in ThisBuild := Some(url("https://github.com/ScorexFoundation/Scorex"))
+
+pomExtra in ThisBuild :=
+  <scm>
+    <url>git@github.com:ScorexFoundation/Scorex.git</url>
+    <connection>scm:git@github.com:ScorexFoundation/Scorex.git</connection>
+  </scm>
+    <developers>
+      <developer>
+        <id>kushti</id>
+        <name>Alexander Chepurnoy</name>
+        <url>http://chepurnoy.org/</url>
+      </developer>
+      <developer>
+        <id>catena2w</id>
+        <name>catena</name>
+        <url>https://github.com/catena2w</url>
+      </developer>
+    </developers>

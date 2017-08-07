@@ -42,8 +42,8 @@ class TApp(val settingsFilename: String) extends Application {
     PeersApiRoute(peerManagerRef, networkController, settings)
   )
 
-  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[DebugApiRoute], typeOf[WalletApiRoute],
-    typeOf[NodeViewApiRoute[P, TX]], typeOf[PeersApiRoute])
+  override val apiTypes: Set[Class[_]] = Set(classOf[UtilsApiRoute], classOf[DebugApiRoute], classOf[WalletApiRoute],
+    classOf[NodeViewApiRoute[P, TX]], classOf[PeersApiRoute])
 
   val miner = actorSystem.actorOf(Props(classOf[PowMiner], nodeViewHolderRef, settings))
   val forger = actorSystem.actorOf(Props(classOf[PosForger], settings, nodeViewHolderRef))

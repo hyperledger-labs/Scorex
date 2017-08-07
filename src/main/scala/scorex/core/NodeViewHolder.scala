@@ -238,7 +238,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
       log.debug(s"Local side contains head: ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
 
-      val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
+      val extensionOpt = history().continuationIds(syncInfo, networkChunkSize)
       val ext = extensionOpt.getOrElse(Seq())
       val comparison = history().compare(syncInfo)
       log.debug(s"Sending extension of length ${ext.length}: ${ext.map(_._2).map(Base58.encode).mkString(",")}")

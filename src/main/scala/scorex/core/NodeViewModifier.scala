@@ -20,6 +20,11 @@ sealed trait NodeViewModifier extends BytesSerializable with JsonSerializable {
   def id: ModifierId
 
   def encodedId: String = Base58.encode(id)
+
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case that: NodeViewModifier => (that.id sameElements id) && (that.modifierTypeId == modifierTypeId)
+    case _ => false
+  }
 }
 
 trait EphemerealNodeViewModifier extends NodeViewModifier
@@ -37,7 +42,6 @@ object NodeViewModifier {
 
   val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(DefaultIdSize)
 }
-
 
 
 trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]] extends NodeViewModifier {

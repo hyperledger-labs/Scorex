@@ -47,10 +47,6 @@ case class Header(parentId: BlockId,
 
   override def serializer: Serializer[Header] = HeaderSerializer
 
-  override def equals(obj: scala.Any): Boolean = obj match {
-    case that: Header => id sameElements that.id
-    case _ => false
-  }
 }
 
 object HeaderSerializer extends Serializer[Header] {
