@@ -2,9 +2,9 @@
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.2",
+  scalaVersion := "2.12.3",
   organization := "org.scorexfoundation",
-  version := "2.0.0-RC2-SNAPSHOT",
+  version := "2.0.0-RC2",
   licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
   homepage := Some(url("https://github.com/ScorexFoundation/Scorex")),
   pomExtra := (
@@ -21,9 +21,9 @@ lazy val commonSettings = Seq(
       </developers>)
 )
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.3"
 organization := "org.scorexfoundation"
-version := "2.0.0-RC2-SNAPSHOT"
+version := "2.0.0-RC2"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
@@ -59,7 +59,7 @@ val testingDependencies = Seq(
 
 libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.+",
-  "org.scorexfoundation" %% "scrypto" % "1.2.2"
+  "org.scorexfoundation" %% "scrypto" % "1.2.3"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 
