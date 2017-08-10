@@ -13,7 +13,6 @@ import scorex.crypto.signatures.Curve25519
 
 //Generators of objects from scorex-core
 trait CoreGenerators {
-  val MaxVersion = 999
   val MaxIp = 255
   val MaxPort = 65535
 
