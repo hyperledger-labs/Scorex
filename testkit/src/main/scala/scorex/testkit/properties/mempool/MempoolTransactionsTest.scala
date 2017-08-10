@@ -1,4 +1,4 @@
-package scorex.testkit.properties
+package scorex.testkit.properties.mempool
 
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}

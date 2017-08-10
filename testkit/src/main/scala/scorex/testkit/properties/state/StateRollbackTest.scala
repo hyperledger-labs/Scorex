@@ -1,12 +1,12 @@
-package scorex.testkit.properties
+package scorex.testkit.properties.state
 
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.transaction.{BoxTransaction, MemoryPool}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state._
+import scorex.core.transaction.{BoxTransaction, MemoryPool}
 import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 

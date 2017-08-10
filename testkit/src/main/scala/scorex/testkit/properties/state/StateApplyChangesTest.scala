@@ -1,4 +1,4 @@
-package scorex.testkit.properties
+package scorex.testkit.properties.state
 
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier

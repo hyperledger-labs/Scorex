@@ -19,6 +19,4 @@ PM <: PersistentNodeViewModifier[P, TX]]
     assert(publicImages.nonEmpty, "please provide wallet with at least one secret")
     publicImages.foreach(pi => wallet.secretByPublicImage(pi).isDefined shouldBe true)
   }
-
-
 }

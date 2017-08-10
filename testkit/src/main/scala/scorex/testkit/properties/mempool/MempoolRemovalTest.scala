@@ -1,12 +1,12 @@
-package scorex.testkit.properties
+package scorex.testkit.properties.mempool
 
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
 import scorex.testkit.TestkitHelpers
 

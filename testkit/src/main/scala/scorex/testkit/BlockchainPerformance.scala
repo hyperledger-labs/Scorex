@@ -7,6 +7,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.testkit.properties._
+import scorex.testkit.properties.mempool.MempoolFilterPerformanceTest
 
 /**
   * Performance test for implementations

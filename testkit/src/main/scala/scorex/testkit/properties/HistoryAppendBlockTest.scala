@@ -22,11 +22,10 @@ HT <: History[P, TX, PM, SI, HT]] extends PropSpec with GeneratorDrivenPropertyC
   property("Appended block is in history") {
     var h: HT = history
     check { _ =>
-      val b = genValidModifier(h, false, 0)
+      val b = genValidModifier(h, mempoolTransactionFetchOption = false, 0)
       h.modifierById(b.id).isDefined shouldBe false
       h = h.append(b).get._1
       h.modifierById(b.id).isDefined shouldBe true
     }
   }
-
 }

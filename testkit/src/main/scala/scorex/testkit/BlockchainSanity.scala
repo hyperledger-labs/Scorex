@@ -7,6 +7,8 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{BoxTransaction, MemoryPool, Transaction}
 import scorex.mid.state.BoxMinimalState
 import scorex.testkit.properties._
+import scorex.testkit.properties.mempool.{MempoolFilterPerformanceTest, MempoolRemovalTest, MempoolTransactionsTest}
+import scorex.testkit.properties.state.{BoxStateChangesGenerationTest, StateApplyChangesTest, StateRollbackTest}
 
 /**
   * The idea of this class is to get some generators and test some situations, common for all blockchains
