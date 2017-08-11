@@ -9,10 +9,10 @@ import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.block.Block
 import scorex.core.block.Block._
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
 import scorex.crypto.encode.Base58
+import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
@@ -40,7 +40,7 @@ class PowBlockHeader(
 
   def correctWork(difficulty: BigInt, s: MiningConstants): Boolean = correctWorkDone(id, difficulty, s)
 
-  lazy val id = FastCryptographicHash(headerBytes)
+  lazy val id = Blake2b256(headerBytes)
 
   override lazy val toString = s"PowBlockHeader(id: ${Base58.encode(id)})" +
     s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +
@@ -49,7 +49,7 @@ class PowBlockHeader(
 
 object PowBlockHeader {
   //two pointers and 2 long values, 64 bit each
-  val PowHeaderSize = NodeViewModifier.ModifierIdSize * 2 + 8 * 2 + 4 + FastCryptographicHash.DigestSize + Curve25519.KeyLength
+  val PowHeaderSize = NodeViewModifier.ModifierIdSize * 2 + 8 * 2 + 4 + Blake2b256.DigestSize + Curve25519.KeyLength
 
   def parse(bytes: Array[Byte]): Try[PowBlockHeader] = Try {
     require(bytes.length == PowHeaderSize)

@@ -1,9 +1,9 @@
 package scorex.core.network.message
 
 import com.google.common.primitives.{Bytes, Ints}
-import scorex.core.crypto.hash.FastCryptographicHash._
 import scorex.core.network.ConnectedPeer
 import scorex.core.serialization.{BytesSerializable, Serializer}
+import scorex.crypto.hash.Blake2b256
 
 import scala.util.{Success, Try}
 
@@ -34,7 +34,7 @@ class MessageSerializer[Content] extends Serializer[Message[Content]] {
 
   override def toBytes(obj: Message[Content]): Array[Byte] = {
     val dataWithChecksum = if (obj.dataLength > 0) {
-      val checksum = hash(obj.dataBytes).take(ChecksumLength)
+      val checksum = Blake2b256.hash(obj.dataBytes).take(ChecksumLength)
       Bytes.concat(checksum, obj.dataBytes)
     } else obj.dataBytes //empty array
 

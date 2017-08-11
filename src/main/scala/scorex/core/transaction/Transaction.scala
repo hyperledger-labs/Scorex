@@ -2,8 +2,8 @@ package scorex.core.transaction
 
 import scorex.core.{EphemerealNodeViewModifier, NodeViewModifier}
 import scorex.core.NodeViewModifier._
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.crypto.hash.Blake2b256
 
 
 /**
@@ -15,7 +15,7 @@ abstract class Transaction[P <: Proposition] extends EphemerealNodeViewModifier 
 
   val messageToSign: Array[Byte]
 
-  override lazy val id: ModifierId = FastCryptographicHash(messageToSign)
+  override lazy val id: ModifierId = Blake2b256(messageToSign)
 }
 
 

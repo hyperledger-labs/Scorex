@@ -2,8 +2,8 @@ package scorex.core.network.message
 
 import java.nio.ByteBuffer
 
-import scorex.core.crypto.hash.FastCryptographicHash._
 import scorex.core.network.ConnectedPeer
+import scorex.crypto.hash.Blake2b256
 
 import scala.language.existentials
 import scala.util.Try
@@ -39,7 +39,7 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
         bytes.get(data)
 
         //VALIDATE CHECKSUM
-        val digest = hash(data).take(Message.ChecksumLength)
+        val digest = Blake2b256.hash(data).take(Message.ChecksumLength)
 
         //CHECK IF CHECKSUM MATCHES
         assert(checksum.sameElements(digest), s"Invalid data checksum length = $length")

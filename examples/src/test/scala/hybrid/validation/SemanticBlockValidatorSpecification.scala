@@ -4,7 +4,7 @@ import examples.hybrid.validation.SemanticBlockValidator
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.crypto.hash.Blake2b256
 
 
 class SemanticBlockValidatorSpecification extends PropSpec
@@ -13,7 +13,7 @@ class SemanticBlockValidatorSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  val validator = new SemanticBlockValidator(FastCryptographicHash)
+  val validator = new SemanticBlockValidator(Blake2b256)
 
   property("Generated PoS block semantics is valid") {
     forAll(posBlockGen) { posBlock =>

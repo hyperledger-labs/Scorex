@@ -8,11 +8,11 @@ import io.circe.syntax._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.block.Block
 import scorex.core.block.Block._
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
+import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
@@ -35,7 +35,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override lazy val modifierTypeId: ModifierTypeId = PosBlock.ModifierTypeId
 
   override lazy val id: ModifierId =
-    FastCryptographicHash(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
+    Blake2b256(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,

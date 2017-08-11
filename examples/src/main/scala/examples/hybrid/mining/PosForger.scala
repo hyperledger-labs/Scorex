@@ -10,11 +10,11 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.hash.Blake2b256
 import scorex.utils.Random
 
 
@@ -71,7 +71,7 @@ object PosForger extends ScorexLogging {
   case object StopForging
 
   def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
-    val h = FastCryptographicHash(pwb.bytes ++ box.bytes)
+    val h = Blake2b256(pwb.bytes ++ box.bytes)
     Longs.fromByteArray((0: Byte) +: h.take(7))
   }
 

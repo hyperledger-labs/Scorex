@@ -8,13 +8,13 @@ import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519Non
 import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletBoxSerializer, WalletTransaction}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
 
@@ -61,7 +61,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
   override def generateNewSecret(): HWallet = {
     val prevSecrets = secrets
     val nonce: Array[Byte] = Ints.toByteArray(prevSecrets.size)
-    val s = FastCryptographicHash(seed ++ nonce)
+    val s = Blake2b256(seed ++ nonce)
     val (priv, _) = PrivateKey25519Companion.generateKeys(s)
     val allSecrets: Set[PrivateKey25519] = Set(priv) ++ prevSecrets
     store.update(ByteArrayWrapper(priv.privKeyBytes),

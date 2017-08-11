@@ -8,9 +8,9 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{PrivateKey25519, BoxStateChanges}
+import scorex.core.transaction.state.{BoxStateChanges, PrivateKey25519}
+import scorex.crypto.hash.Blake2b256
 import scorex.testkit.{BlockchainPerformance, BlockchainSanity}
 
 class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
@@ -54,7 +54,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
         brothers <- Gen.listOfN(brothersCount, powHeaderGen)
       } yield {
         val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
-        val brothersHash: Array[Byte] = FastCryptographicHash(brotherBytes)
+        val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
         new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
       }
     } else {
@@ -79,7 +79,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
         brothers <- Gen.listOfN(brothersCount, powHeaderGen)
       } yield {
         val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
-        val brothersHash: Array[Byte] = FastCryptographicHash(brotherBytes)
+        val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
         new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
       }
     } else {
@@ -131,7 +131,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
         brothers <- Gen.listOfN(brothersCount, powHeaderGen)
       } yield {
         val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
-        val brothersHash: Array[Byte] = FastCryptographicHash(brotherBytes)
+        val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
         new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
       }
     } else {

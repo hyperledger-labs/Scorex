@@ -8,8 +8,8 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scala.util.Try
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.crypto.encode.Base58
+import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Curve25519
 
 case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Proposition,
@@ -31,7 +31,7 @@ case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Propo
 }
 
 object PublicKey25519NoncedBox {
-  val BoxKeyLength = FastCryptographicHash.DigestSize
+  val BoxKeyLength = Blake2b256.DigestSize
   val BoxLength: Int = Curve25519.KeyLength + 2 * 8
 }
 

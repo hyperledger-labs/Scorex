@@ -7,12 +7,10 @@ import io.circe.syntax._
 import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.block.Block
 import scorex.core.block.Block._
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
-import shapeless.{::, HNil}
-
+import scorex.crypto.hash.Blake2b256
 import scala.util.Try
 
 case class SimpleBlock(override val parentId: BlockId,
@@ -31,7 +29,7 @@ case class SimpleBlock(override val parentId: BlockId,
 
   override lazy val serializer = SimpleBlockCompanion
 
-  override lazy val id: BlockId = FastCryptographicHash(serializer.messageToSign(this))
+  override lazy val id: BlockId = Blake2b256(serializer.messageToSign(this))
 
   override lazy val version: Version = 0: Byte
 

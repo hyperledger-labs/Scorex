@@ -13,10 +13,10 @@ import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.History
 import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
 import scorex.crypto.encode.Base58
+import scorex.crypto.hash.Blake2b256
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Try}
@@ -447,7 +447,7 @@ object HybridHistory extends ScorexLogging {
     val storage = new HistoryStorage(blockStorage, settings)
     val validators = Seq(new DifficultyBlockValidator(settings, storage),
       new ParentBlockValidator(storage),
-      new SemanticBlockValidator(FastCryptographicHash)
+      new SemanticBlockValidator(Blake2b256)
     )
 
     new HybridHistory(storage, settings, validators, loggerOpt)
