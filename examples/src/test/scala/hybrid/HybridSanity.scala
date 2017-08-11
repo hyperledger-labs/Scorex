@@ -31,42 +31,16 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   with HybridGenerators {
 
   //Node view components
-  override val history = generateHistory
+  override val history: HybridHistory = generateHistory
   override val mempool: SimpleBoxTransactionMemPool = SimpleBoxTransactionMemPool.emptyPool
   override val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings, "p"))((w, _) => w.generateNewSecret())
-  override val state = HBoxStoredState.readOrGenerate(settings)
+  override val state: HBoxStoredState = HBoxStoredState.readOrGenerate(settings)
 
   //Generators
   override val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen
 
   override val stateChangesGenerator: Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     stateChangesGen
-
-  //Old Generator
-
-  /*override def genValidModifier(curHistory: HybridHistory): HybridBlock = {
-    if (curHistory.pairCompleted) {
-      for {
-        timestamp: Long <- positiveLongGen
-        nonce: Long <- positiveLongGen
-        brothersCount: Byte <- positiveByteGen
-        proposition: PublicKey25519Proposition <- propositionGen
-        brothers <- Gen.listOfN(brothersCount, powHeaderGen)
-      } yield {
-        val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
-        val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
-        new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
-      }
-    } else {
-      for {
-        timestamp: Long <- positiveLongGen
-        txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
-        box: PublicKey25519NoncedBox <- noncedBoxGen
-        attach: Array[Byte] <- genBoundedBytes(0, 4096)
-        generator: PrivateKey25519 <- key25519Gen.map(_._1)
-      } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
-    }
-  }.apply(Gen.Parameters.default, Seed.random()).get*/
 
   override def genValidModifier(curHistory: HybridHistory, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool : Int): HybridBlock = {
 
