@@ -175,6 +175,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! NodeViewSynchronizer.RequestFromLocal(sid, modifierTypeId, ids)
   }
 
+
   private def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
       val objs: Seq[NodeViewModifier] = modifierTypeId match {
@@ -204,7 +205,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         var t: Option[(ConnectedPeer, PMOD)] = None
         do {
           t = {
-            modifiersCache.find { case (mid, (_, pmod)) =>
+            modifiersCache.find { case (_, (_, pmod)) =>
               history().applicable(pmod)
             }.map { t =>
               val res = t._2
@@ -330,5 +331,4 @@ object NodeViewHolder {
 
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
-
 }

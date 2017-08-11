@@ -19,7 +19,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
-  * A middle layer between a node view holder(NodeViewHolder) and a network
+  * A middle layer between a node view holder(NodeViewHolder) and the p2p network
   *
   * @param networkControllerRef
   * @param viewHolderRef
@@ -229,7 +229,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 }
 
 object NodeViewSynchronizer {
-
   case object GetLocalSyncInfo
 
   case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
@@ -243,5 +242,4 @@ object NodeViewSynchronizer {
   case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
   case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
-
 }
