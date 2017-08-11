@@ -13,6 +13,9 @@ import scorex.core.transaction.state.{BoxStateChanges, PrivateKey25519}
 import scorex.crypto.hash.Blake2b256
 import scorex.testkit.{BlockchainPerformance, BlockchainSanity}
 
+import scala.util.Random
+
+
 class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock,
@@ -42,7 +45,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   override val stateChangesGenerator: Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     stateChangesGen
 
-  override def genValidModifier(curHistory: HybridHistory, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool : Int): HybridBlock = {
+  override def genValidModifier(curHistory: HybridHistory, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool: Int): HybridBlock = {
 
     if (curHistory.pairCompleted) {
       for {
@@ -57,7 +60,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
         new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
       }
     } else {
-      if(mempoolTransactionFetchOption){
+      if (mempoolTransactionFetchOption) {
         for {
           timestamp: Long <- positiveLongGen
           txs = simpleMempoolTransactionGen(noOfTransactionsFromMempool)
@@ -66,7 +69,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
           generator: PrivateKey25519 <- key25519Gen.map(_._1)
         } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
       }
-      else{
+      else {
         for {
           timestamp: Long <- positiveLongGen
           txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
@@ -80,13 +83,12 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
 
 
   override def genValidTransactionPair(curHistory: HybridHistory): Seq[SimpleBoxTransaction] = {
-    var keys = key25519Gen.apply(Gen.Parameters.default, Seed.random()).get
-    var value = positiveLongGen.apply(Gen.Parameters.default, Seed.random()).get
+    val keys = key25519Gen.apply(Gen.Parameters.default, Seed.random()).get
+    val value = positiveLongGen.apply(Gen.Parameters.default, Seed.random()).get
 
-
-    var newBox : IndexedSeq[(PublicKey25519Proposition, Long)] = IndexedSeq((keys._2, value))
-    var trx : SimpleBoxTransaction = simpleBoxTransactionGenCustomMakeBoxes(newBox).apply(Gen.Parameters.default, Seed.random()).get
-    var useBox: IndexedSeq[(PrivateKey25519, Long)] = IndexedSeq((keys._1, trx.newBoxes.toVector(0).nonce))
+    val newBox: IndexedSeq[(PublicKey25519Proposition, Long)] = IndexedSeq((keys._2, value))
+    val trx: SimpleBoxTransaction = simpleBoxTransactionGenCustomMakeBoxes(newBox).apply(Gen.Parameters.default, Seed.random()).get
+    val useBox: IndexedSeq[(PrivateKey25519, Long)] = IndexedSeq((keys._1, trx.newBoxes.toVector(0).nonce))
 
     var trxnPair = Seq[SimpleBoxTransaction]()
     trxnPair = trxnPair :+ trx
@@ -120,17 +122,17 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   }.apply(Gen.Parameters.default, Seed.random()).get
 
 
-  def simpleMempoolTransactionGen (noOfTransactionsFromMempool : Int) : Seq[SimpleBoxTransaction] = {
-    var randm = scala.util.Random
+  def simpleMempoolTransactionGen(noOfTransactionsFromMempool: Int): Seq[SimpleBoxTransaction] = {
     var a = 0
     var txs = Seq[SimpleBoxTransaction]()
-    for (i <- 1 until noOfTransactionsFromMempool) {
-      var p = mempool.take(mempool.size-1).toVector({a = randm.nextInt(mempool.size-1); a})
+    (1 until noOfTransactionsFromMempool) foreach { _ =>
+      val p = mempool.take(mempool.size - 1).toVector({
+        Random.nextInt(mempool.size - 1)
+      })
       mempool.remove(p)
       txs = txs :+ p
     }
     txs
   }
-
 }
 
