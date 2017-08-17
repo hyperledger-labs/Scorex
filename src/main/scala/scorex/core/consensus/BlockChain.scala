@@ -42,18 +42,13 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   //just last block id
   override def openSurfaceIds(): scala.Seq[ModifierId] = lastBlockIds(1)
 
-  override def continuationIds(openSurface: Seq[(ModifierTypeId, ModifierId)], size: Int):
+  override def continuationIds(info: SI, size: Int):
   Option[Seq[(ModifierTypeId, ModifierId)]] = {
+    val openSurface = info.startingPoints
     assert(openSurface.size == 1)
     val modId = openSurface.head._1
     val s = lookForward(openSurface.head._2, size)
     if (s.isEmpty) None else Some(s.map(id => modId -> id))
-  }
-
-  override def continuation(openSurface: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[Seq[B]] = {
-    assert(openSurface.size == 1)
-    val s = lookForward(openSurface.head._2, size)
-    if (s.isEmpty) None else Some(s.map(id => modifierById(id).get))
   }
 
   /**

@@ -5,12 +5,11 @@ import javax.ws.rs.Path
 
 import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
-import io.circe._
 import io.circe.syntax._
 import io.swagger.annotations._
-import scorex.core.crypto.hash.{FastCryptographicHash}
 import scorex.crypto.encode.Base58
 import scorex.core.settings.Settings
+import scorex.crypto.hash.Blake2b256
 
 
 @Path("/utils")
@@ -64,7 +63,7 @@ case class UtilsApiRoute(override val settings: Settings)(implicit val context: 
       entity(as[String]) { message =>
         withAuth {
           postJsonRoute {
-            SuccessApiResponse(Map("message" -> message, "hash" -> Base58.encode(FastCryptographicHash(message))).asJson)
+            SuccessApiResponse(Map("message" -> message, "hash" -> Base58.encode(Blake2b256(message))).asJson)
           }
         }
       }

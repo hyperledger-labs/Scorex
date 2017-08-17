@@ -11,10 +11,10 @@ import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.block.Block.BlockId
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+import scorex.crypto.hash.Blake2b256
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
@@ -169,8 +169,7 @@ object PowMiner extends App {
 
     val ts = System.currentTimeMillis()
 
-    val bHash = if (brothers.isEmpty) Array.fill(32)(0: Byte)
-    else FastCryptographicHash(PowBlockCompanion.brotherBytes(brothers))
+    val bHash = if (brothers.isEmpty) Array.fill(32)(0: Byte) else Blake2b256(PowBlockCompanion.brotherBytes(brothers))
 
     val b = PowBlock(parentId, prevPosId, ts, nonce, brothers.size, bHash, proposition, brothers)
 

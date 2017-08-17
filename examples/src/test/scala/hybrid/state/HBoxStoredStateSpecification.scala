@@ -9,7 +9,7 @@ import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.StateChanges
+import scorex.core.transaction.state.BoxStateChanges
 
 import scala.util.Random
 

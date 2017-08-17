@@ -14,12 +14,12 @@ import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.NodeViewModifier
 import scorex.core.block.Block
 import scorex.core.block.Block._
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
-import scorex.core.transaction.state.{Insertion, PrivateKey25519, StateChanges}
+import scorex.core.transaction.state.{BoxStateChanges, Insertion, PrivateKey25519}
 import scorex.core.transaction.wallet.WalletBox
+import scorex.crypto.hash.Blake2b256
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -63,7 +63,7 @@ trait HybridGenerators extends ExamplesCommonGenerators {
     timestamp: Long <- positiveLongGen
     nonce: Long <- positiveLongGen
     brothersCount: Byte <- positiveByteGen
-    brothersHash: Array[Byte] <- genBytesList(FastCryptographicHash.DigestSize)
+    brothersHash: Array[Byte] <- genBytesList(Blake2b256.DigestSize)
     prop: PublicKey25519Proposition <- propositionGen
   } yield new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
 
@@ -77,7 +77,7 @@ trait HybridGenerators extends ExamplesCommonGenerators {
     brothers <- Gen.listOfN(brothersCount, powHeaderGen)
   } yield {
     val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
-    val brothersHash: Array[Byte] = FastCryptographicHash(brotherBytes)
+    val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
     new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
   }
 
@@ -88,8 +88,8 @@ trait HybridGenerators extends ExamplesCommonGenerators {
     value <- positiveLongGen
   } yield PublicKey25519NoncedBox(proposition, nonce, value)
 
-  lazy val stateChangesGen: Gen[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = noncedBoxGen
-    .map(b => StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(b))))
+  lazy val stateChangesGen: Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = noncedBoxGen
+    .map(b => BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(b))))
 
   lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
     createdAt <- positiveLongGen

@@ -1,9 +1,20 @@
-2.0.0-M5
---------
+2.0.0-RC2
+---------
+* MinimalState interface made minimal
+* protocolVersion in P2P Handshake
+* Scrypto 1.2.3
+* BoxMinimalState moved to scorex.mid.state
 
+2.0.0-RC1
+---------
+* Transaction interface simplified (fee & timestamp fields removed)
+* Scala 2.12
+* IODB 0.3.1
+* reportInvalid() in History
 * Issue #19 fixed
 * MapDB dependency removed
 * StateChanges reworked
+* TwinsCoin example improved
 
 2.0.0-M4
 --------

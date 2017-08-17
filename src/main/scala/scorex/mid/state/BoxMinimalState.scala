@@ -1,18 +1,38 @@
-package scorex.core.transaction.state.authenticated
+package scorex.mid.state
 
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.transaction.box.Box
 import scorex.core.transaction.BoxTransaction
+import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.MinimalState
-import scorex.utils._
+import scorex.core.transaction.state.MinimalState.VersionTag
+import scorex.core.transaction.state.{BoxStateChanges, MinimalState, TransactionValidation}
 
 import scala.util.{Failure, Success, Try}
 
 
-trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, BX], M <: PersistentNodeViewModifier[P, BTX], BMS <: BoxMinimalState[P, BX, BTX, M, BMS]]
-  extends MinimalState[P, BX, BTX, M, BMS] {
+trait BoxMinimalState[P <: Proposition,
+  BX <: Box[P],
+  BTX <: BoxTransaction[P, BX],
+  M <: PersistentNodeViewModifier[P, BTX],
+  BMS <: BoxMinimalState[P, BX, BTX, M, BMS]]
+  extends MinimalState[P, BX, BTX, M, BMS] with TransactionValidation[BTX] {
   self: BMS =>
+
+  def closedBox(boxId: Array[Byte]): Option[BX]
+
+  def boxesOf(proposition: P): Seq[BX]
+
+  def changes(mod: M): Try[BoxStateChanges[P, BX]]
+
+  def applyChanges(changes: BoxStateChanges[P, BX], newVersion: VersionTag): Try[BMS]
+
+  override def applyModifier(mod: M): Try[BMS] = {
+    validate(mod) flatMap {_ =>
+      changes(mod).flatMap(cs => applyChanges(cs, mod.id))
+    }
+  }
+
+  override def validate(mod: M): Try[Unit] = Try(mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get))
 
   /**
     * A transaction is valid against a state if:
@@ -55,19 +75,4 @@ trait BoxMinimalState[P <: Proposition, BX <: Box[P], BTX <: BoxTransaction[P, B
   def semanticValidity(tx: BTX): Try[Unit]
 }
 
-/*
-todo: rewrite / uncomment
-trait AuthenticatedBoxMinimalState[P <: Proposition, BX <: Box[P], TX <: Transaction[P], M <: PersistentNodeViewModifier[P, TX], HashFunction <: CryptographicHash,
-AMS <: AuthenticatedBoxMinimalState[P, BX, TX, M, HashFunction, AMS]]
-  extends MinimalState[P, BX, TX, M, AMS] {
-  self: AMS =>
 
-  type ElementProof <: DataProof
-  type Storage <: StorageType
-
-  protected val boxesStorage: AuthenticatedDictionary[ElementProof, Storage]
-
-  def digest: HashFunction#Digest
-
-  val hashFunction: HashFunction
-}*/

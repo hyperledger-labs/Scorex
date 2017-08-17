@@ -1,30 +1,31 @@
-package scorex.testkit.properties
+package scorex.testkit.properties.state
 
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.transaction.box.Box
-import scorex.core.transaction.box.proposition.{Proposition}
+import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state._
+import scorex.core.transaction.{BoxTransaction, MemoryPool}
+import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 
 
 trait StateRollbackTest[P <: Proposition,
-TX <: Transaction[P],
+TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier[P, TX],
 B <: Box[P],
-ST <: MinimalState[P, B, TX, PM, ST],
+ST <: BoxMinimalState[P, B, TX, PM, ST],
 SI <: SyncInfo,
 HT <: History[P, TX, PM, SI, HT],
 MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with TestkitHelpers {
 
-  val stateChangesGenerator: Gen[StateChanges[P, B]]
+  val stateChangesGenerator: Gen[BoxStateChanges[P, B]]
   val history: HT
   val mempool: MPool
   val transactionGenerator: Gen[TX]
 
-  def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool : Int): PM
+  def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool: Int): PM
 
   def genValidTransactionPair(curHistory: HT): Seq[TX]
 
@@ -70,17 +71,16 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
   property("State changes application and rollback leads to rollback of changes") {
     var newState = state
     var rollbackVersionOpt: Option[Array[Byte]] = None
-    var trxnPair = genValidTransactionPair(history)
+    var txPair = genValidTransactionPair(history)
 
     check { _ =>
-
       rollbackVersionOpt match {
         case None =>
-          val randomTx = trxnPair(0)
+          val randomTx = txPair.head
           val block = genValidModifierCustomTransactions(history, randomTx)
           val blockChanges = newState.changes(block).get
 
-          val changes: StateChanges[P, B] = StateChanges(blockChanges.operations.flatMap { op =>
+          val changes: BoxStateChanges[P, B] = BoxStateChanges(blockChanges.operations.flatMap { op =>
             op match {
               case rm: Removal[P, B] if newState.closedBox(rm.boxId).isEmpty => None
               case _ => Some(op)
@@ -90,11 +90,11 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
           rollbackVersionOpt = Some(newState.version)
 
         case Some(rollbackVersion) =>
-          val randomTx = trxnPair(1)
+          val randomTx = txPair(1)
           val block = genValidModifierCustomTransactions(history, randomTx)
           val blockChanges = newState.changes(block).get
 
-          val changes: StateChanges[P, B] = StateChanges(blockChanges.operations.flatMap { op =>
+          val changes: BoxStateChanges[P, B] = BoxStateChanges(blockChanges.operations.flatMap { op =>
             op match {
               case rm: Removal[P, B] if newState.closedBox(rm.boxId).isEmpty => None
               case _ => Some(op)
@@ -120,11 +120,8 @@ MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with Testki
           // Since transactions are created in pair where the first transaction creates a box and the second transaction uses
           // this box, so once the pair has been utilized we need to use a new pair for the further iterations.
           rollbackVersionOpt = None
-          trxnPair = genValidTransactionPair(history)
-
+          txPair = genValidTransactionPair(history)
       }
     }
   }
-
-
 }

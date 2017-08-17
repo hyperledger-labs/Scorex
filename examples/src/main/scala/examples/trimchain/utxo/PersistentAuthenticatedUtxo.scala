@@ -9,8 +9,7 @@ import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{Insertion, Removal, StateChangeOperation, StateChanges}
-import scorex.core.transaction.state.authenticated.BoxMinimalState
+import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
 import scorex.crypto.encode.Base58
@@ -18,6 +17,7 @@ import scorex.crypto.hash.Blake2b256Unsafe
 
 import scala.util.{Random, Success, Try}
 import PersistentAuthenticatedUtxo.ProverType
+import scorex.mid.state.BoxMinimalState
 
 trait AuthenticatedUtxo {
   import PublicKey25519NoncedBox.BoxKeyLength
@@ -87,7 +87,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
   //there's no easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  override def changes(mod: TModifier): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     PersistentAuthenticatedUtxo.changes(mod)
 
   //Validate transactions in block and generator box
@@ -102,7 +102,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
   }
 
   //todo: newVersion is not used
-  override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
+  override def applyChanges(changes: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
 
     val (boxIdsToRemove, boxesToAdd) = changes.operations
@@ -170,9 +170,9 @@ object PersistentAuthenticatedUtxo {
   }
 
   //todo: fees
-  def changes(txs: Seq[SimpleBoxTransaction]): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  def changes(txs: Seq[SimpleBoxTransaction]): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     Try {
-      type SC = Seq[StateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
+      type SC = Seq[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
 
       val initial = (Seq(): SC, 0L) //no reward additional to tx fees
 
@@ -185,14 +185,14 @@ object PersistentAuthenticatedUtxo {
           f + tx.fee)
       }
 
-      StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
+      BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
     }
 
-  def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
+  def changes(mod: TModifier): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
 
     mod match {
       case h: BlockHeader =>
-        Success(StateChanges(Seq()))
+        Success(BoxStateChanges(Seq()))
 
       case ps: TBlock =>
         changes(ps.transactions.getOrElse(Seq()))

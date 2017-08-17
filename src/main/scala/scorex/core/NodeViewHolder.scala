@@ -10,7 +10,7 @@ import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.MinimalState
+import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -122,7 +122,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               val appliedTxs = appliedMods.flatMap(_.transactions).flatten
 
               val newMemPool = memoryPool().putWithoutCheck(rolledBackTxs).filter { tx =>
-                !appliedTxs.exists(t => t.id sameElements tx.id) && newMinState.validate(tx).isSuccess
+                !appliedTxs.exists(t => t.id sameElements tx.id) && {
+                  newMinState match {
+                    case v:TransactionValidation[TX] => v.validate(tx).isSuccess
+                    case _ => true
+                  }
+                }
               }
 
               //we consider that vault always able to perform a rollback needed
@@ -138,7 +143,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
             case Failure(e) =>
               log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
-              val newHistoryCancelled = newHistory.reportInvalid(progressInfo.appendedId)
+              val newHistoryCancelled = newHistory.reportInvalid(pmod)
               nodeView = (newHistoryCancelled, minimalState(), vault(), memoryPool())
 
               notifySubscribers(EventType.FailedPersistentModifier, FailedModification[P, TX, PMOD](pmod, e, source))
@@ -170,6 +175,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! NodeViewSynchronizer.RequestFromLocal(sid, modifierTypeId, ids)
   }
 
+
   private def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
       val objs: Seq[NodeViewModifier] = modifierTypeId match {
@@ -199,7 +205,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         var t: Option[(ConnectedPeer, PMOD)] = None
         do {
           t = {
-            modifiersCache.find { case (mid, (_, pmod)) =>
+            modifiersCache.find { case (_, (_, pmod)) =>
               history().applicable(pmod)
             }.map { t =>
               val res = t._2
@@ -233,7 +239,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
       log.debug(s"Local side contains head: ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
 
-      val extensionOpt = history().continuationIds(syncInfo.startingPoints, networkChunkSize)
+      val extensionOpt = history().continuationIds(syncInfo, networkChunkSize)
       val ext = extensionOpt.getOrElse(Seq())
       val comparison = history().compare(syncInfo)
       log.debug(s"Sending extension of length ${ext.length}: ${ext.map(_._2).map(Base58.encode).mkString(",")}")
@@ -325,5 +331,4 @@ object NodeViewHolder {
 
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
-
 }

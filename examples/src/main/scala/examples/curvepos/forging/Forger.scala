@@ -5,11 +5,11 @@ import examples.curvepos.SimpleBlockchain
 import examples.curvepos.transaction._
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.{NetworkTime, ScorexLogging}
+import scorex.crypto.hash.Blake2b256
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -26,7 +26,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   //set to true for initial generator
   private var forging = forgerSettings.offlineGeneration
 
-  private val hash = FastCryptographicHash
+  private val hash = Blake2b256
 
 
   //in seconds

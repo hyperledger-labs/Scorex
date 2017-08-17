@@ -28,13 +28,14 @@ class TrimChain(version: ModifierId,
 
   override def append(modifier: TModifier): Try[(TrimChain, ProgressInfo[TModifier])] = ???
 
-  override def reportInvalid(modifierId: ModifierId): TrimChain = ???
+  override def reportInvalid(modifier: TModifier): TrimChain = ???
 
   override def openSurfaceIds(): Seq[ModifierId] = ???
 
-  override def continuationIds(from: ModifierIds, size: Int): Option[ModifierIds] = ???
-
   override def syncInfo(answer: Boolean): TrimChainSyncInfo = ???
+
+  //todo: argument should be ID | Seq[ID]
+  override def continuationIds(info: TrimChainSyncInfo, size: Int): Option[ModifierIds] = ???
 
   /**
     * Whether another's node syncinfo shows that another node is ahead or behind ours

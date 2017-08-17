@@ -1,6 +1,5 @@
 package scorex.core.transaction.box.proposition
 
-import scorex.core.crypto.hash.FastCryptographicHash._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
@@ -48,7 +47,7 @@ object PublicKey25519Proposition {
   val ChecksumLength = 4
   val AddressLength = 1 + Constants25519.PubKeyLength + ChecksumLength
 
-  def calcCheckSum(bytes: Array[Byte]): Array[Byte] = hash(bytes).take(ChecksumLength)
+  def calcCheckSum(bytes: Array[Byte]): Array[Byte] = Blake2b256.hash(bytes).take(ChecksumLength)
 
   def validPubKey(address: String): Try[PublicKey25519Proposition] =
     Base58.decode(address).flatMap { addressBytes =>

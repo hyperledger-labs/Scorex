@@ -6,13 +6,13 @@ import examples.trimchain.modifiers.{TModifier, UtxoSnapshot}
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{Insertion, Removal, StateChanges}
-import scorex.core.transaction.state.authenticated.BoxMinimalState
+import scorex.core.transaction.state.{BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{Insert, Lookup, Remove}
 
 import scala.util.Try
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
+import scorex.mid.state.BoxMinimalState
 
 /**
   * Only for simulations where chain grows strictly linearly. No rollback support.
@@ -53,7 +53,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
   //there's no easy way to know boxes associated with a proposition, without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
-  override def changes(mod: TModifier): Try[StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+  override def changes(mod: TModifier): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     PersistentAuthenticatedUtxo.changes(mod)
 
   //Validate transactions in block and generator box
@@ -67,7 +67,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
   }
 
   //todo: newVersion is not used
-  override def applyChanges(changes: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
+  override def applyChanges(changes: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[InMemoryAuthenticatedUtxo] = Try {
 
     changes.operations foreach { op =>

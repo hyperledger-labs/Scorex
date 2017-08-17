@@ -1,18 +1,19 @@
-package scorex.testkit.properties
+package scorex.testkit.properties.state
 
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.transaction.Transaction
+import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.{MinimalState, Removal, StateChanges}
+import scorex.core.transaction.state.{BoxStateChanges, Removal}
+import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 
-trait StateChangesGenerationTest[P <: Proposition,
-TX <: Transaction[P],
+trait BoxStateChangesGenerationTest[P <: Proposition,
+TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier[P, TX],
 B <: Box[P],
-ST <: MinimalState[P, B, TX, PM, ST],
+ST <: BoxMinimalState[P, B, TX, PM, ST],
 SI <: SyncInfo,
 HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] with TestkitHelpers {
 
@@ -25,7 +26,7 @@ HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] with Test
       val block = genValidModifier(history, false, 0)
       val blockChanges = state.changes(block).get
 
-      val changes: StateChanges[P, B] = StateChanges(blockChanges.operations.flatMap{op =>
+      val changes: BoxStateChanges[P, B] = BoxStateChanges(blockChanges.operations.flatMap{ op =>
         op match {
           case rm: Removal[P, B] if state.closedBox(rm.boxId).isEmpty => None
           case _ => Some(op)

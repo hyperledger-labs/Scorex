@@ -8,6 +8,17 @@ import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModif
 
 import scala.util.Try
 
+trait StateFeature
+
+trait TransactionValidation[TX <: Transaction[_]] extends StateFeature {
+  def isValid(tx: TX): Boolean = validate(tx).isSuccess
+
+  def filterValid(txs: Seq[TX]): Seq[TX] = txs.filter(isValid)
+
+  def validate(tx: TX): Try[Unit]
+}
+
+
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
@@ -21,27 +32,9 @@ MS <: MinimalState[P, BX, TX, M, MS]] extends NodeViewComponent {
 
   def version: VersionTag
 
-  def validate(transaction: TX): Try[Unit]
+  def validate(mod: M): Try[Unit]
 
-  def validate(mod: M): Try[Unit] = Try(mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get))
-
-  def isValid(tx: TX): Boolean = validate(tx).isSuccess
-
-  def filterValid(txs: Seq[TX]): Seq[TX] = txs.filter(isValid)
-
-  def closedBox(boxId: Array[Byte]): Option[BX]
-
-  def boxesOf(proposition: P): Seq[BX]
-
-  def changes(mod: M): Try[StateChanges[P, BX]]
-
-  def applyChanges(changes: StateChanges[P, BX], newVersion: VersionTag): Try[MS]
-
-  def applyModifier(mod: M): Try[MS] = {
-    validate(mod) flatMap {_ =>
-      changes(mod).flatMap(cs => applyChanges(cs, mod.id))
-    }
-  }
+  def applyModifier(mod: M): Try[MS]
 
   def applyModifiers(mods: Seq[M]): Try[MS] =
     mods.foldLeft(Try(this)) { case (curTry, mod) =>

@@ -12,11 +12,11 @@ import scorex.core.NodeViewModifier
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.History
-import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
-import scorex.core.crypto.hash.FastCryptographicHash
+import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
 import scorex.crypto.encode.Base58
+import scorex.crypto.hash.Blake2b256
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Try}
@@ -49,7 +49,7 @@ class HybridHistory(val storage: HistoryStorage,
       case (true, false) => ??? //shouldn't be
     }
 
-  val height:Long = storage.height
+  val height: Long = storage.height
   val bestPosId = storage.bestPosId
   val bestPowId = storage.bestPowId
   lazy val bestPosBlock = storage.bestPosBlock
@@ -181,7 +181,7 @@ class HybridHistory(val storage: HistoryStorage,
   }
 
   //todo: implement
-  override def reportInvalid(modifierId: ModifierId): HybridHistory = ???
+  override def reportInvalid(modifier: HybridBlock): HybridHistory = ???
 
   def bestForkChanges(block: HybridBlock): ProgressInfo[HybridBlock] = {
     val parentId = storage.parentId(block)
@@ -246,8 +246,7 @@ class HybridHistory(val storage: HistoryStorage,
     }
   }
 
-  override def continuationIds(from: Seq[(ModifierTypeId, ModifierId)],
-                               size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+  def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[ModifierIds] = {
     def inList(m: HybridBlock): Boolean = idInList(m.id) || isGenesis(m)
     def idInList(id: ModifierId): Boolean = from.exists(f => f._2 sameElements id)
 
@@ -259,6 +258,11 @@ class HybridHistory(val storage: HistoryStorage,
         None
       case _ => None
     }
+  }
+
+  override def continuationIds(info: HybridSyncInfo,
+                               size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+    continuationIds(info.startingPoints, size)
   }
 
   override def syncInfo(answer: Boolean): HybridSyncInfo =
@@ -443,7 +447,7 @@ object HybridHistory extends ScorexLogging {
     val storage = new HistoryStorage(blockStorage, settings)
     val validators = Seq(new DifficultyBlockValidator(settings, storage),
       new ParentBlockValidator(storage),
-      new SemanticBlockValidator(FastCryptographicHash)
+      new SemanticBlockValidator(Blake2b256)
     )
 
     new HybridHistory(storage, settings, validators, loggerOpt)

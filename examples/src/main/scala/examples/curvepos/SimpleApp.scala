@@ -5,7 +5,7 @@ import examples.curvepos.forging.{Forger, ForgerSettings}
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import io.circe
 import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, UtilsApiRoute}
-import scorex.core.app.{Application, ApplicationVersion}
+import scorex.core.app.{Application, Version}
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
 import scorex.core.settings.Settings
@@ -42,7 +42,7 @@ class SimpleApp(val settingsFilename: String) extends Application {
     actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoMessageSpec.type]],
       networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoMessageSpec))
 
-  override val apiTypes: Seq[Type] = Seq(typeOf[UtilsApiRoute], typeOf[NodeViewApiRoute[P, TX]])
+  override val apiTypes: Set[Class[_]] = Set(classOf[UtilsApiRoute], classOf[NodeViewApiRoute[P, TX]])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings),
     NodeViewApiRoute[P, TX](settings, nodeViewHolderRef))
 }

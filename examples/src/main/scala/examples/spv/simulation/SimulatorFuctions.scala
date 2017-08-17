@@ -7,7 +7,7 @@ import examples.trimchain.core.Constants._
 import examples.trimchain.simulation.InMemoryAuthenticatedUtxo
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{Insertion, StateChanges}
+import scorex.core.transaction.state.{Insertion, BoxStateChanges}
 
 import scala.annotation.tailrec
 import scala.util.Random
@@ -23,8 +23,8 @@ trait SimulatorFuctions {
         10000000000L
       )
     }
-    val genesisChanges: StateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
-      StateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
+    val genesisChanges: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
+      BoxStateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
     InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
   }
 

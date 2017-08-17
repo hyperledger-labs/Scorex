@@ -30,7 +30,7 @@ trait Application extends ScorexLogging {
 
   //api
   val apiRoutes: Seq[ApiRoute]
-  val apiTypes: Seq[Type]
+  val apiTypes: Set[Class[_]]
 
   protected implicit lazy val actorSystem = ActorSystem(settings.agentName)
 

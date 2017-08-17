@@ -1,21 +1,22 @@
-package scorex.testkit.properties
+package scorex.testkit.properties.state
 
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.transaction.Transaction
+import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.{MinimalState, StateChanges}
+import scorex.core.transaction.state.BoxStateChanges
+import scorex.mid.state.BoxMinimalState
 
 import scala.util.Random
 
 trait StateApplyChangesTest[P <: Proposition,
-TX <: Transaction[P],
+TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier[P, TX],
 B <: Box[P],
-ST <: MinimalState[P, B, TX, PM, ST]] extends StateTests[P, TX, PM, B, ST] {
+ST <: BoxMinimalState[P, B, TX, PM, ST]] extends StateTests[P, TX, PM, B, ST] {
 
-  val stateChangesGenerator: Gen[StateChanges[P, B]]
+  val stateChangesGenerator: Gen[BoxStateChanges[P, B]]
 
   property("State should be able to add a box") {
     forAll(stateChangesGenerator) { c =>

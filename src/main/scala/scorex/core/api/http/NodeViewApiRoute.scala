@@ -93,7 +93,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "block id ", required = true, dataType = "string", paramType = "path")
   ))
-  def persistentModifierById: Route = path("persistentModifier" / Segment) { case encodedId =>
+  def persistentModifierById: Route = path("persistentModifier" / Segment) { encodedId =>
     getJsonRoute {
       Base58.decode(encodedId) match {
         case Success(id) =>
@@ -112,11 +112,11 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "block id ", required = true, dataType = "string", paramType = "path")
   ))
-  def transactionById: Route = path("transaction" / Segment) { case encodedId =>
+  def transactionById: Route = path("transaction" / Segment) { encodedId =>
     getJsonRoute {
       Base58.decode(encodedId) match {
         case Success(id) =>
-          (nodeViewHolderRef ? GetLocalObjects(null, Transaction.ModifierTypeId, Seq(id)))
+          (nodeViewHolderRef ? GetLocalObjects(source, Transaction.ModifierTypeId, Seq(id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
             .map(_.localObjects.headOption.map(_.json).map(r => SuccessApiResponse(r))
               .getOrElse(ApiError.transactionNotExists))

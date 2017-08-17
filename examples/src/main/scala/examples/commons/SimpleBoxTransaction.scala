@@ -7,7 +7,6 @@ import examples.hybrid.wallet.HWallet
 import io.circe.Json
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.crypto.hash.FastCryptographicHash
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
@@ -16,6 +15,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.crypto.encode.Base58
+import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
@@ -45,7 +45,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
       }
   }
 
-  lazy val hashNoNonces = FastCryptographicHash(
+  lazy val hashNoNonces = Blake2b256(
     Bytes.concat(scorex.core.utils.concatFixLengthBytes(to.map(_._1.pubKeyBytes)),
       scorex.core.utils.concatFixLengthBytes(unlockers.map(_.closedBoxId)),
       Longs.toByteArray(timestamp),
@@ -53,7 +53,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
   )
 
   override lazy val newBoxes: Traversable[PublicKey25519NoncedBox] = to.zipWithIndex.map { case ((prop, value), idx) =>
-    val nonce = nonceFromDigest(FastCryptographicHash(prop.pubKeyBytes ++ hashNoNonces ++ Ints.toByteArray(idx)))
+    val nonce = nonceFromDigest(Blake2b256(prop.pubKeyBytes ++ hashNoNonces ++ Ints.toByteArray(idx)))
     PublicKey25519NoncedBox(prop, nonce, value)
   }
 
