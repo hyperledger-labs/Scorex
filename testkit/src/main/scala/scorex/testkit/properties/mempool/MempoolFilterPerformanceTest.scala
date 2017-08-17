@@ -1,5 +1,7 @@
 package scorex.testkit.properties.mempool
 
+import java.security.MessageDigest
+
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -14,6 +16,20 @@ MPool <: MemoryPool[TX, MPool]] extends PropSpec with GeneratorDrivenPropertyChe
   val mempool: MPool
   val transactionGenerator: Gen[TX]
   var initializedMempool: Option[MPool] = None
+
+  val thresholdInHashes = 500000
+
+  private val HeatJVMHashesCount = 1000000 //to heat up JVM, just in case it is cold
+
+  val thresholdSecs: Double = {
+    //heat up
+    (1 to HeatJVMHashesCount).foreach(i => MessageDigest.getInstance("SHA-256").digest(("dummy" + i).getBytes()))
+
+    val t0 = System.currentTimeMillis()
+    (1 to thresholdInHashes).foreach(i => MessageDigest.getInstance("SHA-256").digest(("dummy" + i).getBytes()))
+    val t = System.currentTimeMillis()
+    (t - t0) / 1000.0
+  }
 
   property("Mempool should be able to store a lot of transactions") {
     var m: MPool = mempool
@@ -30,7 +46,7 @@ MPool <: MemoryPool[TX, MPool]] extends PropSpec with GeneratorDrivenPropertyChe
     val m = initializedMempool.get
     forAll(transactionGenerator) { tx: TX =>
       val (time, _) = profile(m.filter(Seq(tx)))
-      assert(time < 0.2)
+      assert(time < thresholdSecs)
     }
   }
 
@@ -39,7 +55,7 @@ MPool <: MemoryPool[TX, MPool]] extends PropSpec with GeneratorDrivenPropertyChe
     forAll(transactionGenerator) { tx: TX =>
       m = m.put(tx).get
       val (time, _) = profile(m.filter(Seq(tx)))
-      assert(time < 0.1)
+      assert(time < thresholdSecs)
     }
   }
 }

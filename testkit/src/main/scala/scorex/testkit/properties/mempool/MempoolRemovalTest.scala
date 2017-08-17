@@ -32,7 +32,7 @@ SI <: SyncInfo] extends PropSpec with GeneratorDrivenPropertyChecks with Matcher
         m = m.put(tx).get
       }
       var prevMempoolSize = m.size
-      val b = genValidModifier(h, true, noOfTransactionsFromMempool)
+      val b = genValidModifier(h, mempoolTransactionFetchOption = true, noOfTransactionsFromMempool)
       (m.size + b.transactions.get.size) shouldEqual prevMempoolSize
     }
   }

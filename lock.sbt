@@ -43,7 +43,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.reflections" % "reflections" % "0.9.11",
   "org.scala-lang.modules" % "scala-java8-compat_2.12" % "0.8.0",
   "org.scala-lang.modules" % "scala-parser-combinators_2.12" % "1.0.4",
-  "org.scorexfoundation" % "scrypto_2.12" % "1.3.0",
+  "org.scorexfoundation" % "scrypto_2.12" % "1.3.2",
   "org.slf4j" % "slf4j-api" % "1.7.25",
   "org.spire-math" % "jawn-parser_2.12" % "0.10.4",
   "org.typelevel" % "cats-core_2.12" % "0.9.0",
@@ -54,4 +54,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.4.1",
   "org.yaml" % "snakeyaml" % "1.17"
 )
-// LIBRARY_DEPENDENCIES_HASH 8f37035793d7e72e53c280b809be4ae55e332e68
+// LIBRARY_DEPENDENCIES_HASH 37b5d1734641d2b339760086aa81170ec9e00446
