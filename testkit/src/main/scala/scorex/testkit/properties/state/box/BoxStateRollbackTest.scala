@@ -1,4 +1,4 @@
-package scorex.testkit.properties.state
+package scorex.testkit.properties.state.box
 
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
@@ -9,9 +9,10 @@ import scorex.core.transaction.state._
 import scorex.core.transaction.{BoxTransaction, MemoryPool}
 import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
+import scorex.testkit.properties.state.StateTests
 
 
-trait StateRollbackTest[P <: Proposition,
+trait BoxStateRollbackTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier[P, TX],
 B <: Box[P],

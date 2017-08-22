@@ -1,4 +1,4 @@
-package scorex.testkit.properties.state
+package scorex.testkit.properties.state.box
 
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
@@ -7,10 +7,11 @@ import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.BoxStateChanges
 import scorex.mid.state.BoxMinimalState
+import scorex.testkit.properties.state.StateTests
 
 import scala.util.Random
 
-trait StateApplyChangesTest[P <: Proposition,
+trait BoxStateApplyChangesTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier[P, TX],
 B <: Box[P],

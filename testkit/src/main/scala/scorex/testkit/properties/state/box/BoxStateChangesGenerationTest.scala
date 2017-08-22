@@ -1,4 +1,4 @@
-package scorex.testkit.properties.state
+package scorex.testkit.properties.state.box
 
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
@@ -8,6 +8,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Removal}
 import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
+import scorex.testkit.properties.state.StateTests
 
 trait BoxStateChangesGenerationTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
@@ -23,7 +24,7 @@ HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] with Test
 
   property("State should be able to generate changes from block and apply them") {
     check { _ =>
-      val block = genValidModifier(history, false, 0)
+      val block = genValidModifier(history, mempoolTransactionFetchOption = false, 0)
       val blockChanges = state.changes(block).get
 
       val changes: BoxStateChanges[P, B] = BoxStateChanges(blockChanges.operations.flatMap{ op =>
