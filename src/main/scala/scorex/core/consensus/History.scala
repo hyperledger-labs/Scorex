@@ -21,11 +21,10 @@ import scala.util.Try
   * function has been used instead, even in PoW systems.
   */
 
-trait History[P <: Proposition,
-TX <: Transaction[P],
-PM <: PersistentNodeViewModifier[P, TX],
+trait History[
+PM <: PersistentNodeViewModifier,
 SI <: SyncInfo,
-HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
+HT <: History[PM, SI, HT]] extends NodeViewComponent {
 
   import History._
   import NodeViewModifier.ModifierId
@@ -98,9 +97,9 @@ object History {
     val Nonsense = Value(4)
   }
 
-  case class ProgressInfo[PM <: PersistentNodeViewModifier[_, _]](branchPoint: Option[ModifierId],
-                                                                  toRemove: Seq[PM],
-                                                                  toApply: Seq[PM]) {
+  case class ProgressInfo[PM <: PersistentNodeViewModifier](branchPoint: Option[ModifierId],
+                                                            toRemove: Seq[PM],
+                                                            toApply: Seq[PM]) {
 
     require(branchPoint.isDefined == toRemove.nonEmpty)
 

@@ -98,7 +98,10 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
       case u: UtxoSnapshot => if (!this.isEmpty) throw new Exception("Utxo Set already imported")
       case _ =>
     }
-    super.validate(mod).get
+    mod match {
+      case b: TBlock => b.transactions.foreach(tx => validate(tx).ensuring(_.isSuccess))
+      case _ =>
+    }
   }
 
   //todo: newVersion is not used
@@ -195,7 +198,7 @@ object PersistentAuthenticatedUtxo {
         Success(BoxStateChanges(Seq()))
 
       case ps: TBlock =>
-        changes(ps.transactions.getOrElse(Seq()))
+        changes(ps.transactions)
 
         //todo: implement
       case u: UtxoSnapshot => ???

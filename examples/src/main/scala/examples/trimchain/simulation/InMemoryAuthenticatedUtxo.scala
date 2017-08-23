@@ -2,13 +2,13 @@ package examples.trimchain.simulation
 
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
-import examples.trimchain.modifiers.{TModifier, UtxoSnapshot}
+import examples.trimchain.modifiers.{TBlock, TModifier, UtxoSnapshot}
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{BoxStateChanges, Insertion, Removal}
+import scorex.core.transaction.state.{BoxStateChanges, Insertion, ModifierValidation, Removal}
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.authds.avltree.batch.{Insert, Lookup, Remove}
+import scorex.crypto.authds.avltree.batch.{Insert, Remove}
 
 import scala.util.Try
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
@@ -63,7 +63,10 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
       case u: UtxoSnapshot => if (!this.isEmpty) throw new Exception("Utxo Set already imported")
       case _ =>
     }
-    super.validate(mod).get
+    mod match {
+      case block: TBlock => block.transactions.foreach (tx => validate (tx).ensuring (_.isSuccess) )
+      case _ => ;
+    }
   }
 
   //todo: newVersion is not used

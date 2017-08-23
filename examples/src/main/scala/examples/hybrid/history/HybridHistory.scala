@@ -29,8 +29,7 @@ class HybridHistory(val storage: HistoryStorage,
                     settings: MiningConstants,
                     validators: Seq[BlockValidator[HybridBlock]],
                     statsLogger: Option[FileLogger])
-  extends History[PublicKey25519Proposition,
-    SimpleBoxTransaction,
+  extends History[
     HybridBlock,
     HybridSyncInfo,
     HybridHistory] with ScorexLogging {

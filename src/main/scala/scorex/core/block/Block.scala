@@ -1,10 +1,9 @@
 package scorex.core.block
 
 import io.circe.Json
-import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
+import scorex.core.{NodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.consensus.History
-import scorex.crypto.encode.Base58
 import scorex.core.serialization.{JsonSerializable, Serializer}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction._
@@ -26,7 +25,7 @@ import scorex.core.transaction._
   */
 
 trait Block[P <: Proposition, TX <: Transaction[P]]
-  extends PersistentNodeViewModifier[P, TX] with JsonSerializable {
+  extends TransactionsCarryingPersistentNodeViewModifier[P, TX] with JsonSerializable {
 
   def version: Version
 
@@ -55,5 +54,5 @@ trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
     *
     * @return blocks' producers
     */
-  def producers(block: B, history: History[P, TX, B, _, _]): Seq[P]
+  def producers(block: B, history: History[B, _, _]): Seq[P]
 }

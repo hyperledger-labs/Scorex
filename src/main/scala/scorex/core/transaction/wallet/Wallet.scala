@@ -90,7 +90,7 @@ object WalletTransaction {
   * @tparam P
   * @tparam TX
   */
-trait Wallet[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX], W <: Wallet[P, TX, PMOD, W]]
+trait Wallet[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier, W <: Wallet[P, TX, PMOD, W]]
   extends Vault[P, TX, PMOD, W] {
   self: W =>
 

@@ -50,8 +50,7 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
             log.debug(s"Locally generated PoS block: $posBlock")
             forging = false
             viewHolderRef !
-              LocallyGeneratedModifier[PublicKey25519Proposition,
-                SimpleBoxTransaction, HybridBlock](posBlock)
+              LocallyGeneratedModifier[HybridBlock](posBlock)
           case None =>
             log.debug(s"Failed to generate PoS block")
         }

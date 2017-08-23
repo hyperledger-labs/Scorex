@@ -87,9 +87,6 @@ case class PowBlock(override val parentId: BlockId,
 
   override lazy val version: Version = 0: Byte
 
-  // no transactions a PoW block carries on
-  override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = None
-
   override lazy val modifierTypeId: ModifierTypeId = PowBlock.ModifierTypeId
 
 
@@ -109,6 +106,8 @@ case class PowBlock(override val parentId: BlockId,
 
   override lazy val toString: String = s"PoWBlock(${json.noSpaces})"
 
+  //todo: coinbase transaction?
+  override def transactions: Seq[SimpleBoxTransaction] = Seq()
 }
 
 object PowBlockCompanion extends Serializer[PowBlock] {

@@ -9,7 +9,7 @@ import scorex.core.transaction.wallet.Wallet
 
 trait WalletSecretsTest[P <: Proposition,
 TX <: Transaction[P],
-PM <: PersistentNodeViewModifier[P, TX]]
+PM <: PersistentNodeViewModifier]
   extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks {
 
   val wallet: Wallet[P, TX, PM, _]

@@ -14,12 +14,12 @@ import scorex.testkit.properties.state.StateTests
 
 trait BoxStateRollbackTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
-PM <: PersistentNodeViewModifier[P, TX],
+PM <: PersistentNodeViewModifier,
 B <: Box[P],
 ST <: BoxMinimalState[P, B, TX, PM, ST],
 SI <: SyncInfo,
-HT <: History[P, TX, PM, SI, HT],
-MPool <: MemoryPool[TX, MPool]] extends StateTests[P, TX, PM, B, ST] with TestkitHelpers {
+HT <: History[PM, SI, HT],
+MPool <: MemoryPool[TX, MPool]] extends StateTests[PM, ST] with TestkitHelpers {
 
   val stateChangesGenerator: Gen[BoxStateChanges[P, B]]
   val history: HT

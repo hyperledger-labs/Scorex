@@ -85,10 +85,10 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
   }
 
   override def changes(block: SimpleBlock): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = Try {
-    val generatorReward = block.txs.map(_.fee).sum
+    val generatorReward = block.transactions.map(_.fee).sum
     val gen = block.generator
 
-    val txChanges = block.txs.map(tx => changes(tx)).map(_.get)
+    val txChanges = block.transactions.map(tx => changes(tx)).map(_.get)
     val toRemove = txChanges.flatMap(_.toRemove).map(_.id).map(id =>
       Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id))
     val toAppendFrom = txChanges.flatMap(_.toAppend)
@@ -107,6 +107,9 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
   }
 
   override def semanticValidity(tx: SimpleTransaction): Try[Unit] = Success()
+
+  override def validate(mod: SimpleBlock): Try[Unit] =
+    Try(mod.transactions.foreach(tx => validate(tx).ensuring(_.isSuccess)))
 }
 
 object SimpleState {

@@ -133,7 +133,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
 
     case b: PowBlock =>
       cancellableOpt.foreach(_.cancel())
-      viewHolderRef ! LocallyGeneratedModifier[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock](b)
+      viewHolderRef ! LocallyGeneratedModifier[HybridBlock](b)
 
     case StopMining =>
       mining = false

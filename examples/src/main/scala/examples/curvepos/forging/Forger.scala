@@ -88,7 +88,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
             val signature = PrivateKey25519Companion.sign(secret, unsigned.serializer.messageToSign(unsigned))
             val signedBlock = unsigned.copy(generationSignature = signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
-            LocallyGeneratedModifier[PublicKey25519Proposition, SimpleTransaction, SimpleBlock](signedBlock)
+            LocallyGeneratedModifier[SimpleBlock](signedBlock)
           }.toOption
         } else {
           None

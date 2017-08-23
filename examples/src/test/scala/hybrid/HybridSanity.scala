@@ -27,7 +27,6 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock,
   HybridSyncInfo,
-  PublicKey25519NoncedBox,
   SimpleBoxTransactionMemPool,
   HBoxStoredState,
   HybridHistory]

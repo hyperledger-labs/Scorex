@@ -44,10 +44,13 @@ object NodeViewModifier {
 }
 
 
-trait PersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]] extends NodeViewModifier {
-
+trait PersistentNodeViewModifier extends NodeViewModifier {
   def parentId: ModifierId
+}
 
-  // with Dotty is would be Seq[TX] | Nothing
-  def transactions: Option[Seq[TX]]
+
+trait TransactionsCarryingPersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]]
+  extends PersistentNodeViewModifier {
+
+  def transactions: Seq[TX]
 }

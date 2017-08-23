@@ -13,9 +13,9 @@ import scala.util.Random
 
 trait BoxStateApplyChangesTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
-PM <: PersistentNodeViewModifier[P, TX],
+PM <: PersistentNodeViewModifier,
 B <: Box[P],
-ST <: BoxMinimalState[P, B, TX, PM, ST]] extends StateTests[P, TX, PM, B, ST] {
+ST <: BoxMinimalState[P, B, TX, PM, ST]] extends StateTests[PM,  ST] {
 
   val stateChangesGenerator: Gen[BoxStateChanges[P, B]]
 

@@ -21,8 +21,7 @@ case class Header(parentId: BlockId,
                   stateRoot: Array[Byte],
                   transactionsRoot: Array[Byte],
                   timestamp: Block.Timestamp,
-                  nonce: Int) extends PersistentNodeViewModifier[PublicKey25519Proposition, SimpleBoxTransaction] {
-  override def transactions: Option[Seq[SimpleBoxTransaction]] = None
+                  nonce: Int) extends PersistentNodeViewModifier {
 
   override val modifierTypeId: ModifierTypeId = 100: Byte
 

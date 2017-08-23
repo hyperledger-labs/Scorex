@@ -1,11 +1,11 @@
 package examples.trimchain.modifiers
 
 import examples.commons.SimpleBoxTransaction
-import scorex.core.PersistentNodeViewModifier
+import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 
-trait TModifier extends PersistentNodeViewModifier[PublicKey25519Proposition, SimpleBoxTransaction]
+trait TModifier extends PersistentNodeViewModifier
 
 object TModifier {
   val Header = 0: Byte

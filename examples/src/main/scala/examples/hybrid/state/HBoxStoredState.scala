@@ -60,7 +60,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
         require(b.parentId sameElements version, s"Incorrect state version: ${Base58.encode(b.parentId)} " +
           s"found, ${Base58.encode(version)} expected.")
         closedBox(b.generatorBox.id).get
-        mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get)
+        b.transactions.foreach(tx => validate(tx).get)
     }
   }
 
@@ -110,9 +110,9 @@ object HBoxStoredState {
           val initial = (Seq(): Seq[Array[Byte]], Seq(): Seq[PublicKey25519NoncedBox], 0L)
 
           val (toRemove: Seq[Array[Byte]], toAdd: Seq[PublicKey25519NoncedBox], reward) =
-            ps.transactions.map(_.foldLeft(initial) { case ((sr, sa, f), tx) =>
+            ps.transactions.foldLeft(initial) { case ((sr, sa, f), tx) =>
               (sr ++ tx.boxIdsToOpen.toSet, sa ++ tx.newBoxes.toSet, f + tx.fee)
-            }).getOrElse((Seq(), Seq(), 0L)) //no reward additional to tx fees
+            }
 
           //for PoS forger reward box, we use block Id as a nonce
           val forgerNonce = Longs.fromByteArray(ps.id.take(8))

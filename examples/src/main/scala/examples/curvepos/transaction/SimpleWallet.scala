@@ -56,7 +56,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     txs.foldLeft(this) { case (wallet, tx) => wallet.scanOffchain(tx) }
 
   override def scanPersistent(modifier: SimpleBlock): SimpleWallet = {
-    modifier.transactions.map(_.foldLeft(this) { case (w, tx) =>
+    modifier.transactions.foldLeft(this) { case (w, tx) =>
       tx match {
         case sp: SimplePayment =>
           if ((sp.sender.bytes sameElements pubKeyBytes) || (sp.recipient.bytes sameElements pubKeyBytes)) {
@@ -68,6 +68,6 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
             SimpleWallet(seed, ct, oct, cb)
           } else w
       }
-    }).getOrElse(this)
+    }
   }
 }

@@ -18,14 +18,12 @@ case class SimpleBlock(override val parentId: BlockId,
                        generationSignature: GenerationSignature,
                        baseTarget: BaseTarget,
                        generator: PublicKey25519Proposition,
-                       txs: Seq[SimpleTransaction])
+                       override val transactions: Seq[SimpleTransaction])
   extends Block[PublicKey25519Proposition, SimpleTransaction] {
 
   override type M = SimpleBlock
 
   override lazy val modifierTypeId: Byte = SimpleBlock.ModifierTypeId
-
-  override lazy val transactions: Option[Seq[SimpleTransaction]] = Some(txs)
 
   override lazy val serializer = SimpleBlockCompanion
 
@@ -40,7 +38,7 @@ case class SimpleBlock(override val parentId: BlockId,
     "generationSignature" -> Base58.encode(generationSignature).asJson,
     "baseTarget" -> baseTarget.asJson,
     "generator" -> Base58.encode(generator.pubKeyBytes).asJson,
-    "txs" -> txs.map(_.json).asJson
+    "txs" -> transactions.map(_.json).asJson
   ).asJson
 }
 
@@ -63,8 +61,8 @@ object SimpleBlockCompanion extends Serializer[SimpleBlock] {
       Array(block.version) ++
       Longs.toByteArray(block.baseTarget) ++
       block.generator.pubKeyBytes ++ {
-      val cntBytes = Ints.toByteArray(block.txs.size)
-      block.txs.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
+      val cntBytes = Ints.toByteArray(block.transactions.size)
+      block.transactions.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
     }
   }
 
@@ -76,8 +74,8 @@ object SimpleBlockCompanion extends Serializer[SimpleBlock] {
       block.generationSignature ++
       Longs.toByteArray(block.baseTarget) ++
       block.generator.pubKeyBytes ++ {
-      val cntBytes = Ints.toByteArray(block.txs.size)
-      block.txs.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
+      val cntBytes = Ints.toByteArray(block.transactions.size)
+      block.transactions.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
     }
   }
 

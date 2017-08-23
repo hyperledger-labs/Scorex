@@ -6,9 +6,11 @@ import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519Non
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.TransactionsCarryingPersistentNodeViewModifier
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
@@ -19,14 +21,13 @@ import scala.util.Try
 
 case class PosBlock(override val parentId: BlockId, //PoW block
                     override val timestamp: Block.Timestamp,
-                    txs: Seq[SimpleBoxTransaction],
+                    override val transactions: Seq[SimpleBoxTransaction],
                     generatorBox: PublicKey25519NoncedBox,
                     attachment: Array[Byte],
                     signature: Signature25519
-                   ) extends HybridBlock {
+                   ) extends HybridBlock
+  with TransactionsCarryingPersistentNodeViewModifier[PublicKey25519Proposition, SimpleBoxTransaction] {
   override type M = PosBlock
-
-  override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = Some(txs)
 
   override lazy val serializer = PosBlockCompanion
 
@@ -42,7 +43,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
     "parentId" -> Base58.encode(parentId).asJson,
     "attachment" -> Base58.encode(attachment).asJson,
     "timestamp" -> timestamp.asJson,
-    "transactions" -> txs.map(_.json).asJson,
+    "transactions" -> transactions.map(_.json).asJson,
     "generatorBox" -> generatorBox.json,
     "signature" -> Base58.encode(signature.bytes).asJson
   ).asJson
@@ -52,11 +53,11 @@ case class PosBlock(override val parentId: BlockId, //PoW block
 
 object PosBlockCompanion extends Serializer[PosBlock] {
   override def toBytes(b: PosBlock): Array[Version] = {
-    val txsBytes = b.txs.sortBy(t => Base58.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
+    val txsBytes = b.transactions.sortBy(t => Base58.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }
     Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes,
-      Ints.toByteArray( b.txs.length), txsBytes, Ints.toByteArray(b.attachment.length), b.attachment)
+      Ints.toByteArray(b.transactions.length), txsBytes, Ints.toByteArray(b.attachment.length), b.attachment)
   }
 
   override def parseBytes(bytes: Array[Version]): Try[PosBlock] = Try {

@@ -11,9 +11,9 @@ import scorex.testkit.TestkitHelpers
 
 trait HistoryAppendBlockTest[P <: Proposition,
 TX <: Transaction[P],
-PM <: PersistentNodeViewModifier[P, TX],
+PM <: PersistentNodeViewModifier,
 SI <: SyncInfo,
-HT <: History[P, TX, PM, SI, HT]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks
+HT <: History[PM, SI, HT]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks
   with ScorexLogging with TestkitHelpers {
   val history: HT
 

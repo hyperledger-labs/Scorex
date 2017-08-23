@@ -14,9 +14,8 @@ import scorex.testkit.properties.mempool.MempoolFilterPerformanceTest
   */
 trait BlockchainPerformance[P <: Proposition,
 TX <: Transaction[P],
-PM <: PersistentNodeViewModifier[P, TX],
+PM <: PersistentNodeViewModifier,
 SI <: SyncInfo,
-B <: Box[P],
 MPool <: MemoryPool[TX, MPool],
-ST <: MinimalState[P, B, TX, PM, ST],
-HT <: History[P, TX, PM, SI, HT]] extends MempoolFilterPerformanceTest[P, TX, MPool]
+ST <: MinimalState[PM, ST],
+HT <: History[PM, SI, HT]] extends MempoolFilterPerformanceTest[P, TX, MPool]

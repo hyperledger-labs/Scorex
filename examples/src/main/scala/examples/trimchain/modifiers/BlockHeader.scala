@@ -1,8 +1,6 @@
 package examples.trimchain.modifiers
 
 import com.google.common.primitives.Longs
-import examples.commons.SimpleBoxTransaction
-import examples.hybrid.mining.MiningConstants
 import examples.trimchain.core.Constants._
 import examples.trimchain.core.{Constants, Ticket, TicketSerializer}
 import io.circe.Json
@@ -21,9 +19,6 @@ case class BlockHeader(override val parentId: ModifierId,
                        powNonce: Long
                       ) extends TModifier {
   override type M = BlockHeader
-
-  // with Dotty is would be Seq[TX] | Nothing
-  override def transactions: Option[Seq[SimpleBoxTransaction]] = None
 
   override val modifierTypeId: ModifierTypeId = TModifier.Header
 

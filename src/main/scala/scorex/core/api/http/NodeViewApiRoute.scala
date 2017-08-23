@@ -37,10 +37,10 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     openSurface ~ persistentModifierById ~ pool
   }
 
-  type PM <: PersistentNodeViewModifier[P, TX]
-  type HIS <: History[P, TX, PM, _, _ <: History[P, TX, PM, _, _]]
+  type PM <: PersistentNodeViewModifier
+  type HIS <: History[PM, _, _ <: History[PM, _, _]]
   type MP <: MemoryPool[TX, _ <: MemoryPool[TX, _]]
-  type MS <: MinimalState[P, _ <: Box[P], TX, PM, _ <: MinimalState[P, _, TX, _, _]]
+  type MS <: MinimalState[PM, _ <: MinimalState[_, _]]
   type VL <: Vault[P, TX, PM, _ <: Vault[P, TX, PM, _]]
 
   //TODO null?

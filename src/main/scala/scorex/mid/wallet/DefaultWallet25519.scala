@@ -20,8 +20,7 @@ import scala.util.Try
 //todo: HKDF
 // todo: encryption
 //todo: persistence
-case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition],
-PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
+case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition], PMOD <: PersistentNodeViewModifier]
 (settings: Settings)
   extends Wallet[PublicKey25519Proposition, TX, PMOD, DefaultWallet25519[TX, PMOD]] {
 

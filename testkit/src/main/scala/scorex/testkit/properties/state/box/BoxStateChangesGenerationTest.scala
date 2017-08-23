@@ -12,11 +12,11 @@ import scorex.testkit.properties.state.StateTests
 
 trait BoxStateChangesGenerationTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
-PM <: PersistentNodeViewModifier[P, TX],
+PM <: PersistentNodeViewModifier,
 B <: Box[P],
 ST <: BoxMinimalState[P, B, TX, PM, ST],
 SI <: SyncInfo,
-HT <: History[P, TX, PM, SI, HT]] extends StateTests[P, TX, PM, B, ST] with TestkitHelpers {
+HT <: History[PM, SI, HT]] extends StateTests[PM, ST] with TestkitHelpers {
 
   val history: HT
 

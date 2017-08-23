@@ -4,24 +4,23 @@ import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{BoxTransaction, MemoryPool, Transaction}
+import scorex.core.transaction.{BoxTransaction, MemoryPool}
 import scorex.mid.state.BoxMinimalState
 import scorex.testkit.properties._
 import scorex.testkit.properties.mempool.{MempoolFilterPerformanceTest, MempoolRemovalTest, MempoolTransactionsTest}
 import scorex.testkit.properties.state.box.{BoxStateApplyChangesTest, BoxStateChangesGenerationTest, BoxStateRollbackTest}
-import scorex.testkit.properties.state.BoxStateChangesGenerationTest
 
 /**
   * The idea of this class is to get some generators and test some situations, common for all blockchains
   */
 trait BlockchainSanity[P <: Proposition,
 TX <: BoxTransaction[P, B],
-PM <: PersistentNodeViewModifier[P, TX],
+PM <: PersistentNodeViewModifier,
 SI <: SyncInfo,
 B <: Box[P],
 MPool <: MemoryPool[TX, MPool],
 ST <: BoxMinimalState[P, B, TX, PM, ST],
-HT <: History[P, TX, PM, SI, HT]] extends HistoryAppendBlockTest[P, TX, PM, SI, HT]
+HT <: History[PM, SI, HT]] extends HistoryAppendBlockTest[P, TX, PM, SI, HT]
   with BoxStateApplyChangesTest[P, TX, PM, B, ST]
   with WalletSecretsTest[P, TX, PM]
   with BoxStateRollbackTest[P, TX, PM, B, ST, SI, HT, MPool]
