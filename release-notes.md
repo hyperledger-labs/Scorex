@@ -5,6 +5,9 @@
 use *TransactionsCarryingPersistentNodeViewModifier* descendant for modifiers with transactions.
 * Non-exhaustive pattern-matching fix in *NodeViewholder.pmodModify()*
 * Simplification of type parameters in many classes aroundthe whole codebase
+* *FastCryptographicHash* removed
+* Some obsolete code removed, such as *temp/mining* folder, *ScoreObserver* class
+* Scrypto 1.3.3
 
 2.0.0-RC2
 ---------
