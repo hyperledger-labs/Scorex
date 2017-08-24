@@ -116,7 +116,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
-  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]): Unit = {
+  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]): Unit =
     if (!history().contains(pmod.id)) {
       notifySubscribers(
         EventType.StartingPersistentModifierApplication,
@@ -157,15 +157,17 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
                 val newHistoryCancelled = newHistory.reportInvalid(pmod)
                 nodeView = (newHistoryCancelled, minimalState(), vault(), memoryPool())
-
                 notifySubscribers(EventType.FailedPersistentModifier, FailedModification[PMOD](pmod, e, source))
             }
           }
+        case Failure(e) =>
+          log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to history", e)
+          notifySubscribers(EventType.FailedPersistentModifier, FailedModification[PMOD](pmod, e, source))
       }
     } else {
       log.warn(s"Trying to apply modifier ${Base58.encode(pmod.id)} that's already in history")
     }
-  }
+
 
   private def handleSubscribe: Receive = {
     case NodeViewHolder.Subscribe(events) =>
