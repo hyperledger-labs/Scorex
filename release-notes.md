@@ -1,16 +1,24 @@
+2.0.0-RC3
+---------
+* *MinimalState* interface simplification: *validate()* puled away from the basic trait 
+* No *transactions* field with an optional value in *PersistentNodeViewModifier*, 
+use *TransactionsCarryingPersistentNodeViewModifier* descendant for modifiers with transactions.
+* Non-exhaustive pattern-matching fix in *NodeViewholder.pmodModify()*
+* Simplification of type parameters in many classes aroundthe whole codebase
+
 2.0.0-RC2
 ---------
-* MinimalState interface made minimal
+* *MinimalState* interface made minimal
 * protocolVersion in P2P Handshake
 * Scrypto 1.2.3
-* BoxMinimalState moved to scorex.mid.state
+* *BoxMinimalState* moved to *scorex.mid.state*
 
 2.0.0-RC1
 ---------
-* Transaction interface simplified (fee & timestamp fields removed)
+* Transaction interface simplified (*fee* & *timestamp* fields removed)
 * Scala 2.12
 * IODB 0.3.1
-* reportInvalid() in History
+* *reportInvalid()* in History
 * Issue #19 fixed
 * MapDB dependency removed
 * StateChanges reworked
