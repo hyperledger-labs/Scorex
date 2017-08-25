@@ -19,8 +19,9 @@ ST <: BoxMinimalState[P, B, TX, PM, ST]]
     with TestkitHelpers
     with SemanticallyValidModifierProducer[PM, ST] {
 
+
   property("State should be able to generate changes from block and apply them") {
-    check { _ =>
+    check(checksToMake) { _ =>
       val block = semanticallyValidModifier(state)
       val blockChanges = state.changes(block).get
 

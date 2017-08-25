@@ -16,6 +16,7 @@ trait StateTests[PM <: PersistentNodeViewModifier, ST <: MinimalState[PM, ST]]
     with TestkitHelpers
     with SemanticallyValidModifierProducer[PM, ST] {
 
-  val state: ST
+  val checksToMake = 10
 
+  val state: ST
 }
