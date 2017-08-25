@@ -52,14 +52,15 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
 
   private def privKey(value: Long) = PrivateKey25519Companion.generateKeys(("secret" + value).getBytes)
 
-  private def randomBox() = {
+  private def randomBox(): PublicKey25519NoncedBox = {
     val value = Random.nextInt(400000) + 200000
     PublicKey25519NoncedBox(privKey(value)._2, Random.nextLong(), value)
   }
 
   override val state: HBoxStoredState = {
     val s0 = HBoxStoredState(store, modifierIdGen.sample.get)
-    s0.applyChanges(BoxStateChanges(Seq(Insertion(randomBox()))), modifierIdGen.sample.get).get
+    val inserts = (1 to 200000).map(_ => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](randomBox()))
+    s0.applyChanges(BoxStateChanges(inserts), modifierIdGen.sample.get).get
   }
 
   //Generators
@@ -107,17 +108,14 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   }
 
   override def semanticallyValidModifierWithTransactions(state: HBoxStoredState): PosBlock = {
-    val (txCount, insPerTx, id, timestamp, box, attach, generator) = (for {
+    val (txCount, insPerTx, timestamp, attach) = (for {
       txCount <- smallInt
       insPerTx <- smallInt.map(_ + 1)
-      id <- modifierIdGen
       timestamp: Long <- positiveLongGen
-      generator: PrivateKey25519 <- key25519Gen.map(_._1)
-      box: PublicKey25519NoncedBox <- noncedBoxGen.map(_.copy(proposition = generator.publicImage))
       attach: Array[Byte] <- genBoundedBytes(0, 4096)
-    } yield (txCount, insPerTx, id, timestamp, box, attach, generator)).sample.get
+    } yield (txCount, insPerTx, timestamp, attach)).sample.get
 
-    val txs = state.store.getAll().take(txCount * insPerTx).map(_._2).toSeq
+    val txs = state.store.getAll().take(txCount * insPerTx + 1).map(_._2).toSeq.tail
       .map(_.data).map(PublicKey25519NoncedBoxSerializer.parseBytes).map(_.get).grouped(insPerTx).map{inputs =>
 
       val from = inputs.map(i => privKey(i.value)._1 -> i.nonce).toIndexedSeq
@@ -126,8 +124,12 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
       SimpleBoxTransaction(from, to, fee = inputs.size, System.currentTimeMillis())
     }.toSeq
 
+    val genBox:PublicKey25519NoncedBox =
+      PublicKey25519NoncedBoxSerializer.parseBytes(state.store.getAll().next()._2.data).get
 
-    PosBlock.create(id, timestamp, txs, box, attach, generator)
+    val generator = privKey(genBox.value)._1
+
+    PosBlock.create(state.version, timestamp, txs, genBox, attach, generator)
   }
 
   override def genValidTransactionPair(state: HBoxStoredState): Seq[SimpleBoxTransaction] = {

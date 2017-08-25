@@ -38,7 +38,7 @@ trait HistoryAppendBlockTest[P <: Proposition,
   }
 
   property("Invalid block is NOT being appended successfully to the history") {
-    var h: HT = history
+    val h: HT = history
     check { _ =>
       val b = syntacticallyInvalidModifier(h)
       h.modifierById(b.id) shouldBe None

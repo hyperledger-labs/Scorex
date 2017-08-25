@@ -9,6 +9,7 @@ import scorex.mid.state.BoxMinimalState
 import scorex.testkit.generators.AllModifierProducers
 import scorex.testkit.properties._
 import scorex.testkit.properties.mempool.{MempoolFilterPerformanceTest, MempoolRemovalTest, MempoolTransactionsTest}
+import scorex.testkit.properties.state.StateApplicationTest
 import scorex.testkit.properties.state.box.{BoxStateApplyChangesTest, BoxStateChangesGenerationTest, BoxStateRollbackTest}
 
 /**
@@ -23,7 +24,8 @@ B <: Box[P],
 MPool <: MemoryPool[TX, MPool],
 ST <: BoxMinimalState[P, B, TX, PM, ST],
 HT <: History[PM, SI, HT]]
-  extends HistoryAppendBlockTest[P, TX, PM, SI, HT]
+  extends StateApplicationTest[PM, ST]
+    with HistoryAppendBlockTest[P, TX, PM, SI, HT]
     with BoxStateApplyChangesTest[P, TX, PM, B, ST]
     with WalletSecretsTest[P, TX, PM]
     with BoxStateRollbackTest[P, TX, PM, CTM, B, ST]
