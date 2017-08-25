@@ -15,18 +15,21 @@ TX <: Transaction[P],
 MPool <: MemoryPool[TX, MPool],
 PM <: PersistentNodeViewModifier,
 HT <: History[PM, SI, HT],
-SI <: SyncInfo] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks
-  with ScorexLogging with TestkitHelpers {
+SI <: SyncInfo] extends PropSpec
+  with GeneratorDrivenPropertyChecks
+  with Matchers
+  with PropertyChecks
+  with ScorexLogging
+  with TestkitHelpers
+  with MemoryPoolTest[P, TX, MPool] {
 
-  val mempool: MPool
-  val transactionGenerator: Gen[TX]
   val history: HT
 
   def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool: Int): PM
 
   property("Transactions once added to block should be removed from Mempool") {
     forAll(Gen.choose(1, 10)) { noOfTransactionsFromMempool: Int =>
-      var m: MPool = mempool
+      var m: MPool = memPool
       var h: HT = history
       forAll(transactionGenerator) { tx: TX =>
         m = m.put(tx).get

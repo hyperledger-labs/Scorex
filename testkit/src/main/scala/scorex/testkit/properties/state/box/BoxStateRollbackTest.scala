@@ -19,18 +19,18 @@ B <: Box[P],
 ST <: BoxMinimalState[P, B, TX, PM, ST],
 SI <: SyncInfo,
 HT <: History[PM, SI, HT],
-MPool <: MemoryPool[TX, MPool]] extends StateTests[PM, ST] with TestkitHelpers {
+MPool <: MemoryPool[TX, MPool]] extends StateTests[PM, ST, SI, HT] with TestkitHelpers {
 
   val stateChangesGenerator: Gen[BoxStateChanges[P, B]]
   val history: HT
-  val mempool: MPool
+  val memPool: MPool
   val transactionGenerator: Gen[TX]
 
   def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool: Int): PM
 
   def genValidTransactionPair(curHistory: HT): Seq[TX]
 
-  def genValidModifierCustomTransactions(curHistory: HT, trx: TX): PM
+  def genValidModifierCustomTransactions(curHistory: HT, transaction: TX): PM
 
   property("State version updates as expected") {
 

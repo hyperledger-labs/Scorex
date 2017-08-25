@@ -34,7 +34,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
 
   //Node view components
   override val history: HybridHistory = generateHistory
-  override val mempool: SimpleBoxTransactionMemPool = SimpleBoxTransactionMemPool.emptyPool
+  override val memPool: SimpleBoxTransactionMemPool = SimpleBoxTransactionMemPool.emptyPool
   override val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings, "p"))((w, _) => w.generateNewSecret())
   override val state: HBoxStoredState = HBoxStoredState.readOrGenerate(settings)
 
@@ -125,10 +125,10 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
     var a = 0
     var txs = Seq[SimpleBoxTransaction]()
     (1 until noOfTransactionsFromMempool) foreach { _ =>
-      val p = mempool.take(mempool.size - 1).toVector({
-        Random.nextInt(mempool.size - 1)
+      val p = memPool.take(memPool.size - 1).toVector({
+        Random.nextInt(memPool.size - 1)
       })
-      mempool.remove(p)
+      memPool.remove(p)
       txs = txs :+ p
     }
     txs

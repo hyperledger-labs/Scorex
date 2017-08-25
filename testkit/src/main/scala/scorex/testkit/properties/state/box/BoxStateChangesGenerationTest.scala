@@ -16,7 +16,7 @@ PM <: PersistentNodeViewModifier,
 B <: Box[P],
 ST <: BoxMinimalState[P, B, TX, PM, ST],
 SI <: SyncInfo,
-HT <: History[PM, SI, HT]] extends StateTests[PM, ST] with TestkitHelpers {
+HT <: History[PM, SI, HT]] extends StateTests[PM, ST, SI, HT] with TestkitHelpers {
 
   val history: HT
 

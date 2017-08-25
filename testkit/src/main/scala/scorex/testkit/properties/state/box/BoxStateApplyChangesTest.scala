@@ -2,6 +2,7 @@ package scorex.testkit.properties.state.box
 
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
+import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
@@ -15,7 +16,9 @@ trait BoxStateApplyChangesTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier,
 B <: Box[P],
-ST <: BoxMinimalState[P, B, TX, PM, ST]] extends StateTests[PM,  ST] {
+ST <: BoxMinimalState[P, B, TX, PM, ST],
+SI <: SyncInfo,
+HT <: History[PM, SI, HT]] extends StateTests[PM,  ST, SI, HT] {
 
   val stateChangesGenerator: Gen[BoxStateChanges[P, B]]
 
