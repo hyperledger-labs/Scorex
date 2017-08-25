@@ -36,11 +36,11 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   HybridHistory]
   with HybridGenerators {
 
-  val dir = s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}"
-  val f = new File(dir)
+  private val dir = s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}"
+  private val f = new File(dir)
   f.mkdirs()
 
-  val store = new LSMStore(f)
+  private val store = new LSMStore(f)
 
   //Node view components
   override val history: HybridHistory = generateHistory
@@ -48,9 +48,11 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   override val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings, "p"))((w, _) => w.generateNewSecret())
 
 
-  def privKey(value: Long) = PrivateKey25519Companion.generateKeys(("secret" + value).getBytes)
+  private val hf = Blake2b256
 
-  def randomBox() = {
+  private def privKey(value: Long) = PrivateKey25519Companion.generateKeys(("secret" + value).getBytes)
+
+  private def randomBox() = {
     val value = Random.nextInt(400000) + 200000
     PublicKey25519NoncedBox(privKey(value)._2, Random.nextLong(), value)
   }
@@ -97,11 +99,17 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
     }
   }.apply(Gen.Parameters.default, Seed.random()).get
 
+  override def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock = {
+    syntacticallyValidModifier(curHistory) match {
+      case pow: PowBlock => pow.copy(parentId = hf(pow.parentId))
+      case pos: PosBlock => pos.copy(parentId = hf(pos.parentId))
+    }
+  }
+
   override def semanticallyValidModifierWithTransactions(state: HBoxStoredState): PosBlock = {
     val (txCount, insPerTx, id, timestamp, box, attach, generator) = (for {
       txCount <- smallInt
       insPerTx <- smallInt.map(_ + 1)
-      outsPerTx <- smallInt
       id <- modifierIdGen
       timestamp: Long <- positiveLongGen
       generator: PrivateKey25519 <- key25519Gen.map(_._1)

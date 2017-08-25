@@ -29,6 +29,7 @@ import scala.util.{Failure, Success}
   *
   * @tparam P
   * @tparam TX
+  * @tparam PMOD
   */
 trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {

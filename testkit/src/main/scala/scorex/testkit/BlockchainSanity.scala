@@ -22,13 +22,14 @@ SI <: SyncInfo,
 B <: Box[P],
 MPool <: MemoryPool[TX, MPool],
 ST <: BoxMinimalState[P, B, TX, PM, ST],
-HT <: History[PM, SI, HT]] extends HistoryAppendBlockTest[P, TX, PM, SI, HT]
-  with BoxStateApplyChangesTest[P, TX, PM, B, ST]
-  with WalletSecretsTest[P, TX, PM]
-  with BoxStateRollbackTest[P, TX, PM, CTM, B, ST]
-  with MempoolTransactionsTest[P, TX, MPool]
-  with MempoolFilterPerformanceTest[P, TX, MPool]
-  with MempoolRemovalTest[P, TX, MPool, PM, CTM, HT, SI]
-  with BoxStateChangesGenerationTest[P, TX, PM, B, ST]
-  with AllModifierProducers[P, TX, MPool, PM, CTM, ST, SI, HT] {
+HT <: History[PM, SI, HT]]
+  extends HistoryAppendBlockTest[P, TX, PM, SI, HT]
+    with BoxStateApplyChangesTest[P, TX, PM, B, ST]
+    with WalletSecretsTest[P, TX, PM]
+    with BoxStateRollbackTest[P, TX, PM, CTM, B, ST]
+    with MempoolTransactionsTest[P, TX, MPool]
+    with MempoolFilterPerformanceTest[P, TX, MPool]
+    with MempoolRemovalTest[P, TX, MPool, PM, CTM, HT, SI]
+    with BoxStateChangesGenerationTest[P, TX, PM, B, ST]
+    with AllModifierProducers[P, TX, MPool, PM, CTM, ST, SI, HT] {
 }
