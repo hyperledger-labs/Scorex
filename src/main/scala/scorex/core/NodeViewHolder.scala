@@ -101,6 +101,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
+  //todo: this method caused delays in a block processing as it removes transactions from mempool and checks
+  //todo: validity of remaining transactions in a synchronous way. Do this job async!
   protected def updateMemPool(progressInfo: History.ProgressInfo[PMOD], memPool:MP, state: MS): MP = {
     val rolledBackTxs = extractTransactions(progressInfo.toRemove)
 

@@ -28,6 +28,7 @@ SI <: SyncInfo] extends PropSpec
 
   val history: HT
 
+  //todo: this test doesn't check anything. It should be reworked as a test for node view holder
   property("Transactions once added to block should be removed from Mempool") {
     forAll(Gen.choose(1, 10)) { noOfTransactionsFromMempool: Int =>
       var m: MPool = memPool
