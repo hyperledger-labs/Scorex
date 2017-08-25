@@ -4,7 +4,7 @@ import examples.commons.SimpleBoxTransaction
 import org.scalacheck.Gen
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
-import scorex.testkit.CoreGenerators
+import scorex.testkit.generators.CoreGenerators
 
 trait ExamplesCommonGenerators extends CoreGenerators {
   lazy val pGen: Gen[(PublicKey25519Proposition, Long)] = for {
@@ -23,6 +23,10 @@ trait ExamplesCommonGenerators extends CoreGenerators {
     from: IndexedSeq[(PrivateKey25519, Long)] <- smallInt.flatMap(i => Gen.listOfN(i + 1, privGen).map(_.toIndexedSeq))
     to: IndexedSeq[(PublicKey25519Proposition, Long)] <- smallInt.flatMap(i => Gen.listOfN(i, pGen).map(_.toIndexedSeq))
   } yield SimpleBoxTransaction(from, to, fee, timestamp)
+
+  lazy val simpleBoxTransactionsGen: Gen[List[SimpleBoxTransaction]] = for {
+    txs <- smallInt.flatMap(i => Gen.listOfN(i, simpleBoxTransactionGen))
+  } yield txs
 
   def simpleBoxTransactionGenCustomMakeBoxes (toBoxes: IndexedSeq[(PublicKey25519Proposition, Long)]): Gen[SimpleBoxTransaction] = for {
     fee <- positiveLongGen

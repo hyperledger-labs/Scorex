@@ -1,4 +1,4 @@
-package scorex.testkit
+package scorex.testkit.generators
 
 import java.net.{InetAddress, InetSocketAddress}
 

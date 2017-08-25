@@ -3,8 +3,6 @@ package scorex.core.consensus
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.{NodeViewComponent, NodeViewModifier}
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
@@ -21,10 +19,7 @@ import scala.util.Try
   * function has been used instead, even in PoW systems.
   */
 
-trait History[
-PM <: PersistentNodeViewModifier,
-SI <: SyncInfo,
-HT <: History[PM, SI, HT]] extends NodeViewComponent {
+trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends NodeViewComponent {
 
   import History._
   import NodeViewModifier.ModifierId

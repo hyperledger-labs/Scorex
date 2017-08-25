@@ -88,8 +88,8 @@ trait HybridGenerators extends ExamplesCommonGenerators {
     value <- positiveLongGen
   } yield PublicKey25519NoncedBox(proposition, nonce, value)
 
-  lazy val stateChangesGen: Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = noncedBoxGen
-    .map(b => BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(b))))
+  lazy val stateChangesGen: Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+    noncedBoxGen.map(b => BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(b))))
 
   lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
     createdAt <- positiveLongGen

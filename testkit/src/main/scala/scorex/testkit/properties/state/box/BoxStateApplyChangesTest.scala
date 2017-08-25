@@ -8,7 +8,6 @@ import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.BoxStateChanges
 import scorex.mid.state.BoxMinimalState
-import scorex.testkit.properties.state.StateTests
 
 import scala.util.Random
 
@@ -16,9 +15,7 @@ trait BoxStateApplyChangesTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier,
 B <: Box[P],
-ST <: BoxMinimalState[P, B, TX, PM, ST],
-SI <: SyncInfo,
-HT <: History[PM, SI, HT]] extends StateTests[PM,  ST, SI, HT] {
+ST <: BoxMinimalState[P, B, TX, PM, ST]] extends BoxStateTests[P, B, TX, PM, ST] {
 
   val stateChangesGenerator: Gen[BoxStateChanges[P, B]]
 

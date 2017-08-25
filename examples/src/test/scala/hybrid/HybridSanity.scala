@@ -1,15 +1,18 @@
 package hybrid
 
+import java.io.File
+
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock, PowBlockCompanion}
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
+import io.iohk.iodb.LSMStore
 import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{BoxStateChanges, PrivateKey25519}
+import scorex.core.transaction.state.{BoxStateChanges, Insertion, PrivateKey25519, PrivateKey25519Companion}
 import scorex.crypto.hash.Blake2b256
 import scorex.testkit.{BlockchainPerformance, BlockchainSanity}
 
@@ -19,6 +22,7 @@ import scala.util.Random
 class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock,
+  PosBlock,
   HybridSyncInfo,
   PublicKey25519NoncedBox,
   SimpleBoxTransactionMemPool,
@@ -32,11 +36,29 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   HybridHistory]
   with HybridGenerators {
 
+  val dir = s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}"
+  val f = new File(dir)
+  f.mkdirs()
+
+  val store = new LSMStore(f)
+
   //Node view components
   override val history: HybridHistory = generateHistory
   override val memPool: SimpleBoxTransactionMemPool = SimpleBoxTransactionMemPool.emptyPool
   override val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings, "p"))((w, _) => w.generateNewSecret())
-  override val state: HBoxStoredState = HBoxStoredState.readOrGenerate(settings)
+
+
+  def privKey(value: Long) = PrivateKey25519Companion.generateKeys(("secret" + value).getBytes)
+
+  def randomBox() = {
+    val value = Random.nextInt(400000) + 200000
+    PublicKey25519NoncedBox(privKey(value)._2, Random.nextLong(), value)
+  }
+
+  override val state: HBoxStoredState = {
+    val s0 = HBoxStoredState(store, modifierIdGen.sample.get)
+    s0.applyChanges(BoxStateChanges(Seq(Insertion(randomBox()))), modifierIdGen.sample.get).get
+  }
 
   //Generators
   override val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen
@@ -44,7 +66,13 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   override val stateChangesGenerator: Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
     stateChangesGen
 
-  override def genValidModifier(curHistory: HybridHistory, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool: Int): HybridBlock = {
+
+  override def semanticallyValidModifier(state: HBoxStoredState): HybridBlock =
+    semanticallyValidModifierWithTransactions(state)
+
+  override def totallyValidModifier(history: HybridHistory, state: HBoxStoredState): HybridBlock = ???
+
+  override def syntaticallyValidModifier(curHistory: HybridHistory): HybridBlock = {
 
     if (curHistory.pairCompleted) {
       for {
@@ -59,16 +87,6 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
         new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
       }
     } else {
-      if (mempoolTransactionFetchOption) {
-        for {
-          timestamp: Long <- positiveLongGen
-          txs = simpleMempoolTransactionGen(noOfTransactionsFromMempool)
-          box: PublicKey25519NoncedBox <- noncedBoxGen
-          attach: Array[Byte] <- genBoundedBytes(0, 4096)
-          generator: PrivateKey25519 <- key25519Gen.map(_._1)
-        } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
-      }
-      else {
         for {
           timestamp: Long <- positiveLongGen
           txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
@@ -76,12 +94,35 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
           attach: Array[Byte] <- genBoundedBytes(0, 4096)
           generator: PrivateKey25519 <- key25519Gen.map(_._1)
         } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
-      }
     }
   }.apply(Gen.Parameters.default, Seed.random()).get
 
+  override def semanticallyValidModifierWithTransactions(state: HBoxStoredState): PosBlock = {
+    val (txCount, insPerTx, id, timestamp, box, attach, generator) = (for {
+      txCount <- smallInt
+      insPerTx <- smallInt.map(_ + 1)
+      outsPerTx <- smallInt
+      id <- modifierIdGen
+      timestamp: Long <- positiveLongGen
+      generator: PrivateKey25519 <- key25519Gen.map(_._1)
+      box: PublicKey25519NoncedBox <- noncedBoxGen.map(_.copy(proposition = generator.publicImage))
+      attach: Array[Byte] <- genBoundedBytes(0, 4096)
+    } yield (txCount, insPerTx, id, timestamp, box, attach, generator)).sample.get
 
-  override def genValidTransactionPair(curHistory: HybridHistory): Seq[SimpleBoxTransaction] = {
+    val txs = state.store.getAll().take(txCount * insPerTx).map(_._2).toSeq
+      .map(_.data).map(PublicKey25519NoncedBoxSerializer.parseBytes).map(_.get).grouped(insPerTx).map{inputs =>
+
+      val from = inputs.map(i => privKey(i.value)._1 -> i.nonce).toIndexedSeq
+      val to = inputs.map(i => i.proposition -> (i.value - 1)).toIndexedSeq
+
+      SimpleBoxTransaction(from, to, fee = inputs.size, System.currentTimeMillis())
+    }.toSeq
+
+
+    PosBlock.create(id, timestamp, txs, box, attach, generator)
+  }
+
+  override def genValidTransactionPair(state: HBoxStoredState): Seq[SimpleBoxTransaction] = {
     val keys = key25519Gen.apply(Gen.Parameters.default, Seed.random()).get
     val value = positiveLongGen.apply(Gen.Parameters.default, Seed.random()).get
 
@@ -96,42 +137,38 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
     trxnPair
   }
 
-  override def genValidModifierCustomTransactions(curHistory: HybridHistory, trx: SimpleBoxTransaction): HybridBlock = {
-    if (curHistory.pairCompleted) {
-      for {
-        timestamp: Long <- positiveLongGen
-        nonce: Long <- positiveLongGen
-        brothersCount: Byte <- positiveByteGen
-        proposition: PublicKey25519Proposition <- propositionGen
-        brothers <- Gen.listOfN(brothersCount, powHeaderGen)
-      } yield {
-        val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
-        val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
-        new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
-      }
-    } else {
-      for {
-        timestamp: Long <- positiveLongGen
-        txs: Seq[SimpleBoxTransaction] = Seq(trx)
-        box: PublicKey25519NoncedBox <- noncedBoxGen
-        attach: Array[Byte] <- genBoundedBytes(0, 4096)
-        generator: PrivateKey25519 <- key25519Gen.map(_._1)
-      } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
-    }
+  override def semanticallyValidModifierWithCustomTransactions(state: HBoxStoredState,
+                                                               transactions: Seq[SimpleBoxTransaction]): PosBlock = {
+    for {
+      id <- modifierIdGen
+      timestamp: Long <- positiveLongGen
+      txs: Seq[SimpleBoxTransaction] = transactions
+      box: PublicKey25519NoncedBox <- noncedBoxGen
+      attach: Array[Byte] <- genBoundedBytes(0, 4096)
+      generator: PrivateKey25519 <- key25519Gen.map(_._1)
+    } yield PosBlock.create(id, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
   }.apply(Gen.Parameters.default, Seed.random()).get
 
 
-  def simpleMempoolTransactionGen(noOfTransactionsFromMempool: Int): Seq[SimpleBoxTransaction] = {
-    var a = 0
-    var txs = Seq[SimpleBoxTransaction]()
-    (1 until noOfTransactionsFromMempool) foreach { _ =>
-      val p = memPool.take(memPool.size - 1).toVector({
-        Random.nextInt(memPool.size - 1)
-      })
-      memPool.remove(p)
-      txs = txs :+ p
+  override def modifierWithTransactions(memoryPoolOpt: Option[SimpleBoxTransactionMemPool],
+                                        customTransactionsOpt: Option[Seq[SimpleBoxTransaction]]): PosBlock = {
+
+    val (id, timestamp, box, attach, generator) = (for {
+      id <- modifierIdGen
+      timestamp: Long <- positiveLongGen
+      generator: PrivateKey25519 <- key25519Gen.map(_._1)
+      box: PublicKey25519NoncedBox <- noncedBoxGen.map(_.copy(proposition = generator.publicImage))
+      attach: Array[Byte] <- genBoundedBytes(0, 4096)
+    } yield (id, timestamp, box, attach, generator)).apply(Gen.Parameters.default, Seed.random()).get
+
+    val txs = memoryPoolOpt.map{ memPool =>
+      val toTake = Random.nextInt(memPool.size)
+      Random.shuffle(memPool.take(memPool.size).toSeq).take(toTake)
+    }.getOrElse(Seq()) ++ customTransactionsOpt.getOrElse(Seq()) match {
+      case s if s.isEmpty => simpleBoxTransactionsGen.sample.get
+      case s => s
     }
-    txs
+
+    PosBlock.create(id, timestamp, txs, box, attach, generator)
   }
 }
-

@@ -8,24 +8,31 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.testkit.TestkitHelpers
+import scorex.testkit.generators.SyntaticallyValidModifierProducer
+
 
 trait HistoryAppendBlockTest[P <: Proposition,
-TX <: Transaction[P],
-PM <: PersistentNodeViewModifier,
-SI <: SyncInfo,
-HT <: History[PM, SI, HT]] extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks
-  with ScorexLogging with TestkitHelpers {
-  val history: HT
+                              TX <: Transaction[P],
+                              PM <: PersistentNodeViewModifier,
+                              SI <: SyncInfo,
+                              HT <: History[PM, SI, HT]]
+  extends PropSpec
+    with GeneratorDrivenPropertyChecks
+    with Matchers
+    with PropertyChecks
+    with ScorexLogging
+    with TestkitHelpers
+    with SyntaticallyValidModifierProducer[PM, SI, HT] {
 
-  def genValidModifier(history: HT, mempoolTransactionFetchOption: Boolean, noOfTransactionsFromMempool : Int): PM
+  val history: HT
 
   property("Appended block is in history") {
     var h: HT = history
     check { _ =>
-      val b = genValidModifier(h, mempoolTransactionFetchOption = false, 0)
-      h.modifierById(b.id).isDefined shouldBe false
+      val b = syntaticallyValidModifier(h)
+      h.modifierById(b.id) shouldBe None
       h = h.append(b).get._1
-      h.modifierById(b.id).isDefined shouldBe true
+      h.modifierById(b.id) shouldBe Some(b)
     }
   }
 }

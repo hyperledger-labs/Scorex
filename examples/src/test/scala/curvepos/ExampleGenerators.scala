@@ -6,7 +6,7 @@ import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.signatures.Curve25519
-import scorex.testkit.CoreGenerators
+import scorex.testkit.generators.CoreGenerators
 
 trait ExampleGenerators extends CoreGenerators {
   val wallet = SimpleWallet()
