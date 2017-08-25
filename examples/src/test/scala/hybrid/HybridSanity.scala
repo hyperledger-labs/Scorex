@@ -98,7 +98,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
           generator: PrivateKey25519 <- key25519Gen.map(_._1)
         } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
     }
-  }.apply(Gen.Parameters.default, Seed.random()).get
+  }.sample.get
 
   override def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock = {
     syntacticallyValidModifier(curHistory) match {
