@@ -72,7 +72,7 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
 
   override def totallyValidModifier(history: HybridHistory, state: HBoxStoredState): HybridBlock = ???
 
-  override def syntaticallyValidModifier(curHistory: HybridHistory): HybridBlock = {
+  override def syntacticallyValidModifier(curHistory: HybridHistory): HybridBlock = {
 
     if (curHistory.pairCompleted) {
       for {

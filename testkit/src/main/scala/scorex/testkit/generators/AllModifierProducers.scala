@@ -15,7 +15,7 @@ CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[P, TX],
 ST <: MinimalState[PM, ST],
 SI <: SyncInfo, HT <: History[PM, SI, HT]]
   extends SemanticallyValidModifierProducer[PM, ST]
-    with SyntaticallyValidModifierProducer[PM, SI, HT]
+    with SyntacticallyValidModifierProducer[PM, SI, HT]
     with ArbitraryTransactionsCarryingModifierProducer[P, TX, MPool, PM, CTM]
     with TotallyValidModifierProducer[PM, ST, SI, HT]
     with SemanticallyValidTransactionsCarryingModifier[P, TX, PM, CTM, ST]

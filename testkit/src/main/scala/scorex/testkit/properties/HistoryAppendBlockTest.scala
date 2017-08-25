@@ -8,7 +8,7 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.testkit.TestkitHelpers
-import scorex.testkit.generators.SyntaticallyValidModifierProducer
+import scorex.testkit.generators.SyntacticallyValidModifierProducer
 
 
 trait HistoryAppendBlockTest[P <: Proposition,
@@ -22,14 +22,14 @@ trait HistoryAppendBlockTest[P <: Proposition,
     with PropertyChecks
     with ScorexLogging
     with TestkitHelpers
-    with SyntaticallyValidModifierProducer[PM, SI, HT] {
+    with SyntacticallyValidModifierProducer[PM, SI, HT] {
 
   val history: HT
 
   property("Appended block is in history") {
     var h: HT = history
     check { _ =>
-      val b = syntaticallyValidModifier(h)
+      val b = syntacticallyValidModifier(h)
       h.modifierById(b.id) shouldBe None
       h = h.append(b).get._1
       h.modifierById(b.id) shouldBe Some(b)
