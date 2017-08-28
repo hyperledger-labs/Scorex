@@ -7,7 +7,7 @@ trait FileUtils {
   def createTempFile: java.io.File = {
     val rndString = scala.util.Random.alphanumeric.take(randomPrefixLength).mkString
     val file = java.nio.file.Files.createTempDirectory(rndString).toFile
-    file.delete()
+    file.deleteOnExit()
     file
   }
 
