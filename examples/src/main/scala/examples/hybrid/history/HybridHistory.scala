@@ -180,7 +180,7 @@ class HybridHistory(val storage: HistoryStorage,
   }
 
   //todo: implement
-  override def reportInvalid(modifier: HybridBlock): HybridHistory = ???
+  override def reportSemanticallyInvalid(modifier: HybridBlock): HybridHistory = ???
 
   def bestForkChanges(block: HybridBlock): ProgressInfo[HybridBlock] = {
     val parentId = storage.parentId(block)

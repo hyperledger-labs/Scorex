@@ -21,7 +21,7 @@ class TrimChain(version: ModifierId, validators: Seq[BlockValidator[TBlock]])
 
   override def append(modifier: TModifier): Try[(TrimChain, ProgressInfo[TModifier])] = ???
 
-  override def reportInvalid(modifier: TModifier): TrimChain = ???
+  override def reportSemanticallyInvalid(modifier: TModifier): TrimChain = ???
 
   override def openSurfaceIds(): Seq[ModifierId] = ???
 

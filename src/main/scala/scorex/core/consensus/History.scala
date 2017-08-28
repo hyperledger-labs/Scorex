@@ -16,7 +16,7 @@ import scala.util.Try
   * but other options are possible.
   *
   * To say "longest chain" is the canonical one is simplification, usually some kind of "cumulative difficulty"
-  * function has been used instead, even in PoW systems.
+  * function has been used instead.
   */
 
 trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends NodeViewComponent {
@@ -59,14 +59,17 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
 
   def append(modifier: PM): Try[(HT, ProgressInfo[PM])]
 
-  def reportInvalid(modifier: PM): HT
+  def reportSemanticallyInvalid(modifier: PM): HT
+
+  //todo: implement
+  def isSemanticallyValid(modifierId: ModifierId): Option[Boolean] = ???
 
   //todo: output should be ID | Seq[ID]
   def openSurfaceIds(): Seq[ModifierId]
 
   /**
     * Ids of modifiers, that node with info should download and apply to synchronize
-    * todo: argument should be ID | Seq[ID]
+    * todo: argument should be ID | Seq[ID] ?
     */
   def continuationIds(info: SI, size: Int): Option[ModifierIds]
 
@@ -97,6 +100,7 @@ object History {
                                                             toApply: Seq[PM]) {
 
     require(branchPoint.isDefined == toRemove.nonEmpty)
+    require(toRemove.headOption.map(_.parentId).flatMap(pid => branchPoint.map(_.sameElements(pid))).getOrElse(true))
 
     lazy val rollbackNeeded: Boolean = toRemove.nonEmpty
     lazy val appendedId: ModifierId = toApply.last.id
