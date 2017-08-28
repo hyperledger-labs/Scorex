@@ -7,6 +7,13 @@ import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
+object ModifierSemanticValidity extends Enumeration {
+  val Absent = Value(0)
+  val Unknown = Value(1)
+  val Valid = Value(2)
+  val Invalid = Value(3)
+}
+
 /**
   * History of a blockchain system is some blocktree in fact
   * (like this: http://image.slidesharecdn.com/sfbitcoindev-chepurnoy-2015-150322043044-conversion-gate01/95/proofofstake-its-improvements-san-francisco-bitcoin-devs-hackathon-12-638.jpg),
@@ -59,10 +66,9 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
 
   def append(modifier: PM): Try[(HT, ProgressInfo[PM])]
 
-  def reportSemanticallyInvalid(modifier: PM): HT
+  def reportSemanticValidity(modifier: PM, valid: Boolean): (HT, ProgressInfo[PM])
 
-  //todo: implement
-  def isSemanticallyValid(modifierId: ModifierId): Option[Boolean] = ???
+  def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value
 
   //todo: output should be ID | Seq[ID]
   def openSurfaceIds(): Seq[ModifierId]
@@ -102,12 +108,11 @@ object History {
     require(branchPoint.isDefined == toRemove.nonEmpty)
     require(toRemove.headOption.map(_.parentId).flatMap(pid => branchPoint.map(_.sameElements(pid))).getOrElse(true))
 
-    lazy val rollbackNeeded: Boolean = toRemove.nonEmpty
-    lazy val appendedId: ModifierId = toApply.last.id
+    lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
+    lazy val appendedId: Option[ModifierId] = toApply.lastOption.map(_.id)
 
     override def toString: String = {
       s"Modifications(${branchPoint.map(Base58.encode)}, ${toRemove.map(_.encodedId)}, ${toApply.map(_.encodedId)})"
     }
   }
-
 }

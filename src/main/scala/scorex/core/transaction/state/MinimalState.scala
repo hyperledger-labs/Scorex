@@ -5,7 +5,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier}
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 trait StateFeature
 
@@ -31,15 +31,6 @@ trait MinimalState[M <: PersistentNodeViewModifier, MS <: MinimalState[M, MS]] e
   def version: VersionTag
 
   def applyModifier(mod: M): Try[MS]
-
-  //todo: remove
-  def applyModifiers(mods: Seq[M]): Try[MS] =
-    mods.foldLeft(Try(this)) { case (curTry, mod) =>
-      curTry flatMap (_.applyModifier(mod))
-    } match {
-      case s: Success[MS] => s
-      case f: Failure[MS] => rollbackTo(version); f
-    }
 
   def rollbackTo(version: VersionTag): Try[MS]
 }

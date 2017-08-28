@@ -3,7 +3,7 @@ package examples.curvepos
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
 import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.consensus.BlockChain
+import scorex.core.consensus.{BlockChain, ModifierSemanticValidity}
 import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
@@ -39,9 +39,6 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
       Failure(e)
     }
   }
-
-  //todo: implement
-  override def reportSemanticallyInvalid(modifier: SimpleBlock): SimpleBlockchain = ???
 
   override def openSurfaceIds(): Seq[ModifierId] = Seq(blockIds(height()))
 
@@ -95,6 +92,11 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
     else if (local == remote) HistoryComparisonResult.Equal
     else HistoryComparisonResult.Younger
   }
+
+  override def reportSemanticValidity(modifier: SimpleBlock,
+                                      valid: Boolean): (SimpleBlockchain, ProgressInfo[SimpleBlock]) = ???
+
+  override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value = ???
 }
 
 object SimpleBlockchain {

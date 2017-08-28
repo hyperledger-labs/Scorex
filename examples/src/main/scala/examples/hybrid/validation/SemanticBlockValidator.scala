@@ -2,9 +2,7 @@ package examples.hybrid.validation
 
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import scorex.core.block.BlockValidator
-import scorex.core.transaction.proof.Signature25519
 import scorex.crypto.hash.CryptographicHash
-import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
 
