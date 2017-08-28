@@ -16,4 +16,8 @@ mainClass in assembly := Some("examples.hybrid.HybridApp")
 
 assemblyJarName in assembly := "twinsChain.jar"
 
+parallelExecution in Test := true
+
+testForkedParallel in Test := true
+
 test in assembly := {}

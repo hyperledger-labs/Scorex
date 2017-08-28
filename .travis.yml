@@ -1,8 +1,9 @@
+sudo: true
 language: scala
 jdk:
   - oraclejdk8
 scala:
-  - 2.12.2
+  - 2.12.3
 script:
   - sbt "project examples" "test" && sbt test
 cache:
