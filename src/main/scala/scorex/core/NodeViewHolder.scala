@@ -167,13 +167,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false)
+                //todo: send signal
                 updateState(newHis, stateToApply, newProgressInfo)
             }
 
           case None =>
             history -> Success(stateToApply)
         }
-      case Failure(e) => ??? //rollback failed, send signal, probably very wrong situation
+      case Failure(e) => ??? //todo: rollback failed, send signal, probably very wrong situation
     }
   }
 
@@ -215,6 +216,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 notifySubscribers(EventType.FailedPersistentModifier, FailedModification[PMOD](pmod, e, source))
             }
           } else {
+            //todo: send signal?
             nodeView = (historyBeforeStUpdate, minimalState(), vault(), memoryPool())
           }
         case Failure(e) =>
