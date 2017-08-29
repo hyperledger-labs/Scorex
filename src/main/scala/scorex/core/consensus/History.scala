@@ -109,7 +109,6 @@ object History {
     require(toRemove.headOption.map(_.parentId).flatMap(pid => branchPoint.map(_.sameElements(pid))).getOrElse(true))
 
     lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
-    lazy val appendedId: Option[ModifierId] = toApply.lastOption.map(_.id)
 
     override def toString: String = {
       s"Modifications(${branchPoint.map(Base58.encode)}, ${toRemove.map(_.encodedId)}, ${toApply.map(_.encodedId)})"
