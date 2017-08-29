@@ -8,14 +8,13 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scala.util.Try
 import io.circe.Json
 import io.circe.syntax._
-import scorex.crypto.encode.Base58
+import scorex.crypto.encode.{Base16, Base58}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Curve25519
 
 case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Proposition,
                                    override val nonce: Long,
-                                   override val value: Long
-                                  ) extends PublicKeyNoncedBox[PublicKey25519Proposition] with JsonSerializable {
+                                   override val value: Long) extends PublicKeyNoncedBox[PublicKey25519Proposition] with JsonSerializable {
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
@@ -28,6 +27,9 @@ case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Propo
   override type M = PublicKey25519NoncedBox
 
   override def serializer: Serializer[PublicKey25519NoncedBox] = PublicKey25519NoncedBoxSerializer
+
+  override def toString: String =
+    s"PublicKey25519NoncedBox(id: ${Base16.encode(id)}, proposition: $proposition, nonce: $nonce, value: $value)"
 }
 
 object PublicKey25519NoncedBox {

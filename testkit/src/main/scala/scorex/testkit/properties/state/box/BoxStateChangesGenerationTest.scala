@@ -4,7 +4,7 @@ import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.{BoxStateChanges, Removal}
+import scorex.core.transaction.state.Insertion
 import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.SemanticallyValidModifierProducer
@@ -21,23 +21,27 @@ ST <: BoxMinimalState[P, B, TX, PM, ST]]
 
 
   property("State should be able to generate changes from block and apply them") {
+    var state = stateGen.sample.get
+
     check(checksToMake) { _ =>
       val block = semanticallyValidModifier(state)
       val blockChanges = state.changes(block).get
 
-      val changes: BoxStateChanges[P, B] = BoxStateChanges(blockChanges.operations.flatMap{ op =>
-        op match {
-          case rm: Removal[P, B] if state.closedBox(rm.boxId).isEmpty => None
-          case _ => Some(op)
-        }
-      })
-
-      val newState = state.applyChanges(changes, block.id).get
-      changes.toAppend.foreach { b =>
-        newState.closedBox(b.box.id).isDefined shouldBe true
+      blockChanges.toAppend.foreach { case Insertion(b) =>
+        state.closedBox(b.id) shouldBe None
       }
-      changes.toRemove.foreach { r =>
-        newState.closedBox(r.boxId).isDefined shouldBe false
+
+      blockChanges.toRemove.foreach { r =>
+        state.closedBox(r.boxId).isDefined shouldBe true
+      }
+
+      state = state.applyChanges(blockChanges, block.id).get
+
+      blockChanges.toAppend.foreach { case Insertion(b) =>
+        state.closedBox(b.id) shouldBe Some(b)
+      }
+      blockChanges.toRemove.foreach { r =>
+        state.closedBox(r.boxId).isDefined shouldBe false
       }
     }
   }

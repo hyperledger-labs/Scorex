@@ -1,7 +1,6 @@
 package scorex.core.transaction.state
 
 import com.google.common.primitives.Bytes
-import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.box._

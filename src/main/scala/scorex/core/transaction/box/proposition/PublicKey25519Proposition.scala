@@ -32,7 +32,7 @@ case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKn
     case _ => false
   }
 
-  override def hashCode(): Int = (BigInt(Blake2b256(pubKeyBytes)) % Int.MaxValue).toInt
+  override def hashCode(): Int = (BigInt(pubKeyBytes) % Int.MaxValue).toInt
 
 }
 

@@ -46,7 +46,6 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HBoxStoredState.changes(mod)
 
   //Validate transactions in block and generator box
-  //todo: move validation to history
   override def validate(mod: HPMOD): Try[Unit] = Try {
     mod match {
       case b: PowBlock =>
@@ -66,8 +65,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 
   override def applyChanges(changes: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {
-    val boxIdsToRemove = changes.toRemove.view.map(_.boxId).map(ByteArrayWrapper.apply)
-    val boxesToAdd = changes.toAppend.view.map(_.box).map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
+    val boxIdsToRemove = changes.toRemove.map(_.boxId).map(ByteArrayWrapper.apply)
+    val boxesToAdd = changes.toAppend.map(_.box).map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
     log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${Base58.encode(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => Base58.encode(b.data))}, " +

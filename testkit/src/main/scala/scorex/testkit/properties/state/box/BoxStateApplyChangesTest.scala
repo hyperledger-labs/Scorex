@@ -2,7 +2,6 @@ package scorex.testkit.properties.state.box
 
 import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
@@ -17,14 +16,25 @@ PM <: PersistentNodeViewModifier,
 B <: Box[P],
 ST <: BoxMinimalState[P, B, TX, PM, ST]] extends BoxStateTests[P, B, TX, PM, ST] {
 
-  val stateChangesGenerator: Gen[BoxStateChanges[P, B]]
+  def stateChangesGenerator(state: ST): Gen[BoxStateChanges[P, B]]
 
-  property("State should be able to add a box") {
-    forAll(stateChangesGenerator) { c =>
-      val newState = state.applyChanges(c, Array.fill(32)(Random.nextInt(Byte.MaxValue).toByte)).get
-      c.toAppend.foreach { b =>
-        newState.closedBox(b.box.id).isDefined shouldBe true
+  property("BoxMinimalState should be able to add and remove boxes") {
+    forAll(stateGen, minSuccessful(2)) {state =>
+      val changes = stateChangesGenerator(state).sample.get
+        changes.toAppend.foreach { insertion =>
+          state.closedBox(insertion.box.id).isDefined shouldBe false
+        }
+        changes.toRemove.foreach{ removal =>
+          state.closedBox(removal.boxId).isDefined shouldBe true
+        }
+        val newState = state.applyChanges(changes, Array.fill(32)(Random.nextInt(Byte.MaxValue).toByte)).get
+        changes.toAppend.foreach { insertion =>
+          newState.closedBox(insertion.box.id).isDefined shouldBe true
+        }
+        changes.toRemove.foreach{ removal =>
+          newState.closedBox(removal.boxId).isDefined shouldBe false
+        }
       }
-    }
+
   }
 }

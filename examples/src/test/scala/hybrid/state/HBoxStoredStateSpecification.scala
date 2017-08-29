@@ -1,23 +1,33 @@
 package hybrid.state
 
-import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.hybrid.mining.MiningSettings
+import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.state.HBoxStoredState
 import hybrid.HybridGenerators
-import io.circe
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.settings.Settings
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.BoxStateChanges
-
-import scala.util.Random
+import scorex.core.transaction.state.{Insertion, Removal}
+import scorex.testkit.properties.state.StateTests
 
 class HBoxStoredStateSpecification extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks
   with Matchers
-  with HybridGenerators {
+  with HybridGenerators
+  with StateTests[HybridBlock, HBoxStoredState] {
 
-
+  property("added boxes are always there") {
+    forAll(stateGen){state =>
+      var st = state
+      check(checksToMake) { _ =>
+        val c = stateChangesGenerator(state).sample.get
+        st = st.applyChanges(c, modifierIdGen.sample.get).get
+        c.toAppend.foreach { case Insertion(b) =>
+            st.closedBox(b.id) shouldBe Some(b)
+        }
+        c.toRemove.foreach { case Removal(bid) =>
+          st.closedBox(bid) shouldBe None
+        }
+      }
+    }
+  }
 }

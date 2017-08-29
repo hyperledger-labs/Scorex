@@ -1,5 +1,6 @@
 package scorex.testkit.properties.state
 
+import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.PersistentNodeViewModifier
@@ -18,5 +19,5 @@ trait StateTests[PM <: PersistentNodeViewModifier, ST <: MinimalState[PM, ST]]
 
   val checksToMake = 10
 
-  val state: ST
+  val stateGen: Gen[ST]
 }

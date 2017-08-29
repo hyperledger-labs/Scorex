@@ -10,7 +10,7 @@ trait PublicKeyNoncedBox[PKP <: PublicKey25519Proposition] extends Box[PKP] {
 
   lazy val id: Array[Byte] = PublicKeyNoncedBox.idFromBox(proposition, nonce)
 
-  lazy val publicKey = proposition
+  lazy val publicKey: PKP = proposition
 
   override def equals(obj: Any): Boolean = obj match {
     case acc: PublicKeyNoncedBox[PKP] => (acc.id sameElements this.id) && acc.value == this.value

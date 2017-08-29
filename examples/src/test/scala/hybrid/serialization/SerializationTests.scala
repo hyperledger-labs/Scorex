@@ -28,6 +28,7 @@ class SerializationTests extends PropSpec
   property("PublicKey25519NoncedBox serialization") {
     forAll(noncedBoxGen) { b: PublicKey25519NoncedBox =>
       val parsed = PublicKey25519NoncedBoxSerializer.parseBytes(PublicKey25519NoncedBoxSerializer.toBytes(b)).get
+      parsed shouldEqual b
       PublicKey25519NoncedBoxSerializer.toBytes(parsed) shouldEqual PublicKey25519NoncedBoxSerializer.toBytes(b)
     }
   }
