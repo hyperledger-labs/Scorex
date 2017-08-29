@@ -21,6 +21,15 @@ trait ModifierValidation[M <: PersistentNodeViewModifier] extends StateFeature {
   def validate(mod: M): Try[Unit]
 }
 
+trait BalanceSheet[P <: Proposition] extends StateFeature {
+  def balance(id: P, height: Option[Int] = None): Long
+}
+
+trait AccountTransactionsHistory[P <: Proposition, TX <: Transaction[P]] extends StateFeature {
+  def accountTransactions(id: P): Array[TX]
+}
+
+
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
