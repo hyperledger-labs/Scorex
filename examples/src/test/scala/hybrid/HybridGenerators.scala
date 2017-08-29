@@ -141,7 +141,7 @@ trait HybridGenerators extends ExamplesCommonGenerators {
   lazy val singlePrivKey = PrivateKey25519Companion.generateKeys("secret".getBytes)
 
   //todo: make by value again, check why fails
-  private def privKey(value: Long) = singlePrivKey //PrivateKey25519Companion.generateKeys(("secret" + value).getBytes)
+  private def privKey(value: Long) = singlePrivKey // PrivateKey25519Companion.generateKeys(("secret" + value).getBytes)
 
    val stateGen: Gen[HBoxStoredState] = {
     def randomBox(): PublicKey25519NoncedBox = {
@@ -249,7 +249,7 @@ trait HybridGenerators extends ExamplesCommonGenerators {
     txs.foreach { tx =>
       tx.boxIdsToOpen.foreach{id =>
         //        println("tx box: " + Base16.encode(id))
-//        assert(state.closedBox(id).isDefined)
+        assert(state.closedBox(id).isDefined)
       }
     }
 
