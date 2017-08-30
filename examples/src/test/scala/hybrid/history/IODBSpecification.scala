@@ -1,33 +1,33 @@
 package hybrid.history
 
-import java.io.File
-
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import hybrid.HybridGenerators
-import io.iohk.iodb.Store._
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatest.{Matchers, Outcome, fixture}
 import scorex.core.NodeViewModifier._
 import scorex.crypto.encode.Base58
+import scorex.testkit.utils.FileUtils
 
-import scala.util.Random
-
-class IODBSpecification extends PropSpec
-  with PropertyChecks
+class IODBSpecification extends fixture.PropSpec
   with GeneratorDrivenPropertyChecks
   with Matchers
-  with HybridGenerators {
+  with HybridGenerators
+  with FileUtils {
+
+  type FixtureParam = LSMStore
+
+  override def withFixture(test: OneArgTest): Outcome = {
+    val fixture = new LSMStore(createTempDir)
+    try test(fixture)
+    finally {}
+  }
 
 
-  val iFile = new File(s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}")
-  iFile.mkdirs()
-  val blocksStorage = new LSMStore(iFile)
-
-  property("Rollback should not touch keys before") {
-    def writeTx(tx: SimpleBoxTransaction) = {
+  property("Rollback should not touch keys before") { blocksStorage =>
+    def writeTx(tx: SimpleBoxTransaction): Unit = {
       //      val boxIdsToRemove: Iterable[ByteArrayWrapper] = tx.boxIdsToOpen.map(id => ByteArrayWrapper(id))
       val boxIdsToRemove: Iterable[ByteArrayWrapper] = Seq()
       val boxesToAdd: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] = tx.newBoxes
@@ -49,14 +49,12 @@ class IODBSpecification extends PropSpec
 
         blocksStorage.rollback(ByteArrayWrapper(head.id))
         checkTx(head)
-
-
       }
     }
   }
 
-  property("writeBlock() test") {
-    def writeBlock(b: HybridBlock) = {
+  property("writeBlock() test") { blocksStorage =>
+    def writeBlock(b: HybridBlock): Unit = {
       val typeByte = b match {
         case _: PowBlock =>
           PowBlock.ModifierTypeId
@@ -81,9 +79,8 @@ class IODBSpecification extends PropSpec
       blocksStorage.get(ByteArrayWrapper(id)) match {
         case None =>
           throw new Error(s"Id ${Base58.encode(id)} not found")
-        case Some(v) =>
+        case Some(_) => ()
       }
     }
   }
-
 }

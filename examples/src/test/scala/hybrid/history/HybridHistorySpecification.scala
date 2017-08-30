@@ -4,24 +4,31 @@ import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import hybrid.HybridGenerators
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.{Matchers, Outcome, fixture}
 import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.crypto.encode.Base58
 import scorex.utils.Random
 
-
-class HybridHistorySpecification extends PropSpec
+class HybridHistorySpecification extends fixture.PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks
   with Matchers
   with HybridGenerators {
 
-  var history = generateHistory
+  override type FixtureParam = HybridHistory
 
+  def withFixture(test: OneArgTest): Outcome = {
+    val history = generateHistory
+    try {
+      test(history)
+    }
+    finally {}
+  }
 
   //Generate chain
-  property("Block application and HybridHistory.continuationIds") {
+  property("Block application and HybridHistory.continuationIds") { h =>
+    var history = h
     var ids: Seq[ModifierId] = Seq()
     forAll(posBlockGen, powBlockGen) { (posR, powR) =>
       if (history.height <= HybridHistory.DifficultyRecalcPeriod) {
@@ -65,7 +72,8 @@ class HybridHistorySpecification extends PropSpec
     }
   }
 
-  property("History comparison") {
+  property("History comparison") { h =>
+    var history = h
     assert(history.height >= HybridHistory.DifficultyRecalcPeriod)
     //TODO test for completed pairs
     assert(!history.pairCompleted)
