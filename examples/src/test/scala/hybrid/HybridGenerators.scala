@@ -22,11 +22,12 @@ import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
 import scorex.crypto.hash.Blake2b256
+import scorex.testkit.utils.FileUtils
 
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait HybridGenerators extends ExamplesCommonGenerators {
+trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
   type ChangesGen = Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]]
 
   val settings = new Settings with MiningSettings {
@@ -116,12 +117,7 @@ trait HybridGenerators extends ExamplesCommonGenerators {
   } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
 
   def generateHistory: HybridHistory = {
-    val dataDir = s"/tmp/scorex/scorextest-${Random.nextInt(10000000)}"
-
-    val iFile = new File(s"$dataDir/blocks")
-    iFile.mkdirs()
-    val blockStorage = new LSMStore(iFile)
-
+    val blockStorage = new LSMStore(createTempDir)
     val storage = new HistoryStorage(blockStorage, settings)
     //we don't care about validation here
     val validators = Seq()
@@ -152,11 +148,7 @@ trait HybridGenerators extends ExamplesCommonGenerators {
         .ensuring(box => PrivateKey25519Companion.owns(keyPair._1, box))
     }
 
-    val dir = s"/tmp/scorex/scorextest/${System.currentTimeMillis()}/${Random.nextInt(1000)}"
-    val f = new File(dir)
-    f.mkdirs()
-    val store = new LSMStore(f)
-
+    val store = new LSMStore(createTempDir)
     val s0 = HBoxStoredState(store, modifierIdGen.sample.get)
     val inserts = (1 to 5000).map(_ => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](randomBox()))
     s0.applyChanges(BoxStateChanges(inserts), modifierIdGen.sample.get).get
