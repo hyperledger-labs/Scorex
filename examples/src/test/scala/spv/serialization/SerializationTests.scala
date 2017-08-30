@@ -18,6 +18,4 @@ class SerializationTests extends PropSpec
       serializer.toBytes(b) shouldEqual serializer.toBytes(parsed)
     }
   }
-
-
 }

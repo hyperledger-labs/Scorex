@@ -43,6 +43,4 @@ class SimpleStateSpecification extends PropSpec
       }
     }
   }
-
-
 }

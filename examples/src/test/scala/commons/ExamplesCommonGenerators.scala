@@ -41,6 +41,4 @@ trait ExamplesCommonGenerators extends CoreGenerators {
     from = fromBoxes
     to: IndexedSeq[(PublicKey25519Proposition, Long)] <- Gen.choose(1,1).flatMap(i => Gen.listOfN(i, pGen).map(_.toIndexedSeq))
   } yield SimpleBoxTransaction(from, to, fee, timestamp)
-
-
 }
