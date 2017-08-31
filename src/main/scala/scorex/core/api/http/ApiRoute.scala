@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.{Directive0, Directives, Route}
 import akka.util.Timeout
 import scorex.core.settings.Settings
-import scorex.crypto.hash.{Blake2b256, CryptographicHash}
+import scorex.crypto.hash.{Blake2b256, CryptographicHash, Digest}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -54,7 +54,7 @@ trait ApiRoute extends Directives {
   }
 
   private def isValid(keyOpt: Option[String]): Boolean = {
-    lazy val keyHash: Option[CryptographicHash#Digest] = keyOpt.map(Blake2b256(_))
+    lazy val keyHash: Option[Digest] = keyOpt.map(Blake2b256(_))
     (apiKeyHash, keyHash) match {
       case (None, _) => true
       case (Some(expected), Some(passed)) => expected sameElements passed

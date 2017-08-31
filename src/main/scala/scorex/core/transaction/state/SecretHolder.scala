@@ -1,11 +1,11 @@
 package scorex.core.transaction.state
 
 import com.google.common.primitives.Bytes
-import scorex.crypto.signatures.Curve25519
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.box._
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, PublicKey25519Proposition}
 import scorex.core.transaction.proof.{ProofOfKnowledge, Signature25519}
+import scorex.crypto.signatures.{Curve25519, PrivateKey, PublicKey}
 
 import scala.util.Try
 
@@ -35,7 +35,7 @@ trait SecretCompanion[S <: Secret] {
   def generateKeys(randomSeed: Array[Byte]): (S, PK)
 }
 
-case class PrivateKey25519(privKeyBytes: Array[Byte], publicKeyBytes: Array[Byte]) extends Secret {
+case class PrivateKey25519(privKeyBytes: PrivateKey, publicKeyBytes: PublicKey) extends Secret {
   require(privKeyBytes.length == Curve25519.KeyLength, s"${privKeyBytes.length} == ${Curve25519.KeyLength}")
   require(publicKeyBytes.length == Curve25519.KeyLength, s"${publicKeyBytes.length} == ${Curve25519.KeyLength}")
 
@@ -54,7 +54,7 @@ object PrivateKey25519Serializer extends Serializer[PrivateKey25519] {
   override def toBytes(obj: PrivateKey25519): Array[Byte] = Bytes.concat(obj.privKeyBytes, obj.publicKeyBytes)
 
   override def parseBytes(bytes: Array[Byte]): Try[PrivateKey25519] = Try {
-    PrivateKey25519(bytes.slice(0, 32), bytes.slice(32, 64))
+    PrivateKey25519(PrivateKey @@ bytes.slice(0, 32), PublicKey @@ bytes.slice(32, 64))
   }
 }
 
@@ -74,7 +74,7 @@ object PrivateKey25519Companion extends SecretCompanion[PrivateKey25519] {
   }
 
   override def verify(message: Array[Byte], publicImage: PublicKey25519Proposition, proof: Signature25519): Boolean =
-    Curve25519.verify(proof.signature, message, publicImage.bytes)
+    Curve25519.verify(proof.signature, message, publicImage.pubKeyBytes)
 
   override def generateKeys(randomSeed: Array[Byte]): (PrivateKey25519, PublicKey25519Proposition) = {
     val pair = Curve25519.createKeyPair(randomSeed)
