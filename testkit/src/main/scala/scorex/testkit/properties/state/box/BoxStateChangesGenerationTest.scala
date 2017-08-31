@@ -21,27 +21,26 @@ ST <: BoxMinimalState[P, B, TX, PM, ST]]
 
 
   property("State should be able to generate changes from block and apply them") {
-    var state = stateGen.sample.get
-
     check(checksToMake) { _ =>
-      val block = semanticallyValidModifier(state)
-      val blockChanges = state.changes(block).get
+      val state1 = stateGen.sample.get
+      val block = semanticallyValidModifier(state1)
+      val blockChanges = state1.changes(block).get
 
       blockChanges.toAppend.foreach { case Insertion(b) =>
-        state.closedBox(b.id) shouldBe None
+        state1.closedBox(b.id) shouldBe None
       }
 
       blockChanges.toRemove.foreach { r =>
-        state.closedBox(r.boxId).isDefined shouldBe true
+        state1.closedBox(r.boxId).isDefined shouldBe true
       }
 
-      state = state.applyChanges(blockChanges, block.id).get
+      val state2 = state1.applyChanges(blockChanges, block.id).get
 
       blockChanges.toAppend.foreach { case Insertion(b) =>
-        state.closedBox(b.id) shouldBe Some(b)
+        state2.closedBox(b.id) shouldBe Some(b)
       }
       blockChanges.toRemove.foreach { r =>
-        state.closedBox(r.boxId).isDefined shouldBe false
+        state2.closedBox(r.boxId).isDefined shouldBe false
       }
     }
   }

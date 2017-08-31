@@ -1,7 +1,5 @@
 package hybrid
 
-import java.io.File
-
 import commons.ExamplesCommonGenerators
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
@@ -10,7 +8,7 @@ import examples.hybrid.history.{HistoryStorage, HybridHistory, HybridSyncInfo}
 import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.HBoxStoredState
 import io.circe
-import io.iohk.iodb.LSMStore
+import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.NodeViewModifier
@@ -22,12 +20,12 @@ import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
 import scorex.crypto.hash.Blake2b256
-import scorex.testkit.utils.FileUtils
+import scorex.testkit.utils.{FileUtils, NoShrink}
 
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
+trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoShrink {
   type ChangesGen = Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]]
 
   val settings = new Settings with MiningSettings {
@@ -134,15 +132,14 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
 
   private val hf = Blake2b256
 
-  lazy val singlePrivKey = PrivateKey25519Companion.generateKeys("secret".getBytes)
-
+  private val valueSeed = 5000000
   //todo: make by value again, check why fails
-  private def privKey(value: Long) = singlePrivKey // PrivateKey25519Companion.generateKeys(("secret" + value).getBytes)
+  private def privKey(value: Long) = PrivateKey25519Companion.generateKeys(("secret_" + value).getBytes)
 
-   val stateGen: Gen[HBoxStoredState] = {
+  val stateGen: Gen[HBoxStoredState] = {
     def randomBox(): PublicKey25519NoncedBox = {
-      val value = Random.nextInt(5000000) + 5000000
-      val nonce = Random.nextLong()
+      val value: Long = Random.nextInt(valueSeed) + valueSeed
+      val nonce: Long = Random.nextLong()
       val keyPair = privKey(value)
       PublicKey25519NoncedBox(keyPair._2, nonce, value)
         .ensuring(box => PrivateKey25519Companion.owns(keyPair._1, box))
@@ -151,13 +148,14 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
     val store = new LSMStore(createTempDir)
     val s0 = HBoxStoredState(store, modifierIdGen.sample.get)
     val inserts = (1 to 5000).map(_ => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](randomBox()))
-    s0.applyChanges(BoxStateChanges(inserts), modifierIdGen.sample.get).get
+    val result: HBoxStoredState = s0.applyChanges(BoxStateChanges(inserts), modifierIdGen.sample.get).get
+    Gen.const(result)
   }
 
   //Generators
-   val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen
+  val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen
 
-   def stateChangesGenerator(state: HBoxStoredState): ChangesGen = {
+  def stateChangesGenerator(state: HBoxStoredState): ChangesGen = {
     val removals: List[Removal[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
       state.store.getAll().take(5).map(_._2).map(_.data)
         .map(PublicKey25519NoncedBoxSerializer.parseBytes).map(_.get).toList
@@ -170,12 +168,12 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
     }
   }
 
-   def semanticallyValidModifier(state: HBoxStoredState): HybridBlock =
+  def semanticallyValidModifier(state: HBoxStoredState): HybridBlock =
     semanticallyValidModifierWithTransactions(state)
 
-   def totallyValidModifier(history: HybridHistory, state: HBoxStoredState): HybridBlock = ???
+  def totallyValidModifier(history: HybridHistory, state: HBoxStoredState): HybridBlock = ???
 
-   def syntacticallyValidModifier(curHistory: HybridHistory): HybridBlock = {
+  def syntacticallyValidModifier(curHistory: HybridHistory): HybridBlock = {
 
     if (curHistory.pairCompleted) {
       for {
@@ -200,14 +198,14 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
     }
   }.sample.get
 
-   def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock = {
+  def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock = {
     syntacticallyValidModifier(curHistory) match {
       case pow: PowBlock => pow.copy(parentId = hf(pow.parentId))
       case pos: PosBlock => pos.copy(parentId = hf(pos.parentId))
     }
   }
 
-   def semanticallyValidModifierWithTransactions(state: HBoxStoredState): PosBlock = {
+  def semanticallyValidModifierWithTransactions(state: HBoxStoredState): PosBlock = {
     val (txCount, insPerTx, attach) = (for {
       txCount <- Gen.choose(0, 30)
       insPerTx <- Gen.choose(1, 20)
@@ -217,42 +215,33 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
     assert(txCount >= 0 && txCount <= 30)
     assert(insPerTx >= 1 && insPerTx <= 20)
 
-    val stateBoxes = state.store.getAll().take(txCount * insPerTx + 1).map(_._2).toSeq
-      .map(_.data).map(PublicKey25519NoncedBoxSerializer.parseBytes).map(_.get)
-
-    assert(stateBoxes.size == txCount * insPerTx + 1)
-    stateBoxes.tail.foreach(b => if(!PrivateKey25519Companion.owns(privKey(b.value)._1, b)){
-      println("b: " + b)
-      println(stateBoxes.head.proposition)
-//        assert(false)
-    })
-
-    //  println("stateBoxes ids: " + stateBoxes.map(_.id).map(Base16.encode).mkString(" "))
-
-    // println("stateBoxes: " + stateBoxes.mkString(" "))
-
-
-    val txs = stateBoxes.tail.grouped(insPerTx).map { inputs =>
-      val from = inputs.map(i => privKey(i.value)._1 -> i.nonce).toIndexedSeq
-      val to = inputs.map(i => privKey(i.value)._2 -> (i.value)).toIndexedSeq
-      SimpleBoxTransaction(from, to, fee = 0, System.currentTimeMillis())
-    }.toSeq
-
-    txs.foreach { tx =>
-      tx.boxIdsToOpen.foreach{id =>
-        //        println("tx box: " + Base16.encode(id))
-        assert(state.closedBox(id).isDefined)
-      }
+    def filterOutForgedBoxe(in: (ByteArrayWrapper, ByteArrayWrapper)): Boolean = {
+      PublicKey25519NoncedBoxSerializer.parseBytes(in._2.data).map(_.value).getOrElse(0L) > 0
     }
 
+    val stateBoxes = state.store.getAll()
+      .filter(filterOutForgedBoxe)
+      .take(txCount * insPerTx + 1)
+      .map { case (_, wrappedData) => PublicKey25519NoncedBoxSerializer.parseBytes(wrappedData.data).get }
+      .toSeq
+
+    assert(stateBoxes.size == txCount * insPerTx + 1)
+
+    val txs = stateBoxes.tail.grouped(insPerTx).map { inputs =>
+      val fee = 0
+      val from = inputs.map(i => privKey(i.value)._1 -> i.nonce).toIndexedSeq
+      val to = inputs.map(i => privKey(i.value)._2 -> i.value).toIndexedSeq
+      SimpleBoxTransaction(from, to, fee = fee, System.currentTimeMillis())
+    }.toSeq
+
+    txs.foreach { _.boxIdsToOpen.foreach { id => assert(state.closedBox(id).isDefined) } }
+
     val genBox: PublicKey25519NoncedBox = stateBoxes.head
-
     val generator = privKey(genBox.value)._1
-
     PosBlock.create(state.version, System.currentTimeMillis(), txs, genBox, attach, generator)
   }
 
-   def genValidTransactionPair(state: HBoxStoredState): Seq[SimpleBoxTransaction] = {
+  def genValidTransactionPair(state: HBoxStoredState): Seq[SimpleBoxTransaction] = {
     val keys = key25519Gen.apply(Gen.Parameters.default, Seed.random()).get
     val value = positiveLongGen.apply(Gen.Parameters.default, Seed.random()).get
 
@@ -267,8 +256,8 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
     trxnPair
   }
 
-   def semanticallyValidModifierWithCustomTransactions(state: HBoxStoredState,
-                                                               transactions: Seq[SimpleBoxTransaction]): PosBlock = {
+  def semanticallyValidModifierWithCustomTransactions(state: HBoxStoredState,
+                                                      transactions: Seq[SimpleBoxTransaction]): PosBlock = {
     for {
       id <- modifierIdGen
       timestamp: Long <- positiveLongGen
@@ -280,8 +269,8 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
   }.apply(Gen.Parameters.default, Seed.random()).get
 
 
-   def modifierWithTransactions(memoryPoolOpt: Option[SimpleBoxTransactionMemPool],
-                                        customTransactionsOpt: Option[Seq[SimpleBoxTransaction]]): PosBlock = {
+  def modifierWithTransactions(memoryPoolOpt: Option[SimpleBoxTransactionMemPool],
+                               customTransactionsOpt: Option[Seq[SimpleBoxTransaction]]): PosBlock = {
 
     val (id, timestamp, box, attach, generator) = (for {
       id <- modifierIdGen
