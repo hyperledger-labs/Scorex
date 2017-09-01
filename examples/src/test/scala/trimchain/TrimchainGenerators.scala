@@ -1,4 +1,4 @@
-package tailchain
+package trimchain
 
 import commons.ExamplesCommonGenerators
 import examples.commons.SimpleBoxTransaction
