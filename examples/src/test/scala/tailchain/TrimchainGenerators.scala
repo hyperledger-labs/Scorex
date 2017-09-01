@@ -1,15 +1,16 @@
-package trimchain
+package tailchain
 
 import commons.ExamplesCommonGenerators
 import examples.commons.SimpleBoxTransaction
 import examples.trimchain.core._
 import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import org.scalacheck.{Arbitrary, Gen}
+import scorex.crypto.authds._
 
 trait TrimchainGenerators extends ExamplesCommonGenerators {
   val ticketGen: Gen[Ticket] = for {
     minerKey: Array[Byte] <- genBytesList(TicketSerializer.MinerKeySize)
-    partialProofs: Seq[Array[Byte]] <- Gen.nonEmptyListOf(nonEmptyBytesGen)
+    partialProofs: Seq[ADProof] <- Gen.nonEmptyListOf(nonEmptyBytesGen).map(b => ADProof @@ b)
   } yield Ticket(minerKey, partialProofs)
 
   val blockHeaderGen: Gen[BlockHeader] = for {

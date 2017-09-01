@@ -4,7 +4,7 @@ import examples.trimchain.core.{Ticket, TicketSerializer}
 import examples.trimchain.modifiers.{BlockHeader, BlockHeaderSerializer, TBlock, TBlockSerializer}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import trimchain.TrimchainGenerators
+import tailchain.TrimchainGenerators
 
 class SerializationTests extends PropSpec
   with PropertyChecks

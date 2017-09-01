@@ -5,7 +5,7 @@ import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.crypto.signatures.Curve25519
+import scorex.crypto.signatures.{Curve25519, PublicKey}
 import scorex.testkit.generators.CoreGenerators
 
 trait ExampleGenerators extends CoreGenerators {
@@ -34,7 +34,7 @@ trait ExampleGenerators extends CoreGenerators {
   val genesisBlock: SimpleBlock = {
 
     val IntitialBasetarget = 153722867L
-    val generator = PublicKey25519Proposition(Array.fill(Curve25519.KeyLength)(0: Byte))
+    val generator = PublicKey25519Proposition(PublicKey @@ Array.fill(Curve25519.KeyLength)(0: Byte))
     val toInclude: Seq[SimpleTransaction] = Seq(SimplePayment(genesisAcc.publicImage, genesisAcc.publicImage, Long.MaxValue, 0, 1, 0))
 
     SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),

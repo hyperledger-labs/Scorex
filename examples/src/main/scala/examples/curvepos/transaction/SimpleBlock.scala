@@ -11,6 +11,8 @@ import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
+import scorex.crypto.signatures.PublicKey
+
 import scala.util.Try
 
 case class SimpleBlock(override val parentId: BlockId,
@@ -87,7 +89,7 @@ object SimpleBlockCompanion extends Serializer[SimpleBlock] {
     val generationSignature = bytes.slice(s0, s0 + SimpleBlock.SignatureLength)
     val baseTarget = Longs.fromByteArray(bytes.slice(s0 + SimpleBlock.SignatureLength, s0 + SimpleBlock.SignatureLength + 8))
     val s1 = s0 + SimpleBlock.SignatureLength + 8
-    val generator = PublicKey25519Proposition(bytes.slice(s1, s1 + 32))
+    val generator = PublicKey25519Proposition(PublicKey @@ bytes.slice(s1, s1 + 32))
     val cnt = Ints.fromByteArray(bytes.slice(s1 + 32, s1 + 36))
     val s2 = s1 + 36
     val txs = (0 until cnt) map { i =>

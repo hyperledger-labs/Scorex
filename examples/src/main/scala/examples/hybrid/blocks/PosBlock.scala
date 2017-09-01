@@ -15,7 +15,7 @@ import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.Curve25519
+import scorex.crypto.signatures.{Curve25519, Signature}
 
 import scala.util.Try
 
@@ -72,7 +72,7 @@ object PosBlockCompanion extends Serializer[PosBlock] {
     val box = PublicKey25519NoncedBoxSerializer.parseBytes(boxBytes).get
     position = position + PublicKey25519NoncedBox.BoxLength
 
-    val signature = Signature25519(bytes.slice(position, position + Signature25519.SignatureSize))
+    val signature = Signature25519(Signature @@ bytes.slice(position, position + Signature25519.SignatureSize))
     position = position + Signature25519.SignatureSize
 
     val txsLength = Ints.fromByteArray(bytes.slice(position, position + 4))
@@ -102,13 +102,13 @@ object PosBlock {
              attachment: Array[Byte],
              privateKey: PrivateKey25519): PosBlock = {
     assert(box.proposition.pubKeyBytes sameElements privateKey.publicKeyBytes)
-    val unsigned = PosBlock(parentId, timestamp, txs, box, attachment, Signature25519(Array.empty))
+    val unsigned = PosBlock(parentId, timestamp, txs, box, attachment, Signature25519(Signature @@ Array[Byte]()))
     val signature = Curve25519.sign(privateKey.privKeyBytes, unsigned.bytes)
     unsigned.copy(signature = Signature25519(signature))
   }
 
   def signatureValid(posBlock: PosBlock): Boolean = {
-    val unsignedBytes = posBlock.copy(signature = Signature25519(Array.empty)).bytes
+    val unsignedBytes = posBlock.copy(signature = Signature25519(Signature @@ Array[Byte]())).bytes
     posBlock.generatorBox.proposition.verify(unsignedBytes, posBlock.signature.signature)
   }
 }

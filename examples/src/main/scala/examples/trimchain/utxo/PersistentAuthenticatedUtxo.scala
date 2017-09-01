@@ -13,10 +13,11 @@ import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, 
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
 import scorex.crypto.encode.Base58
-import scorex.crypto.hash.Blake2b256Unsafe
+import scorex.crypto.hash.{Blake2b256Unsafe, Digest, Digest32}
 
 import scala.util.{Random, Success, Try}
 import PersistentAuthenticatedUtxo.ProverType
+import scorex.crypto.authds.{ADKey, ADProof, ADValue}
 import scorex.mid.state.BoxMinimalState
 
 trait AuthenticatedUtxo {
@@ -24,7 +25,7 @@ trait AuthenticatedUtxo {
 
   def prover: ProverType
 
-  def lookupProof(ids: Seq[Array[Byte]]): Try[Array[Byte]] = Try {
+  def lookupProof(ids: Seq[ADKey]): Try[ADProof] = Try {
     prover.generateProof() // todo: check prover's state in more elegant way, by calling something like ".isClean()"
     ids.foreach { id =>
       require(id.length == BoxKeyLength)
@@ -65,7 +66,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     val p = new ProverType(keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength)) //todo: feed it with genesis state
     log.debug("Starting building a tree for UTXO set")
     store.getAll { case (k, v) =>
-      p.performOneOperation(Insert(k.data, v.data))
+      p.performOneOperation(Insert(ADKey @@ k.data, ADValue @@ v.data))
     }
     p.generateProof()
     log.debug("Finished building a tree for UTXO set")
@@ -112,7 +113,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
       .foldLeft(Seq[Array[Byte]]() -> Seq[PublicKey25519NoncedBox]()) {case ((btr, bta), op) =>
       op match {
         case Insertion(b) =>
-          prover.performOneOperation(Insert(b.id, b.bytes))
+          prover.performOneOperation(Insert(b.id, ADValue @@ b.bytes))
           (btr, bta :+ b)
         case Removal(bid) =>
           assert(store.get(ByteArrayWrapper(bid)).isDefined)
@@ -160,7 +161,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
 object PersistentAuthenticatedUtxo {
 
-  type ProverType = BatchAVLProver[Blake2b256Unsafe]
+  type ProverType = BatchAVLProver[Digest32, Blake2b256Unsafe]
 
   def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
     require(tx.from.size == tx.signatures.size)
@@ -183,7 +184,7 @@ object PersistentAuthenticatedUtxo {
       val (ops, reward) =
       txs.foldLeft(initial) { case ((os, f), tx) =>
         (os ++
-          (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)): SC)
+          (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](ADKey @@ id)): SC)
           ++ tx.newBoxes.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
           f + tx.fee)
       }

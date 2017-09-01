@@ -9,9 +9,11 @@ import examples.trimchain.modifiers.BlockHeader
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import io.iohk.iodb.LSMStore
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{Insertion, BoxStateChanges}
+import scorex.core.transaction.state.{BoxStateChanges, Insertion}
 import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
-import scorex.crypto.signatures.Curve25519
+import scorex.crypto.authds.{ADDigest, ADKey, ADProof}
+import scorex.crypto.hash.{Blake2b256Unsafe, Digest32}
+import scorex.crypto.signatures.{Curve25519, PublicKey}
 
 import scala.util.{Failure, Random, Success, Try}
 
@@ -36,7 +38,7 @@ object Algos extends App {
     var seed = hashfn(Longs.toByteArray(ctr))
 
     val partialProofs = utxos.zipWithIndex.map { case (utxo, stateIndex) =>
-      val ids = (0 until NElementsInProof) map (elementIndex => hashfn(seed ++ minerPubKey ++
+      val ids = (0 until NElementsInProof) map (elementIndex => ADKey @@ hashfn(seed ++ minerPubKey ++
         Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
       val proof = utxo.lookupProof(ids).get
       seed = hashfn(scorex.core.utils.concatFixLengthBytes(ids)) //TODO do we need it?
@@ -87,8 +89,10 @@ object Algos extends App {
       val ids = (0 until NElementsInProof) map (elementIndex => hashfn(seed ++ minerKey ++
         Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
 
-      val v = new BatchAVLVerifier(sroot, pp, keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength))
-      ids.foreach(id => v.performOneOperation(Lookup(id)).get)
+      val v = new BatchAVLVerifier[Digest32, Blake2b256Unsafe](ADDigest @@ sroot, pp, keyLength = BoxKeyLength,
+        valueLengthOpt = Some(BoxLength))
+
+      ids.foreach(id => v.performOneOperation(Lookup(ADKey @@ id)).get)
       seed = hashfn(scorex.core.utils.concatFixLengthBytes(ids)) //TODO do we need it?
     }
 
@@ -104,7 +108,7 @@ object Algos extends App {
   val store = new LSMStore(new File("/tmp/utxo"))
   val u1 = PersistentAuthenticatedUtxo(store, 0, None, Array.fill(32)(0: Byte))
 
-  val pk1 = PublicKey25519Proposition(Array.fill(32)(Random.nextInt(100).toByte))
+  val pk1 = PublicKey25519Proposition(PublicKey @@ Array.fill(32)(Random.nextInt(100).toByte))
   val b1 = PublicKey25519NoncedBox(pk1, 1L, 10)
   val b2 = PublicKey25519NoncedBox(pk1, 2L, 20)
   val u2 = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))), Array.fill(32)(Random.nextInt(100).toByte)).get

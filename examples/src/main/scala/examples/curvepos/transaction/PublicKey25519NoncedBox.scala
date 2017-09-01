@@ -10,7 +10,7 @@ import io.circe.Json
 import io.circe.syntax._
 import scorex.crypto.encode.{Base16, Base58}
 import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.Curve25519
+import scorex.crypto.signatures.{Curve25519, PublicKey}
 
 case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Proposition,
                                    override val nonce: Long,
@@ -46,7 +46,7 @@ object PublicKey25519NoncedBoxSerializer extends Serializer[PublicKey25519Nonced
 
 
   override def parseBytes(bytes: Array[Byte]): Try[PublicKey25519NoncedBox] = Try {
-    val pk = PublicKey25519Proposition(bytes.take(32))
+    val pk = PublicKey25519Proposition(PublicKey @@ bytes.take(32))
     val nonce = Longs.fromByteArray(bytes.slice(32, 40))
     val value = Longs.fromByteArray(bytes.slice(40, 48))
     PublicKey25519NoncedBox(pk, nonce, value)

@@ -8,6 +8,7 @@ import scorex.core.transaction.box.BoxUnlocker
 import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
 import scorex.core.transaction.{BoxTransaction, Transaction}
 import scorex.crypto.encode.Base58
+import scorex.crypto.signatures.PublicKey
 
 import scala.util.Try
 
@@ -57,8 +58,8 @@ object SimplePaymentCompanion extends Serializer[SimplePayment] {
   }.ensuring(_.length == TransactionLength)
 
   override def parseBytes(bytes: Array[Byte]): Try[SimplePayment] = Try {
-    val sender = PublicKey25519Proposition(bytes.slice(0, Constants25519.PubKeyLength))
-    val recipient = PublicKey25519Proposition(bytes.slice(Constants25519.PubKeyLength, 2 * Constants25519.PubKeyLength))
+    val sender = PublicKey25519Proposition(PublicKey @@ bytes.slice(0, Constants25519.PubKeyLength))
+    val recipient = PublicKey25519Proposition(PublicKey @@ bytes.slice(Constants25519.PubKeyLength, 2 * Constants25519.PubKeyLength))
     val s = 2 * Constants25519.PubKeyLength
     val amount = Longs.fromByteArray(bytes.slice(s, s + 8))
     val fee = Longs.fromByteArray(bytes.slice(s + 8, s + 16))

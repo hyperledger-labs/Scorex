@@ -22,6 +22,7 @@ import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
 import scorex.crypto.hash.Blake2b256
+import scorex.crypto.signatures.{PublicKey, Signature}
 import scorex.testkit.utils.FileUtils
 
 import scala.concurrent.duration._
@@ -45,7 +46,8 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
     pows <- Gen.nonEmptyListOf(pow).map(_.take(HybridSyncInfo.MaxLastPowBlocks))
   } yield HybridSyncInfo(answer, pows, pos)
 
-  lazy val signatureGen: Gen[Signature25519] = genBytesList(Signature25519.SignatureSize).map(Signature25519(_))
+  lazy val signatureGen: Gen[Signature25519] = genBytesList(Signature25519.SignatureSize)
+    .map(g => Signature25519(Signature @@ g))
 
   lazy val blockIdGen: Gen[BlockId] = genBytesList(Block.BlockIdLength)
 
@@ -125,7 +127,7 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils {
     var history = new HybridHistory(storage, settings, validators, None)
 
     val genesisBlock = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1478164225796L, -308545845552064644L,
-      0, Array.fill(32)(0: Byte), PublicKey25519Proposition(scorex.utils.Random.randomBytes(32)), Seq())
+      0, Array.fill(32)(0: Byte), PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32)), Seq())
     history = history.append(genesisBlock).get._1
     assert(history.modifierById(genesisBlock.id).isDefined)
     history

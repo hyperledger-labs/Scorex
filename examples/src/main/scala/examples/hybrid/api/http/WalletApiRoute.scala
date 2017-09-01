@@ -17,6 +17,7 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
+import scorex.crypto.signatures.PublicKey
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -60,7 +61,7 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
               case Right(json) => Try {
                 val wallet = view.vault
                 val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
-                val recipient: PublicKey25519Proposition = PublicKey25519Proposition(Base58.decode((json \\ "recipient").head.asString.get).get)
+                val recipient: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ Base58.decode((json \\ "recipient").head.asString.get).get)
                 val fee: Long = (json \\ "fee").head.asNumber.flatMap(_.toLong).getOrElse(DefaultFee)
                 val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, amount)), fee).get
                 nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)

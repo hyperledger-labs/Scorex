@@ -7,6 +7,7 @@ import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.crypto.signatures.Signature
 
 import scala.annotation.tailrec
 import scala.util.Random
@@ -18,7 +19,7 @@ class HWalletSpecification extends PropSpec
   with HybridGenerators {
 
   val EmptyBytes = Array.fill(32)(0: Byte)
-  val EmptySignature = Signature25519(Array.fill(64)(0: Byte))
+  val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
   val w = HWallet.readOrGenerate(settings, "p").generateNewSecret().generateNewSecret()
   w.secrets.size should be >= 2

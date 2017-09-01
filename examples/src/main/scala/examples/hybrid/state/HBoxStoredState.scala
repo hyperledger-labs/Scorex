@@ -12,6 +12,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.authds._
 import scorex.crypto.encode.Base58
 import scorex.mid.state.BoxMinimalState
 
@@ -108,9 +109,9 @@ object HBoxStoredState {
         Try {
           val initial = (Seq(): Seq[Array[Byte]], Seq(): Seq[PublicKey25519NoncedBox], 0L)
 
-          val (toRemove: Seq[Array[Byte]], toAdd: Seq[PublicKey25519NoncedBox], reward) =
+          val (toRemove: Seq[ADKey], toAdd: Seq[PublicKey25519NoncedBox], reward) =
             ps.transactions.foldLeft(initial) { case ((sr, sa, f), tx) =>
-              (sr ++ tx.boxIdsToOpen.toSet, sa ++ tx.newBoxes.toSet, f + tx.fee)
+              ((sr ++ tx.boxIdsToOpen.toSet).map(id => ADKey @@ id), sa ++ tx.newBoxes.toSet, f + tx.fee)
             }
 
           //for PoS forger reward box, we use block Id as a nonce

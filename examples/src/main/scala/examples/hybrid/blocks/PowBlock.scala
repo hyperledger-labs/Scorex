@@ -13,7 +13,7 @@ import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.Curve25519
+import scorex.crypto.signatures.{Curve25519, PublicKey}
 
 import scala.util.Try
 
@@ -59,7 +59,7 @@ object PowBlockHeader {
     val nonce = Longs.fromByteArray(bytes.slice(72, 80))
     val brothersCount = Ints.fromByteArray(bytes.slice(80, 84))
     val brothersHash = bytes.slice(84, 116)
-    val prop = PublicKey25519Proposition(bytes.slice(116, 148))
+    val prop = PublicKey25519Proposition(PublicKey @@ bytes.slice(116, 148))
 
     new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
   }

@@ -16,7 +16,7 @@ import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.Curve25519
+import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
 
 import scala.util.Try
 
@@ -107,7 +107,7 @@ object SimpleBoxTransaction {
             fee: Long,
             timestamp: Long): SimpleBoxTransaction = {
     val fromPub = from.map { case (pr, n) => pr.publicImage -> n }
-    val fakeSigs = from.map(_ => Signature25519(Array()))
+    val fakeSigs = from.map(_ => Signature25519(Signature @@ Array[Byte]()))
 
     val undersigned = SimpleBoxTransaction(fromPub, to, fakeSigs, fee, timestamp)
 
@@ -165,18 +165,18 @@ object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {
     val fromLength = Ints.fromByteArray(bytes.slice(20, 24))
     val toLength = Ints.fromByteArray(bytes.slice(24, 28))
     val signatures = (0 until sigLength) map { i =>
-      Signature25519(bytes.slice(28 + i * Curve25519.SignatureLength, 28 + (i + 1) * Curve25519.SignatureLength))
+      Signature25519(Signature @@ bytes.slice(28 + i * Curve25519.SignatureLength, 28 + (i + 1) * Curve25519.SignatureLength))
     }
     val s = 28 + sigLength * Curve25519.SignatureLength
     val elementLength = 8 + Curve25519.KeyLength
     val from = (0 until fromLength) map { i =>
-      val pk = bytes.slice(s + i * elementLength, s + (i + 1) * elementLength - 8)
+      val pk = PublicKey @@ bytes.slice(s + i * elementLength, s + (i + 1) * elementLength - 8)
       val v = Longs.fromByteArray(bytes.slice(s + (i + 1) * elementLength - 8, s + (i + 1) * elementLength))
       (PublicKey25519Proposition(pk), v)
     }
     val s2 = s + fromLength * elementLength
     val to = (0 until toLength) map { i =>
-      val pk = bytes.slice(s2 + i * elementLength, s2 + (i + 1) * elementLength - 8)
+      val pk = PublicKey @@ bytes.slice(s2 + i * elementLength, s2 + (i + 1) * elementLength - 8)
       val v = Longs.fromByteArray(bytes.slice(s2 + (i + 1) * elementLength - 8, s2 + (i + 1) * elementLength))
       (PublicKey25519Proposition(pk), v)
     }

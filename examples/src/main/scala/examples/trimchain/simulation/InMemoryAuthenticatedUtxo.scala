@@ -3,16 +3,17 @@ package examples.trimchain.simulation
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.trimchain.modifiers.{TBlock, TModifier, UtxoSnapshot}
+import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{BoxStateChanges, Insertion, ModifierValidation, Removal}
+import scorex.core.transaction.state.{BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.authds.{ADKey, ADValue}
 import scorex.crypto.authds.avltree.batch.{Insert, Remove}
+import scorex.mid.state.BoxMinimalState
 
 import scala.util.Try
-import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
-import scorex.mid.state.BoxMinimalState
 
 /**
   * Only for simulations where chain grows strictly linearly. No rollback support.
@@ -46,7 +47,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
   override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = PersistentAuthenticatedUtxo.semanticValidity(tx)
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
-    proverOpt.flatMap(_.unauthenticatedLookup(boxId).flatMap { bs =>
+    proverOpt.flatMap(_.unauthenticatedLookup(ADKey @@ boxId).flatMap { bs =>
       PublicKey25519NoncedBoxSerializer.parseBytes(bs).toOption
     })
 
@@ -73,13 +74,11 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
   override def applyChanges(changes: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[InMemoryAuthenticatedUtxo] = Try {
 
-    changes.operations foreach { op =>
-      op match {
-        case Insertion(b) =>
-          prover.performOneOperation(Insert(b.id, b.bytes))
-        case Removal(bid) =>
-          prover.performOneOperation(Remove(bid))
-      }
+    changes.operations foreach {
+      case Insertion(b) =>
+        prover.performOneOperation(Insert(ADKey @@ b.id, ADValue @@ b.bytes))
+      case Removal(bid) =>
+        prover.performOneOperation(Remove(ADKey @@ bid))
     }
 
     prover.generateProof()

@@ -13,6 +13,7 @@ import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+import scorex.crypto.signatures.PublicKey
 
 import scala.annotation.tailrec
 import scala.reflect.io.Path
@@ -24,7 +25,7 @@ import scala.concurrent.duration._
   */
 object PrivateChain extends App with ScorexLogging {
 
-  val proposition = PublicKey25519Proposition(scorex.utils.Random.randomBytes(32))
+  val proposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
 
   def genesisState(): (HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool)  = {
     // May be taken from HybridNodeViewHolder.genesisState
