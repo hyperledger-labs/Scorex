@@ -34,7 +34,7 @@ class SimpleNodeViewHolder(settings: Settings)
     val genesisAcc1 = SimpleWallet(Base58.decode("genesis").get).publicKeys.head
     val genesisAcc2 = SimpleWallet(Base58.decode("genesis2").get).publicKeys.head
 
-    val IntitialBaseTarget = 15372286700L
+    val IntitialBaseTarget = BaseTarget @@ 15372286700L
     val generator = PublicKey25519Proposition(PublicKey @@ Array.fill(Curve25519.KeyLength)(0: Byte))
     val toInclude: Seq[SimpleTransaction] = Seq(
       SimplePayment(genesisAcc1, genesisAcc1, 50000000, 0, 1, 0),
@@ -42,7 +42,8 @@ class SimpleNodeViewHolder(settings: Settings)
     )
 
     val genesisBlock: SimpleBlock = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
-      0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), IntitialBaseTarget, generator, toInclude)
+      0L, GenerationSignature @@ Array.fill(SimpleBlock.SignatureLength)(0: Byte),
+      IntitialBaseTarget, generator, toInclude)
 
     val blockchain = emptyBlockchain.append(genesisBlock) match {
       case Failure(f) => throw f
