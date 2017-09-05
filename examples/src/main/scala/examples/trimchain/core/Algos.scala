@@ -3,6 +3,7 @@ package examples.trimchain.core
 import java.io.File
 
 import com.google.common.primitives.{Ints, Longs}
+import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.curvepos.transaction.PublicKey25519NoncedBox._
 import examples.trimchain.modifiers.BlockHeader
@@ -110,8 +111,8 @@ object Algos extends App {
   val u1 = PersistentAuthenticatedUtxo(store, 0, None, VersionTag @@ Array.fill(32)(0: Byte))
 
   val pk1 = PublicKey25519Proposition(PublicKey @@ Array.fill(32)(Random.nextInt(100).toByte))
-  val b1 = PublicKey25519NoncedBox(pk1, 1L, 10)
-  val b2 = PublicKey25519NoncedBox(pk1, 2L, 20)
+  val b1 = PublicKey25519NoncedBox(pk1, Nonce @@ 1L, Value @@ 10L)
+  val b2 = PublicKey25519NoncedBox(pk1, Nonce @@ 2L, Value @@ 20L)
   val u2 = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))),
     VersionTag @@ Array.fill(32)(Random.nextInt(100).toByte)).get
 

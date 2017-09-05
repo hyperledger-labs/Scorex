@@ -1,11 +1,12 @@
 package examples.trimchain.simulation
 
 import com.google.common.primitives.{Ints, Longs}
+import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.trimchain.core.Constants._
 import examples.trimchain.core.{Algos, Constants}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{Insertion, BoxStateChanges}
+import scorex.core.transaction.state.{BoxStateChanges, Insertion}
 
 object ValidationSimulator extends App with Simulators {
 
@@ -20,8 +21,8 @@ object ValidationSimulator extends App with Simulators {
   val genesisBoxes = (1 to StateSize) map { i =>
     PublicKey25519NoncedBox(
       minerPubKey,
-      Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
-      10000000000L
+      Nonce @@ Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
+      Value @@ 10000000000L
     )
   }
 

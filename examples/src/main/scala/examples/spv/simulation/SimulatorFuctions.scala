@@ -1,6 +1,7 @@
 package examples.spv.simulation
 
 import com.google.common.primitives.{Ints, Longs}
+import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.spv.{Header, SpvAlgos}
 import examples.trimchain.core.Constants._
@@ -20,8 +21,8 @@ trait SimulatorFuctions {
     val genesisBoxes = (1 to 5000) map { i =>
       PublicKey25519NoncedBox(
         minerPubKey,
-        Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
-        10000000000L
+        Nonce @@ Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
+        Value @@ 10000000000L
       )
     }
     val genesisChanges: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
@@ -66,8 +67,8 @@ trait SimulatorFuctions {
     val genesisBoxes = (1 to 5000) map { i =>
       PublicKey25519NoncedBox(
         minerPubKey,
-        Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
-        10000000000L
+        Nonce @@ Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
+        Value @@ 10000000000L
       )
     }
 

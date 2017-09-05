@@ -5,13 +5,14 @@ import java.nio.file.{Files, Paths}
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.SimpleBoxTransaction
+import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.trimchain.core.{Algos, Constants, TicketSerializer}
 import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import io.iohk.iodb.ByteArrayWrapper
 import io.iohk.iodb.Store.VersionID
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{Insertion, BoxStateChanges}
+import scorex.core.transaction.state.{BoxStateChanges, Insertion}
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
@@ -55,7 +56,7 @@ object OneMinerSimulation extends App with Simulators {
     richBoxes.filter(_.value > 1).take(NewBoxesPerBlock).map { b =>
       SimpleBoxTransaction.apply(
         from = IndexedSeq(minerPrivKey -> b.nonce),
-        to = IndexedSeq(minerPubKey -> b.value / 2, minerPubKey -> (b.value - (b.value / 2))),
+        to = IndexedSeq(minerPubKey -> Value @@ (b.value / 2), minerPubKey -> Value @@ (b.value - (b.value / 2))),
         0, System.currentTimeMillis())
     }
   }
@@ -65,8 +66,8 @@ object OneMinerSimulation extends App with Simulators {
   val genesisBoxes = (1 to 5000) map { i =>
     PublicKey25519NoncedBox(
       minerPubKey,
-      Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
-      10000000000L
+      Nonce @@ Longs.fromByteArray(hashfn(minerPubKey.pubKeyBytes ++ Ints.toByteArray(i)).take(8)),
+      Value @@ 10000000000L
     )
   }
 

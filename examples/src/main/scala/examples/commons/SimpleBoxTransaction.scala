@@ -2,11 +2,13 @@ package examples.commons
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.SimpleBoxTransaction._
+import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.wallet.HWallet
 import io.circe.Json
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
+import scorex.core.ModifierId
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
@@ -33,14 +35,14 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 
   override type M = SimpleBoxTransaction
 
-  lazy val boxIdsToOpen: IndexedSeq[Array[Byte]] = from.map { case (prop, nonce) =>
+  lazy val boxIdsToOpen: IndexedSeq[ModifierId] = from.map { case (prop, nonce) =>
     PublicKeyNoncedBox.idFromBox(prop, nonce)
   }
 
   override lazy val unlockers: Traversable[BoxUnlocker[PublicKey25519Proposition]] = boxIdsToOpen.zip(signatures).map {
     case (boxId, signature) =>
       new BoxUnlocker[PublicKey25519Proposition] {
-        override val closedBoxId: Array[Byte] = boxId
+        override val closedBoxId: ModifierId = boxId
         override val boxKey: Proof[PublicKey25519Proposition] = signature
       }
   }
@@ -66,13 +68,13 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     "from" -> from.map { s =>
       Map(
         "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
-        "nonce" -> s._2.asJson
+        "nonce" -> s._2.toLong.asJson
       ).asJson
     }.asJson,
     "to" -> to.map { s =>
       Map(
         "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
-        "value" -> s._2.asJson
+        "value" -> s._2.toLong.asJson
       ).asJson
     }.asJson,
     "signatures" -> signatures.map(s => Base58.encode(s.signature).asJson).asJson,
@@ -97,10 +99,8 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 
 
 object SimpleBoxTransaction {
-  type Value = Long
-  type Nonce = Long
 
-  def nonceFromDigest(digest: Array[Byte]): Nonce = Longs.fromByteArray(digest.take(8))
+  def nonceFromDigest(digest: Array[Byte]): Nonce = Nonce @@ Longs.fromByteArray(digest.take(8))
 
   def apply(from: IndexedSeq[(PrivateKey25519, Nonce)],
             to: IndexedSeq[(PublicKey25519Proposition, Value)],
@@ -118,25 +118,25 @@ object SimpleBoxTransaction {
   }
 
   def create(w: HWallet,
-             to: Seq[(PublicKey25519Proposition, Long)],
+             to: Seq[(PublicKey25519Proposition, Value)],
              fee: Long,
              boxesIdsToExclude: Seq[Array[Byte]] = Seq()): Try[SimpleBoxTransaction] = Try {
     var s = 0L
-    val amount = to.map(_._2).sum
+    val amount = to.map(_._2.toLong).sum
 
-    val from: IndexedSeq[(PrivateKey25519, Long, Long)] = w.boxes()
+    val from: IndexedSeq[(PrivateKey25519, Nonce, Value)] = w.boxes()
       .filter(b => !boxesIdsToExclude.exists(_ sameElements b.box.id)).sortBy(_.createdAt).takeWhile { b =>
       s = s + b.box.value
       s < amount + b.box.value
     }.flatMap { b =>
       w.secretByPublicImage(b.box.proposition).map(s => (s, b.box.nonce, b.box.value))
     }.toIndexedSeq
-    val canSend = from.map(_._3).sum
-    val charge: (PublicKey25519Proposition, Long) = (w.publicKeys.head, canSend - amount - fee)
+    val canSend = from.map(_._3.toLong).sum
+    val charge: (PublicKey25519Proposition, Value) = (w.publicKeys.head, Value @@ (canSend - amount - fee))
 
-    val outputs: IndexedSeq[(PublicKey25519Proposition, Long)] = (to :+ charge).toIndexedSeq
+    val outputs: IndexedSeq[(PublicKey25519Proposition, Value)] = (to :+ charge).toIndexedSeq
 
-    require(from.map(_._3).sum - outputs.map(_._2).sum == fee)
+    require(from.map(_._3.toLong).sum - outputs.map(_._2.toLong).sum == fee)
 
     val timestamp = System.currentTimeMillis()
     SimpleBoxTransaction(from.map(t => t._1 -> t._2), outputs, fee, timestamp)
@@ -172,13 +172,13 @@ object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {
     val from = (0 until fromLength) map { i =>
       val pk = PublicKey @@ bytes.slice(s + i * elementLength, s + (i + 1) * elementLength - 8)
       val v = Longs.fromByteArray(bytes.slice(s + (i + 1) * elementLength - 8, s + (i + 1) * elementLength))
-      (PublicKey25519Proposition(pk), v)
+      (PublicKey25519Proposition(pk), Nonce @@ v)
     }
     val s2 = s + fromLength * elementLength
     val to = (0 until toLength) map { i =>
       val pk = PublicKey @@ bytes.slice(s2 + i * elementLength, s2 + (i + 1) * elementLength - 8)
       val v = Longs.fromByteArray(bytes.slice(s2 + (i + 1) * elementLength - 8, s2 + (i + 1) * elementLength))
-      (PublicKey25519Proposition(pk), v)
+      (PublicKey25519Proposition(pk), Value @@ v)
     }
     SimpleBoxTransaction(from, to, signatures, fee, timestamp)
   }

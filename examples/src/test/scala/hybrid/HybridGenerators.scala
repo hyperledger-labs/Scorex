@@ -2,6 +2,7 @@ package hybrid
 
 import commons.ExamplesCommonGenerators
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
+import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HistoryStorage, HybridHistory, HybridSyncInfo}
@@ -86,16 +87,19 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
     new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
   }
 
+  lazy val nonceGen: Gen[Nonce] = positiveLongGen.map(a => Nonce @@ a)
+  lazy val valueGen: Gen[Value] = positiveLongGen.map(a => Value @@ a)
+
   lazy val noncedBoxGen: Gen[PublicKey25519NoncedBox] = for {
     proposition <- propositionGen
-    nonce <- positiveLongGen
-    value <- positiveLongGen
+    nonce <- nonceGen
+    value <- valueGen
   } yield PublicKey25519NoncedBox(proposition, nonce, value)
 
   lazy val noncedBoxWithKeyGen: Gen[(PublicKey25519NoncedBox, PrivateKey25519)] = for {
     pair <- key25519Gen
-    nonce <- positiveLongGen
-    value <- positiveLongGen
+    nonce <- nonceGen
+    value <- valueGen
   } yield PublicKey25519NoncedBox(pair._2, nonce, value) -> pair._1
 
 
@@ -140,8 +144,8 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
 
   val stateGen: Gen[HBoxStoredState] = {
     def randomBox(): PublicKey25519NoncedBox = {
-      val value: Long = Random.nextInt(valueSeed) + valueSeed
-      val nonce: Long = Random.nextLong()
+      val value: Value = Value @@ (Random.nextInt(valueSeed) + valueSeed).toLong
+      val nonce: Nonce = Nonce @@ Random.nextLong()
       val keyPair = privKey(value)
       PublicKey25519NoncedBox(keyPair._2, nonce, value)
         .ensuring(box => PrivateKey25519Companion.owns(keyPair._1, box))

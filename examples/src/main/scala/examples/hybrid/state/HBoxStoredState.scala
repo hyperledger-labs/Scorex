@@ -5,6 +5,7 @@ import java.io.File
 import com.google.common.primitives.Longs
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
+import examples.curvepos.{Nonce, Value}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.VersionTag
@@ -27,7 +28,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HBoxStoredState] with ScorexLogging {
 
   assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
-  s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
+    s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridBlock
@@ -101,8 +102,8 @@ object HBoxStoredState {
     mod match {
       case pb: PowBlock =>
         val proposition: PublicKey25519Proposition = pb.generatorProposition
-        val nonce: Long = SimpleBoxTransaction.nonceFromDigest(mod.id)
-        val value: Long = 1
+        val nonce: Nonce = SimpleBoxTransaction.nonceFromDigest(mod.id)
+        val value: Value = Value @@ 1L
         val minerBox = PublicKey25519NoncedBox(proposition, nonce, value)
         Success(BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(minerBox))))
       case ps: PosBlock =>
@@ -115,8 +116,8 @@ object HBoxStoredState {
             }
 
           //for PoS forger reward box, we use block Id as a nonce
-          val forgerNonce = Longs.fromByteArray(ps.id.take(8))
-          val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, reward)
+          val forgerNonce = Nonce @@ Longs.fromByteArray(ps.id.take(8))
+          val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, Value @@ reward)
 
           val ops: Seq[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
             toRemove.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)) ++

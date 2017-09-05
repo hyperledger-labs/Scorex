@@ -2,6 +2,7 @@ package examples.curvepos.transaction
 
 import java.nio.ByteBuffer
 
+import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.SimpleState.EmptyVersion
 import scorex.core.VersionTag
 import scorex.core.transaction.box.Box
@@ -21,7 +22,7 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
 
   def isEmpty: Boolean = version sameElements EmptyVersion
 
-  def totalBalance: Long = storage.keySet.flatMap(k => storage.get(k).map(_.value)).sum
+  def totalBalance: Long = storage.keySet.flatMap(k => storage.get(k).map(_.value.toLong)).sum
 
   override def toString: String = {
     s"SimpleState at ${Base58.encode(version)}\n" + storage.keySet.flatMap(k => storage.get(k)).mkString("\n  ")
@@ -67,17 +68,17 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
         val oldSenderBox = boxesOf(tx.sender).head
         val oldRecipientBox = boxesOf(tx.recipient).headOption
         val newRecipientBox = oldRecipientBox.map { oldB =>
-          oldB.copy(nonce = oldB.nonce + 1, value = Math.addExact(oldB.value, tx.amount))
-        }.getOrElse(PublicKey25519NoncedBox(tx.recipient, 0L, tx.amount))
-        val newSenderBox = oldSenderBox.copy(nonce = oldSenderBox.nonce + 1,
-          value = Math.addExact(Math.addExact(oldSenderBox.value, -tx.amount), -tx.fee))
+          oldB.copy(nonce = Nonce @@ (oldB.nonce + 1), value = Value @@ Math.addExact(oldB.value, tx.amount))
+        }.getOrElse(PublicKey25519NoncedBox(tx.recipient, Nonce @@ 0L, Value @@ tx.amount))
+        val newSenderBox = oldSenderBox.copy(nonce = Nonce @@ (oldSenderBox.nonce + 1),
+          value = Value @@ Math.addExact(Math.addExact(oldSenderBox.value, -tx.amount), -tx.fee))
         val toRemove = Set(oldSenderBox) ++ oldRecipientBox
         val toAppend = Set(newRecipientBox, newSenderBox).ensuring(_.forall(_.value >= 0))
 
         TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend, tx.fee)
       }
       case genesis: SimplePayment if isEmpty => Try {
-        val toAppend: Set[PublicKey25519NoncedBox] = Set(PublicKey25519NoncedBox(genesis.recipient, 0L, genesis.amount))
+        val toAppend: Set[PublicKey25519NoncedBox] = Set(PublicKey25519NoncedBox(genesis.recipient, Nonce @@ 0L, Value @@ genesis.amount))
         TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Set(), toAppend, 0)
       }
       case _ => Failure(new Exception("implementation is needed"))
@@ -95,9 +96,9 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
     val (generator, withoutGenerator) = toAppendFrom.partition(_.proposition.address == gen.address)
     val generatorBox: PublicKey25519NoncedBox = (generator ++ boxesOf(gen)).headOption match {
       case Some(oldBox) =>
-        oldBox.copy(nonce = oldBox.nonce + 1, value = oldBox.value + generatorReward)
+        oldBox.copy(nonce = Nonce @@ (oldBox.nonce + 1), value = Value @@ (oldBox.value + generatorReward))
       case None =>
-        PublicKey25519NoncedBox(gen, 1, generatorReward)
+        PublicKey25519NoncedBox(gen, Nonce @@ 1L, Value @@ generatorReward)
     }
     val toAppend = (withoutGenerator ++ Seq(generatorBox)).map(b =>
       Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b))

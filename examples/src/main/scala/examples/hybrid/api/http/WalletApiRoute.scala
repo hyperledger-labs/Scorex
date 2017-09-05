@@ -5,6 +5,7 @@ import javax.ws.rs.Path
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
+import examples.curvepos.Value
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
@@ -63,7 +64,7 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
                 val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
                 val recipient: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ Base58.decode((json \\ "recipient").head.asString.get).get)
                 val fee: Long = (json \\ "fee").head.asNumber.flatMap(_.toLong).getOrElse(DefaultFee)
-                val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, amount)), fee).get
+                val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, Value @@ amount)), fee).get
                 nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
                 tx.json
               } match {
@@ -90,7 +91,7 @@ case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: Ac
         val boxes = wallet.boxes()
 
         SuccessApiResponse(Map(
-          "totalBalance" -> boxes.map(_.box.value).sum.toString.asJson,
+          "totalBalance" -> boxes.map(_.box.value.toLong).sum.toString.asJson,
           "publicKeys" -> wallet.publicKeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
           "boxes" -> boxes.map(_.box.json).asJson
         ).asJson)

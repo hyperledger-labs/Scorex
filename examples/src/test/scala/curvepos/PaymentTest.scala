@@ -14,6 +14,7 @@ There is just a test, that apply transactions one by one and check, that total b
 
  */
 import curvepos.ExampleGenerators
+import examples.curvepos.{BaseTarget, GenerationSignature}
 import examples.curvepos.transaction.SimpleBlock
 import examples.curvepos.transaction.SimplePayment
 import examples.curvepos.transaction.SimpleState
@@ -41,7 +42,7 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
   import Util._
   // initialize test
   var state = new SimpleState()
-  def getBalance(p:PublicKey25519Proposition):Long = state.boxesOf(p).map(_.value).sum
+  def getBalance(p:PublicKey25519Proposition):Long = state.boxesOf(p).map(_.value.toLong).sum
   
   state.totalBalance shouldBe 0
   state.isEmpty shouldBe true
@@ -81,7 +82,11 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
       state.validate(payment).isSuccess shouldBe true
 
       val block = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
-        0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), 1, genesisAcc.publicImage, Seq(payment))
+        0L,
+        GenerationSignature @@ Array.fill(SimpleBlock.SignatureLength)(0: Byte),
+        BaseTarget @@ 1L,
+        genesisAcc.publicImage,
+        Seq(payment))
 
       state.applyModifier(block) match {
         case Success(newState) =>
@@ -125,7 +130,11 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
       if (amount > 0) {
         val receiverOldBalance = getBalance(recipient)
         val block = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
-          0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), 1, genesisAcc.publicImage, Seq(payment))
+          0L,
+          GenerationSignature @@ Array.fill(SimpleBlock.SignatureLength)(0: Byte),
+          BaseTarget @@ 1L,
+          genesisAcc.publicImage,
+          Seq(payment))
 
         state.applyModifier(block) match {
           case Success(newState) =>
@@ -179,7 +188,11 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
       if (amount > 0) {
         receiverOldBalance shouldBe senderOldBalance
         val block = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
-          0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), 1, genesisAcc.publicImage, Seq(payment))
+          0L,
+          GenerationSignature @@ Array.fill(SimpleBlock.SignatureLength)(0: Byte),
+          BaseTarget @@ 1L,
+          genesisAcc.publicImage,
+          Seq(payment))
 
         state.applyModifier(block) match {
           case Success(newState) =>
