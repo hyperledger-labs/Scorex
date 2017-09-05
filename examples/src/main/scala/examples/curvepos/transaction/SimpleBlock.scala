@@ -1,6 +1,7 @@
 package examples.curvepos.transaction
 
 import com.google.common.primitives.{Ints, Longs}
+import examples.curvepos.{BaseTarget, GenerationSignature}
 import examples.curvepos.transaction.SimpleBlock._
 import io.circe.Json
 import io.circe.syntax._
@@ -38,7 +39,7 @@ case class SimpleBlock(override val parentId: BlockId,
     "parentId" -> Base58.encode(parentId).asJson,
     "timestamp" -> timestamp.asJson,
     "generationSignature" -> Base58.encode(generationSignature).asJson,
-    "baseTarget" -> baseTarget.asJson,
+    "baseTarget" -> baseTarget.toLong.asJson,
     "generator" -> Base58.encode(generator.pubKeyBytes).asJson,
     "txs" -> transactions.map(_.json).asJson
   ).asJson
@@ -48,10 +49,6 @@ object SimpleBlock {
   val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 1.toByte
 
   val SignatureLength = 64
-
-  type GenerationSignature = Array[Byte]
-
-  type BaseTarget = Long
 }
 
 object SimpleBlockCompanion extends Serializer[SimpleBlock] {
@@ -86,8 +83,8 @@ object SimpleBlockCompanion extends Serializer[SimpleBlock] {
     val timestamp = Longs.fromByteArray(bytes.slice(Block.BlockIdLength, Block.BlockIdLength + 8))
     val version = bytes.slice(Block.BlockIdLength + 8, Block.BlockIdLength + 9).head
     val s0 = Block.BlockIdLength + 9
-    val generationSignature = bytes.slice(s0, s0 + SimpleBlock.SignatureLength)
-    val baseTarget = Longs.fromByteArray(bytes.slice(s0 + SimpleBlock.SignatureLength, s0 + SimpleBlock.SignatureLength + 8))
+    val generationSignature = GenerationSignature @@ bytes.slice(s0, s0 + SimpleBlock.SignatureLength)
+    val baseTarget = BaseTarget @@ Longs.fromByteArray(bytes.slice(s0 + SimpleBlock.SignatureLength, s0 + SimpleBlock.SignatureLength + 8))
     val s1 = s0 + SimpleBlock.SignatureLength + 8
     val generator = PublicKey25519Proposition(PublicKey @@ bytes.slice(s1, s1 + 32))
     val cnt = Ints.fromByteArray(bytes.slice(s1 + 32, s1 + 36))
