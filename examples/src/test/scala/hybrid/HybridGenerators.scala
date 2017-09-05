@@ -87,9 +87,6 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
     new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
   }
 
-  lazy val nonceGen: Gen[Nonce] = positiveLongGen.map(a => Nonce @@ a)
-  lazy val valueGen: Gen[Value] = positiveLongGen.map(a => Value @@ a)
-
   lazy val noncedBoxGen: Gen[PublicKey25519NoncedBox] = for {
     proposition <- propositionGen
     nonce <- nonceGen
@@ -249,11 +246,11 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
 
   def genValidTransactionPair(state: HBoxStoredState): Seq[SimpleBoxTransaction] = {
     val keys = key25519Gen.apply(Gen.Parameters.default, Seed.random()).get
-    val value = positiveLongGen.apply(Gen.Parameters.default, Seed.random()).get
+    val value = valueGen.apply(Gen.Parameters.default, Seed.random()).get
 
-    val newBox: IndexedSeq[(PublicKey25519Proposition, Long)] = IndexedSeq((keys._2, value))
+    val newBox: IndexedSeq[(PublicKey25519Proposition, Value)] = IndexedSeq((keys._2, value))
     val trx: SimpleBoxTransaction = simpleBoxTransactionGenCustomMakeBoxes(newBox).apply(Gen.Parameters.default, Seed.random()).get
-    val useBox: IndexedSeq[(PrivateKey25519, Long)] = IndexedSeq((keys._1, trx.newBoxes.toVector(0).nonce))
+    val useBox: IndexedSeq[(PrivateKey25519, Nonce)] = IndexedSeq((keys._1, trx.newBoxes.toVector(0).nonce))
 
     var trxnPair = Seq[SimpleBoxTransaction]()
     trxnPair = trxnPair :+ trx

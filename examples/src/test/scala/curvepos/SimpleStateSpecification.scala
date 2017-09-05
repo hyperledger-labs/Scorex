@@ -1,5 +1,6 @@
 package curvepos
 
+import examples.curvepos.{BaseTarget, GenerationSignature}
 import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleState, SimpleTransaction}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -31,7 +32,11 @@ class SimpleStateSpecification extends PropSpec
       val p = r.copy(sender = genesisAcc.publicImage, nonce = nonce, fee = r.fee % Mod, amount = r.amount % Mod)
       whenever(state.validate(p).isSuccess) {
         val block = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
-          0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), 1, genesisAcc.publicImage, Seq(p))
+          0L,
+          GenerationSignature @@ Array.fill(SimpleBlock.SignatureLength)(0: Byte),
+          BaseTarget @@ 1L,
+          genesisAcc.publicImage,
+          Seq(p))
 
         state.applyModifier(block) match {
           case Success(newState) =>
