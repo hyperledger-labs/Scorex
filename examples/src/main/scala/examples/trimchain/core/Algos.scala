@@ -50,9 +50,9 @@ object Algos extends App {
   }
 
   def pow(parentId: ModifierId,
-          transactionsRoot: Array[Byte],
-          currentStateRoot: Array[Byte], //after applying transactions
-          minerPubKey: Array[Byte],
+          transactionsRoot: TransactionsRoot,
+          currentStateRoot: StateRoot, //after applying transactions
+          minerPubKey: PublicKey,
           miningUtxos: IndexedSeq[AuthenticatedUtxo],
           difficulty: BigInt,
           attempts: Int): Try[Option[BlockHeader]] = Try {
@@ -116,8 +116,12 @@ object Algos extends App {
     VersionTag @@ Array.fill(32)(Random.nextInt(100).toByte)).get
 
 
-  val headerOpt = pow(ModifierId @@ Array.fill(32)(0: Byte), Array.fill(32)(0: Byte), u2.rootHash, pk1.pubKeyBytes,
-    IndexedSeq(u2), Constants.Difficulty, 500).get
+  val headerOpt = pow(ModifierId @@ Array.fill(32)(0: Byte),
+    TransactionsRoot @@ Array.fill(32)(0: Byte),
+    StateRoot @@ u2.rootHash,
+    pk1.pubKeyBytes,
+    IndexedSeq(u2),
+    Constants.Difficulty, 500).get
 
   println(headerOpt)
 

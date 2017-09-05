@@ -2,7 +2,7 @@ package examples.trimchain.modifiers
 
 import com.google.common.primitives.Longs
 import examples.trimchain.core.Constants._
-import examples.trimchain.core.{Constants, Ticket, TicketSerializer}
+import examples.trimchain.core._
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.{ModifierId, ModifierTypeId}
@@ -50,8 +50,8 @@ object BlockHeaderSerializer extends Serializer[BlockHeader] {
 
   override def parseBytes(bytes: Array[Byte]): Try[BlockHeader] = Try {
     val parentId = ModifierId @@ bytes.slice(0, ds)
-    val stateRoot = bytes.slice(ds, 2 * ds)
-    val txRoot = bytes.slice(2 * ds, 3 * ds)
+    val stateRoot = StateRoot @@ bytes.slice(ds, 2 * ds)
+    val txRoot = TransactionsRoot @@ bytes.slice(2 * ds, 3 * ds)
     val powNonce = Longs.fromByteArray(bytes.slice(3 * ds, 3 * ds + 8))
     val ticket = TicketSerializer.parseBytes(bytes.slice(3 * ds + 8, bytes.length)).get
     BlockHeader(parentId, stateRoot, txRoot, ticket, powNonce)

@@ -12,7 +12,9 @@ package object core {
   object VersionTag extends TaggedType[Array[Byte]]
 
   type ModifierTypeId = ModifierTypeId.Type
+
   type ModifierId = ModifierId.Type
+
   type VersionTag = VersionTag.Type
 
 }
