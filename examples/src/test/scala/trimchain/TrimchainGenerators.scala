@@ -5,6 +5,7 @@ import examples.commons.SimpleBoxTransaction
 import examples.trimchain.core._
 import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import org.scalacheck.{Arbitrary, Gen}
+import scorex.core.ModifierId
 import scorex.crypto.authds._
 
 trait TrimchainGenerators extends ExamplesCommonGenerators {
@@ -14,7 +15,7 @@ trait TrimchainGenerators extends ExamplesCommonGenerators {
   } yield Ticket(minerKey, partialProofs)
 
   val blockHeaderGen: Gen[BlockHeader] = for {
-    parentId: Array[Byte] <- genBytesList(Constants.hashfn.DigestSize)
+    parentId: ModifierId <- modifierIdGen
     stateRoot: Array[Byte] <- genBytesList(Constants.StateRootLength)
     txRoot: Array[Byte] <- genBytesList(Constants.TxRootLength)
     powNonce: Long <- Arbitrary.arbitrary[Long]

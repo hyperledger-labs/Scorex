@@ -3,7 +3,7 @@ package scorex.mid.wallet
 import java.io.File
 
 import com.google.common.primitives.{Bytes, Ints}
-import scorex.core.PersistentNodeViewModifier
+import scorex.core.{PersistentNodeViewModifier, VersionTag}
 import scorex.core.settings.Settings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.account.PublicKeyNoncedBox

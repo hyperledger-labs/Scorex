@@ -4,7 +4,7 @@ import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.SimpleBlock._
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
@@ -25,11 +25,11 @@ case class SimpleBlock(override val parentId: BlockId,
 
   override type M = SimpleBlock
 
-  override lazy val modifierTypeId: Byte = SimpleBlock.ModifierTypeId
+  override lazy val modifierTypeId: ModifierTypeId = SimpleBlock.ModifierTypeId
 
   override lazy val serializer = SimpleBlockCompanion
 
-  override lazy val id: BlockId = Blake2b256(serializer.messageToSign(this))
+  override lazy val id: BlockId = ModifierId @@ Blake2b256(serializer.messageToSign(this))
 
   override lazy val version: Version = 0: Byte
 
@@ -45,7 +45,7 @@ case class SimpleBlock(override val parentId: BlockId,
 }
 
 object SimpleBlock {
-  val ModifierTypeId = 1: Byte
+  val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 1.toByte
 
   val SignatureLength = 64
 
@@ -81,8 +81,8 @@ object SimpleBlockCompanion extends Serializer[SimpleBlock] {
     }
   }
 
-  override def parseBytes(bytes: Array[ModifierTypeId]): Try[SimpleBlock] = Try {
-    val parentId = bytes.slice(0, Block.BlockIdLength)
+  override def parseBytes(bytes: Array[Byte]): Try[SimpleBlock] = Try {
+    val parentId = ModifierId @@ bytes.slice(0, Block.BlockIdLength)
     val timestamp = Longs.fromByteArray(bytes.slice(Block.BlockIdLength, Block.BlockIdLength + 8))
     val version = bytes.slice(Block.BlockIdLength + 8, Block.BlockIdLength + 9).head
     val s0 = Block.BlockIdLength + 9

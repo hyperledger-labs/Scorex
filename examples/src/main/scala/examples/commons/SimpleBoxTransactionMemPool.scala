@@ -1,7 +1,7 @@
 package examples.commons
 
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.NodeViewModifier.ModifierId
+import scorex.core.ModifierId
 import scorex.core.transaction.MemoryPool
 import scorex.core.utils.ScorexLogging
 

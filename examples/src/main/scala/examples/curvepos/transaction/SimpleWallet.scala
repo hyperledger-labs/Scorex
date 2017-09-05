@@ -1,5 +1,6 @@
 package examples.curvepos.transaction
 
+import scorex.core.VersionTag
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.Transaction.TransactionId
 import scorex.core.transaction.box.proposition.Constants25519.PrivKeyLength

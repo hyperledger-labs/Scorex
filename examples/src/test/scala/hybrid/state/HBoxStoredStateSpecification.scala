@@ -20,7 +20,7 @@ class HBoxStoredStateSpecification extends PropSpec
       var st = state
       check(checksToMake) { _ =>
         val c = stateChangesGenerator(state).sample.get
-        st = st.applyChanges(c, modifierIdGen.sample.get).get
+        st = st.applyChanges(c, versionTagGen.sample.get).get
         c.toAppend.foreach { case Insertion(b) =>
             st.closedBox(b.id) shouldBe Some(b)
         }

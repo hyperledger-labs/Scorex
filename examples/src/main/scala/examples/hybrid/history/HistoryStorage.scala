@@ -5,7 +5,7 @@ import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, PosForger}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.NodeViewModifier
+import scorex.core.{ModifierId, NodeViewModifier}
 import scorex.core.NodeViewModifier._
 import scorex.core.block.Block
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -24,9 +24,11 @@ class HistoryStorage(storage: LSMStore,
 
   def bestChainScore: Long = height
 
-  def bestPowId: Array[Byte] = storage.get(bestPowIdKey).map(_.data).getOrElse(settings.GenesisParentId)
+  def bestPowId: ModifierId = storage.get(bestPowIdKey).map(d => ModifierId @@ d.data)
+    .getOrElse(settings.GenesisParentId)
 
-  def bestPosId: Array[Byte] = storage.get(bestPosIdKey).map(_.data).getOrElse(settings.GenesisParentId)
+  def bestPosId: ModifierId = storage.get(bestPosIdKey).map(d => ModifierId @@ d.data)
+    .getOrElse(settings.GenesisParentId)
 
   def bestPowBlock: PowBlock = {
     require(height > 0, "History is empty")
@@ -88,7 +90,7 @@ class HistoryStorage(storage: LSMStore,
       blockDiff ++ blockH ++ bestBlockSeq ++ Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
   }
 
-  def getPoWDifficulty(idOpt: Option[NodeViewModifier.ModifierId]): BigInt = {
+  def getPoWDifficulty(idOpt: Option[ModifierId]): BigInt = {
     idOpt match {
       case Some(id) if id sameElements settings.GenesisParentId =>
         settings.Difficulty
@@ -101,7 +103,7 @@ class HistoryStorage(storage: LSMStore,
     }
   }
 
-  def getPoSDifficulty(id: NodeViewModifier.ModifierId): Long = if (id sameElements settings.GenesisParentId) {
+  def getPoSDifficulty(id: ModifierId): Long = if (id sameElements settings.GenesisParentId) {
     PosForger.InitialDifficuly
   } else {
     Longs.fromByteArray(storage.get(blockDiffKey(id, isPos = true)).get.data)

@@ -5,8 +5,7 @@ import examples.commons.SimpleBoxTransaction
 import examples.hybrid.mining.MiningConstants
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifier
-import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core._
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
@@ -40,7 +39,7 @@ class PowBlockHeader(
 
   def correctWork(difficulty: BigInt, s: MiningConstants): Boolean = correctWorkDone(id, difficulty, s)
 
-  lazy val id = Blake2b256(headerBytes)
+  lazy val id = ModifierId @@ Blake2b256(headerBytes)
 
   override lazy val toString = s"PowBlockHeader(id: ${Base58.encode(id)})" +
     s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +
@@ -53,8 +52,8 @@ object PowBlockHeader {
 
   def parse(bytes: Array[Byte]): Try[PowBlockHeader] = Try {
     require(bytes.length == PowHeaderSize)
-    val parentId = bytes.slice(0, 32)
-    val prevPosId = bytes.slice(32, 64)
+    val parentId = ModifierId @@ bytes.slice(0, 32)
+    val prevPosId = ModifierId @@ bytes.slice(32, 64)
     val timestamp = Longs.fromByteArray(bytes.slice(64, 72))
     val nonce = Longs.fromByteArray(bytes.slice(72, 80))
     val brothersCount = Ints.fromByteArray(bytes.slice(80, 84))
@@ -147,5 +146,5 @@ object PowBlockCompanion extends Serializer[PowBlock] {
 }
 
 object PowBlock {
-  val ModifierTypeId = 3: Byte
+  val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 3.toByte
 }

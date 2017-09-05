@@ -7,12 +7,11 @@ import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mining.MiningSettings
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
-import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519Companion
-import scorex.core.{NodeViewHolder, NodeViewModifier}
+import scorex.core.{ModifierTypeId, NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 

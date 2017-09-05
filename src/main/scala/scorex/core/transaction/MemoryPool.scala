@@ -1,6 +1,6 @@
 package scorex.core.transaction
 
-import scorex.core.NodeViewComponent
+import scorex.core.{ModifierId, NodeViewComponent}
 
 import scala.util.Try
 
@@ -10,8 +10,6 @@ import scala.util.Try
   * @tparam TX -type of transaction the pool contains
   */
 trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewComponent {
-
-  import scorex.core.NodeViewModifier.ModifierId
 
   //getters
   def getById(id: ModifierId): Option[TX]

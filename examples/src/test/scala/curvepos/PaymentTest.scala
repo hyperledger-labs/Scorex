@@ -19,6 +19,8 @@ import examples.curvepos.transaction.SimplePayment
 import examples.curvepos.transaction.SimpleState
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
+import scorex.core.ModifierId
+
 import scala.util.Failure
 import scala.util.Success
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -78,7 +80,7 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
 
       state.validate(payment).isSuccess shouldBe true
 
-      val block = SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
+      val block = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
         0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), 1, genesisAcc.publicImage, Seq(payment))
 
       state.applyModifier(block) match {
@@ -122,7 +124,7 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
 
       if (amount > 0) {
         val receiverOldBalance = getBalance(recipient)
-        val block = SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
+        val block = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
           0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), 1, genesisAcc.publicImage, Seq(payment))
 
         state.applyModifier(block) match {
@@ -176,7 +178,7 @@ object PaymentTest extends PropSpec with ExampleGenerators with PropertyChecks w
   
       if (amount > 0) {
         receiverOldBalance shouldBe senderOldBalance
-        val block = SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
+        val block = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
           0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), 1, genesisAcc.publicImage, Seq(payment))
 
         state.applyModifier(block) match {

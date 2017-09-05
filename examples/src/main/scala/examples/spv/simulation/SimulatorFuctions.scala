@@ -2,18 +2,19 @@ package examples.spv.simulation
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.spv.{SpvAlgos, Header}
+import examples.spv.{Header, SpvAlgos}
 import examples.trimchain.core.Constants._
 import examples.trimchain.simulation.InMemoryAuthenticatedUtxo
+import scorex.core.{ModifierId, VersionTag}
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{Insertion, BoxStateChanges}
+import scorex.core.transaction.state.{BoxStateChanges, Insertion}
 
 import scala.annotation.tailrec
 import scala.util.Random
 
 trait SimulatorFuctions {
-  val defaultId = Array.fill(32)(0: Byte)
+  val defaultId = VersionTag @@ Array.fill(32)(0: Byte)
 
   def genGenesisState(minerPubKey: PublicKey25519Proposition): InMemoryAuthenticatedUtxo = {
     val genesisBoxes = (1 to 5000) map { i =>
@@ -39,8 +40,8 @@ trait SimulatorFuctions {
 
   def genBlock(difficulty: BigInt,
                parents: IndexedSeq[Header],
-               stateRoot: Array[Version],
-               transactionsRoot: Array[Version],
+               stateRoot: Array[Byte],
+               transactionsRoot: Array[Byte],
                timestamp: Timestamp): Header = {
     val parent = parents.head
     val interlinks: Seq[Array[Byte]] = if (parents.length > 1) SpvAlgos.constructInterlinkVector(parent)
@@ -56,7 +57,7 @@ trait SimulatorFuctions {
     generateHeader()
   }
 
-  def correctWorkDone(id: Array[Version], difficulty: BigInt): Boolean = {
+  def correctWorkDone(id: Array[Byte], difficulty: BigInt): Boolean = {
     val target = examples.spv.Constants.MaxTarget / difficulty
     BigInt(1, id) < target
   }
@@ -70,7 +71,7 @@ trait SimulatorFuctions {
       )
     }
 
-    Header(Array.fill(32)(0: Byte), Seq(), stateRoot, defaultId, 0L, 0)
+    Header(ModifierId @@ Array.fill(32)(0: Byte), Seq(), stateRoot, defaultId, 0L, 0)
   }
 
 }

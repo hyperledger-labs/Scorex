@@ -10,8 +10,9 @@ import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import io.iohk.iodb.LSMStore
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
+import scorex.core.{ModifierId, VersionTag}
 import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
-import scorex.crypto.authds.{ADDigest, ADKey, ADProof}
+import scorex.crypto.authds.{ADDigest, ADKey}
 import scorex.crypto.hash.{Blake2b256Unsafe, Digest32}
 import scorex.crypto.signatures.{Curve25519, PublicKey}
 
@@ -48,7 +49,7 @@ object Algos extends App {
     Ticket(minerPubKey, partialProofs)
   }
 
-  def pow(parentId: Array[Byte],
+  def pow(parentId: ModifierId,
           transactionsRoot: Array[Byte],
           currentStateRoot: Array[Byte], //after applying transactions
           minerPubKey: Array[Byte],
@@ -106,15 +107,16 @@ object Algos extends App {
   new File("/tmp/utxo").delete()
   new File("/tmp/utxo").mkdirs()
   val store = new LSMStore(new File("/tmp/utxo"))
-  val u1 = PersistentAuthenticatedUtxo(store, 0, None, Array.fill(32)(0: Byte))
+  val u1 = PersistentAuthenticatedUtxo(store, 0, None, VersionTag @@ Array.fill(32)(0: Byte))
 
   val pk1 = PublicKey25519Proposition(PublicKey @@ Array.fill(32)(Random.nextInt(100).toByte))
   val b1 = PublicKey25519NoncedBox(pk1, 1L, 10)
   val b2 = PublicKey25519NoncedBox(pk1, 2L, 20)
-  val u2 = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))), Array.fill(32)(Random.nextInt(100).toByte)).get
+  val u2 = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))),
+    VersionTag @@ Array.fill(32)(Random.nextInt(100).toByte)).get
 
 
-  val headerOpt = pow(Array.fill(32)(0: Byte), Array.fill(32)(0: Byte), u2.rootHash, pk1.pubKeyBytes,
+  val headerOpt = pow(ModifierId @@ Array.fill(32)(0: Byte), Array.fill(32)(0: Byte), u2.rootHash, pk1.pubKeyBytes,
     IndexedSeq(u2), Constants.Difficulty, 500).get
 
   println(headerOpt)

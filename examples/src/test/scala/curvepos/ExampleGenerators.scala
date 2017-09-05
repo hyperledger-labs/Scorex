@@ -2,6 +2,7 @@ package curvepos
 
 import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleTransaction, SimpleWallet}
 import org.scalacheck.{Arbitrary, Gen}
+import scorex.core.ModifierId
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -23,7 +24,7 @@ trait ExampleGenerators extends CoreGenerators {
 
 
   lazy val blockGenerator: Gen[SimpleBlock] = for {
-    parentId: BlockId <- genBoundedBytes(Block.BlockIdLength, Block.BlockIdLength)
+    parentId: BlockId <- ModifierId @@ genBoundedBytes(Block.BlockIdLength, Block.BlockIdLength)
     timestamp: Long <- Arbitrary.arbitrary[Long]
     baseTarget: Long <- Arbitrary.arbitrary[Long]
     generationSignature <- genBoundedBytes(64, 64)
@@ -37,7 +38,7 @@ trait ExampleGenerators extends CoreGenerators {
     val generator = PublicKey25519Proposition(PublicKey @@ Array.fill(Curve25519.KeyLength)(0: Byte))
     val toInclude: Seq[SimpleTransaction] = Seq(SimplePayment(genesisAcc.publicImage, genesisAcc.publicImage, Long.MaxValue, 0, 1, 0))
 
-    SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
+    SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
       0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), IntitialBasetarget, generator, toInclude)
 
   }

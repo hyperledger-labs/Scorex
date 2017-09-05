@@ -3,6 +3,7 @@ package curvepos
 import examples.curvepos.transaction.{SimpleBlock, SimplePayment, SimpleState, SimpleTransaction}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
+import scorex.core.ModifierId
 
 import scala.util.{Failure, Success, Try}
 
@@ -29,7 +30,7 @@ class SimpleStateSpecification extends PropSpec
     forAll(paymentGen) { r: SimplePayment =>
       val p = r.copy(sender = genesisAcc.publicImage, nonce = nonce, fee = r.fee % Mod, amount = r.amount % Mod)
       whenever(state.validate(p).isSuccess) {
-        val block = SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
+        val block = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
           0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), 1, genesisAcc.publicImage, Seq(p))
 
         state.applyModifier(block) match {

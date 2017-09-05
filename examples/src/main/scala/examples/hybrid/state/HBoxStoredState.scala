@@ -7,9 +7,9 @@ import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
+import scorex.core.VersionTag
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds._
@@ -142,14 +142,14 @@ object HBoxStoredState {
         stateStorage.close()
       }
     })
-    val version = stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
+    val version = VersionTag @@ stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
 
     HBoxStoredState(stateStorage, version)
   }
 
   def genesisState(settings: Settings, initialBlocks: Seq[HybridBlock]): HBoxStoredState = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
-      state.changes(mod).flatMap(cs => state.applyChanges(cs, mod.id)).get
+      state.changes(mod).flatMap(cs => state.applyChanges(cs, VersionTag @@ mod.id)).get
     }
   }
 }

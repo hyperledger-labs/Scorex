@@ -9,7 +9,7 @@ import scala.util.Try
 
 object SpvAlgos {
 
-  def blockIdDifficulty(id: Array[Version]): BigInt = {
+  def blockIdDifficulty(id: Array[Byte]): BigInt = {
     val blockTarget = BigInt(1, id)
     examples.spv.Constants.MaxTarget / blockTarget
   }

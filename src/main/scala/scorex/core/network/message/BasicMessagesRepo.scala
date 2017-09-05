@@ -5,8 +5,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
-import scorex.core.NodeViewModifier
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message._
 
@@ -15,7 +14,7 @@ import scala.util.Try
 
 object BasicMsgDataTypes {
   type InvData = (ModifierTypeId, Seq[ModifierId])
-  type ModifiersData = (NodeViewModifier.ModifierTypeId, Map[ModifierId, Array[Byte]])
+  type ModifiersData = (ModifierTypeId, Map[ModifierId, Array[Byte]])
 }
 
 import scorex.core.network.message.BasicMsgDataTypes._
@@ -38,14 +37,14 @@ object InvSpec extends MessageSpec[InvData] {
   override val messageName: String = "Inv"
 
   override def parseBytes(bytes: Array[Byte]): Try[InvData] = Try {
-    val typeId = bytes.head
+    val typeId = ModifierTypeId @@ bytes.head
     val count = Ints.fromByteArray(bytes.slice(1, 5))
 
     assert(count > 0, "empty inv list")
     assert(count <= MaxObjects, s"more invs than $MaxObjects in a message")
 
     val elems = (0 until count).map { c =>
-      bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize)
+      ModifierId @@ bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize)
     }
 
     typeId -> elems
@@ -81,13 +80,13 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
   override val messageName: String = "Modifier"
 
   override def parseBytes(bytes: Array[Byte]): Try[ModifiersData] = Try {
-    val typeId = bytes.head
+    val typeId = ModifierTypeId @@ bytes.head
     val count = Ints.fromByteArray(bytes.slice(1, 5))
     val objBytes = bytes.slice(5, bytes.length)
     val (_, seq) = (0 until count).foldLeft(0 -> Seq[(ModifierId, Array[Byte])]()) {
       case ((pos, collected), _) =>
 
-        val id = objBytes.slice(pos, pos + NodeViewModifier.ModifierIdSize)
+        val id = ModifierId @@ objBytes.slice(pos, pos + NodeViewModifier.ModifierIdSize)
         val objBytesCnt = Ints.fromByteArray(objBytes.slice(pos + NodeViewModifier.ModifierIdSize, pos + NodeViewModifier.ModifierIdSize + 4))
         val obj = objBytes.slice(pos + NodeViewModifier.ModifierIdSize + 4, pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt)
 

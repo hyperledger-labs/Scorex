@@ -6,7 +6,7 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
-import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
+import scorex.core.{ModifierId, NodeViewModifier, PersistentNodeViewModifier}
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
@@ -39,7 +39,7 @@ class WalletBoxSerializer[P <: Proposition, B <: Box[P]](subclassDeser: Serializ
 
 case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](proposition: P,
                                                                      tx: TX,
-                                                                     blockId: Option[NodeViewModifier.ModifierId],
+                                                                     blockId: Option[ModifierId],
                                                                      createdAt: Long)
 
 object WalletTransaction {
@@ -56,13 +56,13 @@ object WalletTransaction {
     val txTry = txDeserializer(bytes.slice(pos, pos + txLength))
     pos = pos + txLength
 
-    val blockIdOpt: Option[NodeViewModifier.ModifierId] =
+    val blockIdOpt: Option[ModifierId] =
       if (bytes.slice(pos, pos + 1).head == 0) {
         pos = pos + 1
         None
       }
       else {
-        val o = Some(bytes.slice(pos + 1, pos + 1 + NodeViewModifier.ModifierIdSize))
+        val o = ModifierId @@ Some(bytes.slice(pos + 1, pos + 1 + NodeViewModifier.ModifierIdSize))
         pos = pos + 1 + NodeViewModifier.ModifierIdSize
         o
       }

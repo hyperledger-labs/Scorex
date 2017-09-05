@@ -8,7 +8,6 @@ import examples.trimchain.modifiers.{BlockHeader, TBlock, TModifier, UtxoSnapsho
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
@@ -17,6 +16,7 @@ import scorex.crypto.hash.{Blake2b256Unsafe, Digest, Digest32}
 
 import scala.util.{Random, Success, Try}
 import PersistentAuthenticatedUtxo.ProverType
+import scorex.core.VersionTag
 import scorex.crypto.authds.{ADKey, ADProof, ADValue}
 import scorex.mid.state.BoxMinimalState
 
@@ -73,7 +73,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     p
   }
 
-  lazy val rootHash: Array[Byte] = prover.digest
+  lazy val rootHash: VersionTag = VersionTag @@ prover.digest
 
   override type NVCT = PersistentAuthenticatedUtxo
 
@@ -221,7 +221,7 @@ object PersistentAuthenticatedUtxo {
         stateStorage.close()
       }
     })
-    val version = stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
+    val version = VersionTag @@ stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
 
     //todo: more efficient size detection, prover init
     PersistentAuthenticatedUtxo(stateStorage, stateStorage.getAll().size, None, version)
@@ -229,7 +229,7 @@ object PersistentAuthenticatedUtxo {
 
   def genesisState(settings: Settings, initialBlocks: Seq[TModifier]): PersistentAuthenticatedUtxo = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
-      state.changes(mod).flatMap(cs => state.applyChanges(cs, mod.id)).get
+      state.changes(mod).flatMap(cs => state.applyChanges(cs, VersionTag @@ mod.id)).get
     }
   }
 }

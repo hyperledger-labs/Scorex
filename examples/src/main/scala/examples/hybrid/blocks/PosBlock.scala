@@ -5,8 +5,7 @@ import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.TransactionsCarryingPersistentNodeViewModifier
+import scorex.core.{ModifierId, ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
@@ -36,7 +35,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override lazy val modifierTypeId: ModifierTypeId = PosBlock.ModifierTypeId
 
   override lazy val id: ModifierId =
-    Blake2b256(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
+    ModifierId @@ Blake2b256(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
@@ -52,7 +51,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
 }
 
 object PosBlockCompanion extends Serializer[PosBlock] {
-  override def toBytes(b: PosBlock): Array[Version] = {
+  override def toBytes(b: PosBlock): Array[Byte] = {
     val txsBytes = b.transactions.sortBy(t => Base58.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }
@@ -60,10 +59,10 @@ object PosBlockCompanion extends Serializer[PosBlock] {
       Ints.toByteArray(b.transactions.length), txsBytes, Ints.toByteArray(b.attachment.length), b.attachment)
   }
 
-  override def parseBytes(bytes: Array[Version]): Try[PosBlock] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[PosBlock] = Try {
     require(bytes.length <= PosBlock.MaxBlockSize)
 
-    val parentId = bytes.slice(0, BlockIdLength)
+    val parentId = ModifierId @@ bytes.slice(0, BlockIdLength)
     var position = BlockIdLength
     val timestamp = Longs.fromByteArray(bytes.slice(position, position + 8))
     position = position + 8
@@ -93,7 +92,7 @@ object PosBlockCompanion extends Serializer[PosBlock] {
 object PosBlock {
   val MaxBlockSize = 65535
   //64K
-  val ModifierTypeId = 4: Byte
+  val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 4.toByte
 
   def create(parentId: BlockId,
              timestamp: Block.Timestamp,

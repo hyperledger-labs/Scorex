@@ -1,11 +1,10 @@
 package examples.curvepos
 
 import examples.curvepos.transaction.{SimplePayment, _}
-import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.serialization.Serializer
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.{NodeViewHolder, NodeViewModifier}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.{Curve25519, PublicKey}
 
@@ -42,7 +41,7 @@ class SimpleNodeViewHolder(settings: Settings)
       SimplePayment(genesisAcc2, genesisAcc2, 50000000, 0, 1, 0)
     )
 
-    val genesisBlock: SimpleBlock = SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
+    val genesisBlock: SimpleBlock = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
       0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), IntitialBaseTarget, generator, toInclude)
 
     val blockchain = emptyBlockchain.append(genesisBlock) match {
