@@ -33,6 +33,4 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
   override lazy val history: HybridHistory = generateHistory
   override lazy val memPool: SimpleBoxTransactionMemPool = SimpleBoxTransactionMemPool.emptyPool
   override lazy val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings, "p"))((w, _) => w.generateNewSecret())
-
-
 }

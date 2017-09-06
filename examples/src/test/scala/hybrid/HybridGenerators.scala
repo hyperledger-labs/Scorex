@@ -12,8 +12,7 @@ import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
-import scorex.core.{ModifierId, NodeViewModifier, VersionTag}
-import scorex.core.block.Block
+import scorex.core.{ModifierId, NodeViewModifier}
 import scorex.core.block.Block._
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -173,6 +172,15 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
 
   def semanticallyValidModifier(state: HBoxStoredState): HybridBlock =
     semanticallyValidModifierWithTransactions(state)
+
+  def semanticallyInvalidModifier(state: HBoxStoredState): HybridBlock = {
+    val posBlock: PosBlock = semanticallyValidModifierWithTransactions(state)
+    val lastTx = posBlock.transactions.last
+    val modifiedFrom = (lastTx.from.head._1, Nonce @@ (lastTx.from.head._2 + 1)) +: lastTx.from.tail
+    val modifiedLast = lastTx.copy(from = modifiedFrom)
+    posBlock.copy(transactions = posBlock.transactions.dropRight(1) :+ modifiedLast)
+  }
+
 
   def totallyValidModifier(history: HybridHistory, state: HBoxStoredState): HybridBlock = ???
 
