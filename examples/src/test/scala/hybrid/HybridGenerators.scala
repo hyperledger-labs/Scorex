@@ -63,8 +63,8 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
   } yield PosBlock.create(posParentId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
 
   lazy val powHeaderGen: Gen[PowBlockHeader] = for {
-    parentId: BlockId  <- modifierIdGen
-    prevPosId: BlockId  <- modifierIdGen
+    parentId: BlockId <- modifierIdGen
+    prevPosId: BlockId <- modifierIdGen
     timestamp: Long <- positiveLongGen
     nonce: Long <- positiveLongGen
     brothersCount: Byte <- positiveByteGen
@@ -73,8 +73,8 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
   } yield new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
 
   lazy val powBlockGen: Gen[PowBlock] = for {
-    parentId: BlockId  <- modifierIdGen
-    prevPosId: BlockId  <- modifierIdGen
+    parentId: BlockId <- modifierIdGen
+    prevPosId: BlockId <- modifierIdGen
     timestamp: Long <- positiveLongGen
     nonce: Long <- positiveLongGen
     brothersCount: Byte <- positiveByteGen
@@ -135,6 +135,7 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
   private val hf = Blake2b256
 
   private val valueSeed = 5000000
+
   //todo: make by value again, check why fails
   private def privKey(value: Long) = PrivateKey25519Companion.generateKeys(("secret_" + value).getBytes)
 
@@ -175,10 +176,14 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
 
   def semanticallyInvalidModifier(state: HBoxStoredState): HybridBlock = {
     val posBlock: PosBlock = semanticallyValidModifierWithTransactions(state)
-    val lastTx = posBlock.transactions.last
-    val modifiedFrom = (lastTx.from.head._1, Nonce @@ (lastTx.from.head._2 + 1)) +: lastTx.from.tail
-    val modifiedLast = lastTx.copy(from = modifiedFrom)
-    posBlock.copy(transactions = posBlock.transactions.dropRight(1) :+ modifiedLast)
+    posBlock.transactions.lastOption.map { lastTx =>
+      val modifiedFrom = (lastTx.from.head._1, Nonce @@ (lastTx.from.head._2 + 1)) +: lastTx.from.tail
+      val modifiedLast = lastTx.copy(from = modifiedFrom)
+      posBlock.copy(transactions = posBlock.transactions.dropRight(1) :+ modifiedLast)
+    }.getOrElse {
+      val modifiedGenerator = posBlock.generatorBox.copy(nonce = Nonce @@ (posBlock.generatorBox.nonce + 1))
+      posBlock.copy(generatorBox = modifiedGenerator)
+    }
   }
 
 
@@ -245,7 +250,9 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
       SimpleBoxTransaction(from, to, fee = fee, System.currentTimeMillis())
     }.toSeq
 
-    txs.foreach { _.boxIdsToOpen.foreach { id => assert(state.closedBox(id).isDefined) } }
+    txs.foreach {
+      _.boxIdsToOpen.foreach { id => assert(state.closedBox(id).isDefined) }
+    }
 
     val genBox: PublicKey25519NoncedBox = stateBoxes.head
     val generator = privKey(genBox.value)._1
