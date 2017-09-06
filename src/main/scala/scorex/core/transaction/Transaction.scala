@@ -20,6 +20,4 @@ abstract class Transaction[P <: Proposition] extends EphemerealNodeViewModifier 
 
 object Transaction {
   val ModifierTypeId: scorex.core.ModifierTypeId = scorex.core.ModifierTypeId @@ 2.toByte
-  //TODO remove?
-  type TransactionId = ModifierId
 }
