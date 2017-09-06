@@ -5,8 +5,7 @@ import examples.commons.SimpleBoxTransaction
 import examples.spv.Constants._
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.PersistentNodeViewModifier
+import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
@@ -23,9 +22,9 @@ case class Header(parentId: BlockId,
                   timestamp: Block.Timestamp,
                   nonce: Int) extends PersistentNodeViewModifier {
 
-  override val modifierTypeId: ModifierTypeId = 100: Byte
+  override val modifierTypeId: ModifierTypeId = ModifierTypeId @@ 100.toByte
 
-  override lazy val id: ModifierId = hashfn(bytes)
+  override lazy val id: ModifierId = ModifierId @@ hashfn(bytes)
 
   lazy val realDifficulty: BigInt = SpvAlgos.blockIdDifficulty(id)
 
@@ -69,7 +68,7 @@ object HeaderSerializer extends Serializer[Header] {
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Header] = Try {
-    val parentId = bytes.slice(0, 32)
+    val parentId = ModifierId @@ bytes.slice(0, 32)
     val transactionsRoot = bytes.slice(32, 64)
     val stateRoot = bytes.slice(64, 96)
     val timestamp = Longs.fromByteArray(bytes.slice(96, 104))

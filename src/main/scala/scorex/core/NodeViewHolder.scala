@@ -2,7 +2,6 @@ package scorex.core
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
@@ -153,7 +152,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                           progressInfo: ProgressInfo[PMOD]
                          ): (HIS, Try[MS]) = {
     val stateToApplyTry = if (progressInfo.chainSwitchingNeeded) {
-      val branchingPoint = progressInfo.branchPoint.get
+      val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
       if (!state.version.sameElements(branchingPoint)) state.rollbackTo(branchingPoint) else Success(state)
     } else Success(state)
 
@@ -201,7 +200,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
                 //we consider that vault always able to perform a rollback needed
                 val newVault = if (progressInfo.chainSwitchingNeeded) {
-                  vault().rollback(progressInfo.branchPoint.get).get.scanPersistent(progressInfo.toApply)
+                  vault().rollback(VersionTag @@ progressInfo.branchPoint.get).get.scanPersistent(progressInfo.toApply)
                 } else {
                   vault().scanPersistent(progressInfo.toApply)
                 }
@@ -240,7 +239,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def compareViews: Receive = {
     case CompareViews(sid, modifierTypeId, modifierIds) =>
       val ids = modifierTypeId match {
-        case typeId: Byte if typeId == Transaction.ModifierTypeId =>
+        case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
           memoryPool().notIn(modifierIds)
         case _ =>
           modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
@@ -253,9 +252,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
       val objs: Seq[NodeViewModifier] = modifierTypeId match {
-        case typeId: Byte if typeId == Transaction.ModifierTypeId =>
+        case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
           memoryPool().getAll(modifierIds)
-        case typeId: Byte =>
+        case typeId: ModifierTypeId =>
           modifierIds.flatMap(id => history().modifierById(id))
       }
 

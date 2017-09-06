@@ -8,8 +8,7 @@ import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, MiningSettings}
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
-import scorex.core.NodeViewModifier
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}

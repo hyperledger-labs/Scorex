@@ -26,7 +26,7 @@ class PrivateKey25519Suite extends PropSpec
   }
 
   property("PublicKey25519NoncedBox right owner") {
-    forAll(key25519Gen, positiveLongGen, positiveLongGen, minSuccessful(1000)){ case(keyPair, nonce, amount) =>
+    forAll(key25519Gen, nonceGen, valueGen, minSuccessful(1000)){ case(keyPair, nonce, amount) =>
       val box = PublicKey25519NoncedBox(keyPair._2, nonce, amount)
         PrivateKey25519Companion.owns(keyPair._1, box) shouldBe true
     }

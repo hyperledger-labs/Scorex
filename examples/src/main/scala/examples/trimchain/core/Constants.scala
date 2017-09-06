@@ -10,10 +10,8 @@ object Constants {
 
   val hashfn = Blake2b256
 
-  type StateRoot = Array[Byte]
   val StateRootLength = hashfn.DigestSize
 
-  type TransactionsRoot = Array[Byte]
   val TxRootLength = hashfn.DigestSize
 
 

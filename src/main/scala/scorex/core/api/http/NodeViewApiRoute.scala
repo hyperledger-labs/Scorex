@@ -18,7 +18,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier, PersistentNodeViewModifier}
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -98,7 +98,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
       Base58.decode(encodedId) match {
         case Success(id) =>
           //TODO 1: Byte
-          (nodeViewHolderRef ? GetLocalObjects(source, 1: Byte, Seq(id)))
+          (nodeViewHolderRef ? GetLocalObjects(source, ModifierTypeId @@ 1.toByte, Seq(ModifierId @@ id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
             .map(_.localObjects.headOption.map(_.json).map(j => SuccessApiResponse(j))
               .getOrElse(ApiError.blockNotExists))
@@ -116,7 +116,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     getJsonRoute {
       Base58.decode(encodedId) match {
         case Success(id) =>
-          (nodeViewHolderRef ? GetLocalObjects(source, Transaction.ModifierTypeId, Seq(id)))
+          (nodeViewHolderRef ? GetLocalObjects(source, Transaction.ModifierTypeId, Seq(ModifierId @@ id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
             .map(_.localObjects.headOption.map(_.json).map(r => SuccessApiResponse(r))
               .getOrElse(ApiError.transactionNotExists))

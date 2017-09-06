@@ -1,8 +1,6 @@
 package scorex.core.consensus
 
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.{NodeViewComponent, NodeViewModifier}
-import scorex.core.PersistentNodeViewModifier
+import scorex.core._
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
@@ -29,7 +27,6 @@ object ModifierSemanticValidity extends Enumeration {
 trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends NodeViewComponent {
 
   import History._
-  import NodeViewModifier.ModifierId
 
   /**
     * Is there's no history, even genesis block
@@ -62,7 +59,9 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
 
   def modifierById(modifierId: ModifierId): Option[PM]
 
-  def modifierById(modifierId: String): Option[PM] = Base58.decode(modifierId).toOption.flatMap(modifierById)
+  //TODO never used?
+  def modifierById(modifierId: String): Option[PM] = Base58.decode(modifierId).toOption
+    .flatMap(id => modifierById(ModifierId @@ id))
 
   def append(modifier: PM): Try[(HT, ProgressInfo[PM])]
 

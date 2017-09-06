@@ -2,7 +2,7 @@ package examples.curvepos
 
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.{BlockChain, ModifierSemanticValidity}
 import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition

@@ -2,8 +2,7 @@ package scorex.core.transaction.state
 
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier}
+import scorex.core.{NodeViewComponent, PersistentNodeViewModifier, VersionTag}
 
 import scala.util.Try
 
@@ -42,8 +41,4 @@ trait MinimalState[M <: PersistentNodeViewModifier, MS <: MinimalState[M, MS]] e
   def applyModifier(mod: M): Try[MS]
 
   def rollbackTo(version: VersionTag): Try[MS]
-}
-
-object MinimalState {
-  type VersionTag = NodeViewModifier.ModifierId
 }

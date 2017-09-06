@@ -1,7 +1,6 @@
 package scorex.core
 
 import com.typesafe.config.ConfigFactory
-import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.serialization.{BytesSerializable, JsonSerializable}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
@@ -11,8 +10,6 @@ import scala.util.Try
 
 sealed trait NodeViewModifier extends BytesSerializable with JsonSerializable {
   self =>
-
-  import NodeViewModifier.{ModifierId, ModifierTypeId}
 
   val modifierTypeId: ModifierTypeId
 
@@ -35,10 +32,6 @@ trait EphemerealNodeViewModifier extends NodeViewModifier
   */
 object NodeViewModifier {
   val DefaultIdSize = 32 // in bytes
-
-  //TODO implement ModifierTypeId as a trait
-  type ModifierTypeId = Byte
-  type ModifierId = Array[Byte]
 
   val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(DefaultIdSize)
 }

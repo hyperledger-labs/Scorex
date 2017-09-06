@@ -4,8 +4,7 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
-import scorex.core.NodeViewModifier
-import scorex.core.NodeViewModifier.ModifierId
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, ModifiersSpec, RequestModifierSpec}
 
@@ -29,7 +28,7 @@ class MessageSpecification extends PropSpec
   }
 
   property("InvData should not serialize big arrays") {
-    forAll(Arbitrary.arbitrary[Byte], Gen.listOfN(InvSpec.MaxObjects + 1, modifierIdGen)) { (b: Byte, s: Seq[ModifierId]) =>
+    forAll(modifierTypeIdGen, Gen.listOfN(InvSpec.MaxObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
       val data: InvData = (b, s)
       Try(InvSpec.toBytes(data)).isSuccess shouldBe false
     }
@@ -48,14 +47,14 @@ class MessageSpecification extends PropSpec
   }
 
   property("RequestModifierSpec should not serialize big arrays") {
-    forAll(Arbitrary.arbitrary[Byte], Gen.listOfN(InvSpec.MaxObjects + 1, modifierIdGen)) { (b: Byte, s: Seq[ModifierId]) =>
+    forAll(modifierTypeIdGen, Gen.listOfN(InvSpec.MaxObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
       val data: InvData = (b, s)
       Try(InvSpec.toBytes(data)).isSuccess shouldBe false
     }
   }
 
   property("ModifiersSpec serialization/deserialization") {
-    forAll(modifiersGen) { data: (NodeViewModifier.ModifierTypeId, Map[ModifierId, Array[Byte]]) =>
+    forAll(modifiersGen) { data: (ModifierTypeId, Map[ModifierId, Array[Byte]]) =>
       whenever(data._2.nonEmpty && data._2.forall { case (id, m) => id.length == NodeViewModifier.ModifierIdSize && m.length > 0 }) {
         val bytes = ModifiersSpec.toBytes(data)
         val recovered = ModifiersSpec.parseBytes(bytes).get

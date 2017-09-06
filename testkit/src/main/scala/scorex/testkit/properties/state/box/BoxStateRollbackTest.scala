@@ -1,7 +1,7 @@
 package scorex.testkit.properties.state.box
 
 import org.scalacheck.Gen
-import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
+import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier, VersionTag}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state._
@@ -30,7 +30,7 @@ trait BoxStateRollbackTest[P <: Proposition,
       var lastVersion = state.version
       var newState = state
 
-        forAll(modifierIdGen) {newVersion =>
+        forAll(versionTagGen) {newVersion: VersionTag =>
           lastVersion shouldEqual newState.version
 
           val c = stateChangesGenerator(newState).sample.get
@@ -47,9 +47,9 @@ trait BoxStateRollbackTest[P <: Proposition,
     forAll(stateGen, minSuccessful(2)) { state =>
 
       var newState = state
-      var rollbackVersionOpt: Option[Array[Byte]] = None
+      var rollbackVersionOpt: Option[VersionTag] = None
 
-      forAll(modifierIdGen) { newVersion =>
+      forAll(versionTagGen) { newVersion =>
         val c = stateChangesGenerator(newState).sample.get
 
         rollbackVersionOpt match {
@@ -75,7 +75,7 @@ trait BoxStateRollbackTest[P <: Proposition,
     forAll(stateGen, minSuccessful(2)) { state =>
 
       var newState = state
-      var rollbackVersionOpt: Option[Array[Byte]] = None
+      var rollbackVersionOpt: Option[VersionTag] = None
       var txPair = genValidTransactionPair(state)
 
       check { _ =>
@@ -91,7 +91,7 @@ trait BoxStateRollbackTest[P <: Proposition,
                 case _ => Some(op)
               }
             })
-            newState = newState.applyChanges(changes, block.id).get
+            newState = newState.applyChanges(changes, VersionTag @@ block.id).get
             rollbackVersionOpt = Some(newState.version)
 
           case Some(rollbackVersion) =>
@@ -105,7 +105,7 @@ trait BoxStateRollbackTest[P <: Proposition,
                 case _ => Some(op)
               }
             })
-            newState = newState.applyChanges(changes, block.id).get
+            newState = newState.applyChanges(changes, VersionTag @@ block.id).get
 
             changes.toAppend.foreach { b =>
               newState.closedBox(b.box.id).isDefined shouldBe true

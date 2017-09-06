@@ -7,7 +7,7 @@ import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, Outcome, fixture}
-import scorex.core.NodeViewModifier._
+import scorex.core.ModifierId
 import scorex.crypto.encode.Base58
 import scorex.testkit.utils.FileUtils
 

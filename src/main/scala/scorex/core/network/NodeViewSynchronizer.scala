@@ -1,9 +1,8 @@
 package scorex.core.network
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.{LocalInterface, NodeViewHolder, NodeViewModifier}
+import scorex.core._
 import scorex.core.NodeViewHolder._
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}

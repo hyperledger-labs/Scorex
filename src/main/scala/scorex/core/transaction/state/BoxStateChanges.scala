@@ -2,10 +2,11 @@ package scorex.core.transaction.state
 
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.crypto.authds._
 import scorex.crypto.encode.Base58
 
 abstract class BoxStateChangeOperation[P <: Proposition, BX <: Box[P]]
-case class Removal[P <: Proposition, BX <: Box[P]](boxId: Array[Byte]) extends BoxStateChangeOperation[P, BX]{
+case class Removal[P <: Proposition, BX <: Box[P]](boxId: ADKey) extends BoxStateChangeOperation[P, BX]{
   override def toString: String = s"Removal(id: ${Base58.encode(boxId)})"
 }
 

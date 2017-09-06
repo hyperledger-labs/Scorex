@@ -2,6 +2,7 @@ package hybrid
 
 import commons.ExamplesCommonGenerators
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
+import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HistoryStorage, HybridHistory, HybridSyncInfo}
@@ -11,7 +12,7 @@ import io.circe
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
-import scorex.core.NodeViewModifier
+import scorex.core.{ModifierId, NodeViewModifier, VersionTag}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.settings.Settings
@@ -20,6 +21,7 @@ import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
 import scorex.crypto.hash.Blake2b256
+import scorex.crypto.signatures.{PublicKey, Signature}
 import scorex.testkit.utils.{FileUtils, NoShrink}
 
 import scala.concurrent.duration._
@@ -38,14 +40,15 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
 
   lazy val hybridSyncInfoGen: Gen[HybridSyncInfo] = for {
     answer <- Arbitrary.arbitrary[Boolean]
-    pos <- genBytesList(NodeViewModifier.ModifierIdSize)
-    pow <- genBytesList(NodeViewModifier.ModifierIdSize)
+    pos <- modifierIdGen
+    pow <- modifierIdGen
     pows <- Gen.nonEmptyListOf(pow).map(_.take(HybridSyncInfo.MaxLastPowBlocks))
   } yield HybridSyncInfo(answer, pows, pos)
 
-  lazy val signatureGen: Gen[Signature25519] = genBytesList(Signature25519.SignatureSize).map(Signature25519(_))
+  lazy val signatureGen: Gen[Signature25519] = genBytesList(Signature25519.SignatureSize)
+    .map(g => Signature25519(Signature @@ g))
 
-  lazy val blockIdGen: Gen[BlockId] = genBytesList(Block.BlockIdLength)
+  lazy val blockIdGen: Gen[BlockId] = modifierIdGen
 
   lazy val blockIdsGen: Gen[Seq[BlockId]] = Gen.listOf(blockIdGen)
 
@@ -57,12 +60,12 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
     box: PublicKey25519NoncedBox <- noncedBoxGen
     attach: Array[Byte] <- genBoundedBytes(0, 4096)
     generator: PrivateKey25519 <- key25519Gen.map(_._1)
-    posParentId: Array[Byte] <- genBytesList(Block.BlockIdLength)
+    posParentId: ModifierId <- modifierIdGen
   } yield PosBlock.create(posParentId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
 
   lazy val powHeaderGen: Gen[PowBlockHeader] = for {
-    parentId: BlockId <- genBytesList(Block.BlockIdLength)
-    prevPosId: BlockId <- genBytesList(Block.BlockIdLength)
+    parentId: BlockId  <- modifierIdGen
+    prevPosId: BlockId  <- modifierIdGen
     timestamp: Long <- positiveLongGen
     nonce: Long <- positiveLongGen
     brothersCount: Byte <- positiveByteGen
@@ -71,8 +74,8 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
   } yield new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
 
   lazy val powBlockGen: Gen[PowBlock] = for {
-    parentId: BlockId <- genBytesList(Block.BlockIdLength)
-    prevPosId: BlockId <- genBytesList(Block.BlockIdLength)
+    parentId: BlockId  <- modifierIdGen
+    prevPosId: BlockId  <- modifierIdGen
     timestamp: Long <- positiveLongGen
     nonce: Long <- positiveLongGen
     brothersCount: Byte <- positiveByteGen
@@ -86,14 +89,14 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
 
   lazy val noncedBoxGen: Gen[PublicKey25519NoncedBox] = for {
     proposition <- propositionGen
-    nonce <- positiveLongGen
-    value <- positiveLongGen
+    nonce <- nonceGen
+    value <- valueGen
   } yield PublicKey25519NoncedBox(proposition, nonce, value)
 
   lazy val noncedBoxWithKeyGen: Gen[(PublicKey25519NoncedBox, PrivateKey25519)] = for {
     pair <- key25519Gen
-    nonce <- positiveLongGen
-    value <- positiveLongGen
+    nonce <- nonceGen
+    value <- valueGen
   } yield PublicKey25519NoncedBox(pair._2, nonce, value) -> pair._1
 
 
@@ -123,7 +126,7 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
     var history = new HybridHistory(storage, settings, validators, None)
 
     val genesisBlock = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1478164225796L, -308545845552064644L,
-      0, Array.fill(32)(0: Byte), PublicKey25519Proposition(scorex.utils.Random.randomBytes(32)), Seq())
+      0, Array.fill(32)(0: Byte), PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32)), Seq())
     history = history.append(genesisBlock).get._1
     assert(history.modifierById(genesisBlock.id).isDefined)
     history
@@ -138,17 +141,17 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
 
   val stateGen: Gen[HBoxStoredState] = {
     def randomBox(): PublicKey25519NoncedBox = {
-      val value: Long = Random.nextInt(valueSeed) + valueSeed
-      val nonce: Long = Random.nextLong()
+      val value: Value = Value @@ (Random.nextInt(valueSeed) + valueSeed).toLong
+      val nonce: Nonce = Nonce @@ Random.nextLong()
       val keyPair = privKey(value)
       PublicKey25519NoncedBox(keyPair._2, nonce, value)
         .ensuring(box => PrivateKey25519Companion.owns(keyPair._1, box))
     }
 
     val store = new LSMStore(createTempDir)
-    val s0 = HBoxStoredState(store, modifierIdGen.sample.get)
+    val s0 = HBoxStoredState(store, versionTagGen.sample.get)
     val inserts = (1 to 5000).map(_ => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](randomBox()))
-    val result: HBoxStoredState = s0.applyChanges(BoxStateChanges(inserts), modifierIdGen.sample.get).get
+    val result: HBoxStoredState = s0.applyChanges(BoxStateChanges(inserts), versionTagGen.sample.get).get
     Gen.const(result)
   }
 
@@ -200,8 +203,8 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
 
   def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock = {
     syntacticallyValidModifier(curHistory) match {
-      case pow: PowBlock => pow.copy(parentId = hf(pow.parentId))
-      case pos: PosBlock => pos.copy(parentId = hf(pos.parentId))
+      case pow: PowBlock => pow.copy(parentId = ModifierId @@ hf(pow.parentId))
+      case pos: PosBlock => pos.copy(parentId = ModifierId @@ hf(pos.parentId))
     }
   }
 
@@ -238,16 +241,16 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
 
     val genBox: PublicKey25519NoncedBox = stateBoxes.head
     val generator = privKey(genBox.value)._1
-    PosBlock.create(state.version, System.currentTimeMillis(), txs, genBox, attach, generator)
+    PosBlock.create(ModifierId @@ state.version, System.currentTimeMillis(), txs, genBox, attach, generator)
   }
 
   def genValidTransactionPair(state: HBoxStoredState): Seq[SimpleBoxTransaction] = {
     val keys = key25519Gen.apply(Gen.Parameters.default, Seed.random()).get
-    val value = positiveLongGen.apply(Gen.Parameters.default, Seed.random()).get
+    val value = valueGen.apply(Gen.Parameters.default, Seed.random()).get
 
-    val newBox: IndexedSeq[(PublicKey25519Proposition, Long)] = IndexedSeq((keys._2, value))
+    val newBox: IndexedSeq[(PublicKey25519Proposition, Value)] = IndexedSeq((keys._2, value))
     val trx: SimpleBoxTransaction = simpleBoxTransactionGenCustomMakeBoxes(newBox).apply(Gen.Parameters.default, Seed.random()).get
-    val useBox: IndexedSeq[(PrivateKey25519, Long)] = IndexedSeq((keys._1, trx.newBoxes.toVector(0).nonce))
+    val useBox: IndexedSeq[(PrivateKey25519, Nonce)] = IndexedSeq((keys._1, trx.newBoxes.toVector(0).nonce))
 
     var trxnPair = Seq[SimpleBoxTransaction]()
     trxnPair = trxnPair :+ trx

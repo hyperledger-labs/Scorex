@@ -27,7 +27,7 @@ version := "2.0.0-RC3-SNAPSHOT"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-val circeVersion = "0.+"
+val circeVersion = "0.8.0"
 
 val networkDependencies = Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.4.+",
@@ -58,8 +58,7 @@ val testingDependencies = Seq(
 )
 
 libraryDependencies ++= Seq(
-  "com.chuusai" %% "shapeless" % "2.+",
-  "org.scorexfoundation" %% "scrypto" % "1.3.+"
+  "org.scorexfoundation" %% "scrypto" % "2.+"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 

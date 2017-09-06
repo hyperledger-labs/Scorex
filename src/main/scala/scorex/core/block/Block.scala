@@ -1,7 +1,7 @@
 package scorex.core.block
 
 import io.circe.Json
-import scorex.core.{NodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
+import scorex.core.{ModifierId, NodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.consensus.History
 import scorex.core.serialization.{JsonSerializable, Serializer}
@@ -35,7 +35,7 @@ trait Block[P <: Proposition, TX <: Transaction[P]]
 }
 
 object Block {
-  type BlockId = NodeViewModifier.ModifierId
+  type BlockId = ModifierId
   type Timestamp = Long
   type Version = Byte
 

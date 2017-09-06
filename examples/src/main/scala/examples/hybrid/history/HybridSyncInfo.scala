@@ -1,11 +1,10 @@
 package examples.hybrid.history
 
 import examples.hybrid.blocks.{PosBlock, PowBlock}
-import scorex.core.NodeViewModifier
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.SyncInfoMessageSpec
 import scorex.core.serialization.Serializer
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 
 import scala.util.Try
 
@@ -54,9 +53,10 @@ object HybridSyncInfoSerializer extends Serializer[HybridSyncInfo] {
     require(bytes.length == 2 + (lastPowBlockIdsSize + 1) * NodeViewModifier.ModifierIdSize)
 
     val lastPowBlockIds = bytes.slice(2, 2 + NodeViewModifier.ModifierIdSize * lastPowBlockIdsSize)
-      .grouped(NodeViewModifier.ModifierIdSize).toSeq
+      .grouped(NodeViewModifier.ModifierIdSize).toSeq.map(id => ModifierId @@ id)
 
-    val lastPosBlockId = bytes.slice(2 + NodeViewModifier.ModifierIdSize * lastPowBlockIdsSize, bytes.length)
+    val lastPosBlockId = ModifierId @@ bytes
+      .slice(2 + NodeViewModifier.ModifierIdSize * lastPowBlockIdsSize, bytes.length)
 
     HybridSyncInfo(answer, lastPowBlockIds, lastPosBlockId)
   }

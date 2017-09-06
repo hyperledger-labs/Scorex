@@ -5,13 +5,15 @@ import java.io.File
 import com.google.common.primitives.Longs
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
+import examples.curvepos.{Nonce, Value}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
+import scorex.core.VersionTag
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.MinimalState.VersionTag
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
+import scorex.crypto.authds._
 import scorex.crypto.encode.Base58
 import scorex.mid.state.BoxMinimalState
 
@@ -26,7 +28,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HBoxStoredState] with ScorexLogging {
 
   assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
-  s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
+    s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridBlock
@@ -100,22 +102,22 @@ object HBoxStoredState {
     mod match {
       case pb: PowBlock =>
         val proposition: PublicKey25519Proposition = pb.generatorProposition
-        val nonce: Long = SimpleBoxTransaction.nonceFromDigest(mod.id)
-        val value: Long = 1
+        val nonce: Nonce = SimpleBoxTransaction.nonceFromDigest(mod.id)
+        val value: Value = Value @@ 1L
         val minerBox = PublicKey25519NoncedBox(proposition, nonce, value)
         Success(BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(minerBox))))
       case ps: PosBlock =>
         Try {
           val initial = (Seq(): Seq[Array[Byte]], Seq(): Seq[PublicKey25519NoncedBox], 0L)
 
-          val (toRemove: Seq[Array[Byte]], toAdd: Seq[PublicKey25519NoncedBox], reward) =
+          val (toRemove: Seq[ADKey], toAdd: Seq[PublicKey25519NoncedBox], reward) =
             ps.transactions.foldLeft(initial) { case ((sr, sa, f), tx) =>
-              (sr ++ tx.boxIdsToOpen.toSet, sa ++ tx.newBoxes.toSet, f + tx.fee)
+              ((sr ++ tx.boxIdsToOpen.toSet).map(id => ADKey @@ id), sa ++ tx.newBoxes.toSet, f + tx.fee)
             }
 
           //for PoS forger reward box, we use block Id as a nonce
-          val forgerNonce = Longs.fromByteArray(ps.id.take(8))
-          val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, reward)
+          val forgerNonce = Nonce @@ Longs.fromByteArray(ps.id.take(8))
+          val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, Value @@ reward)
 
           val ops: Seq[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
             toRemove.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)) ++
@@ -141,14 +143,14 @@ object HBoxStoredState {
         stateStorage.close()
       }
     })
-    val version = stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
+    val version = VersionTag @@ stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
 
     HBoxStoredState(stateStorage, version)
   }
 
   def genesisState(settings: Settings, initialBlocks: Seq[HybridBlock]): HBoxStoredState = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
-      state.changes(mod).flatMap(cs => state.applyChanges(cs, mod.id)).get
+      state.changes(mod).flatMap(cs => state.applyChanges(cs, VersionTag @@ mod.id)).get
     }
   }
 }

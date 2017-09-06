@@ -43,7 +43,7 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
       } else {
         val powBlock = pfi.bestPowBlock
         log.debug(s"Trying to generate PoS block on top of ${powBlock.encodedId} with balance " +
-          s"${boxKeys.map(_._1.value).sum}")
+          s"${boxKeys.map(_._1.value.toLong).sum}")
         val attachment = Random.randomBytes(settings.posAttachmentSize)
         posIteration(powBlock, boxKeys, pfi.txsToInclude, attachment, target) match {
           case Some(posBlock) =>

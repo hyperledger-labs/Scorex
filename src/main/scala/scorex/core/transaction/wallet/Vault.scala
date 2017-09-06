@@ -1,6 +1,6 @@
 package scorex.core.transaction.wallet
 
-import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier}
+import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier, VersionTag}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 
@@ -13,8 +13,6 @@ import scala.util.Try
 trait Vault[P <: Proposition, TX <: Transaction[P],
             PMOD <: PersistentNodeViewModifier, V <: Vault[P, TX, PMOD, V]] extends NodeViewComponent {
   self: V =>
-
-  type VersionTag = NodeViewModifier.ModifierId
 
   def scanOffchain(tx: TX): V
 
