@@ -36,6 +36,7 @@ trait AccountTransactionsHistory[P <: Proposition, TX <: Transaction[P]] extends
 trait MinimalState[M <: PersistentNodeViewModifier, MS <: MinimalState[M, MS]] extends NodeViewComponent {
   self: MS =>
 
+  //must be ID of last applied modifier
   def version: VersionTag
 
   def applyModifier(mod: M): Try[MS]
