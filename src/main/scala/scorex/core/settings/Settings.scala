@@ -52,50 +52,8 @@ trait Settings extends ScorexLogging {
 
   lazy val logDirOpt = folderOpt("logDir")
 
-  //p2p
-  lazy val DefaultPort = 9084
-
-  lazy val DefaultHandshakleTimeout = 5000
-
-  lazy val p2pSettings = settingsJSON("p2p").asObject.get.toMap
-
-  lazy val nodeNonce: Long = (Random.nextInt(1000) + 1000) * Random.nextInt(1000) + Random.nextInt(1000)
-
-  lazy val addedMaxDelay: Option[Int] = p2pSettings.get("addedMaxDelay").flatMap(_.asNumber).flatMap(_.toInt).map { i =>
-    if (i == 0) None else Some(i)
-  }.getOrElse(None)
-
-  lazy val nodeName = p2pSettings.get("name").flatMap(_.asString)
-    .getOrElse(Random.nextPrintableChar().toString + nodeNonce)
-
-  lazy val networkChunkSize:Int = p2pSettings.get("networkChunkSize").flatMap(_.asNumber).flatMap(_.toInt)
-    .getOrElse(DefaultNetworkChunkSize)
-
-  lazy val localOnly = p2pSettings.get("localOnly").flatMap(_.asBoolean).getOrElse(false)
-
-  lazy val knownPeers = Try {
-    p2pSettings.get("knownPeers").flatMap(_.asArray).map(_.flatMap(_.asString)).map(_.map { addr =>
-      val addrParts = addr.split(":")
-      val port = if (addrParts.size == 2) addrParts(1).toInt else DefaultPort
-      new InetSocketAddress(addrParts(0), port)
-    })
-  }.toOption.flatten.getOrElse(Seq[InetSocketAddress]())
-
-  lazy val bindAddress = p2pSettings.get("bindAddress").flatMap(_.asString).getOrElse(DefaultBindAddress)
-  lazy val maxConnections = p2pSettings.get("maxConnections")
-    .flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultMaxConnections)
-  lazy val connectionTimeout = p2pSettings.get("connectionTimeout")
-    .flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultConnectionTimeout)
-  lazy val upnpEnabled = p2pSettings.get("upnp").flatMap(_.asBoolean).getOrElse(true)
-  lazy val upnpGatewayTimeout = p2pSettings.get("upnpGatewayTimeout").flatMap(_.asNumber).flatMap(_.toInt)
-  lazy val upnpDiscoverTimeout = p2pSettings.get("upnpDiscoverTimeout").flatMap(_.asNumber).flatMap(_.toInt)
-  lazy val port = p2pSettings.get("port").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultPort)
-  lazy val declaredAddress = p2pSettings.get("myAddress").flatMap(_.asString)
-
-  lazy val handshakeTimeout: Int = p2pSettings.get("handshakeTimeout")
-    .flatMap(_.asNumber)
-    .flatMap(_.toInt)
-    .getOrElse(DefaultHandshakleTimeout)
+  //There are different bind addresses
+  lazy val bindAddress: String = ???
 
   lazy val rpcPort = settingsJSON.get("rpcPort").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultRpcPort)
 
@@ -149,5 +107,7 @@ trait Settings extends ScorexLogging {
 }
 
 object Settings {
+
+
   val VersionNumbers = 3 //a version is about 3 numbers e.g. 1.0.1
 }

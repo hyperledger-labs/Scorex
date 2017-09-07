@@ -10,7 +10,7 @@ import com.google.common.primitives.Ints
 import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
-import scorex.core.settings.Settings
+import scorex.core.settings.{NetworkSettings, ScorexSettings, Settings}
 import scorex.core.utils.ScorexLogging
 
 import scala.util.{Failure, Random, Success}
@@ -29,7 +29,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
 case object Ack extends Event
 
 
-case class PeerConnectionHandler(settings: Settings,
+case class PeerConnectionHandler(settings: NetworkSettings,
                                  networkControllerRef: ActorRef,
                                  peerManager: ActorRef,
                                  messagesHandler: MessageHandler,

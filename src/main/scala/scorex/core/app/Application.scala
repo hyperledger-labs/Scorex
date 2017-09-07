@@ -8,7 +8,7 @@ import scorex.core.api.http.{ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.network.peer.PeerManager
-import scorex.core.settings.Settings
+import scorex.core.settings.{ScorexSettings, Settings}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
@@ -26,7 +26,7 @@ trait Application extends ScorexLogging {
   val ApplicationNameLimit = 50
 
   //settings
-  implicit val settings: Settings
+  implicit val settings: ScorexSettings
 
   //api
   val apiRoutes: Seq[ApiRoute]
@@ -37,7 +37,7 @@ trait Application extends ScorexLogging {
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
   //p2p
-  lazy val upnp = new UPnP(settings)
+  lazy val upnp = new UPnP(settings.networkSettings)
 
   private lazy val basicSpecs =
     Seq(
@@ -83,7 +83,7 @@ trait Application extends ScorexLogging {
 
   def stopAll(): Unit = synchronized {
     log.info("Stopping network services")
-    if (settings.upnpEnabled) upnp.deletePort(settings.port)
+    if (settings.networkSettings.upnpEnabled) upnp.deletePort(settings.networkSettings.port)
     networkController ! NetworkController.ShutdownNetwork
 
     log.info("Stopping actors (incl. block generator)")

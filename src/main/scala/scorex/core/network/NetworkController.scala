@@ -9,7 +9,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.core.network.peer.PeerManager
-import scorex.core.settings.Settings
+import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.JavaConverters._
@@ -17,14 +17,14 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.existentials
-import scala.util.{Failure, Success, Try}
 import scala.reflect.runtime.universe.TypeTag
+import scala.util.{Failure, Success, Try}
 
 /**
   * Control all network interaction
   * must be singleton
   */
-class NetworkController(settings: Settings,
+class NetworkController(settings: NetworkSettings,
                         messageHandler: MessageHandler,
                         upnp: UPnP,
                         peerManagerRef: ActorRef
@@ -177,4 +177,5 @@ object NetworkController {
   case class ConnectTo(address: InetSocketAddress)
 
   case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
+
 }

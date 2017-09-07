@@ -3,13 +3,13 @@ package scorex.core.network
 import java.net.InetAddress
 
 import org.bitlet.weupnp.{GatewayDevice, GatewayDiscover}
-import scorex.core.settings.Settings
+import scorex.core.settings.{NetworkSettings, Settings}
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class UPnP(settings: Settings) extends ScorexLogging {
+class UPnP(settings: NetworkSettings) extends ScorexLogging {
 
   private var gateway: Option[GatewayDevice] = None
 
