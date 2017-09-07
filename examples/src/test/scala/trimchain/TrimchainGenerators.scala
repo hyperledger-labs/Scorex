@@ -15,7 +15,7 @@ trait TrimchainGenerators extends ExamplesCommonGenerators {
 
   val ticketGen: Gen[Ticket] = for {
     minerKey: Array[Byte] <- genBytesList(TicketSerializer.MinerKeySize)
-    partialProofs: Seq[SerializedAdProof] <- Gen.nonEmptyListOf(nonEmptyBytesGen).map(b => ADProof @@ b)
+    partialProofs: Seq[SerializedAdProof] <- Gen.nonEmptyListOf(nonEmptyBytesGen).map(b => SerializedAdProof @@ b)
   } yield Ticket(minerKey, partialProofs)
 
   val blockHeaderGen: Gen[BlockHeader] = for {
