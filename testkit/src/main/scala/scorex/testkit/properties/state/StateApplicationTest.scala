@@ -30,7 +30,7 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
     }
   }
 
-  property("Invalid modifier could not be applied state") {
+  property("Invalid modifier could not be applied to a state") {
     val s: ST = stateGen.sample.get
     check(checksToMake) { _ =>
       val ver = s.version

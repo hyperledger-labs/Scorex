@@ -17,7 +17,7 @@ import scorex.crypto.authds._
 import scorex.crypto.encode.Base58
 import scorex.mid.state.BoxMinimalState
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 
 case class HBoxStoredState(store: LSMStore, override val version: VersionTag) extends
@@ -89,6 +89,9 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       store.rollback(ByteArrayWrapper(version))
       new HBoxStoredState(store, version)
     }
+  }.recoverWith{case e =>
+    log.error("Cant' do rollback: ", e)
+    Failure[HBoxStoredState](e): Try[HBoxStoredState]
   }
 
   private def lastVersionString = store.lastVersionID.map(v => Base58.encode(v.data)).getOrElse("None")
