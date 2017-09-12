@@ -12,7 +12,7 @@ import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, 
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
 import scorex.crypto.encode.Base58
-import scorex.crypto.hash.{Blake2b256Unsafe, Digest, Digest32}
+import scorex.crypto.hash.{Blake2b256Unsafe, Digest32}
 
 import scala.util.{Random, Success, Try}
 import PersistentAuthenticatedUtxo.ProverType
@@ -138,6 +138,8 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     assert(newSt.version sameElements newVersion, s"New version don't match")
     newSt
   }
+
+  override def maxRollbackDepth: Int = store.keepVersions
 
   override def rollbackTo(version: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
     if (store.lastVersionID.exists(_.data sameElements version)) {

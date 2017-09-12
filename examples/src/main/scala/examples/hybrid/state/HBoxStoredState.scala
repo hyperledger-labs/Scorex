@@ -81,6 +81,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     newSt
   }
 
+  override def maxRollbackDepth: Int = store.keepVersions
+
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
     if (store.lastVersionID.exists(_.data sameElements version)) {
       this
