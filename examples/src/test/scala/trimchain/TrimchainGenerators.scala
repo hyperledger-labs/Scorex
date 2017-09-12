@@ -6,7 +6,7 @@ import examples.trimchain.core._
 import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.ModifierId
-import scorex.crypto.authds._
+import scorex.crypto.authds.SerializedAdProof
 
 trait TrimchainGenerators extends ExamplesCommonGenerators {
 
@@ -15,7 +15,7 @@ trait TrimchainGenerators extends ExamplesCommonGenerators {
 
   val ticketGen: Gen[Ticket] = for {
     minerKey: Array[Byte] <- genBytesList(TicketSerializer.MinerKeySize)
-    partialProofs: Seq[ADProof] <- Gen.nonEmptyListOf(nonEmptyBytesGen).map(b => ADProof @@ b)
+    partialProofs: Seq[SerializedAdProof] <- Gen.nonEmptyListOf(nonEmptyBytesGen).map(b => SerializedAdProof @@ b)
   } yield Ticket(minerKey, partialProofs)
 
   val blockHeaderGen: Gen[BlockHeader] = for {

@@ -1,8 +1,7 @@
 package examples.curvepos.transaction
 
-import scorex.core.VersionTag
+import scorex.core.{ModifierId, VersionTag}
 import scorex.core.transaction.Transaction
-import scorex.core.transaction.Transaction.TransactionId
 import scorex.core.transaction.box.proposition.Constants25519.PrivKeyLength
 import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
 import scorex.core.transaction.state.PrivateKey25519
@@ -13,8 +12,8 @@ import scorex.utils.Random
 import scala.util.Try
 
 case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
-                        chainTransactions: Map[TransactionId, SimpleTransaction] = Map(),
-                        offchainTransactions: Map[TransactionId, SimpleTransaction] = Map(),
+                        chainTransactions: Map[ModifierId, SimpleTransaction] = Map(),
+                        offchainTransactions: Map[ModifierId, SimpleTransaction] = Map(),
                         currentBalance: Long = 0)
   extends Wallet[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleWallet] {
   override type S = PrivateKey25519

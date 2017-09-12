@@ -5,27 +5,28 @@ import java.io.File
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.trimchain.modifiers.{BlockHeader, TBlock, TModifier, UtxoSnapshot}
+import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
+import scorex.core.VersionTag
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
+import scorex.crypto.authds.{ADKey, ADValue, SerializedAdProof}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.{Blake2b256Unsafe, Digest32}
-
-import scala.util.{Random, Success, Try}
-import PersistentAuthenticatedUtxo.ProverType
-import scorex.core.VersionTag
-import scorex.crypto.authds.{ADKey, ADProof, ADValue}
 import scorex.mid.state.BoxMinimalState
 
+import scala.util.{Random, Success, Try}
+
 trait AuthenticatedUtxo {
+
   import PublicKey25519NoncedBox.BoxKeyLength
 
   def prover: ProverType
 
-  def lookupProof(ids: Seq[ADKey]): Try[ADProof] = Try {
+  def lookupProof(ids: Seq[ADKey]): Try[SerializedAdProof] = Try {
     prover.generateProof() // todo: check prover's state in more elegant way, by calling something like ".isClean()"
     ids.foreach { id =>
       require(id.length == BoxKeyLength)
@@ -93,7 +94,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
   //Validate transactions in block and generator box
   override def validate(mod: TModifier): Try[Unit] = Try {
-//    assert(mod.parentId.sameElements(version))  todo: fix & uncomment
+    //    assert(mod.parentId.sameElements(version))  todo: fix & uncomment
 
     mod match {
       case u: UtxoSnapshot => if (!this.isEmpty) throw new Exception("Utxo Set already imported")
@@ -110,17 +111,17 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
                             newVersion: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
 
     val (boxIdsToRemove, boxesToAdd) = changes.operations
-      .foldLeft(Seq[Array[Byte]]() -> Seq[PublicKey25519NoncedBox]()) {case ((btr, bta), op) =>
-      op match {
-        case Insertion(b) =>
-          prover.performOneOperation(Insert(b.id, ADValue @@ b.bytes))
-          (btr, bta :+ b)
-        case Removal(bid) =>
-          assert(store.get(ByteArrayWrapper(bid)).isDefined)
-          prover.performOneOperation(Remove(bid))
-          (btr :+ bid, bta)
+      .foldLeft(Seq[Array[Byte]]() -> Seq[PublicKey25519NoncedBox]()) { case ((btr, bta), op) =>
+        op match {
+          case Insertion(b) =>
+            prover.performOneOperation(Insert(b.id, ADValue @@ b.bytes))
+            (btr, bta :+ b)
+          case Removal(bid) =>
+            assert(store.get(ByteArrayWrapper(bid)).isDefined)
+            prover.performOneOperation(Remove(bid))
+            (btr :+ bid, bta)
+        }
       }
-    }
 
     prover.generateProof()
 
@@ -139,8 +140,6 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     newSt
   }
 
-  override def maxRollbackDepth: Int = store.keepVersions
-
   override def rollbackTo(version: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
     if (store.lastVersionID.exists(_.data sameElements version)) {
       this
@@ -155,8 +154,8 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
   def isEmpty: Boolean = store.getAll().isEmpty
 
-  def randomElement: Try[PublicKey25519NoncedBox] = Try{
-    val bytes = store.getAll().drop(Random.nextInt(size-1)).next()._2.data
+  def randomElement: Try[PublicKey25519NoncedBox] = Try {
+    val bytes = store.getAll().drop(Random.nextInt(size - 1)).next()._2.data
     PublicKey25519NoncedBoxSerializer.parseBytes(bytes)
   }.flatten
 }
@@ -177,22 +176,22 @@ object PersistentAuthenticatedUtxo {
 
   //todo: fees
   def changes(txs: Seq[SimpleBoxTransaction]): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
-    Try {
-      type SC = Seq[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
+  Try {
+    type SC = Seq[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
 
-      val initial = (Seq(): SC, 0L) //no reward additional to tx fees
+    val initial = (Seq(): SC, 0L) //no reward additional to tx fees
 
-      //todo: reward is not used
-      val (ops, reward) =
-      txs.foldLeft(initial) { case ((os, f), tx) =>
-        (os ++
-          (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](ADKey @@ id)): SC)
-          ++ tx.newBoxes.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
-          f + tx.fee)
-      }
-
-      BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
+    //todo: reward is not used
+    val (ops, reward) =
+    txs.foldLeft(initial) { case ((os, f), tx) =>
+      (os ++
+        (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](ADKey @@ id)): SC)
+        ++ tx.newBoxes.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
+        f + tx.fee)
     }
+
+    BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
+  }
 
   def changes(mod: TModifier): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
 
@@ -203,7 +202,7 @@ object PersistentAuthenticatedUtxo {
       case ps: TBlock =>
         changes(ps.transactions)
 
-        //todo: implement
+      //todo: implement
       case u: UtxoSnapshot => ???
     }
   }

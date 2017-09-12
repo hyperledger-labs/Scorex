@@ -9,7 +9,7 @@ use *TransactionsCarryingPersistentNodeViewModifier* descendant for modifiers wi
 * *FastCryptographicHash* removed
 * Some obsolete code removed, such as *temp/mining* folder, *ScoreObserver* class
 * Scrypto 2.0.0
-* Tags from *suppertagged* framework for primitive types
+* Using tagged types instead of *Array[Byte]*, *suppertagged* microframework is used for that 
 
 2.0.0-RC2
 ---------
