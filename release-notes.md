@@ -1,6 +1,7 @@
 2.0.0-RC3
 ---------
 * *MinimalState* interface simplification: *validate()* puled away from the basic trait 
+* *maxRollback* field added to *MinimalState*
 * No *transactions* field with an optional value in *PersistentNodeViewModifier*, 
 use *TransactionsCarryingPersistentNodeViewModifier* descendant for modifiers with transactions.
 * Non-exhaustive pattern-matching fix in *NodeViewholder.pmodModify()*
