@@ -139,20 +139,24 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
   //todo: make by value again, check why fails
   private def privKey(value: Long) = PrivateKey25519Companion.generateKeys(("secret_" + value).getBytes)
 
-  val stateGen: Gen[HBoxStoredState] = tempDirGen.map { dir =>
-    def randomBox(): PublicKey25519NoncedBox = {
-      val value: Value = Value @@ (Random.nextInt(valueSeed) + valueSeed).toLong
-      val nonce: Nonce = Nonce @@ Random.nextLong()
-      val keyPair = privKey(value)
-      PublicKey25519NoncedBox(keyPair._2, nonce, value)
-        .ensuring(box => PrivateKey25519Companion.owns(keyPair._1, box))
-    }
+  val stateGen: Gen[HBoxStoredState] =
+    for {
+      dir <- tempDirGen
+      keepVersions <- Gen.chooseNum(5, 20)
+    } yield {
+      def randomBox(): PublicKey25519NoncedBox = {
+        val value: Value = Value @@ (Random.nextInt(valueSeed) + valueSeed).toLong
+        val nonce: Nonce = Nonce @@ Random.nextLong()
+        val keyPair = privKey(value)
+        PublicKey25519NoncedBox(keyPair._2, nonce, value)
+          .ensuring(box => PrivateKey25519Companion.owns(keyPair._1, box))
+      }
 
-    val store = new LSMStore(dir)
-    val s0 = HBoxStoredState(store, versionTagGen.sample.get)
-    val inserts = (1 to 5000).map(_ => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](randomBox()))
-    s0.applyChanges(BoxStateChanges(inserts), versionTagGen.sample.get).get
-  }
+      val store = new LSMStore(dir, keepVersions = keepVersions)
+      val s0 = HBoxStoredState(store, versionTagGen.sample.get)
+      val inserts = (1 to 5000).map(_ => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](randomBox()))
+      s0.applyChanges(BoxStateChanges(inserts), versionTagGen.sample.get).get
+    }
 
   //Generators
   val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen

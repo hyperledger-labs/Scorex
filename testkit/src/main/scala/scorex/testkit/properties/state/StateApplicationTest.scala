@@ -1,7 +1,10 @@
 package scorex.testkit.properties.state
 
+import org.scalacheck.Gen
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.state.MinimalState
+
+import scala.collection.mutable.ListBuffer
 
 trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[PM, ST]] extends StateTests[PM, ST] {
 
@@ -60,6 +63,37 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
       s = sTry2.get
       s.version.sameElements(ver) shouldBe false
       s.version.sameElements(ver2) shouldBe true
+    }
+  }
+
+  property("Application after rollback is possible (within maxRollbackDepth)") {
+    var s: ST = stateGen.sample.get
+    check(checksToMake) { _ =>
+      val buf = new ListBuffer[PM]()
+      val maxRollbackDepth = Gen.chooseNum(1, s.maxRollbackDepth).sample.get
+      val ver = s.version
+
+      s = (0 until maxRollbackDepth).foldLeft(s) { case (state, _) =>
+        val modifier = semanticallyValidModifier(state)
+        buf += modifier
+        val sTry = state.applyModifier(modifier)
+        sTry.toOption shouldBe defined
+        sTry.get
+      }
+
+      val lastVersion = s.version
+      val rollbackTry = s.rollbackTo(ver)
+      rollbackTry.toOption shouldBe defined
+      s = rollbackTry.get
+      s.version.sameElements(ver) shouldBe true
+
+      buf.foreach { m =>
+        val sTry = s.applyModifier(m)
+        sTry.toOption shouldBe defined
+        s = sTry.get
+      }
+
+      s.version.sameElements(lastVersion) shouldBe true
     }
   }
 }
