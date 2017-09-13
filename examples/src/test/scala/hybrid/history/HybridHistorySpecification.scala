@@ -16,10 +16,11 @@ class HybridHistorySpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
+  var history = historyGen.sample.get
+
   //Generate chain
   property("Block application and HybridHistory.continuationIds") {
     var ids: Seq[ModifierId] = Seq()
-    var history = historyGen.sample.get
     forAll(posBlockGen, powBlockGen) { (posR, powR) =>
       if (history.height <= HybridHistory.DifficultyRecalcPeriod) {
         val posBlock = posR.copy(parentId = history.bestPowId)
@@ -63,7 +64,6 @@ class HybridHistorySpecification extends PropSpec
   }
 
   property("History comparison") {
-    var history = historyGen.sample.get
     assert(history.height >= HybridHistory.DifficultyRecalcPeriod)
     //TODO test for completed pairs
     assert(!history.pairCompleted)
