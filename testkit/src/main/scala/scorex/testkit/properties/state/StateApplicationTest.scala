@@ -41,8 +41,7 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
     }
   }
 
-  //todo: fix
-  ignore("Application after rollback is possible") {
+  property("Application after rollback is possible") {
     var s: ST = stateGen.sample.get
     check(checksToMake) { _ =>
       val ver = s.version
