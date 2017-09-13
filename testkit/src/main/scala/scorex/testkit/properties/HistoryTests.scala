@@ -11,7 +11,7 @@ import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.SyntacticallyTargetedModifierProducer
 
 
-trait HistoryAppendBlockTest[P <: Proposition,
+trait HistoryTests[P <: Proposition,
                               TX <: Transaction[P],
                               PM <: PersistentNodeViewModifier,
                               SI <: SyncInfo,

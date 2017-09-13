@@ -27,7 +27,7 @@ HT <: History[PM, SI, HT]]
   extends
     BoxStateChangesGenerationTest[P, TX, PM, B, ST]
     with StateApplicationTest[PM, ST]
-    with HistoryAppendBlockTest[P, TX, PM, SI, HT]
+    with HistoryTests[P, TX, PM, SI, HT]
     with BoxStateApplyChangesTest[P, TX, PM, B, ST]
     with WalletSecretsTest[P, TX, PM]
     with BoxStateRollbackTest[P, TX, PM, CTM, B, ST]
