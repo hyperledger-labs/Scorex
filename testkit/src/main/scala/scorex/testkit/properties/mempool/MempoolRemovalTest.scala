@@ -26,13 +26,13 @@ SI <: SyncInfo] extends PropSpec
   with MemoryPoolTest[P, TX, MPool]
   with ArbitraryTransactionsCarryingModifierProducer[P, TX, MPool, PM, CTM] {
 
-  val history: HT
+  val historyGen: Gen[HT]
 
   //todo: this test doesn't check anything. It should be reworked as a test for node view holder
   property("Transactions once added to block should be removed from Mempool") {
     forAll(Gen.choose(1, 10)) { noOfTransactionsFromMempool: Int =>
       var m: MPool = memPool
-      var h: HT = history
+      var h: HT = historyGen.sample.get
       forAll(transactionGenerator) { tx: TX =>
         m = m.put(tx).get
       }

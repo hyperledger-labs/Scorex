@@ -8,7 +8,6 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.crypto.encode.Base58
-import scorex.utils.Random
 
 
 class HybridHistorySpecification extends PropSpec
@@ -17,8 +16,7 @@ class HybridHistorySpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  var history = generateHistory
-
+  var history = historyGen.sample.get
 
   //Generate chain
   property("Block application and HybridHistory.continuationIds") {
