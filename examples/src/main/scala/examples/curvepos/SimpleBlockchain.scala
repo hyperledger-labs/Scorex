@@ -33,7 +33,7 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
     if (blockIds.isEmpty || (lastBlock.id sameElements parentId)) {
       val h = height() + 1
       val newChain = SimpleBlockchain(blockIds + (h -> blockId), blocks + (blockId -> block))
-      Success(newChain, ProgressInfo(None, Seq(), Seq(block)))
+      Success(newChain, ProgressInfo(None, Seq(), Seq(block), Seq()))
     } else {
       val e = new Exception(s"Last block id is ${Base58.encode(blockIds.last._2)}, expected ${Base58.encode(parentId)}}")
       Failure(e)
@@ -94,7 +94,8 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
   }
 
   override def reportSemanticValidity(modifier: SimpleBlock,
-                                      valid: Boolean): (SimpleBlockchain, ProgressInfo[SimpleBlock]) = ???
+                                      valid: Boolean,
+                                      lastApplied: ModifierId): (SimpleBlockchain, ProgressInfo[SimpleBlock]) = ???
 
   override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value = ???
 }

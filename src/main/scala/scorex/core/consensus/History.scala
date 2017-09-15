@@ -65,7 +65,7 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
 
   def append(modifier: PM): Try[(HT, ProgressInfo[PM])]
 
-  def reportSemanticValidity(modifier: PM, valid: Boolean): (HT, ProgressInfo[PM])
+  def reportSemanticValidity(modifier: PM, valid: Boolean, lastApplied: ModifierId): (HT, ProgressInfo[PM])
 
   def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value
 
@@ -102,7 +102,9 @@ object History {
 
   case class ProgressInfo[PM <: PersistentNodeViewModifier](branchPoint: Option[ModifierId],
                                                             toRemove: Seq[PM],
-                                                            toApply: Seq[PM]) {
+                                                            toApply: Seq[PM],
+                                                            toDownload: Seq[PM]
+                                                           ) {
 
     require(branchPoint.isDefined == toRemove.nonEmpty)
     require(toRemove.headOption.map(_.parentId).flatMap(pid => branchPoint.map(_.sameElements(pid))).getOrElse(true))
