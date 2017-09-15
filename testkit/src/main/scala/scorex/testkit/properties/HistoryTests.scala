@@ -27,37 +27,60 @@ trait HistoryTests[P <: Proposition,
 
   val historyGen: Gen[HT]
 
-  val validModifierCase: HT => Unit = { history =>
-    var h = history
-    val b = syntacticallyValidModifier(h)
-    h.applicable(b) shouldBe true
-    h.modifierById(b.id) shouldBe None
+  lazy val generatorWithValidModifier: Gen[(HT, PM)] = historyGen.map { h => (h, syntacticallyValidModifier(h))}
+  lazy val generatorWithInvalidModifier: Gen[(HT, PM)] = historyGen.map { h => (h, syntacticallyInvalidModifier(h))}
 
-    h = h.append(b).get._1
+  private def propertyNameGenerator(propName: String): String = s"HistoryTests: $propName"
 
-    h.modifierById(b.id) shouldBe Some(b)
-    h.contains(b) shouldBe true
-    h.reportSemanticValidity(b, true, b.id)
-    h.isSemanticallyValid(b.id) shouldBe ModifierSemanticValidity.Valid
+  property(propertyNameGenerator("applicable with valid modifier")) {
+    forAll(generatorWithValidModifier) { case (h, m) => h.applicable(m) shouldBe true}
   }
 
-  val invalidModifierCase: HT => Unit = {history =>
-    val b = syntacticallyInvalidModifier(history)
-    history.applicable(b) shouldBe false
-    history.modifierById(b.id) shouldBe None
-
-    history.append(b).isSuccess shouldBe false
-
-    history.modifierById(b.id) shouldBe None
-    history.contains(b) shouldBe false
-    history.isSemanticallyValid(b.id) shouldBe ModifierSemanticValidity.Absent
+  property(propertyNameGenerator("append valid modifier")) {
+    forAll(generatorWithValidModifier) { case (h, m) => h.append(m).isSuccess shouldBe true }
   }
 
-  property("Valid block is being appended successfully to the history") {
-    forAll(historyGen){ validModifierCase }
+  property(propertyNameGenerator("contain valid modifier after appending")) {
+    forAll(generatorWithValidModifier) { case (h, m) =>
+      h.append(m)
+      h.contains(m) shouldBe true
+    }
   }
 
-  property("Invalid block is NOT being appended successfully to the history") {
-    forAll(historyGen) { invalidModifierCase }
+  property(propertyNameGenerator("find valid modifier after appending by modifierId")) {
+    forAll(generatorWithValidModifier) { case (h, m) =>
+      h.append(m)
+      h.modifierById(m.id) shouldBe defined
+    }
+  }
+
+  property(propertyNameGenerator("report semantically validation after appending valid modifier")) {
+    forAll(generatorWithValidModifier) { case (h, m) =>
+      h.append(m)
+      h.reportSemanticValidity(m, true, m.id)
+      h.isSemanticallyValid(m.id) shouldBe ModifierSemanticValidity.Valid
+    }
+  }
+
+  property(propertyNameGenerator("not applicable with invalid modifier")) {
+    forAll(generatorWithInvalidModifier) { case (h, m) => h.applicable(m) shouldBe false}
+  }
+
+  property(propertyNameGenerator("not append invalid modifier")) {
+    forAll(generatorWithInvalidModifier) { case (h, m) => h.append(m).isSuccess shouldBe false }
+  }
+
+  property(propertyNameGenerator("not contain invalid modifier after appending")) {
+    forAll(generatorWithInvalidModifier) { case (h, m) =>
+      h.append(m)
+      h.contains(m) shouldBe false
+    }
+  }
+
+  property(propertyNameGenerator("not finds valid modifier after appending by modifierId")) {
+    forAll(generatorWithInvalidModifier) { case (h, m) =>
+      h.append(m)
+      h.modifierById(m.id) shouldBe None
+    }
   }
 }
