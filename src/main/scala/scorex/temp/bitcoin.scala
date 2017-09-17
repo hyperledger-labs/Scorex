@@ -1,9 +1,9 @@
-package scorex.core.transaction.box.proposition
-
-import scorex.crypto.encode.Base58
-import scorex.core.transaction.proof.Proof
-
-import scala.util.{Failure, Success, Try}
+//package scorex.core.transaction.box.proposition
+//
+//import scorex.crypto.encode.Base58
+//import scorex.core.transaction.proof.Proof
+//
+//import scala.util.{Failure, Success, Try}
 
 
 //Bitcoin
