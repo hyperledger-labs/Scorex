@@ -40,8 +40,8 @@ object InvSpec extends MessageSpec[InvData] {
     val typeId = ModifierTypeId @@ bytes.head
     val count = Ints.fromByteArray(bytes.slice(1, 5))
 
-    assert(count > 0, "empty inv list")
-    assert(count <= MaxObjects, s"more invs than $MaxObjects in a message")
+    require(count > 0, "empty inv list")
+    require(count <= MaxObjects, s"more invs than $MaxObjects in a message")
 
     val elems = (0 until count).map { c =>
       ModifierId @@ bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize)
@@ -129,7 +129,7 @@ object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
     val lengthBytes = util.Arrays.copyOfRange(bytes, 0, DataLength)
     val length = Ints.fromByteArray(lengthBytes)
 
-    assert(bytes.length == DataLength + (length * (AddressLength + PortLength)), "Data does not match length")
+    require(bytes.length == DataLength + (length * (AddressLength + PortLength)), "Data does not match length")
 
     (0 until length).map { i =>
       val position = lengthBytes.length + (i * (AddressLength + PortLength))

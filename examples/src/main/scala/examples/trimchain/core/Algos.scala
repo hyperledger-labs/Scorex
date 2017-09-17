@@ -78,8 +78,8 @@ object Algos extends App {
   def validatePow(header: BlockHeader,
                   miningStateRoots: IndexedSeq[Array[Byte]],
                   difficulty: BigInt): Boolean = Try {
-    assert(header.correctWorkDone(difficulty))
-    assert(miningStateRoots.length == k)
+    require(header.correctWorkDone(difficulty))
+    require(miningStateRoots.length == k)
 
     val nonce = header.powNonce
     val minerKey = header.ticket.minerKey
