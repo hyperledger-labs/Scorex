@@ -4,6 +4,14 @@
 .ensime_cache/
 scorex.yaml
 
+# Eclipse/Scala IDE files
+.classpath
+.project
+.settings
+.cache-main
+.cache-tests
+/bin/
+
 # scala build folders
 target
 
