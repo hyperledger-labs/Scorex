@@ -12,6 +12,9 @@ scorex.yaml
 .cache-tests
 /bin/
 
+# SBT's temporary files
+.history
+
 # scala build folders
 target
 
