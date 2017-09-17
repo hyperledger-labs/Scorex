@@ -53,7 +53,7 @@ object InvSpec extends MessageSpec[InvData] {
   override def toBytes(data: InvData): Array[Byte] = {
     require(data._2.nonEmpty, "empty inv list")
     require(data._2.size <= MaxObjects, s"more invs than $MaxObjects in a message")
-    data._2.foreach(e => require(e.length == NodeViewModifier.ModifierIdSize))
+    require(data._2.forall(e => e.length == NodeViewModifier.ModifierIdSize))
 
     Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(data._2))
   }
