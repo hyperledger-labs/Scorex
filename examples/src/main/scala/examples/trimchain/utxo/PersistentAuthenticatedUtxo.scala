@@ -59,8 +59,8 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
   import PublicKey25519NoncedBox.{BoxKeyLength, BoxLength}
 
-  assert(size >= 0)
-  assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
+  require(size >= 0)
+  require(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
     s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
   override lazy val prover = proverOpt.getOrElse {
@@ -94,7 +94,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
   //Validate transactions in block and generator box
   override def validate(mod: TModifier): Try[Unit] = Try {
-    //    assert(mod.parentId.sameElements(version))  todo: fix & uncomment
+    //    require(mod.parentId.sameElements(version))  todo: fix & uncomment
 
     mod match {
       case u: UtxoSnapshot => if (!this.isEmpty) throw new Exception("Utxo Set already imported")
