@@ -78,7 +78,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     val newSt = HBoxStoredState(store, newVersion)
     assert(boxIdsToRemove.forall(box => newSt.closedBox(box.data).isEmpty), s"Removed box is still in state")
     newSt
-  } ensuring { _.version sameElements newVersion, s"New version doesn't match" }
+  } ensuring { _.version sameElements newVersion }
 
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
     if (store.lastVersionID.exists(_.data sameElements version)) {

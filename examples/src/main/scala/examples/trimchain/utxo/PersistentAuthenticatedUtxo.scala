@@ -137,7 +137,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     val newSt = PersistentAuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
     assert(boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
     newSt
-  } ensuring { _.version sameElements newVersion, s"New version don't match" }
+  } ensuring { _.version sameElements newVersion }
 
   override def rollbackTo(version: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
     if (store.lastVersionID.exists(_.data sameElements version)) {
