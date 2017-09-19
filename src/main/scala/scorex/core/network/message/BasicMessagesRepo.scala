@@ -40,8 +40,8 @@ object InvSpec extends MessageSpec[InvData] {
     val typeId = ModifierTypeId @@ bytes.head
     val count = Ints.fromByteArray(bytes.slice(1, 5))
 
-    assert(count > 0, "empty inv list")
-    assert(count <= MaxObjects, s"more invs than $MaxObjects in a message")
+    require(count > 0, "empty inv list")
+    require(count <= MaxObjects, s"more invs than $MaxObjects in a message")
 
     val elems = (0 until count).map { c =>
       ModifierId @@ bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize)
@@ -53,7 +53,7 @@ object InvSpec extends MessageSpec[InvData] {
   override def toBytes(data: InvData): Array[Byte] = {
     require(data._2.nonEmpty, "empty inv list")
     require(data._2.size <= MaxObjects, s"more invs than $MaxObjects in a message")
-    data._2.foreach(e => require(e.length == NodeViewModifier.ModifierIdSize))
+    require(data._2.forall(e => e.length == NodeViewModifier.ModifierIdSize))
 
     Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(data._2))
   }
@@ -129,7 +129,7 @@ object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
     val lengthBytes = util.Arrays.copyOfRange(bytes, 0, DataLength)
     val length = Ints.fromByteArray(lengthBytes)
 
-    assert(bytes.length == DataLength + (length * (AddressLength + PortLength)), "Data does not match length")
+    require(bytes.length == DataLength + (length * (AddressLength + PortLength)), "Data does not match length")
 
     (0 until length).map { i =>
       val position = lengthBytes.length + (i * (AddressLength + PortLength))

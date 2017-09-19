@@ -77,7 +77,7 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
     val gw = HWallet.genesisWallet(settings, Seq(posGenesis, powGenesis))
     assert(!Base58.encode(settings.walletSeed).startsWith("genesis") || gw.boxes().map(_.box.value.toLong).sum >= GenesisBalance)
 
-    gw.boxes().foreach(b => assert(gs.closedBox(b.box.id).isDefined))
+    assert(gw.boxes().forall(b => gs.closedBox(b.box.id).isDefined))
 
     (history, gs, gw, SimpleBoxTransactionMemPool.emptyPool)
   }

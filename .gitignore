@@ -4,6 +4,17 @@
 .ensime_cache/
 scorex.yaml
 
+# Eclipse/Scala IDE files
+.classpath
+.project
+.settings
+.cache-main
+.cache-tests
+/bin/
+
+# SBT's temporary files
+.history
+
 # scala build folders
 target
 

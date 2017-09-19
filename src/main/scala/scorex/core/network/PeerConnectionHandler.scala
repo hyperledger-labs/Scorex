@@ -183,7 +183,6 @@ object PeerConnectionHandler {
   case object StartInteraction
 
   private object CommunicationState extends Enumeration {
-    type CommunicationState = Value
 
     val AwaitingHandshake = Value("AwaitingHandshake")
     val WorkingCycle = Value("WorkingCycle")
