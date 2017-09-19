@@ -5,9 +5,8 @@ import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import examples.hybrid.blocks._
-import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
+import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.state.HBoxStoredState
-import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.{ModifierId, NodeViewModifier}
@@ -27,6 +26,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
   with StoreGenerators
   with HistoryGenerators
   with StateGenerators
+  with ModifierGenerators
   with FileUtils
   with NoShrink {
 
@@ -128,96 +128,6 @@ trait HybridGenerators extends ExamplesCommonGenerators
     }
   }
 
-  def semanticallyValidModifier(state: HBoxStoredState): HybridBlock =
-    semanticallyValidModifierWithTransactions(state)
-
-  def semanticallyInvalidModifier(state: HBoxStoredState): HybridBlock = {
-    val posBlock: PosBlock = semanticallyValidModifierWithTransactions(state)
-    posBlock.transactions.lastOption.map { lastTx =>
-      val modifiedFrom = (lastTx.from.head._1, Nonce @@ (lastTx.from.head._2 + 1)) +: lastTx.from.tail
-      val modifiedLast = lastTx.copy(from = modifiedFrom)
-      posBlock.copy(transactions = posBlock.transactions.dropRight(1) :+ modifiedLast)
-    }.getOrElse {
-      val modifiedGenerator = posBlock.generatorBox.copy(nonce = Nonce @@ (posBlock.generatorBox.nonce + 1))
-      posBlock.copy(generatorBox = modifiedGenerator)
-    }
-  }
-
-
-  def totallyValidModifier(history: HybridHistory, state: HBoxStoredState): HybridBlock = ???
-
-  def syntacticallyValidModifier(curHistory: HybridHistory): HybridBlock = {
-
-    if (curHistory.pairCompleted) {
-      for {
-        timestamp: Long <- positiveLongGen
-        nonce: Long <- positiveLongGen
-        brothersCount: Byte <- positiveByteGen
-        proposition: PublicKey25519Proposition <- propositionGen
-        brothers <- Gen.listOfN(brothersCount, powHeaderGen)
-      } yield {
-        val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
-        val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
-        new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
-      }
-    } else {
-      for {
-        timestamp: Long <- positiveLongGen
-        txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
-        box: PublicKey25519NoncedBox <- noncedBoxGen
-        attach: Array[Byte] <- genBoundedBytes(0, 4096)
-        generator: PrivateKey25519 <- key25519Gen.map(_._1)
-      } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
-    }
-  }.sample.get
-
-  private val hf = Blake2b256
-
-  def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock = {
-    syntacticallyValidModifier(curHistory) match {
-      case pow: PowBlock => pow.copy(parentId = ModifierId @@ hf(pow.parentId))
-      case pos: PosBlock => pos.copy(parentId = ModifierId @@ hf(pos.parentId))
-    }
-  }
-
-  def semanticallyValidModifierWithTransactions(state: HBoxStoredState): PosBlock = {
-    val (txCount, insPerTx, attach) = (for {
-      txCount <- Gen.choose(0, 30)
-      insPerTx <- Gen.choose(1, 20)
-      attach: Array[Byte] <- genBoundedBytes(0, 4096)
-    } yield (txCount, insPerTx, attach)).sample.get
-
-    assert(txCount >= 0 && txCount <= 30)
-    assert(insPerTx >= 1 && insPerTx <= 20)
-
-    def filterOutForgedBoxe(in: (ByteArrayWrapper, ByteArrayWrapper)): Boolean = {
-      PublicKey25519NoncedBoxSerializer.parseBytes(in._2.data).map(_.value).getOrElse(0L) > 0
-    }
-
-    val stateBoxes = state.store.getAll()
-      .filter(filterOutForgedBoxe)
-      .take(txCount * insPerTx + 1)
-      .map { case (_, wrappedData) => PublicKey25519NoncedBoxSerializer.parseBytes(wrappedData.data).get }
-      .toSeq
-
-    assert(stateBoxes.size == txCount * insPerTx + 1)
-
-    val txs = stateBoxes.tail.grouped(insPerTx).map { inputs =>
-      val fee = 0
-      val from = inputs.map(i => privKey(i.value)._1 -> i.nonce).toIndexedSeq
-      val to = inputs.map(i => privKey(i.value)._2 -> i.value).toIndexedSeq
-      SimpleBoxTransaction(from, to, fee = fee, System.currentTimeMillis())
-    }.toSeq
-
-    txs.foreach {
-      _.boxIdsToOpen.foreach { id => assert(state.closedBox(id).isDefined) }
-    }
-
-    val genBox: PublicKey25519NoncedBox = stateBoxes.head
-    val generator = privKey(genBox.value)._1
-    PosBlock.create(ModifierId @@ state.version, System.currentTimeMillis(), txs, genBox, attach, generator)
-  }
-
   def genValidTransactionPair(state: HBoxStoredState): Seq[SimpleBoxTransaction] = {
     val keys = key25519Gen.apply(Gen.Parameters.default, Seed.random()).get
     val value = valueGen.apply(Gen.Parameters.default, Seed.random()).get
@@ -267,4 +177,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
 
     PosBlock.create(id, timestamp, txs, box, attach, generator)
   }
+
+  def privKey(value: Long): (PrivateKey25519, PublicKey25519Proposition) =
+    PrivateKey25519Companion.generateKeys(("secret_" + value).getBytes)
 }

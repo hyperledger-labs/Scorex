@@ -11,12 +11,9 @@ import scorex.testkit.generators.CoreGenerators
 
 import scala.util.Random
 
-trait StateGenerators extends StoreGenerators { this: CoreGenerators with StoreGenerators =>
+trait StateGenerators extends StoreGenerators { this: HybridGenerators with CoreGenerators with StoreGenerators =>
 
   private val valueSeed = 5000000
-
-  def privKey(value: Long): (PrivateKey25519, PublicKey25519Proposition) =
-    PrivateKey25519Companion.generateKeys(("secret_" + value).getBytes)
 
   val stateGen: Gen[HBoxStoredState] =
     for {
