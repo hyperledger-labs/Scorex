@@ -27,7 +27,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HybridBlock,
     HBoxStoredState] with ScorexLogging {
 
-  assert(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
+  require(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
     s"${Base58.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${Base58.encode(version)}")
 
   override type NVCT = HBoxStoredState

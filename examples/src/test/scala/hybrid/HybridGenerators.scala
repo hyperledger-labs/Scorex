@@ -253,9 +253,7 @@ trait HybridGenerators extends ExamplesCommonGenerators with FileUtils with NoSh
       SimpleBoxTransaction(from, to, fee = fee, System.currentTimeMillis())
     }.toSeq
 
-    txs.foreach {
-      _.boxIdsToOpen.foreach { id => assert(state.closedBox(id).isDefined) }
-    }
+    assert(txs.forall { _.boxIdsToOpen.forall { id => state.closedBox(id).isDefined } })
 
     val genBox: PublicKey25519NoncedBox = stateBoxes.head
     val generator = privKey(genBox.value)._1

@@ -28,7 +28,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
 
   import PublicKey25519NoncedBox.{BoxKeyLength, BoxLength}
 
-  assert(size >= 0)
+  require(size >= 0)
 
   override lazy val prover = proverOpt.getOrElse {
     val p = new ProverType(keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength)) //todo: feed it with genesis state
