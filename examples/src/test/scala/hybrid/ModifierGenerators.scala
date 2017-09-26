@@ -34,12 +34,12 @@ trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
     assert(txCount >= 0 && txCount <= 30)
     assert(insPerTx >= 1 && insPerTx <= 20)
 
-    def filterOutForgedBoxe(in: (ByteArrayWrapper, ByteArrayWrapper)): Boolean = {
+    def filterOutForgedBoxes(in: (ByteArrayWrapper, ByteArrayWrapper)): Boolean = {
       PublicKey25519NoncedBoxSerializer.parseBytes(in._2.data).map(_.value).getOrElse(0L) > 0
     }
 
     val stateBoxes = state.store.getAll()
-      .filter(filterOutForgedBoxe)
+      .filter(filterOutForgedBoxes)
       .take(txCount * insPerTx + 1)
       .map { case (_, wrappedData) => PublicKey25519NoncedBoxSerializer.parseBytes(wrappedData.data).get }
       .toSeq

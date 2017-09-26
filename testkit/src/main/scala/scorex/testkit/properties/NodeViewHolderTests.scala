@@ -12,6 +12,7 @@ import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
+import scorex.testkit.generators.SyntacticallyTargetedModifierProducer
 import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
 
 trait NodeViewHolderTests[P <: Proposition,
@@ -25,7 +26,8 @@ VL <: Vault[P, TX, PM, VL]]
   extends SequentialAkkaFixture
     with Matchers
     with PropertyChecks
-    with ScorexLogging {
+    with ScorexLogging
+    with SyntacticallyTargetedModifierProducer[PM, SI, HT] {
 
   type Fixture = HolderFixture
 
@@ -61,14 +63,21 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewHolder: apply locally generated mod") { ctx => import ctx._
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
+
+    val invalid = syntacticallyInvalidModifier(h)
+
+    node ! LocallyGeneratedModifier(invalid)
+
+    expectMsgType[FailedModification[PM]]
+
     node ! LocallyGeneratedModifier(mod)
+
+    expectMsgType[SuccessfulModification[PM]]
+
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
       v.state.version.sameElements(s.version) && v.history.contains(mod.id)
     }
 
-    fishForMessage() {
-      case x: Boolean => x
-      case _ => false
-    }
+    expectMsg(true)
   }
 }
