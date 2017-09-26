@@ -7,7 +7,6 @@ import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-
 import scorex.testkit.{BlockchainPerformance, BlockchainSanity}
 
 

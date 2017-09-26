@@ -27,6 +27,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
   with HistoryGenerators
   with StateGenerators
   with ModifierGenerators
+  with NodeViewHolderGenerators
   with FileUtils
   with NoShrink {
 
