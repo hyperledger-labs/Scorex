@@ -12,7 +12,7 @@ trait SemanticallyValidTransactionsCarryingModifier[P <: Proposition,
                                                     CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[P, TX],
                                                     ST <: MinimalState[PM, ST]] {
 
-  def semanticallyValidModifierWithTransactions(state: ST): CTM
+  def semanticallyValidModifier(state: ST): CTM
   def genValidTransactionPair(state: ST): Seq[TX]
   def semanticallyValidModifierWithCustomTransactions(state: ST, transactions: Seq[TX]): CTM
 }
