@@ -6,7 +6,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.state.MinimalState
 import scorex.testkit.TestkitHelpers
-import scorex.testkit.generators.{CoreGenerators, SemanticallyValidModifierProducer}
+import scorex.testkit.generators.{CoreGenerators, SemanticallyInvalidModifierProducer, SemanticallyValidModifierProducer}
 
 trait StateTests[PM <: PersistentNodeViewModifier, ST <: MinimalState[PM, ST]]
   extends PropSpec
@@ -15,7 +15,8 @@ trait StateTests[PM <: PersistentNodeViewModifier, ST <: MinimalState[PM, ST]]
     with PropertyChecks
     with CoreGenerators
     with TestkitHelpers
-    with SemanticallyValidModifierProducer[PM, ST] {
+    with SemanticallyValidModifierProducer[PM, ST]
+    with SemanticallyInvalidModifierProducer[PM, ST] {
 
   val checksToMake = 10
 

@@ -139,6 +139,8 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     newSt
   } ensuring { r => if (r.isSuccess) { r.get.version sameElements newVersion } else true }
 
+  override def maxRollbackDepth: Int = store.keepVersions
+
   override def rollbackTo(version: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
     if (store.lastVersionID.exists(_.data sameElements version)) {
       this

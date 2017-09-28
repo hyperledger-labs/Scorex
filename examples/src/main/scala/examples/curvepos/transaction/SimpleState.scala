@@ -34,6 +34,8 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
     storage.get(ByteBuffer.wrap(boxId))
 
+  override def maxRollbackDepth: Int = 0
+
   override def rollbackTo(version: VersionTag): Try[SimpleState] = {
     log.warn("Rollback is not implemented")
     Try(this)

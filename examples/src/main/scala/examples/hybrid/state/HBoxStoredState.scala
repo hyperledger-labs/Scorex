@@ -17,7 +17,7 @@ import scorex.crypto.authds._
 import scorex.crypto.encode.Base58
 import scorex.mid.state.BoxMinimalState
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 
 case class HBoxStoredState(store: LSMStore, override val version: VersionTag) extends
@@ -70,7 +70,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     val boxIdsToRemove = changes.toRemove.map(_.boxId).map(ByteArrayWrapper.apply)
     val boxesToAdd = changes.toAppend.map(_.box).map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${Base58.encode(newVersion)}. " +
+    log.trace(s"Update HBoxStoredState from version $lastVersionString to version ${Base58.encode(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => Base58.encode(b.data))}, " +
       s"adding boxes ${boxesToAdd.map(b => Base58.encode(b._1.data))}")
     assert(store.lastVersionID.isEmpty || boxIdsToRemove.forall(i => closedBox(i.data).isDefined))
@@ -80,6 +80,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     newSt
   } ensuring { r => if (r.isSuccess) { r.get.version sameElements newVersion } else true }
 
+  override def maxRollbackDepth: Int = store.keepVersions
+
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
     if (store.lastVersionID.exists(_.data sameElements version)) {
       this
@@ -88,6 +90,9 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       store.rollback(ByteArrayWrapper(version))
       new HBoxStoredState(store, version)
     }
+  }.recoverWith{case e =>
+    log.error("Cant' do rollback: ", e)
+    Failure[HBoxStoredState](e): Try[HBoxStoredState]
   }
 
   private def lastVersionString = store.lastVersionID.map(v => Base58.encode(v.data)).getOrElse("None")

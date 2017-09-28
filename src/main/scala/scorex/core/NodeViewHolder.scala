@@ -162,10 +162,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           case Some(modToApply) =>
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true)
+                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false)
+                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
                 //todo: send signal
                 updateState(newHis, stateToApply, newProgressInfo)
             }

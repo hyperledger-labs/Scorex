@@ -87,6 +87,8 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
     InMemoryAuthenticatedUtxo(size + changes.toAppend.size - changes.toRemove.size, Some(prover), newVersion)
   }
 
+  override def maxRollbackDepth: Int = 0
+
   override def rollbackTo(version: VersionTag): Try[InMemoryAuthenticatedUtxo] = ???
 
   def isEmpty: Boolean = size == 0
