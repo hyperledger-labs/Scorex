@@ -310,7 +310,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
       log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
-      log.debug(s"Local side contains head: ${history().contains(syncInfo.startingPoints.map(_._2).head)}")
+      syncInfo.startingPoints.map(_._2).headOption.foreach { head =>
+        log.debug(s"Local side contains head: $head")
+      }
 
       val extensionOpt = history().continuationIds(syncInfo, networkChunkSize)
       val ext = extensionOpt.getOrElse(Seq())
