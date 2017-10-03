@@ -136,9 +136,8 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
     val newSt = PersistentAuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
     assert(boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
-    assert(newSt.version sameElements newVersion, s"New version don't match")
     newSt
-  }
+  } ensuring { r => if (r.isSuccess) { r.get.version sameElements newVersion } else true }
 
   override def maxRollbackDepth: Int = store.keepVersions
 

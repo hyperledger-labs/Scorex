@@ -173,7 +173,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           case None =>
             history -> Success(stateToApply)
         }
-      case Failure(e) => ??? //todo: rollback failed, send signal, probably very wrong situation
+      case Failure(e) =>
+        e.printStackTrace()
+        ??? //todo: rollback failed, send signal, probably very wrong situation
     }
   }
 

@@ -106,8 +106,10 @@ object History {
                                                             toDownload: Seq[PM]
                                                            ) {
 
-    require(branchPoint.isDefined == toRemove.nonEmpty)
-    require(toRemove.headOption.map(_.parentId).flatMap(pid => branchPoint.map(_.sameElements(pid))).getOrElse(true))
+    require(branchPoint.isDefined == toRemove.nonEmpty, s"Branch point should be defined for non-empty toRemove," +
+      s" ${branchPoint.isDefined} == ${toRemove.nonEmpty} given")
+    require(toRemove.headOption.forall(h => branchPoint.forall(_ sameElements h.parentId)), "First toRemove modifier" +
+      "should link to branchPoint.")
 
     lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
 
