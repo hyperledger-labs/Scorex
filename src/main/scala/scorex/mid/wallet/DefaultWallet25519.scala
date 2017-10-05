@@ -3,7 +3,7 @@ package scorex.mid.wallet
 import java.io.File
 
 import com.google.common.primitives.{Bytes, Ints}
-import scorex.core.PersistentNodeViewModifier
+import scorex.core.{PersistentNodeViewModifier, VersionTag}
 import scorex.core.settings.Settings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
@@ -11,6 +11,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
 import scorex.crypto.hash.Blake2b256
+import scorex.crypto.signatures.{PrivateKey, PublicKey}
 
 import scala.collection.mutable
 import scala.util.Try
@@ -20,16 +21,12 @@ import scala.util.Try
 //todo: HKDF
 // todo: encryption
 //todo: persistence
-case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition],
-PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
+case class DefaultWallet25519[TX <: Transaction[PublicKey25519Proposition], PMOD <: PersistentNodeViewModifier]
 (settings: Settings)
   extends Wallet[PublicKey25519Proposition, TX, PMOD, DefaultWallet25519[TX, PMOD]] {
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
-
-  type PublicKey = Array[Byte]
-  type PrivateKey = Array[Byte]
 
   val walletFileOpt: Option[File] = settings.walletDirOpt.map(walletDir => new java.io.File(walletDir, "wallet.s.dat"))
   val password: String = settings.walletPassword
@@ -57,7 +54,7 @@ PMOD <: PersistentNodeViewModifier[PublicKey25519Proposition, TX]]
     dbSecrets.keySet.map(PublicKey25519Proposition.apply).toSet
 
   //todo: protection?
-  override def secrets: Set[PrivateKey25519] = dbSecrets.map(e => PrivateKey25519(e._1, e._2)).toSet
+  override def secrets: Set[PrivateKey25519] = dbSecrets.map(e => PrivateKey25519(e._2, e._1)).toSet
 
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
     dbSecrets.get(publicImage.pubKeyBytes)

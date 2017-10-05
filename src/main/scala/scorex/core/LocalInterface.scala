@@ -10,7 +10,7 @@ import scorex.core.utils.ScorexLogging
 /**
   *
   */
-trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
+trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
 
   val viewHolderRef: ActorRef
@@ -28,19 +28,19 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   private def viewHolderEvents: Receive = {
-    case stm: StartingPersistentModifierApplication[P, TX, PMOD] =>
+    case stm: StartingPersistentModifierApplication[PMOD] =>
       onStartingPersistentModifierApplication(stm.modifier)
 
     case ft: FailedTransaction[P, TX] =>
       onFailedTransaction(ft.transaction)
 
-    case fm: FailedModification[P, TX, PMOD] =>
+    case fm: FailedModification[PMOD] =>
       onFailedModification(fm.modifier)
 
     case st: SuccessfulTransaction[P, TX] =>
       onSuccessfulTransaction(st.transaction)
 
-    case sm: SuccessfulModification[P, TX, PMOD] =>
+    case sm: SuccessfulModification[PMOD] =>
       onSuccessfulModification(sm.modifier)
   }
 
@@ -65,7 +65,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       onBetterNeighbourAppeared()
     case lt: LocallyGeneratedTransaction[P, TX] =>
       viewHolderRef ! lt
-    case lm: LocallyGeneratedModifier[P, TX, PMOD] =>
+    case lm: LocallyGeneratedModifier[PMOD] =>
       viewHolderRef ! lm
     case a: Any => log.error("Strange input: " + a)
   }
@@ -79,7 +79,5 @@ object LocalInterface {
 
   case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
 
-  case class LocallyGeneratedModifier[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier[P, TX]]
-  (pmod: PMOD)
-
+  case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
 }

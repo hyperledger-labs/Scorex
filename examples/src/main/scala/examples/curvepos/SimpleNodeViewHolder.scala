@@ -1,13 +1,12 @@
 package examples.curvepos
 
 import examples.curvepos.transaction.{SimplePayment, _}
-import scorex.core.NodeViewModifier.ModifierTypeId
 import scorex.core.serialization.Serializer
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.{NodeViewHolder, NodeViewModifier}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
-import scorex.crypto.signatures.Curve25519
+import scorex.crypto.signatures.{Curve25519, PublicKey}
 
 import scala.util.{Failure, Success}
 
@@ -35,15 +34,16 @@ class SimpleNodeViewHolder(settings: Settings)
     val genesisAcc1 = SimpleWallet(Base58.decode("genesis").get).publicKeys.head
     val genesisAcc2 = SimpleWallet(Base58.decode("genesis2").get).publicKeys.head
 
-    val IntitialBaseTarget = 15372286700L
-    val generator = PublicKey25519Proposition(Array.fill(Curve25519.KeyLength)(0: Byte))
+    val IntitialBaseTarget = BaseTarget @@ 15372286700L
+    val generator = PublicKey25519Proposition(PublicKey @@ Array.fill(Curve25519.KeyLength)(0: Byte))
     val toInclude: Seq[SimpleTransaction] = Seq(
       SimplePayment(genesisAcc1, genesisAcc1, 50000000, 0, 1, 0),
       SimplePayment(genesisAcc2, genesisAcc2, 50000000, 0, 1, 0)
     )
 
-    val genesisBlock: SimpleBlock = SimpleBlock(Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
-      0L, Array.fill(SimpleBlock.SignatureLength)(0: Byte), IntitialBaseTarget, generator, toInclude)
+    val genesisBlock: SimpleBlock = SimpleBlock(ModifierId @@ Array.fill(SimpleBlock.SignatureLength)(-1: Byte),
+      0L, GenerationSignature @@ Array.fill(SimpleBlock.SignatureLength)(0: Byte),
+      IntitialBaseTarget, generator, toInclude)
 
     val blockchain = emptyBlockchain.append(genesisBlock) match {
       case Failure(f) => throw f

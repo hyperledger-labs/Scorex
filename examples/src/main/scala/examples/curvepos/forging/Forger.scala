@@ -1,7 +1,7 @@
 package examples.curvepos.forging
 
 import akka.actor.{Actor, ActorRef}
-import examples.curvepos.SimpleBlockchain
+import examples.curvepos.{BaseTarget, GenerationSignature, SimpleBlockchain}
 import examples.curvepos.transaction._
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
@@ -81,14 +81,15 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
         if (hit < target) {
           Try {
             val timestamp = NetworkTime.time()
-            val bt = calcBaseTarget(lastBlock, timestamp)
+            val bt = BaseTarget @@ calcBaseTarget(lastBlock, timestamp)
             val secret = gb._3
+            val gs = GenerationSignature @@ Array[Byte]()
 
-            val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, Array(), bt, generator, toInclude)
+            val unsigned: SimpleBlock = SimpleBlock(lastBlock.id, timestamp, gs, bt, generator, toInclude)
             val signature = PrivateKey25519Companion.sign(secret, unsigned.serializer.messageToSign(unsigned))
-            val signedBlock = unsigned.copy(generationSignature = signature.signature)
+            val signedBlock = unsigned.copy(generationSignature = GenerationSignature @@ signature.signature)
             log.info(s"Generated new block: ${signedBlock.json.noSpaces}")
-            LocallyGeneratedModifier[PublicKey25519Proposition, SimpleTransaction, SimpleBlock](signedBlock)
+            LocallyGeneratedModifier[SimpleBlock](signedBlock)
           }.toOption
         } else {
           None

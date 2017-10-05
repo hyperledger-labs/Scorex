@@ -5,28 +5,28 @@ import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.Curve25519
+import scorex.crypto.signatures.{Curve25519, Signature}
 
 import scala.util.Try
 
 case class PosBlock(override val parentId: BlockId, //PoW block
                     override val timestamp: Block.Timestamp,
-                    txs: Seq[SimpleBoxTransaction],
+                    override val transactions: Seq[SimpleBoxTransaction],
                     generatorBox: PublicKey25519NoncedBox,
                     attachment: Array[Byte],
                     signature: Signature25519
-                   ) extends HybridBlock {
+                   ) extends HybridBlock
+  with TransactionsCarryingPersistentNodeViewModifier[PublicKey25519Proposition, SimpleBoxTransaction] {
   override type M = PosBlock
-
-  override lazy val transactions: Option[Seq[SimpleBoxTransaction]] = Some(txs)
 
   override lazy val serializer = PosBlockCompanion
 
@@ -35,14 +35,14 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override lazy val modifierTypeId: ModifierTypeId = PosBlock.ModifierTypeId
 
   override lazy val id: ModifierId =
-    Blake2b256(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
+    ModifierId @@ Blake2b256(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
 
   override def json: Json = Map(
     "id" -> Base58.encode(id).asJson,
     "parentId" -> Base58.encode(parentId).asJson,
     "attachment" -> Base58.encode(attachment).asJson,
     "timestamp" -> timestamp.asJson,
-    "transactions" -> txs.map(_.json).asJson,
+    "transactions" -> transactions.map(_.json).asJson,
     "generatorBox" -> generatorBox.json,
     "signature" -> Base58.encode(signature.bytes).asJson
   ).asJson
@@ -51,18 +51,18 @@ case class PosBlock(override val parentId: BlockId, //PoW block
 }
 
 object PosBlockCompanion extends Serializer[PosBlock] {
-  override def toBytes(b: PosBlock): Array[Version] = {
-    val txsBytes = b.txs.sortBy(t => Base58.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
+  override def toBytes(b: PosBlock): Array[Byte] = {
+    val txsBytes = b.transactions.sortBy(t => Base58.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }
     Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes,
-      Ints.toByteArray( b.txs.length), txsBytes, Ints.toByteArray(b.attachment.length), b.attachment)
+      Ints.toByteArray(b.transactions.length), txsBytes, Ints.toByteArray(b.attachment.length), b.attachment)
   }
 
-  override def parseBytes(bytes: Array[Version]): Try[PosBlock] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[PosBlock] = Try {
     require(bytes.length <= PosBlock.MaxBlockSize)
 
-    val parentId = bytes.slice(0, BlockIdLength)
+    val parentId = ModifierId @@ bytes.slice(0, BlockIdLength)
     var position = BlockIdLength
     val timestamp = Longs.fromByteArray(bytes.slice(position, position + 8))
     position = position + 8
@@ -71,7 +71,7 @@ object PosBlockCompanion extends Serializer[PosBlock] {
     val box = PublicKey25519NoncedBoxSerializer.parseBytes(boxBytes).get
     position = position + PublicKey25519NoncedBox.BoxLength
 
-    val signature = Signature25519(bytes.slice(position, position + Signature25519.SignatureSize))
+    val signature = Signature25519(Signature @@ bytes.slice(position, position + Signature25519.SignatureSize))
     position = position + Signature25519.SignatureSize
 
     val txsLength = Ints.fromByteArray(bytes.slice(position, position + 4))
@@ -92,7 +92,7 @@ object PosBlockCompanion extends Serializer[PosBlock] {
 object PosBlock {
   val MaxBlockSize = 65535
   //64K
-  val ModifierTypeId = 4: Byte
+  val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 4.toByte
 
   def create(parentId: BlockId,
              timestamp: Block.Timestamp,
@@ -100,14 +100,14 @@ object PosBlock {
              box: PublicKey25519NoncedBox,
              attachment: Array[Byte],
              privateKey: PrivateKey25519): PosBlock = {
-    assert(box.proposition.pubKeyBytes sameElements privateKey.publicKeyBytes)
-    val unsigned = PosBlock(parentId, timestamp, txs, box, attachment, Signature25519(Array.empty))
+    require(box.proposition.pubKeyBytes sameElements privateKey.publicKeyBytes)
+    val unsigned = PosBlock(parentId, timestamp, txs, box, attachment, Signature25519(Signature @@ Array[Byte]()))
     val signature = Curve25519.sign(privateKey.privKeyBytes, unsigned.bytes)
     unsigned.copy(signature = Signature25519(signature))
   }
 
   def signatureValid(posBlock: PosBlock): Boolean = {
-    val unsignedBytes = posBlock.copy(signature = Signature25519(Array.empty)).bytes
+    val unsignedBytes = posBlock.copy(signature = Signature25519(Signature @@ Array[Byte]())).bytes
     posBlock.generatorBox.proposition.verify(unsignedBytes, posBlock.signature.signature)
   }
 }

@@ -1,13 +1,11 @@
 package examples.trimchain.modifiers
 
 import com.google.common.primitives.Longs
-import examples.commons.SimpleBoxTransaction
-import examples.hybrid.mining.MiningConstants
 import examples.trimchain.core.Constants._
-import examples.trimchain.core.{Constants, Ticket, TicketSerializer}
+import examples.trimchain.core._
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.serialization.Serializer
 import scorex.crypto.encode.Base58
 
@@ -22,12 +20,9 @@ case class BlockHeader(override val parentId: ModifierId,
                       ) extends TModifier {
   override type M = BlockHeader
 
-  // with Dotty is would be Seq[TX] | Nothing
-  override def transactions: Option[Seq[SimpleBoxTransaction]] = None
-
   override val modifierTypeId: ModifierTypeId = TModifier.Header
 
-  override lazy val id: ModifierId = Constants.hashfn(serializer.toBytes(this))
+  override lazy val id: ModifierId = ModifierId @@ Constants.hashfn.hash(bytes)
 
   override lazy val json: Json = Map(
     "id" -> Base58.encode(id).asJson,
@@ -49,14 +44,14 @@ case class BlockHeader(override val parentId: ModifierId,
 object BlockHeaderSerializer extends Serializer[BlockHeader] {
   private val ds = Constants.hashfn.DigestSize
 
-  override def toBytes(obj: BlockHeader): Array[ModifierTypeId] = obj.parentId ++ obj.stateRoot ++ obj.txRoot ++
+  override def toBytes(obj: BlockHeader): Array[Byte] = obj.parentId ++ obj.stateRoot ++ obj.txRoot ++
     Longs.toByteArray(obj.powNonce) ++ TicketSerializer.toBytes(obj.ticket)
 
 
-  override def parseBytes(bytes: Array[ModifierTypeId]): Try[BlockHeader] = Try {
-    val parentId = bytes.slice(0, ds)
-    val stateRoot = bytes.slice(ds, 2 * ds)
-    val txRoot = bytes.slice(2 * ds, 3 * ds)
+  override def parseBytes(bytes: Array[Byte]): Try[BlockHeader] = Try {
+    val parentId = ModifierId @@ bytes.slice(0, ds)
+    val stateRoot = StateRoot @@ bytes.slice(ds, 2 * ds)
+    val txRoot = TransactionsRoot @@ bytes.slice(2 * ds, 3 * ds)
     val powNonce = Longs.fromByteArray(bytes.slice(3 * ds, 3 * ds + 8))
     val ticket = TicketSerializer.parseBytes(bytes.slice(3 * ds + 8, bytes.length)).get
     BlockHeader(parentId, stateRoot, txRoot, ticket, powNonce)

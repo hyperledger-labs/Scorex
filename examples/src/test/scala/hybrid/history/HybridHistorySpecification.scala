@@ -5,10 +5,9 @@ import hybrid.HybridGenerators
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.consensus.History.HistoryComparisonResult
+import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.crypto.encode.Base58
-import scorex.utils.Random
 
 
 class HybridHistorySpecification extends PropSpec
@@ -17,8 +16,7 @@ class HybridHistorySpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  var history = generateHistory
-
+  var history = historyGen.sample.get
 
   //Generate chain
   property("Block application and HybridHistory.continuationIds") {
@@ -40,16 +38,16 @@ class HybridHistorySpecification extends PropSpec
       }
     }
 
-    val startFrom = ids.head
+    val startFrom = Seq((ModifierTypeId @@ 2.toByte, ModifierId @@ ids.head))
 
-    history.continuationIds(Seq((2.toByte, startFrom)), ids.length).get.map(_._2).map(Base58.encode) shouldEqual ids.map(Base58.encode)
+    history.continuationIds(startFrom, ids.length).get.map(_._2).map(Base58.encode) shouldEqual ids.map(Base58.encode)
 
     ids.length shouldBe HybridHistory.DifficultyRecalcPeriod
 
     //continuationIds with limit
     forAll(Gen.choose(0, ids.length - 1)) { startIndex: Int =>
-      val startFrom = Seq((2.toByte, ids(startIndex)))
-      val startList = ids.take(startIndex + 1).map(a => (2.toByte, a))
+      val startFrom = Seq((ModifierTypeId @@ 2.toByte, ids(startIndex)))
+      val startList = ids.take(startIndex + 1).map(a => (ModifierTypeId @@ 2.toByte, a))
       val restIds = ids.zipWithIndex.filter { case (datum, index) => index >= startIndex }.map(_._1).map(Base58.encode)
 
       history.continuationIds(startFrom, ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
@@ -105,13 +103,13 @@ class HybridHistorySpecification extends PropSpec
     val youngerSyncInfo = equalsSyncInfo.copy(lastPowBlockIds = lastIds.dropRight(1))
     compareAndCheck(history, youngerSyncInfo) shouldBe HistoryComparisonResult.Younger
 
-    compareAndCheck(history, youngerSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe HistoryComparisonResult.Younger
-    val posDiffComparison = if(history.pairCompleted) HistoryComparisonResult.Older else HistoryComparisonResult.Younger
-    compareAndCheck(history, equalsSyncInfo.copy(lastPosBlockId = Random.randomBytes(32))) shouldBe posDiffComparison
+    compareAndCheck(history, youngerSyncInfo.copy(lastPosBlockId = modifierIdGen.sample.get)) shouldBe HistoryComparisonResult.Younger
+    val posDiffComparison = if (history.pairCompleted) HistoryComparisonResult.Older else HistoryComparisonResult.Younger
+    compareAndCheck(history, equalsSyncInfo.copy(lastPosBlockId = modifierIdGen.sample.get)) shouldBe posDiffComparison
 
     val betterForkSyncInfo = equalsSyncInfo
-      .copy(lastPowBlockIds = lastIds.dropRight(1).tail ++ Array(Random.randomBytes(32), Random.randomBytes(32)))
-      .copy(lastPosBlockId = Random.randomBytes(32))
+      .copy(lastPowBlockIds = lastIds.dropRight(1).tail ++ Array(modifierIdGen.sample.get, modifierIdGen.sample.get))
+      .copy(lastPosBlockId = modifierIdGen.sample.get)
 
     compareAndCheck(history, betterForkSyncInfo) shouldBe HistoryComparisonResult.Older
   }

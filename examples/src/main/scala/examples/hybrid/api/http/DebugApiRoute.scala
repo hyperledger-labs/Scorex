@@ -11,6 +11,7 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import io.circe.syntax._
 import io.swagger.annotations._
+import scorex.core.ModifierId
 import scorex.core.api.http.{ApiRouteWithFullView, SuccessApiResponse}
 import scorex.core.settings.Settings
 import scorex.crypto.encode.Base58
@@ -40,7 +41,7 @@ case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: Act
       getJsonRoute {
         viewAsync().map { view =>
           SuccessApiResponse(Map(
-            "delay" -> Base58.decode(encodedSignature).flatMap(id => view.history.averageDelay(id, count))
+            "delay" -> Base58.decode(encodedSignature).flatMap(id => view.history.averageDelay(ModifierId @@ id, count))
               .map(_.toString).getOrElse("Undefined")
           ).asJson)
         }

@@ -8,6 +8,7 @@ import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519Non
 import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
+import scorex.core.VersionTag
 import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
@@ -80,8 +81,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
     val changes = HBoxStoredState.changes(modifier).get
 
     val newBoxes = changes.toAppend.filter(s => secretByPublicImage(s.box.proposition).isDefined).map(_.box).map { box =>
-      val boxTransaction = modifier.transactions.getOrElse(Seq())
-        .find(t => t.newBoxes.exists(tb => tb.id sameElements box.id))
+      val boxTransaction = modifier.transactions.find(t => t.newBoxes.exists(tb => tb.id sameElements box.id))
       val txId = boxTransaction.map(_.id).getOrElse(Array.fill(32)(0: Byte))
       val ts = boxTransaction.map(_.timestamp).getOrElse(modifier.timestamp)
       val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, ts)(PublicKey25519NoncedBoxSerializer)

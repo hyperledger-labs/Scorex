@@ -1,5 +1,6 @@
 package scorex.core.consensus
 
+import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.NodeViewModifier._
 import scorex.core.block.Block
 import scorex.core.transaction.Transaction
@@ -9,7 +10,7 @@ import scorex.core.utils.ScorexLogging
 import scala.util.Try
 
 trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <: SyncInfo, BT <: BlockChain[P, TX, B, SI, BT]]
-  extends History[P, TX, B, SI, BT] with ScorexLogging {
+  extends History[B, SI, BT] with ScorexLogging {
 
   import BlockChain.Score
 
@@ -45,7 +46,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   override def continuationIds(info: SI, size: Int):
   Option[Seq[(ModifierTypeId, ModifierId)]] = {
     val openSurface = info.startingPoints
-    assert(openSurface.size == 1)
+    require(openSurface.size == 1)
     val modId = openSurface.head._1
     val s = lookForward(openSurface.head._2, size)
     if (s.isEmpty) None else Some(s.map(id => modId -> id))

@@ -11,6 +11,7 @@ import examples.hybrid.wallet.HWallet
 import io.circe.Json
 import io.circe.syntax._
 import io.swagger.annotations._
+import scorex.core.ModifierId
 import scorex.core.api.http.{ApiRouteWithFullView, ApiTry, SuccessApiResponse}
 import scorex.core.settings.Settings
 import scorex.crypto.encode.Base58
@@ -56,7 +57,7 @@ case class StatsApiRoute(override val settings: Settings, nodeViewHolderRef: Act
       viewAsync().map { view =>
         ApiTry {
           val count = (view.history.height - start).toInt
-          val ids: Seq[Array[Byte]] = view.history.lastBlockIds(view.history.bestBlock, count).take(end - start)
+          val ids: Seq[ModifierId] = view.history.lastBlockIds(view.history.bestBlock, count).take(end - start)
           val posDiff = ids.flatMap(id => Try(view.history.storage.getPoSDifficulty(id)).toOption)
           val powDiff = ids.flatMap(id => Try(view.history.storage.getPoWDifficulty(Some(id))).toOption)
           val json: Json = Map(

@@ -1,7 +1,7 @@
 package examples.curvepos.transaction
 
+import scorex.core.{ModifierId, VersionTag}
 import scorex.core.transaction.Transaction
-import scorex.core.transaction.Transaction.TransactionId
 import scorex.core.transaction.box.proposition.Constants25519.PrivKeyLength
 import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
 import scorex.core.transaction.state.PrivateKey25519
@@ -12,8 +12,8 @@ import scorex.utils.Random
 import scala.util.Try
 
 case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
-                        chainTransactions: Map[TransactionId, SimpleTransaction] = Map(),
-                        offchainTransactions: Map[TransactionId, SimpleTransaction] = Map(),
+                        chainTransactions: Map[ModifierId, SimpleTransaction] = Map(),
+                        offchainTransactions: Map[ModifierId, SimpleTransaction] = Map(),
                         currentBalance: Long = 0)
   extends Wallet[PublicKey25519Proposition, SimpleTransaction, SimpleBlock, SimpleWallet] {
   override type S = PrivateKey25519
@@ -56,7 +56,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
     txs.foldLeft(this) { case (wallet, tx) => wallet.scanOffchain(tx) }
 
   override def scanPersistent(modifier: SimpleBlock): SimpleWallet = {
-    modifier.transactions.map(_.foldLeft(this) { case (w, tx) =>
+    modifier.transactions.foldLeft(this) { case (w, tx) =>
       tx match {
         case sp: SimplePayment =>
           if ((sp.sender.bytes sameElements pubKeyBytes) || (sp.recipient.bytes sameElements pubKeyBytes)) {
@@ -68,6 +68,6 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
             SimpleWallet(seed, ct, oct, cb)
           } else w
       }
-    }).getOrElse(this)
+    }
   }
 }

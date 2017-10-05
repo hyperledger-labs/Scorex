@@ -1,15 +1,15 @@
 package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef}
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
+import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.blocks.{HybridBlock, PowBlock, PowBlockCompanion, PowBlockHeader}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.Cancellable
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
+import scorex.core.ModifierId
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
-import scorex.core.NodeViewModifier.ModifierId
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
@@ -133,7 +133,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor 
 
     case b: PowBlock =>
       cancellableOpt.foreach(_.cancel())
-      viewHolderRef ! LocallyGeneratedModifier[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock](b)
+      viewHolderRef ! LocallyGeneratedModifier[HybridBlock](b)
 
     case StopMining =>
       mining = false

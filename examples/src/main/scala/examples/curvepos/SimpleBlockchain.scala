@@ -2,8 +2,8 @@ package examples.curvepos
 
 import examples.curvepos.SimpleBlockchain.Height
 import examples.curvepos.transaction.{SimpleBlock, SimpleTransaction}
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.consensus.BlockChain
+import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.core.consensus.{BlockChain, ModifierSemanticValidity}
 import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
@@ -33,15 +33,12 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
     if (blockIds.isEmpty || (lastBlock.id sameElements parentId)) {
       val h = height() + 1
       val newChain = SimpleBlockchain(blockIds + (h -> blockId), blocks + (blockId -> block))
-      Success(newChain, ProgressInfo(None, Seq(), Seq(block)))
+      Success(newChain, ProgressInfo(None, Seq(), Seq(block), Seq()))
     } else {
       val e = new Exception(s"Last block id is ${Base58.encode(blockIds.last._2)}, expected ${Base58.encode(parentId)}}")
       Failure(e)
     }
   }
-
-  //todo: implement
-  override def reportInvalid(modifier: SimpleBlock): SimpleBlockchain = ???
 
   override def openSurfaceIds(): Seq[ModifierId] = Seq(blockIds(height()))
 
@@ -95,6 +92,12 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
     else if (local == remote) HistoryComparisonResult.Equal
     else HistoryComparisonResult.Younger
   }
+
+  override def reportSemanticValidity(modifier: SimpleBlock,
+                                      valid: Boolean,
+                                      lastApplied: ModifierId): (SimpleBlockchain, ProgressInfo[SimpleBlock]) = ???
+
+  override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value = ???
 }
 
 object SimpleBlockchain {

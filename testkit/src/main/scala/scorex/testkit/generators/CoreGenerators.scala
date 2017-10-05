@@ -1,10 +1,9 @@
-package scorex.testkit
+package scorex.testkit.generators
 
 import java.net.{InetAddress, InetSocketAddress}
 
 import org.scalacheck.{Arbitrary, Gen}
-import scorex.core.NodeViewModifier
-import scorex.core.NodeViewModifier.ModifierId
+import scorex.core.{ModifierTypeId, VersionTag, _}
 import scorex.core.app.Version
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -25,12 +24,16 @@ trait CoreGenerators {
 
   lazy val positiveByteGen: Gen[Byte] = Gen.choose(1, Byte.MaxValue)
 
-  lazy val modifierIdGen: Gen[ModifierId] =
-    Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte]).map(_.toArray)
+  lazy val modifierIdGen: Gen[ModifierId] = Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte])
+    .map(id => ModifierId @@ id.toArray)
+
+  lazy val versionTagGen: Gen[VersionTag] = modifierIdGen.map(id => VersionTag @@ id)
+
+  lazy val modifierTypeIdGen: Gen[ModifierTypeId] = Arbitrary.arbitrary[Byte].map(t => ModifierTypeId @@ t)
 
   lazy val invDataGen: Gen[InvData] = for {
-    modifierTypeId: Byte <- Arbitrary.arbitrary[Byte]
-    modifierIds: Seq[Array[Byte]] <- Gen.nonEmptyListOf(modifierIdGen) if modifierIds.nonEmpty
+    modifierTypeId: ModifierTypeId <- modifierTypeIdGen
+    modifierIds: Seq[ModifierId] <- Gen.nonEmptyListOf(modifierIdGen) if modifierIds.nonEmpty
   } yield modifierTypeId -> modifierIds
 
   lazy val modifierWithIdGen: Gen[(ModifierId, Array[Byte])] = for {
@@ -39,7 +42,7 @@ trait CoreGenerators {
   } yield id -> mod
 
   lazy val modifiersGen: Gen[ModifiersData] = for {
-    modifierTypeId: Byte <- Arbitrary.arbitrary[Byte]
+    modifierTypeId: ModifierTypeId <- modifierTypeIdGen
     modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
   } yield modifierTypeId -> modifiers
 

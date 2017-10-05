@@ -1,13 +1,14 @@
 package spv
 
 import commons.ExamplesCommonGenerators
-import examples.spv.{Header, _}
+import examples.spv._
 import org.scalacheck.{Arbitrary, Gen}
+import scorex.core.ModifierId
 
 trait SPVGenerators extends ExamplesCommonGenerators {
 
   val blockHeaderGen: Gen[Header] = for {
-    parentId: Array[Byte] <- genBytesList(Constants.hashfn.DigestSize)
+    parentId: ModifierId <- modifierIdGen
     innerchainLinks: Seq[Array[Byte]] <- Gen.listOf(genBytesList(Constants.hashfn.DigestSize)).map(_.take(128))
     txRoot: Array[Byte] <- genBytesList(Constants.hashfn.DigestSize)
     stateRoot: Array[Byte] <- genBytesList(Constants.hashfn.DigestSize)

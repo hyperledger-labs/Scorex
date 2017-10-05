@@ -4,11 +4,11 @@ import scorex.core.serialization.Serializer
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.Curve25519
+import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
 
 import scala.util.{Failure, Success, Try}
 
-case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKnowledgeProposition[PrivateKey25519] {
+case class PublicKey25519Proposition(pubKeyBytes: PublicKey) extends ProofOfKnowledgeProposition[PrivateKey25519] {
 
   require(pubKeyBytes.length == Curve25519.KeyLength,
     s"Incorrect pubKey length, ${Curve25519.KeyLength} expected, ${pubKeyBytes.length} found")
@@ -21,7 +21,7 @@ case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKn
 
   override def toString: String = address
 
-  def verify(message: Array[Byte], signature: Array[Byte]): Boolean = Curve25519.verify(signature, message, pubKeyBytes)
+  def verify(message: Array[Byte], signature: Signature): Boolean = Curve25519.verify(signature, message, pubKeyBytes)
 
   override type M = PublicKey25519Proposition
 
@@ -32,14 +32,15 @@ case class PublicKey25519Proposition(pubKeyBytes: Array[Byte]) extends ProofOfKn
     case _ => false
   }
 
-  override def hashCode(): Int = (BigInt(Blake2b256(pubKeyBytes)) % Int.MaxValue).toInt
+  override def hashCode(): Int = (BigInt(pubKeyBytes) % Int.MaxValue).toInt
 
 }
 
 object PublicKey25519PropositionSerializer extends Serializer[PublicKey25519Proposition] {
   override def toBytes(obj: PublicKey25519Proposition): Array[Byte] = obj.pubKeyBytes
 
-  override def parseBytes(bytes: Array[Byte]): Try[PublicKey25519Proposition] = Try(PublicKey25519Proposition(bytes))
+  override def parseBytes(bytes: Array[Byte]): Try[PublicKey25519Proposition] =
+    Try(PublicKey25519Proposition(PublicKey @@ bytes))
 }
 
 object PublicKey25519Proposition {
@@ -59,7 +60,7 @@ object PublicKey25519Proposition {
         val checkSumGenerated = calcCheckSum(addressBytes.dropRight(ChecksumLength))
 
         if (checkSum.sameElements(checkSumGenerated))
-          Success(PublicKey25519Proposition(addressBytes.dropRight(ChecksumLength).tail))
+          Success(PublicKey25519Proposition(PublicKey @@ addressBytes.dropRight(ChecksumLength).tail))
         else Failure(new Exception("Wrong checksum"))
       }
     }

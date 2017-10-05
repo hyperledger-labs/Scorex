@@ -4,12 +4,11 @@ import com.google.common.primitives.{Longs, Shorts}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.block.Block
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -27,8 +26,7 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
 
   override def parentId: ModifierId = header.parentId
 
-  // with Dotty is would be Seq[TX] | Nothing
-  override def transactions: Option[Seq[SimpleBoxTransaction]] = Some(body)
+  override def transactions: Seq[SimpleBoxTransaction] = body
 
   override val modifierTypeId: ModifierTypeId = TModifier.Block
 

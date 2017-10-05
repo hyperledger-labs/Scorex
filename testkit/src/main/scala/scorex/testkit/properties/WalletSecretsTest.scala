@@ -7,10 +7,11 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.wallet.Wallet
 
-trait WalletSecretsTest[P <: Proposition,
-TX <: Transaction[P],
-PM <: PersistentNodeViewModifier[P, TX]]
-  extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with PropertyChecks {
+trait WalletSecretsTest[P <: Proposition, TX <: Transaction[P], PM <: PersistentNodeViewModifier]
+  extends PropSpec
+    with GeneratorDrivenPropertyChecks
+    with Matchers
+    with PropertyChecks {
 
   val wallet: Wallet[P, TX, PM, _]
 

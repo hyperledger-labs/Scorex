@@ -2,10 +2,11 @@ package examples.trimchain.simulation
 
 import examples.commons.SimpleBoxTransaction
 import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.trimchain.core.{Algos, Constants}
+import examples.trimchain.core.{Algos, Constants, StateRoot, TransactionsRoot}
 import examples.trimchain.core.Constants._
 import examples.trimchain.modifiers.TBlock
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo
+import scorex.core._
 import scorex.core.transaction.state.PrivateKey25519Companion
 
 trait Simulators {
@@ -15,18 +16,18 @@ trait Simulators {
   val minerPubKey = minerKeys._2
   val minerPrivKey = minerKeys._1
 
-  val defaultId = Array.fill(32)(0: Byte)
+  val defaultId = VersionTag @@ (ModifierId @@ Array.fill(32)(0: Byte))
 
   def generateBlock(txs: Seq[SimpleBoxTransaction],
                     currentUtxo: InMemoryAuthenticatedUtxo,
                     miningUtxos: IndexedSeq[InMemoryAuthenticatedUtxo]): (TBlock, Seq[PublicKey25519NoncedBox], InMemoryAuthenticatedUtxo) = {
     //todo: fix, hashchain instead of Merkle tree atm
-    val txsHash = hashfn(scorex.core.utils.concatBytes(txs.map(_.bytes)))
+    val txsHash = TransactionsRoot @@ hashfn(scorex.core.utils.concatBytes(txs.map(_.bytes)))
 
     val changes = PersistentAuthenticatedUtxo.changes(txs).get
-    val updUtxo = currentUtxo.applyChanges(changes, scorex.utils.Random.randomBytes()).get
+    val updUtxo = currentUtxo.applyChanges(changes, VersionTag @@ scorex.utils.Random.randomBytes()).get
 
-    val h = Algos.pow(defaultId, txsHash, currentUtxo.rootHash, minerPubKey.pubKeyBytes,
+    val h = Algos.pow(defaultId, txsHash, StateRoot @@ currentUtxo.rootHash, minerPubKey.pubKeyBytes,
       miningUtxos, Constants.Difficulty, 10000).get.get
 
     val newRichBoxes = txs.flatMap(_.newBoxes).filter(_.value > 5)

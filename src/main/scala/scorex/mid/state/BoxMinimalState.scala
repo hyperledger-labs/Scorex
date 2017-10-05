@@ -1,11 +1,10 @@
 package scorex.mid.state
 
-import scorex.core.PersistentNodeViewModifier
+import scorex.core.{PersistentNodeViewModifier, VersionTag}
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.MinimalState.VersionTag
-import scorex.core.transaction.state.{BoxStateChanges, MinimalState, TransactionValidation}
+import scorex.core.transaction.state.{BoxStateChanges, MinimalState, ModifierValidation, TransactionValidation}
 
 import scala.util.{Failure, Success, Try}
 
@@ -13,9 +12,9 @@ import scala.util.{Failure, Success, Try}
 trait BoxMinimalState[P <: Proposition,
   BX <: Box[P],
   BTX <: BoxTransaction[P, BX],
-  M <: PersistentNodeViewModifier[P, BTX],
+  M <: PersistentNodeViewModifier,
   BMS <: BoxMinimalState[P, BX, BTX, M, BMS]]
-  extends MinimalState[P, BX, BTX, M, BMS] with TransactionValidation[BTX] {
+  extends MinimalState[M, BMS] with TransactionValidation[P, BTX] with ModifierValidation[M] {
   self: BMS =>
 
   def closedBox(boxId: Array[Byte]): Option[BX]
@@ -28,11 +27,11 @@ trait BoxMinimalState[P <: Proposition,
 
   override def applyModifier(mod: M): Try[BMS] = {
     validate(mod) flatMap {_ =>
-      changes(mod).flatMap(cs => applyChanges(cs, mod.id))
+      changes(mod).flatMap(cs => applyChanges(cs, VersionTag @@ mod.id))
     }
   }
 
-  override def validate(mod: M): Try[Unit] = Try(mod.transactions.getOrElse(Seq()).foreach(tx => validate(tx).get))
+ override def validate(mod: M): Try[Unit]
 
   /**
     * A transaction is valid against a state if:

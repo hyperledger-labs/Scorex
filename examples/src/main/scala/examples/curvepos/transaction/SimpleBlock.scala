@@ -1,16 +1,19 @@
 package examples.curvepos.transaction
 
 import com.google.common.primitives.{Ints, Longs}
+import examples.curvepos.{BaseTarget, GenerationSignature}
 import examples.curvepos.transaction.SimpleBlock._
 import io.circe.Json
 import io.circe.syntax._
-import scorex.core.NodeViewModifier.ModifierTypeId
+import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
+import scorex.crypto.signatures.PublicKey
+
 import scala.util.Try
 
 case class SimpleBlock(override val parentId: BlockId,
@@ -18,18 +21,16 @@ case class SimpleBlock(override val parentId: BlockId,
                        generationSignature: GenerationSignature,
                        baseTarget: BaseTarget,
                        generator: PublicKey25519Proposition,
-                       txs: Seq[SimpleTransaction])
+                       override val transactions: Seq[SimpleTransaction])
   extends Block[PublicKey25519Proposition, SimpleTransaction] {
 
   override type M = SimpleBlock
 
-  override lazy val modifierTypeId: Byte = SimpleBlock.ModifierTypeId
-
-  override lazy val transactions: Option[Seq[SimpleTransaction]] = Some(txs)
+  override lazy val modifierTypeId: ModifierTypeId = SimpleBlock.ModifierTypeId
 
   override lazy val serializer = SimpleBlockCompanion
 
-  override lazy val id: BlockId = Blake2b256(serializer.messageToSign(this))
+  override lazy val id: BlockId = ModifierId @@ Blake2b256(serializer.messageToSign(this))
 
   override lazy val version: Version = 0: Byte
 
@@ -38,20 +39,16 @@ case class SimpleBlock(override val parentId: BlockId,
     "parentId" -> Base58.encode(parentId).asJson,
     "timestamp" -> timestamp.asJson,
     "generationSignature" -> Base58.encode(generationSignature).asJson,
-    "baseTarget" -> baseTarget.asJson,
+    "baseTarget" -> baseTarget.toLong.asJson,
     "generator" -> Base58.encode(generator.pubKeyBytes).asJson,
-    "txs" -> txs.map(_.json).asJson
+    "txs" -> transactions.map(_.json).asJson
   ).asJson
 }
 
 object SimpleBlock {
-  val ModifierTypeId = 1: Byte
+  val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 1.toByte
 
   val SignatureLength = 64
-
-  type GenerationSignature = Array[Byte]
-
-  type BaseTarget = Long
 }
 
 object SimpleBlockCompanion extends Serializer[SimpleBlock] {
@@ -63,8 +60,8 @@ object SimpleBlockCompanion extends Serializer[SimpleBlock] {
       Array(block.version) ++
       Longs.toByteArray(block.baseTarget) ++
       block.generator.pubKeyBytes ++ {
-      val cntBytes = Ints.toByteArray(block.txs.size)
-      block.txs.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
+      val cntBytes = Ints.toByteArray(block.transactions.size)
+      block.transactions.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
     }
   }
 
@@ -76,20 +73,20 @@ object SimpleBlockCompanion extends Serializer[SimpleBlock] {
       block.generationSignature ++
       Longs.toByteArray(block.baseTarget) ++
       block.generator.pubKeyBytes ++ {
-      val cntBytes = Ints.toByteArray(block.txs.size)
-      block.txs.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
+      val cntBytes = Ints.toByteArray(block.transactions.size)
+      block.transactions.foldLeft(cntBytes) { case (bytes, tx) => bytes ++ tx.bytes }
     }
   }
 
-  override def parseBytes(bytes: Array[ModifierTypeId]): Try[SimpleBlock] = Try {
-    val parentId = bytes.slice(0, Block.BlockIdLength)
+  override def parseBytes(bytes: Array[Byte]): Try[SimpleBlock] = Try {
+    val parentId = ModifierId @@ bytes.slice(0, Block.BlockIdLength)
     val timestamp = Longs.fromByteArray(bytes.slice(Block.BlockIdLength, Block.BlockIdLength + 8))
     val version = bytes.slice(Block.BlockIdLength + 8, Block.BlockIdLength + 9).head
     val s0 = Block.BlockIdLength + 9
-    val generationSignature = bytes.slice(s0, s0 + SimpleBlock.SignatureLength)
-    val baseTarget = Longs.fromByteArray(bytes.slice(s0 + SimpleBlock.SignatureLength, s0 + SimpleBlock.SignatureLength + 8))
+    val generationSignature = GenerationSignature @@ bytes.slice(s0, s0 + SimpleBlock.SignatureLength)
+    val baseTarget = BaseTarget @@ Longs.fromByteArray(bytes.slice(s0 + SimpleBlock.SignatureLength, s0 + SimpleBlock.SignatureLength + 8))
     val s1 = s0 + SimpleBlock.SignatureLength + 8
-    val generator = PublicKey25519Proposition(bytes.slice(s1, s1 + 32))
+    val generator = PublicKey25519Proposition(PublicKey @@ bytes.slice(s1, s1 + 32))
     val cnt = Ints.fromByteArray(bytes.slice(s1 + 32, s1 + 36))
     val s2 = s1 + 36
     val txs = (0 until cnt) map { i =>

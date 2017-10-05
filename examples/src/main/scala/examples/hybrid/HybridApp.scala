@@ -16,7 +16,6 @@ import scorex.core.network.message.MessageSpec
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 import scala.concurrent.duration._
-import scala.reflect.runtime.universe._
 
 class HybridApp(val settingsFilename: String) extends Application {
 

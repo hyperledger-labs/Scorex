@@ -1,13 +1,16 @@
 package scorex.core.consensus
 
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
-import scorex.core.{NodeViewComponent, NodeViewModifier}
-import scorex.core.PersistentNodeViewModifier
-import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
+import scorex.core._
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
+
+object ModifierSemanticValidity extends Enumeration {
+  val Absent = Value(0)
+  val Unknown = Value(1)
+  val Valid = Value(2)
+  val Invalid = Value(3)
+}
 
 /**
   * History of a blockchain system is some blocktree in fact
@@ -18,17 +21,12 @@ import scala.util.Try
   * but other options are possible.
   *
   * To say "longest chain" is the canonical one is simplification, usually some kind of "cumulative difficulty"
-  * function has been used instead, even in PoW systems.
+  * function has been used instead.
   */
 
-trait History[P <: Proposition,
-TX <: Transaction[P],
-PM <: PersistentNodeViewModifier[P, TX],
-SI <: SyncInfo,
-HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
+trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends NodeViewComponent {
 
   import History._
-  import NodeViewModifier.ModifierId
 
   /**
     * Is there's no history, even genesis block
@@ -61,18 +59,22 @@ HT <: History[P, TX, PM, SI, HT]] extends NodeViewComponent {
 
   def modifierById(modifierId: ModifierId): Option[PM]
 
-  def modifierById(modifierId: String): Option[PM] = Base58.decode(modifierId).toOption.flatMap(modifierById)
+  //TODO never used?
+  def modifierById(modifierId: String): Option[PM] = Base58.decode(modifierId).toOption
+    .flatMap(id => modifierById(ModifierId @@ id))
 
   def append(modifier: PM): Try[(HT, ProgressInfo[PM])]
 
-  def reportInvalid(modifier: PM): HT
+  def reportSemanticValidity(modifier: PM, valid: Boolean, lastApplied: ModifierId): (HT, ProgressInfo[PM])
+
+  def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value
 
   //todo: output should be ID | Seq[ID]
   def openSurfaceIds(): Seq[ModifierId]
 
   /**
     * Ids of modifiers, that node with info should download and apply to synchronize
-    * todo: argument should be ID | Seq[ID]
+    * todo: argument should be ID | Seq[ID] ?
     */
   def continuationIds(info: SI, size: Int): Option[ModifierIds]
 
@@ -98,18 +100,21 @@ object History {
     val Nonsense = Value(4)
   }
 
-  case class ProgressInfo[PM <: PersistentNodeViewModifier[_, _]](branchPoint: Option[ModifierId],
-                                                                  toRemove: Seq[PM],
-                                                                  toApply: Seq[PM]) {
+  case class ProgressInfo[PM <: PersistentNodeViewModifier](branchPoint: Option[ModifierId],
+                                                            toRemove: Seq[PM],
+                                                            toApply: Seq[PM],
+                                                            toDownload: Seq[PM]
+                                                           ) {
 
-    require(branchPoint.isDefined == toRemove.nonEmpty)
+    require(branchPoint.isDefined == toRemove.nonEmpty, s"Branch point should be defined for non-empty toRemove," +
+      s" ${branchPoint.isDefined} == ${toRemove.nonEmpty} given")
+    require(toRemove.headOption.forall(h => branchPoint.forall(_ sameElements h.parentId)), "First toRemove modifier" +
+      "should link to branchPoint.")
 
-    lazy val rollbackNeeded: Boolean = toRemove.nonEmpty
-    lazy val appendedId: ModifierId = toApply.last.id
+    lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
 
     override def toString: String = {
       s"Modifications(${branchPoint.map(Base58.encode)}, ${toRemove.map(_.encodedId)}, ${toApply.map(_.encodedId)})"
     }
   }
-
 }

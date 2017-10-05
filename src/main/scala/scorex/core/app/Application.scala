@@ -20,7 +20,7 @@ trait Application extends ScorexLogging {
 
   type P <: Proposition
   type TX <: Transaction[P]
-  type PMOD <: PersistentNodeViewModifier[P, TX]
+  type PMOD <: PersistentNodeViewModifier
   type NVHT <: NodeViewHolder[P, TX, PMOD]
 
   val ApplicationNameLimit = 50

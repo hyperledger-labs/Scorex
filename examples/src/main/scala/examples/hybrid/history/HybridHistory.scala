@@ -8,10 +8,9 @@ import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, MiningSettings}
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
-import scorex.core.NodeViewModifier
-import scorex.core.NodeViewModifier.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.block.{Block, BlockValidator}
-import scorex.core.consensus.History
+import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
@@ -29,11 +28,7 @@ class HybridHistory(val storage: HistoryStorage,
                     settings: MiningConstants,
                     validators: Seq[BlockValidator[HybridBlock]],
                     statsLogger: Option[FileLogger])
-  extends History[PublicKey25519Proposition,
-    SimpleBoxTransaction,
-    HybridBlock,
-    HybridSyncInfo,
-    HybridHistory] with ScorexLogging {
+  extends History[HybridBlock, HybridSyncInfo, HybridHistory] with ScorexLogging {
 
   import HybridHistory._
 
@@ -94,84 +89,89 @@ class HybridHistory(val storage: HistoryStorage,
   override def contains(id: ModifierId): Boolean =
     if (id sameElements settings.GenesisParentId) true else modifierById(id).isDefined
 
-  /**
-    *
+  private def powBlockAppend(powBlock: PowBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
+    val progress: ProgressInfo[HybridBlock] = if (isGenesis(powBlock)) {
+      storage.update(powBlock, None, isBest = true)
+      ProgressInfo(None, Seq(), Seq(powBlock), Seq())
+    } else {
+      storage.heightOf(powBlock.parentId) match {
+        case Some(parentHeight) =>
+          val isBestBrother = (bestPosId sameElements powBlock.prevPosId) &&
+            (bestPowBlock.brothersCount < powBlock.brothersCount)
+
+          val isBest: Boolean = storage.height == storage.parentHeight(powBlock) || isBestBrother
+
+          val mod: ProgressInfo[HybridBlock] = if (isBest) {
+            if (isGenesis(powBlock) ||
+              ((powBlock.parentId sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
+              log.debug(s"New best PoW block ${Base58.encode(powBlock.id)}")
+              //just apply one block to the end
+              ProgressInfo(None, Seq(), Seq(powBlock), Seq())
+            } else if (isBestBrother) {
+              log.debug(s"New best brother ${Base58.encode(powBlock.id)}")
+              //new best brother
+              ProgressInfo(Some(powBlock.prevPosId), Seq(bestPowBlock), Seq(powBlock), Seq())
+            } else {
+              bestForkChanges(powBlock)
+            }
+          } else {
+            log.debug(s"New orphaned PoW block ${Base58.encode(powBlock.id)}")
+            ProgressInfo(None, Seq(), Seq(), Seq()) //todo: fix
+          }
+          storage.update(powBlock, None, isBest)
+          mod
+
+        case None =>
+          log.warn("No parent block in history")
+          ???
+      }
+    }
+    //        require(modifications.toApply.exists(_.id sameElements powBlock.id))
+    (new HybridHistory(storage, settings, validators, statsLogger), progress)
+  }
+
+  private def posBlockAppend(posBlock: PosBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
+    val difficulties = calcDifficultiesForNewBlock(posBlock)
+    val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
+    val isBest = storage.height == storage.parentHeight(posBlock)
+
+    val mod: ProgressInfo[HybridBlock] = if (!isBest) {
+      log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
+      ProgressInfo(None, Seq(), Seq(), Seq())
+    } else if (posBlock.parentId sameElements bestPowId) {
+      log.debug(s"New best PoS block ${Base58.encode(posBlock.id)}")
+      ProgressInfo(None, Seq(), Seq(posBlock), Seq())
+    } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
+      log.debug(s"New best PoS block with link to non-best brother ${Base58.encode(posBlock.id)}")
+      //rollback to prevoius PoS block and apply parent block one more time
+      ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq(parent, posBlock), Seq())
+    } else {
+      bestForkChanges(posBlock)
+    }
+    storage.update(posBlock, Some(difficulties), isBest)
+
+    (new HybridHistory(storage, settings, validators, statsLogger), mod)
+  }
+
+    /**
     * @param block - block to append
     * @return
     */
-  override def append(block: HybridBlock):
-  Try[(HybridHistory, ProgressInfo[HybridBlock])] = Try {
+  override def append(block: HybridBlock): Try[(HybridHistory, ProgressInfo[HybridBlock])] = Try {
     log.debug(s"Trying to append block ${Base58.encode(block.id)} to history")
-    val validationResuls = validators.map(_.validate(block))
-    validationResuls.foreach {
-      case Failure(e) => log.warn(s"Block validation failed", e)
+
+    validators.map(_.validate(block)).foreach {
+      case Failure(e) =>
+        log.warn(s"Block validation failed", e)
+        throw e
       case _ =>
     }
-    validationResuls.foreach(_.get)
+
     val res: (HybridHistory, ProgressInfo[HybridBlock]) = block match {
-      case powBlock: PowBlock =>
-        val progress: ProgressInfo[HybridBlock] = if (isGenesis(powBlock)) {
-          storage.update(powBlock, None, isBest = true)
-          ProgressInfo(None, Seq(), Seq(powBlock))
-        } else {
-          storage.heightOf(powBlock.parentId) match {
-            case Some(parentHeight) =>
-              val isBestBrother = (bestPosId sameElements powBlock.prevPosId) &&
-                (bestPowBlock.brothersCount < powBlock.brothersCount)
-
-              val isBest: Boolean = storage.height == storage.parentHeight(powBlock) || isBestBrother
-
-              val mod: ProgressInfo[HybridBlock] = if (isBest) {
-                if (isGenesis(powBlock) ||
-                  ((powBlock.parentId sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
-                  log.debug(s"New best PoW block ${Base58.encode(powBlock.id)}")
-                  //just apply one block to the end
-                  ProgressInfo(None, Seq(), Seq(powBlock))
-                } else if (isBestBrother) {
-                  log.debug(s"New best brother ${Base58.encode(powBlock.id)}")
-                  //new best brother
-                  ProgressInfo(Some(powBlock.prevPosId), Seq(bestPowBlock), Seq(powBlock))
-                } else {
-                  bestForkChanges(powBlock)
-                }
-              } else {
-                log.debug(s"New orphaned PoW block ${Base58.encode(powBlock.id)}")
-                ProgressInfo(None, Seq(), Seq()) //todo: fix
-              }
-              storage.update(powBlock, None, isBest)
-              mod
-
-            case None =>
-              log.warn("No parent block in history")
-              ???
-          }
-        }
-        //        require(modifications.toApply.exists(_.id sameElements powBlock.id))
-        (new HybridHistory(storage, settings, validators, statsLogger), progress)
-
-
-      case posBlock: PosBlock =>
-        val difficulties = calcDifficultiesForNewBlock(posBlock)
-        val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
-        val isBest = storage.height == storage.parentHeight(posBlock)
-
-        val mod: ProgressInfo[HybridBlock] = if (!isBest) {
-          log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
-          ProgressInfo(None, Seq(), Seq())
-        } else if (posBlock.parentId sameElements bestPowId) {
-          log.debug(s"New best PoS block ${Base58.encode(posBlock.id)}")
-          ProgressInfo(None, Seq(), Seq(posBlock))
-        } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
-          log.debug(s"New best PoS block with link to non-best brother ${Base58.encode(posBlock.id)}")
-          //rollback to prevoius PoS block and apply parent block one more time
-          ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq(parent, posBlock))
-        } else {
-          bestForkChanges(posBlock)
-        }
-        storage.update(posBlock, Some(difficulties), isBest)
-
-        (new HybridHistory(storage, settings, validators, statsLogger), mod)
+      case powBlock: PowBlock => powBlockAppend(powBlock)
+      case posBlock: PosBlock => posBlockAppend(posBlock)
     }
+
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
       s"Best score is ${storage.bestChainScore}. " +
       s"Pair: ${Base58.encode(storage.bestPowId)}|${Base58.encode(storage.bestPosId)}")
@@ -179,9 +179,6 @@ class HybridHistory(val storage: HistoryStorage,
       lastBlockIds(bestBlock, 50).map(Base58.encode).mkString(",")))
     res
   }
-
-  //todo: implement
-  override def reportInvalid(modifier: HybridBlock): HybridHistory = ???
 
   def bestForkChanges(block: HybridBlock): ProgressInfo[HybridBlock] = {
     val parentId = storage.parentId(block)
@@ -197,7 +194,7 @@ class HybridHistory(val storage: HistoryStorage,
     require(applyBlocks.nonEmpty)
     require(throwBlocks.nonEmpty)
 
-    ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks)
+    ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks, Seq())
   }
 
   private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, Long) = {
@@ -417,6 +414,19 @@ class HybridHistory(val storage: HistoryStorage,
     chainBack(storage.bestPosBlock, isGenesis).get.map(_._2).map(Base58.encode).mkString(",")
   }
 
+  //todo: real impl
+  override def reportSemanticValidity(modifier: HybridBlock,
+                                      valid: Boolean,
+                                      lastApplied: ModifierId): (HybridHistory, ProgressInfo[HybridBlock]) = {
+    this -> ProgressInfo(None, Seq(), Seq(), Seq())
+  }
+
+  //todo: real impl
+  override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value = {
+    modifierById(modifierId).map{_ =>
+      ModifierSemanticValidity.Valid
+    }.getOrElse(ModifierSemanticValidity.Absent)
+  }
 }
 
 

@@ -1,12 +1,15 @@
 package hybrid.wallet
 
+import examples.curvepos.Value
 import examples.hybrid.blocks.PosBlock
 import examples.hybrid.wallet.HWallet
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
+import scorex.core.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.crypto.signatures.Signature
 
 import scala.annotation.tailrec
 import scala.util.Random
@@ -17,8 +20,8 @@ class HWalletSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  val EmptyBytes = Array.fill(32)(0: Byte)
-  val EmptySignature = Signature25519(Array.fill(64)(0: Byte))
+  val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
+  val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
   val w = HWallet.readOrGenerate(settings, "p").generateNewSecret().generateNewSecret()
   w.secrets.size should be >= 2
@@ -48,8 +51,8 @@ class HWalletSpecification extends PropSpec
   property("Wallet should add boxes where he is recipient") {
     forAll(simpleBoxTransactionGen, noncedBoxGen) { (txIn, box) =>
       whenever(txIn.to.nonEmpty) {
-        val toWithMyPubkey: IndexedSeq[(PublicKey25519Proposition, Long)] =
-          txIn.to.map(p => (ss.publicImage, p._2 + 1))
+        val toWithMyPubkey: IndexedSeq[(PublicKey25519Proposition, Value)] =
+          txIn.to.map(p => (ss.publicImage, Value @@ (p._2 + 1)))
         val tx = txIn.copy(to = toWithMyPubkey)
 
         val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, Array(), EmptySignature)
