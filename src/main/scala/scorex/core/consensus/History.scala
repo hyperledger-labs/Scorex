@@ -100,6 +100,15 @@ object History {
     val Nonsense = Value(4)
   }
 
+  /**
+    * Info returned by history to nodeViewHolder after modifier application
+    *
+    * @param branchPoint - branch point in case of rollback
+    * @param toRemove - modifiers to remove from current node view
+    * @param toApply - modifiers to apply to current node view
+    * @param toDownload - modifiers to download from other nodes
+    * @tparam PM - type of used modifier
+    */
   case class ProgressInfo[PM <: PersistentNodeViewModifier](branchPoint: Option[ModifierId],
                                                             toRemove: Seq[PM],
                                                             toApply: Seq[PM],
@@ -108,8 +117,6 @@ object History {
 
     require(branchPoint.isDefined == toRemove.nonEmpty, s"Branch point should be defined for non-empty toRemove," +
       s" ${branchPoint.isDefined} == ${toRemove.nonEmpty} given")
-    require(toRemove.headOption.forall(h => branchPoint.forall(_ sameElements h.parentId)), "First toRemove modifier" +
-      "should link to branchPoint.")
 
     lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
 
