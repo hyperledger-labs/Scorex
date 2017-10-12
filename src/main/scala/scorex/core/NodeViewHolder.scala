@@ -174,8 +174,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             history -> Success(stateToApply)
         }
       case Failure(e) =>
-        e.printStackTrace()
-        ??? //todo: rollback failed, send signal, probably very wrong situation
+        log.error("Rollback failed: ", e)
+        notifySubscribers(EventType.FailedRollback, RollbackFailed)
     }
   }
 
@@ -371,6 +371,9 @@ object NodeViewHolder {
 
     //starting persistent modifier application. The application could be slow
     val StartingPersistentModifierApplication = Value(5)
+
+    //rollback failed, really wrong situation, probably
+    val FailedRollback = Value(6)
   }
 
   //a command to subscribe for events
@@ -405,4 +408,7 @@ object NodeViewHolder {
   (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
+
+  //todo: consider sending info on the rollback
+  case object RollbackFailed
 }
