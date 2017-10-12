@@ -175,7 +175,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
-        notifySubscribers(EventType.FailedRollback, RollbackFailed)
+        notifySubscribers[RollbackFailed.type](EventType.FailedRollback, RollbackFailed)
+        //todo: what to return here?
+        ???
     }
   }
 
@@ -410,5 +412,5 @@ object NodeViewHolder {
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
 
   //todo: consider sending info on the rollback
-  case object RollbackFailed
+  case object RollbackFailed extends NodeViewHolderEvent
 }
