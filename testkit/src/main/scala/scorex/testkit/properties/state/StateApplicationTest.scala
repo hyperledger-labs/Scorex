@@ -62,11 +62,11 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
 
   property(propertyNameGenerator("application after rollback is possible (within maxRollbackDepth)")) {
     forAll(stateGen) { s =>
-      val maxRollbackDepth = Gen.chooseNum(1, s.maxRollbackDepth).sample.get
+      val rollbackDepth = Gen.chooseNum(1, s.maxRollbackDepth).sample.get
       val buf = new ListBuffer[PM]()
       val ver = s.version
 
-      val s2 = (0 until maxRollbackDepth).foldLeft(s) { case (state, _) =>
+      val s2 = (0 until rollbackDepth).foldLeft(s) { case (state, _) =>
         val modifier = semanticallyValidModifier(state)
         buf += modifier
         val sTry = state.applyModifier(modifier)
