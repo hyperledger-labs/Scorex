@@ -65,7 +65,6 @@ trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
   }
 
   def syntacticallyValidModifier(curHistory: HybridHistory): HybridBlock = {
-
     if (curHistory.pairCompleted) {
       for {
         timestamp: Long <- positiveLongGen
@@ -90,9 +89,12 @@ trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
   }.sample.get
 
   def totallyValidModifier(history: HybridHistory, state: HBoxStoredState): HybridBlock = {
-    val synBlock = syntacticallyValidModifier(history)
-    val semBlock = semanticallyValidModifier(state)
-    synBlock.asInstanceOf[PosBlock].copy(transactions = semBlock.transactions)
+    syntacticallyValidModifier(history) match{
+      case posSyn: PosBlock =>
+        val semBlock = semanticallyValidModifier(state)
+        posSyn.copy(transactions = semBlock.transactions)
+      case powSyn: PowBlock => powSyn
+    }
   }
 
   def semanticallyInvalidModifier(state: HBoxStoredState): HybridBlock = {

@@ -90,8 +90,7 @@ object PosBlockCompanion extends Serializer[PosBlock] {
 }
 
 object PosBlock {
-  val MaxBlockSize = 65535
-  //64K
+  val MaxBlockSize = 512 * 1024  //512K
   val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 4.toByte
 
   def create(parentId: BlockId,

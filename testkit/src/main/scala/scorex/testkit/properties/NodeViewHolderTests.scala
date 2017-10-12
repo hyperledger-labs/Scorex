@@ -12,8 +12,10 @@ import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
-import scorex.testkit.generators.SyntacticallyTargetedModifierProducer
+import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
+import scala.concurrent.duration._
+
 
 trait NodeViewHolderTests[P <: Proposition,
 TX <: Transaction[P],
@@ -27,7 +29,8 @@ VL <: Vault[P, TX, PM, VL]]
     with Matchers
     with PropertyChecks
     with ScorexLogging
-    with SyntacticallyTargetedModifierProducer[PM, SI, HT] {
+    with SyntacticallyTargetedModifierProducer[PM, SI, HT]
+    with TotallyValidModifierProducer[PM, ST, SI, HT] {
 
   type Fixture = HolderFixture
 
@@ -79,5 +82,28 @@ VL <: Vault[P, TX, PM, VL]]
     }
 
     expectMsg(true)
+  }
+
+  property("NodeViewHolder: simple forking") { ctx => import ctx._
+    node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
+
+    node ! LocallyGeneratedModifier(mod)
+    expectMsgType[SuccessfulModification[PM]]
+
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
+      totallyValidModifier(v.history, v.state)
+    }
+
+    val fork1Mod = receiveOne(5 seconds).asInstanceOf[PM]
+
+
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
+      totallyValidModifier(v.history, v.state)
+    }
+
+    val fork2Mod = receiveOne(5 seconds).asInstanceOf[PM]
+
+    node ! LocallyGeneratedModifier(fork1Mod)
+    node ! LocallyGeneratedModifier(fork2Mod)
   }
 }
