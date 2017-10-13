@@ -3,7 +3,7 @@ package scorex.core.network
 import java.net.InetAddress
 
 import org.bitlet.weupnp.{GatewayDevice, GatewayDiscover}
-import scorex.core.settings.{NetworkSettings, Settings}
+import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.JavaConverters._

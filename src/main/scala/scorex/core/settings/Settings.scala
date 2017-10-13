@@ -3,111 +3,95 @@ package scorex.core.settings
 import java.io.File
 import java.net.InetSocketAddress
 
-import io.circe.Json
-import io.circe.parser.parse
+import com.typesafe.config.{Config, ConfigFactory}
 import scorex.core.app.Version
-import scorex.core.transaction.box.proposition.Constants25519._
-import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
+import scorex.core.utils.{ByteStr, ScorexLogging}
+import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.duration._
-import scala.util.{Random, Try}
+import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 
-/**
-  * Settings
-  */
-trait Settings extends ScorexLogging {
+case class RESTApiSettings(bindAddress: String,
+                           port: Int,
+                           apiKeyHash: Option[String],
+                           corsAllowed: Boolean,
+                           timeout: FiniteDuration)
 
-  def settingsFromFile(filename: String): Map[String, Json] = Try {
-    val jsonString = scala.io.Source.fromFile(filename).mkString
-    parse(jsonString).right.get
-  }.recoverWith { case t =>
-    Try {
-      val jsonString = scala.io.Source.fromURL(getClass.getResource(s"/$filename")).mkString
-      parse(jsonString).right.get
+case class NetworkSettings(nodeName: String,
+                           nodeNonce: Long,
+                           addedMaxDelay: Option[Int],
+                           networkChunkSize: Int,
+                           localOnly: Boolean,
+                           knownPeers: Seq[InetSocketAddress],
+                           bindAddress: String,
+                           maxConnections: Int,
+                           connectionTimeout: Int,
+                           upnpEnabled: Boolean,
+                           upnpGatewayTimeout: Option[Int],
+                           upnpDiscoverTimeout: Option[Int],
+                           port: Int,
+                           declaredAddress: Option[String],
+                           handshakeTimeout: Int,
+                           appVersion: Version,
+                           agentName: String,
+                           maxPacketLen: Int,
+                           maxInvObjects: Int)
+
+case class MinerSettings(offlineGeneration: Boolean,
+                         targetBlockDelay: FiniteDuration,
+                         blockGenerationDelay: FiniteDuration)
+
+case class WalletSettings(seed: ByteStr,
+                          password: String,
+                          walletDir: File)
+
+case class ScorexSettings(agentName: String,
+                          dataDir: File,
+                          logDir: File,
+                          network: NetworkSettings,
+                          restApi: RESTApiSettings,
+                          miner: MinerSettings,
+                          wallet: WalletSettings)
+
+
+object ScorexSettings extends ScorexLogging {
+
+  protected val configPath: String = "scorex"
+
+  def readConfigFromPath(userConfigPath: Option[String], configPath: String): Config = {
+    val maybeConfigFile = for {
+      maybeFilename <- userConfigPath
+      file = new File(maybeFilename)
+      if file.exists
+    } yield file
+
+    val config = maybeConfigFile match {
+      // if no user config is supplied, the library will handle overrides/application/reference automatically
+      case None =>
+        log.warn("NO CONFIGURATION FILE WAS PROVIDED. STARTING WITH DEFAULT SETTINGS FOR TESTNET!")
+        ConfigFactory.load()
+      // application config needs to be resolved wrt both system properties *and* user-supplied config.
+      case Some(file) =>
+        val cfg = ConfigFactory.parseFile(file)
+        if (!cfg.hasPath(configPath)) {
+          throw new Error("Malformed configuration file was provided! Aborting!")
+        }
+        ConfigFactory
+          .defaultOverrides()
+          .withFallback(cfg)
+          .withFallback(ConfigFactory.defaultApplication())
+          .withFallback(ConfigFactory.defaultReference())
+          .resolve()
     }
-  }.toOption.flatMap(_.asObject).map(_.toMap).getOrElse {
-    log.error(s"Unable to read $filename or not a JSON map there, closing")
-    //catch error?
-    System.exit(10)
-    Map()
+
+    config
   }
 
-  def settingsJSON: Map[String, Json]
-
-  private def directoryEnsuring(dirPath: String): Boolean = {
-    val f = new java.io.File(dirPath)
-    f.mkdirs()
-    f.exists()
+  def read(userConfigPath: Option[String]): ScorexSettings = {
+    fromConfig(readConfigFromPath(userConfigPath, configPath))
   }
 
-  private def folderOpt(settingName: String) = {
-    val res = settingsJSON.get(settingName).flatMap(_.asString)
-    res.foreach(folder => new File(folder).mkdirs())
-    require(res.isEmpty || new File(res.get).exists())
-    res
+  def fromConfig(config: Config): ScorexSettings = {
+    config.as[ScorexSettings](configPath)
   }
-
-  lazy val dataDirOpt = folderOpt("dataDir")
-
-  lazy val logDirOpt = folderOpt("logDir")
-
-  //There are different bind addresses
-  lazy val bindAddress: String = ???
-
-  lazy val rpcPort = settingsJSON.get("rpcPort").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultRpcPort)
-
-  lazy val blockGenerationDelay: FiniteDuration = settingsJSON.get("blockGenerationDelay").flatMap(_.asNumber).flatMap(_.toLong)
-    .map(x => FiniteDuration(x, MILLISECONDS)).getOrElse(DefaultBlockGenerationDelay)
-
-  lazy val mininigThreads: Int = settingsJSON.get("mininigThreads").flatMap(_.asNumber).flatMap(_.toInt).getOrElse(DefaultMiningThreads)
-
-  lazy val walletDirOpt = settingsJSON.get("walletDir").flatMap(_.asString)
-    .ensuring(pathOpt => pathOpt.forall(directoryEnsuring))
-
-  lazy val walletPassword = settingsJSON.get("walletPassword").flatMap(_.asString).getOrElse {
-    scala.io.StdIn.readLine()
-  }
-
-  lazy val walletSeed = settingsJSON.get("walletSeed").flatMap(_.asString).flatMap(s => Base58.decode(s).toOption)
-    .getOrElse {
-      val generated = scorex.utils.Random.randomBytes(PrivKeyLength)
-      log.warn("No wallet seed provided: generated new one:" + Base58.encode(generated))
-      generated
-    }
-
-  lazy val apiKeyHash = settingsJSON.get("apiKeyHash").flatMap(_.asString).flatMap(s => Base58.decode(s).toOption)
-
-  lazy val corsAllowed = settingsJSON.get("cors").flatMap(_.asBoolean).getOrElse(false)
-
-  lazy val isTestnet = settingsJSON.get("testnet").flatMap(_.asBoolean).getOrElse(false)
-
-  //NETWORK
-  private val DefaultMaxConnections = 20
-  private val DefaultConnectionTimeout = 60
-  private val DefaultBindAddress = "127.0.0.1"
-
-  private val DefaultNetworkChunkSize = 100
-
-  //API
-
-  private val DefaultRpcPort = 9085
-
-  private val DefaultBlockGenerationDelay: FiniteDuration = 1.second
-  private val DefaultMiningThreads: Int = 1
-
-  //APPLICATION DATA
-  lazy val agentName: String = settingsJSON.get("agent").flatMap(_.asString)
-    .getOrElse(Random.alphanumeric.take(16).mkString)
-
-  lazy val appVersion: Version = settingsJSON.get("version").flatMap(_.asArray)
-    .map(_.flatMap(_.asNumber.flatMap(_.toByte))).map(_.toArray)
-    .map(arr => Version(arr(0), arr(1), arr(2)))
-    .getOrElse(Version(0, 0, 1))
-}
-
-object Settings {
-
-
-  val VersionNumbers = 3 //a version is about 3 numbers e.g. 1.0.1
 }

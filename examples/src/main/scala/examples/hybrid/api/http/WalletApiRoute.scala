@@ -14,7 +14,7 @@ import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
 import scorex.core.api.http.{ApiException, ApiRouteWithFullView, SuccessApiResponse}
-import scorex.core.settings.Settings
+import scorex.core.settings.{RESTApiSettings, ScorexSettings}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
@@ -26,7 +26,7 @@ import scala.util.{Failure, Success, Try}
 
 @Path("/wallet")
 @Api(value = "/wallet", produces = "application/json")
-case class WalletApiRoute(override val settings: Settings, nodeViewHolderRef: ActorRef)
+case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                          (implicit val context: ActorRefFactory)
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
 

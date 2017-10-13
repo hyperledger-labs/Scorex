@@ -7,6 +7,7 @@ import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.utils.ByteStr
 import scorex.testkit.{BlockchainPerformance, BlockchainSanity}
 
 
@@ -30,5 +31,5 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
 
   //Node view components
   override lazy val memPool: SimpleBoxTransactionMemPool = SimpleBoxTransactionMemPool.emptyPool
-  override lazy val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings, "p"))((w, _) => w.generateNewSecret())
+  override lazy val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings.scorexSettings, "p"))((w, _) => w.generateNewSecret())
 }

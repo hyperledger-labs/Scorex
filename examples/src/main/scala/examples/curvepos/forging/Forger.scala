@@ -1,11 +1,11 @@
 package examples.curvepos.forging
 
 import akka.actor.{Actor, ActorRef}
-import examples.curvepos.{BaseTarget, GenerationSignature, SimpleBlockchain}
 import examples.curvepos.transaction._
+import examples.curvepos.{BaseTarget, GenerationSignature, SimpleBlockchain}
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
-import scorex.core.settings.Settings
+import scorex.core.settings.MinerSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.{NetworkTime, ScorexLogging}
@@ -15,11 +15,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Try
 
-trait ForgerSettings extends Settings {
-  lazy val offlineGeneration = settingsJSON.get("offlineGeneration").flatMap(_.asBoolean).getOrElse(false)
-}
-
-class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Actor with ScorexLogging {
+class Forger(viewHolderRef: ActorRef, forgerSettings: MinerSettings) extends Actor with ScorexLogging {
 
   import Forger._
 
@@ -27,11 +23,6 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   private var forging = forgerSettings.offlineGeneration
 
   private val hash = Blake2b256
-
-
-  //in seconds
-  val InterBlocksDelay = 15
-  val blockGenerationDelay = 500.millisecond
 
   override def preStart(): Unit = {
     if (forging) context.system.scheduler.scheduleOnce(1.second)(self ! Forge)
@@ -44,7 +35,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
                              currentTime: Long): Long = {
     val eta = currentTime - lastBlock.timestamp
     val prevBt = BigInt(lastBlock.baseTarget)
-    val t0 = bounded(prevBt * eta / InterBlocksDelay, prevBt / 2, prevBt * 2)
+    val t0 = bounded(prevBt * eta / forgerSettings.blockGenerationDelay.toSeconds, prevBt / 2, prevBt * 2)
     bounded(t0, 1, Long.MaxValue).toLong
   }
 
@@ -64,7 +55,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
   override def receive: Receive = {
     case StartMining =>
       forging = true
-      context.system.scheduler.scheduleOnce(blockGenerationDelay)(self ! Forge)
+      context.system.scheduler.scheduleOnce(forgerSettings.blockGenerationDelay)(self ! Forge)
 
     case StopMining =>
       forging = false
@@ -96,7 +87,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: ForgerSettings) extends Ac
         }
       }
       generatedBlocks.foreach(localModifier => viewHolderRef ! localModifier)
-      context.system.scheduler.scheduleOnce(blockGenerationDelay)(self ! Forge)
+      context.system.scheduler.scheduleOnce(forgerSettings.blockGenerationDelay)(self ! Forge)
 
     case Forge =>
       viewHolderRef ! Forger.getRequiredData

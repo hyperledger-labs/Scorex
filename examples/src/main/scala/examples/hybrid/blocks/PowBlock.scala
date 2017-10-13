@@ -2,7 +2,7 @@ package examples.hybrid.blocks
 
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.SimpleBoxTransaction
-import examples.hybrid.mining.MiningConstants
+import examples.hybrid.mining.HybridMiningSettings
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core._
@@ -37,7 +37,7 @@ class PowBlockHeader(
       brothersHash ++
       generatorProposition.pubKeyBytes
 
-  def correctWork(difficulty: BigInt, s: MiningConstants): Boolean = correctWorkDone(id, difficulty, s)
+  def correctWork(difficulty: BigInt, s: HybridMiningSettings): Boolean = correctWorkDone(id, difficulty, s)
 
   lazy val id = ModifierId @@ Blake2b256(headerBytes)
 
@@ -63,7 +63,7 @@ object PowBlockHeader {
     new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
   }
 
-  def correctWorkDone(id: Array[Byte], difficulty: BigInt, s: MiningConstants): Boolean = {
+  def correctWorkDone(id: Array[Byte], difficulty: BigInt, s: HybridMiningSettings): Boolean = {
     val target = s.MaxTarget / difficulty
     BigInt(1, id) < target
   }

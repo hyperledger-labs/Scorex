@@ -2,7 +2,7 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import scorex.core.settings.{NetworkSettings, Settings}
+import scorex.core.settings.NetworkSettings
 
 import scala.collection.mutable
 

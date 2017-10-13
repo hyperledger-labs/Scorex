@@ -4,11 +4,11 @@ import akka.actor.ActorSystem
 import com.github.swagger.akka.SwaggerHttpService
 import com.github.swagger.akka.model.{Contact, Info, License}
 import io.swagger.models.Swagger
-import scorex.core.settings.Settings
+import scorex.core.settings.RESTApiSettings
 
-class SwaggerDocService(system: ActorSystem, val apiClasses: Set[Class[_]], settings: Settings)
+class SwaggerDocService(system: ActorSystem, val apiClasses: Set[Class[_]], settings: RESTApiSettings)
   extends SwaggerHttpService {
-  override val host = settings.bindAddress + ":" + settings.rpcPort
+  override val host: String = settings.bindAddress + ":" + settings.port
   override val apiDocsPath: String = "swagger"
 
   override val info: Info = Info("The Web Interface to the Scorex API",

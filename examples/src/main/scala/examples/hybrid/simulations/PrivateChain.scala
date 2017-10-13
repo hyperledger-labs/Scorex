@@ -3,13 +3,12 @@ package examples.hybrid.simulations
 import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
-import examples.hybrid.mining.{MiningSettings, PosForger, PowMiner}
+import examples.hybrid.mining.{HybridSettings, PosForger, PowMiner}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import io.circe
 import scorex.core.block.Block.BlockId
-import scorex.core.settings.Settings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -48,7 +47,7 @@ object PrivateChain extends App with ScorexLogging {
     @tailrec
     def step(): PowBlock = {
       val delay = (1000 / hashesPerSecond).seconds
-      PowMiner.powIteration(parentId, prevPosId, brothers, difficulty, settings, proposition, delay) match {
+      PowMiner.powIteration(parentId, prevPosId, brothers, difficulty, hybridSettings.mining, proposition, delay) match {
         case Some(block) => block
         case None => step()
       }
@@ -56,15 +55,12 @@ object PrivateChain extends App with ScorexLogging {
     step()
   }
 
-
-  val settings = new Settings with MiningSettings {
-    override val settingsJSON: Map[String, circe.Json] = settingsFromFile("settings.json")
-  }
-
+  private val hybridSettings = HybridSettings.read(Some("settings.json"))
+  implicit lazy val settings = hybridSettings.scorexSettings
 
   def timeSpent(adversarialStakePercent: Int, hashesPerSecond: Int): Long = {
 
-    Path.apply(settings.dataDirOpt.get).deleteRecursively()
+    Path.apply(settings.dataDir).deleteRecursively()
 
     var (history, state, wallet, _) = genesisState()
 
@@ -83,12 +79,12 @@ object PrivateChain extends App with ScorexLogging {
         Thread.sleep(15)
       } else {
 
-        val target = PosForger.MaxTarget / history.posDifficulty
+        val target = hybridSettings.mining.MaxTarget / history.posDifficulty
 
         @tailrec
         def posStep(): PosBlock = {
           val pb = history.bestPowBlock
-          PosForger.posIteration(pb, boxKeys, Seq(), Array(), target) match {
+          PosForger.posIteration(pb, boxKeys, Seq(), Array(), target.longValue()) match {
             case Some(pos) => pos
             case None =>
               val npb = generatePow(history, brother = true, hashesPerSecond)

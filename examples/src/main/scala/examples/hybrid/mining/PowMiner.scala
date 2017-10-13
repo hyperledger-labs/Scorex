@@ -26,7 +26,7 @@ import scala.util.Random
   * currently it is starting to work on getting a (PoW; PoS) block references
   * and stops on a new PoW block found (when PoS ref is unknown)
   */
-class PowMiner(viewHolderRef: ActorRef, settings: MiningSettings) extends Actor with ScorexLogging {
+class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends Actor with ScorexLogging {
 
   import PowMiner._
 
@@ -161,7 +161,7 @@ object PowMiner extends App {
                    prevPosId: BlockId,
                    brothers: Seq[PowBlockHeader],
                    difficulty: BigInt,
-                   settings: MiningSettings,
+                   settings: HybridMiningSettings,
                    proposition: PublicKey25519Proposition,
                    blockGenerationDelay: FiniteDuration
                   ): Option[PowBlock] = {

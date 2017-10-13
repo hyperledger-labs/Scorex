@@ -9,18 +9,18 @@ import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.VersionTag
-import scorex.core.settings.Settings
+import scorex.core.settings.{ScorexSettings}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletBoxSerializer, WalletTransaction}
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ByteStr, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
 
 
-case class HWallet(seed: Array[Byte], store: LSMStore)
+case class HWallet(seed: ByteStr, store: LSMStore)
   extends Wallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock, HWallet]
     with ScorexLogging {
 
@@ -62,7 +62,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
   override def generateNewSecret(): HWallet = {
     val prevSecrets = secrets
     val nonce: Array[Byte] = Ints.toByteArray(prevSecrets.size)
-    val s = Blake2b256(seed ++ nonce)
+    val s = Blake2b256(seed.arr ++ nonce)
     val (priv, _) = PrivateKey25519Companion.generateKeys(s)
     val allSecrets: Set[PrivateKey25519] = Set(priv) ++ prevSecrets
     store.update(ByteArrayWrapper(priv.privKeyBytes),
@@ -114,17 +114,15 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
 
 object HWallet {
 
-  def walletFile(settings: Settings): File = {
-    val walletDirOpt = settings.walletDirOpt.ensuring(_.isDefined, "wallet dir must be specified")
-    val walletDir = walletDirOpt.get
-    new File(walletDir).mkdirs()
+  def walletFile(settings: ScorexSettings): File = {
+    settings.wallet.walletDir.mkdirs()
 
-    new File(s"$walletDir/wallet.dat")
+    new File(s"${settings.wallet.walletDir.getAbsolutePath}/wallet.dat")
   }
 
-  def exists(settings: Settings): Boolean = walletFile(settings).exists()
+  def exists(settings: ScorexSettings): Boolean = walletFile(settings).exists()
 
-  def readOrGenerate(settings: Settings, seed: String): HWallet = {
+  def readOrGenerate(settings: ScorexSettings, seed: ByteStr): HWallet = {
     val wFile = walletFile(settings)
     wFile.mkdirs()
     val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000)
@@ -135,25 +133,25 @@ object HWallet {
       }
     })
 
-    HWallet(Base58.decode(seed).get, boxesStorage)
+    HWallet(seed, boxesStorage)
   }
 
-  def readOrGenerate(settings: Settings): HWallet = {
-    readOrGenerate(settings, Base58.encode(settings.walletSeed))
+  def readOrGenerate(settings: ScorexSettings): HWallet = {
+    readOrGenerate(settings, settings.wallet.seed)
   }
 
-  def readOrGenerate(settings: Settings, seed: String, accounts: Int): HWallet =
+  def readOrGenerate(settings: ScorexSettings, seed: ByteStr, accounts: Int): HWallet =
     (1 to accounts).foldLeft(readOrGenerate(settings, seed)) { case (w, _) =>
       w.generateNewSecret()
     }
 
-  def readOrGenerate(settings: Settings, accounts: Int): HWallet =
+  def readOrGenerate(settings: ScorexSettings, accounts: Int): HWallet =
     (1 to accounts).foldLeft(readOrGenerate(settings)) { case (w, _) =>
       w.generateNewSecret()
     }
 
   //wallet with applied initialBlocks
-  def genesisWallet(settings: Settings, initialBlocks: Seq[HybridBlock]): HWallet = {
+  def genesisWallet(settings: ScorexSettings, initialBlocks: Seq[HybridBlock]): HWallet = {
     initialBlocks.foldLeft(readOrGenerate(settings).generateNewSecret()) { (a, b) =>
       a.scanPersistent(b)
     }

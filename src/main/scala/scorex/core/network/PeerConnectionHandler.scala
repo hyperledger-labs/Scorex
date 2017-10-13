@@ -10,12 +10,12 @@ import com.google.common.primitives.Ints
 import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
-import scorex.core.settings.{NetworkSettings, ScorexSettings, Settings}
+import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 
-import scala.util.{Failure, Random, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.{Failure, Random, Success}
 
 case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef) {
 
