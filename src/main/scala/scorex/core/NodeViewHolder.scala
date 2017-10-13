@@ -182,8 +182,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   @tailrec
   private def updateState(history: HIS,
                           state: MS,
-                          progressInfo: ProgressInfo[PMOD]
-                         ): (HIS, Try[MS]) = {
+                          progressInfo: ProgressInfo[PMOD]): (HIS, Try[MS]) = {
     val stateToApplyTry = if (progressInfo.chainSwitchingNeeded) {
       val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
       if (!state.version.sameElements(branchingPoint)) state.rollbackTo(branchingPoint) else Success(state)

@@ -88,14 +88,13 @@ trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
     }
   }.sample.get
 
-  def totallyValidModifier(history: HybridHistory, state: HBoxStoredState): HybridBlock = {
-    syntacticallyValidModifier(history) match{
+  def totallyValidModifier(history: HybridHistory, state: HBoxStoredState): HybridBlock =
+    syntacticallyValidModifier(history) match {
       case posSyn: PosBlock =>
         val semBlock = semanticallyValidModifier(state)
         posSyn.copy(transactions = semBlock.transactions)
       case powSyn: PowBlock => powSyn
     }
-  }
 
   def semanticallyInvalidModifier(state: HBoxStoredState): HybridBlock = {
     val posBlock: PosBlock = semanticallyValidModifier(state)

@@ -93,14 +93,11 @@ VL <: Vault[P, TX, PM, VL]]
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
       totallyValidModifier(v.history, v.state)
     }
-
     val fork1Mod = receiveOne(5 seconds).asInstanceOf[PM]
-
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
       totallyValidModifier(v.history, v.state)
     }
-
     val fork2Mod = receiveOne(5 seconds).asInstanceOf[PM]
 
     node ! LocallyGeneratedModifier(fork1Mod)
