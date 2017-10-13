@@ -102,5 +102,12 @@ VL <: Vault[P, TX, PM, VL]]
 
     node ! LocallyGeneratedModifier(fork1Mod)
     node ! LocallyGeneratedModifier(fork2Mod)
+
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
+      v.history.contains(fork1Mod.id) || v.history.contains(fork2Mod.id)
+    }
+    expectMsgType[SuccessfulModification[PM]]
+
+    expectMsg(true)
   }
 }

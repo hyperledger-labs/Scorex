@@ -14,7 +14,8 @@ import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.hash.Blake2b256
 import scorex.testkit.generators.CoreGenerators
 
-trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
+trait ModifierGenerators {
+  this: HybridGenerators with CoreGenerators =>
 
   private val hf = Blake2b256
 
@@ -64,8 +65,15 @@ trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
     PosBlock.create(version, System.currentTimeMillis(), txs, genBox, attach, generator)
   }
 
-  def syntacticallyValidModifier(curHistory: HybridHistory): HybridBlock = {
-    if (curHistory.pairCompleted) {
+  def pairCompleted(curHistory: HybridHistory, blocks: Seq[HybridBlock]): Boolean =
+    if (blocks.isEmpty) curHistory.pairCompleted
+    else blocks.last.isInstanceOf[PosBlock]
+
+  def syntacticallyValidModifier(curHistory: HybridHistory): HybridBlock =
+    syntacticallyValidModifier(curHistory, Seq())
+
+  def syntacticallyValidModifier(curHistory: HybridHistory, blocks: Seq[HybridBlock]): HybridBlock = {
+    if (pairCompleted(curHistory, blocks)) {
       for {
         timestamp: Long <- positiveLongGen
         nonce: Long <- positiveLongGen
@@ -75,7 +83,14 @@ trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
       } yield {
         val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
         val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
-        new PowBlock(curHistory.bestPowId, curHistory.bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
+
+        val (bestPowId, bestPosId) = blocks.size match {
+          case i: Int if i == 0 => curHistory.bestPowId -> curHistory.bestPosId
+          case i: Int if i == 1 => curHistory.bestPowId -> blocks.head.id
+          case i: Int if i >= 2 => blocks.drop(1).last.id -> blocks.last.id
+        }
+
+        new PowBlock(bestPowId, bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
       }
     } else {
       for {
@@ -84,9 +99,15 @@ trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
         box: PublicKey25519NoncedBox <- noncedBoxGen
         attach: Array[Byte] <- attachGen
         generator: PrivateKey25519 <- key25519Gen.map(_._1)
-      } yield PosBlock.create(curHistory.bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
+        bestPowId = blocks.lastOption.map(_.id).getOrElse(curHistory.bestPowId)
+      } yield PosBlock.create(bestPowId, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
     }
   }.sample.get
+
+  def syntacticallyValidModifiers(curHistory: HybridHistory, count: Int): Seq[HybridBlock] =
+    (1 to count).foldLeft(Seq[HybridBlock]()) { case (blocks, _) =>
+      blocks ++ Seq(syntacticallyValidModifier(curHistory, blocks))
+    }
 
   def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock = {
     syntacticallyValidModifier(curHistory) match {
@@ -95,7 +116,7 @@ trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
     }
   }
 
-  def semanticallyInvalidModifier(state: HBoxStoredState): HybridBlock = {
+  def semanticallyInvalidModifier(state: HBoxStoredState): PosBlock = {
     val posBlock: PosBlock = semanticallyValidModifier(state)
     posBlock.transactions.lastOption.map { lastTx =>
       val modifiedFrom = (lastTx.from.head._1, Nonce @@ (lastTx.from.head._2 + 1)) +: lastTx.from.tail
@@ -114,4 +135,18 @@ trait ModifierGenerators { this: HybridGenerators with CoreGenerators =>
         posSyn.copy(transactions = semBlock.transactions)
       case powSyn: PowBlock => powSyn
     }
+
+  def totallyValidModifiers(history: HT, state: ST, count: Int): Seq[HybridBlock] = {
+    val mods = syntacticallyValidModifiers(history, count)
+    val posBlocksCount = mods.count(_.isInstanceOf[PosBlock])
+
+    if (posBlocksCount > 0) {
+      val semValid = semanticallyInvalidModifier(state)
+
+      val txs = semValid.transactions
+      val perBlock = Math.min(txs.size / posBlocksCount, 1)
+    }
+
+    Seq()
+  }
 }
