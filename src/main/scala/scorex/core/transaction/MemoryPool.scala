@@ -21,7 +21,12 @@ trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewC
 
   def getAll(ids: Seq[ModifierId]): Seq[TX]
 
-  //modifiers
+  /**
+    * Method to put a transaction into the memory pool. Validation of tha transactions against
+    * the state is done in NodeVieHolder. This put() method can check whether a transaction is valid
+    * @param tx
+    * @return Success(updatedPool), if transaction successfully added to the pool, Failure(_) otherwise
+    */
   def put(tx: TX): Try[M]
 
   def put(txs: Iterable[TX]): Try[M]

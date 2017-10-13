@@ -97,14 +97,30 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! signal)
 
   private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
-    memoryPool().put(tx) match {
-      case Success(updPool) =>
-        log.debug(s"Unconfirmed transaction $tx added to the memory pool")
-        val updWallet = vault().scanOffchain(tx)
-        nodeView = (history(), minimalState(), updWallet, updPool)
-        notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx, source))
+    //todo: async update?
+    val errorOpt: Option[Exception] = minimalState() match {
+      case txValidator: TransactionValidation[P, TX] =>
+        txValidator.validate(tx) match {
+          case Success(_) => None
+          case Failure(e) => Some(e)
+        }
+      case _ => None
+    }
 
-      case Failure(e) =>
+    errorOpt match {
+      case None =>
+        memoryPool().put(tx) match {
+          case Success(updPool) =>
+            log.debug(s"Unconfirmed transaction $tx added to the memory pool")
+            val updWallet = vault().scanOffchain(tx)
+            nodeView = (history(), minimalState(), updWallet, updPool)
+            notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx, source))
+
+          case Failure(e) =>
+            notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e, source))
+        }
+
+      case Some(e) =>
         notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e, source))
     }
   }
