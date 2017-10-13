@@ -97,8 +97,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! signal)
 
   private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
-    //todo: async update?
-    val errorOpt: Option[Exception] = minimalState() match {
+    //todo: async validation?
+    val errorOpt: Option[Throwable] = minimalState() match {
       case txValidator: TransactionValidation[P, TX] =>
         txValidator.validate(tx) match {
           case Success(_) => None
