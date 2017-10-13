@@ -43,27 +43,24 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 
   type NodeView = (HIS, MS, VL, MP)
-
-  val modifierCompanions: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
-
-  val networkChunkSize: Int
-
-  //todo: make configurable limited size
-  private val modifiersCache = mutable.Map[ModifierId, (ConnectedPeer, PMOD)]()
-
-  //mutable private node view instance
-  private var nodeView: NodeView = restoreState().getOrElse(genesisState)
-
   /**
-    * Hard-coded initial view all the honest nodes in a network are making progress from.
+    * The main datastructure a node software is taking care about, a node view consists
+    * of four elements to be updated atomically: history (log of persistent modifiers),
+    * state (result of log's modifiers application to pre-historical(genesis) state,
+    * user-specific information stored in vault (it could be e.g. a wallet), and a memory pool.
     */
-  protected def genesisState: NodeView
+  private var nodeView: NodeView = restoreState().getOrElse(genesisState)
 
   /**
     * Restore a local view during a node startup. If no any stored view found
     * (e.g. if it is a first launch of a node) None is to be returned
     */
   def restoreState(): Option[NodeView]
+
+  /**
+    * Hard-coded initial view all the honest nodes in a network are making progress from.
+    */
+  protected def genesisState: NodeView
 
 
   private def history(): HIS = nodeView._1
@@ -73,6 +70,26 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def vault(): VL = nodeView._3
 
   private def memoryPool(): MP = nodeView._4
+
+
+  /**
+    * Serializers for modifiers, to be provided by a concrete instantiation
+    */
+  val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
+
+  //todo: write desc
+  /**
+    *
+    */
+  val networkChunkSize: Int
+
+
+  /**
+    * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
+    */
+  //todo: make configurable limited size
+  private val modifiersCache = mutable.Map[ModifierId, (ConnectedPeer, PMOD)]()
+
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, Seq[ActorRef]]()
 
@@ -268,7 +285,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
-      modifierCompanions.get(modifierTypeId) foreach { companion =>
+      modifierSerializers.get(modifierTypeId) foreach { companion =>
         remoteObjects.flatMap(r => companion.parseBytes(r).toOption).foreach {
           case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
             txModify(tx, Some(remote))
