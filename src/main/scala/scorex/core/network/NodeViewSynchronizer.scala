@@ -35,7 +35,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
  syncInfoSpec: SIS) extends Actor with ScorexLogging {
 
   import NodeViewSynchronizer._
-  import scorex.core.NodeViewModifier._
   import History.HistoryComparisonResult._
 
   //modifier ids asked from other nodes are kept in order to check then
