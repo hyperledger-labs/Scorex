@@ -59,7 +59,7 @@ trait ModifierGenerators {
       _.boxIdsToOpen.foreach { id => assert(state.closedBox(id).isDefined) }
     }
 
-    val txsGrouped = txs.grouped(txs.size / count)
+    val txsGrouped = txs.grouped(txs.size / count).toSeq
 
     assert(txsGrouped.size == count)
 
@@ -72,7 +72,8 @@ trait ModifierGenerators {
     }
   }
 
-  def semanticallyValidModifier(state: HBoxStoredState): PosBlock = validPosBlock(state, Seq(state.version))
+  def semanticallyValidModifier(state: HBoxStoredState): PosBlock =
+    validPosBlocks(state, Seq(ModifierId @@ state.version)).head
 
   def pairCompleted(curHistory: HybridHistory, blocks: Seq[HybridBlock]): Boolean =
     if (blocks.isEmpty) curHistory.pairCompleted
@@ -149,14 +150,14 @@ trait ModifierGenerators {
     require(count >= 1)
     val mods = syntacticallyValidModifiers(history, count)
 
-    val filteredIds = mods.filter(_.isInstanceOf[PowBlock]).toBuffer
+    val parentIds = mods.filter(_.isInstanceOf[PowBlock]).map(_.id).toBuffer
 
-    if(mods.head.isInstanceOf[PosBlock]) filteredIds.prepend(state.version)
-    if(mods.last.asInstanceOf[PowBlock]) filteredIds.remove(filteredIds.size-1)
+    if(mods.head.isInstanceOf[PosBlock]) parentIds.prepend(ModifierId @@ state.version)
+    if(mods.last.isInstanceOf[PowBlock]) parentIds.remove(parentIds.size - 1)
 
-    assert(filteredIds.size == mods.filter(_.isInstanceOf[PosBlock].size))
+    assert(parentIds.size == mods.count(_.isInstanceOf[PosBlock]))
 
-    val posBlocks = validPosBlocks(state, filteredIds).toBuffer
+    val posBlocks = validPosBlocks(state, parentIds).toBuffer
 
     mods.map {
       case pw: PowBlock => pw
