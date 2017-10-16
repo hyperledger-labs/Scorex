@@ -3,6 +3,12 @@ package scorex.core.app
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scala.util.Try
 
+object Version {
+  def apply(v: String): Version = {
+    val splitted = v.split(".")
+    Version(splitted(0).toByte, splitted(1).toByte, splitted(2).toByte)
+  }
+}
 case class Version(firstDigit: Byte, secondDigit: Byte, thirdDigit: Byte) extends BytesSerializable {
   override type M = Version
 

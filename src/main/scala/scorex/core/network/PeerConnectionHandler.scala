@@ -7,6 +7,7 @@ import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
 import com.google.common.primitives.Ints
+import scorex.core.app.Version
 import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
@@ -81,7 +82,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
     case StartInteraction =>
       val hb = Handshake(
         settings.agentName,
-        settings.appVersion,
+        Version(settings.appVersion),
         settings.nodeName,
         settings.nodeNonce,
         ownSocketAddress,
@@ -94,7 +95,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
       if (handshakeGot && handshakeSent){
         self ! HandshakeDone
       } else {
-        handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout.millis)(self ! HandshakeTimeout))
+        handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)(self ! HandshakeTimeout))
       }
 
     case Received(data) =>
@@ -132,7 +133,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
       //simulating network delays
       settings.addedMaxDelay match {
         case Some(delay) =>
-          context.system.scheduler.scheduleOnce(Random.nextInt(delay).millis)(sendOutMessage())
+          context.system.scheduler.scheduleOnce(Random.nextInt(delay.toMillis.toInt).millis)(sendOutMessage())
         case None =>
           sendOutMessage()
       }

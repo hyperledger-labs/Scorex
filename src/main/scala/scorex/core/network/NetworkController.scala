@@ -80,7 +80,7 @@ class NetworkController(settings: NetworkSettings,
   log.info(s"Declared address: $externalSocketAddress")
 
 
-  lazy val connTimeout = Some(new FiniteDuration(settings.connectionTimeout, SECONDS))
+  lazy val connTimeout = Some(settings.connectionTimeout)
 
   //bind to listen incoming connections
   IO(Tcp) ! Bind(self, localAddress)

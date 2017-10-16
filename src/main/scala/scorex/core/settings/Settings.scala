@@ -4,7 +4,6 @@ import java.io.File
 import java.net.InetSocketAddress
 
 import com.typesafe.config.{Config, ConfigFactory}
-import scorex.core.app.Version
 import scorex.core.utils.{ByteStr, ScorexLogging}
 import net.ceedubs.ficus.Ficus._
 
@@ -25,14 +24,14 @@ case class NetworkSettings(nodeName: String,
                            knownPeers: Seq[InetSocketAddress],
                            bindAddress: String,
                            maxConnections: Int,
-                           connectionTimeout: Int,
+                           connectionTimeout: FiniteDuration,
                            upnpEnabled: Boolean,
-                           upnpGatewayTimeout: FiniteDuration,
-                           upnpDiscoverTimeout: FiniteDuration,
+                           upnpGatewayTimeout: Option[FiniteDuration],
+                           upnpDiscoverTimeout: Option[FiniteDuration],
                            port: Int,
                            declaredAddress: Option[String],
-                           handshakeTimeout: Int,
-                           appVersion: Version,
+                           handshakeTimeout: FiniteDuration,
+                           appVersion: String,
                            agentName: String,
                            maxPacketLen: Int,
                            maxInvObjects: Int)
@@ -45,8 +44,7 @@ case class WalletSettings(seed: ByteStr,
                           password: String,
                           walletDir: File)
 
-case class ScorexSettings(agentName: String,
-                          dataDir: File,
+case class ScorexSettings(dataDir: File,
                           logDir: File,
                           network: NetworkSettings,
                           restApi: RESTApiSettings,

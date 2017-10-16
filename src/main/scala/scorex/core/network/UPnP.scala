@@ -18,10 +18,10 @@ class UPnP(settings: NetworkSettings) extends ScorexLogging {
 
   Try {
     log.info("Looking for UPnP gateway device...")
-    val defaultHttpReadTimeout = settings.upnpGatewayTimeout.getOrElse(GatewayDevice.getHttpReadTimeout)
+    val defaultHttpReadTimeout = settings.upnpGatewayTimeout.map(_.toMillis.toInt).getOrElse(GatewayDevice.getHttpReadTimeout)
     GatewayDevice.setHttpReadTimeout(defaultHttpReadTimeout)
     val discover = new GatewayDiscover()
-    val defaultDiscoverTimeout = settings.upnpDiscoverTimeout.getOrElse(discover.getTimeout)
+    val defaultDiscoverTimeout = settings.upnpDiscoverTimeout.map(_.toMillis.toInt).getOrElse(discover.getTimeout)
     discover.setTimeout(defaultDiscoverTimeout)
 
     val gatewayMap = Option(discover.discover).map(_.asScala).map(_.toMap).getOrElse(Map())

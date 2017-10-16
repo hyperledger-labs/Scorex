@@ -32,7 +32,7 @@ trait Application extends ScorexLogging {
   val apiRoutes: Seq[ApiRoute]
   val apiTypes: Set[Class[_]]
 
-  protected implicit lazy val actorSystem = ActorSystem(settings.agentName)
+  protected implicit lazy val actorSystem = ActorSystem(settings.network.agentName)
 
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
@@ -58,15 +58,15 @@ trait Application extends ScorexLogging {
   val localInterface: ActorRef
 
 
-  val peerManagerRef = actorSystem.actorOf(Props(classOf[PeerManager], settings))
+  val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings)))
 
-  val nProps = Props(classOf[NetworkController], settings, messagesHandler, upnp, peerManagerRef)
+  val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef))
   val networkController = actorSystem.actorOf(nProps, "networkController")
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings.restApi).compositeRoute
 
   def run(): Unit = {
-    require(settings.agentName.length <= ApplicationNameLimit)
+    require(settings.network.agentName.length <= ApplicationNameLimit)
 
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")

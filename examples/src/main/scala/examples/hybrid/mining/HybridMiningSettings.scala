@@ -5,8 +5,9 @@ import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.ValueReader
 import scorex.core.ModifierId
-import scorex.core.settings._
 import scorex.core.settings.ScorexSettings.readConfigFromPath
+import scorex.core.settings._
+import scorex.core.utils.ScorexLogging
 
 import scala.concurrent.duration._
 
@@ -23,19 +24,18 @@ case class HybridMiningSettings(offlineGeneration: Boolean,
   lazy val GenesisParentId = ModifierId @@ Array.fill(32)(1: Byte)
 }
 
-object HybridSettings {
+object HybridSettings extends ScorexLogging {
   def read(userConfigPath: Option[String]): HybridSettings = {
-    fromConfig(readConfigFromPath(userConfigPath, configPath))
+    fromConfig(readConfigFromPath(userConfigPath, "scorex"))
   }
 
   implicit val networkSettingsValueReader: ValueReader[HybridSettings] =
     (cfg: Config, path: String) => fromConfig(cfg.getConfig(path))
 
-  val configPath: String = "hybrid"
-
   private def fromConfig(config: Config): HybridSettings = {
-    val miningSettings = config.as[HybridMiningSettings](s"$configPath.mining")
-    val scorexSettings = config.as[ScorexSettings](configPath)
+    log.info(config.toString)
+    val miningSettings = config.as[HybridMiningSettings]("scorex.miner")
+    val scorexSettings = config.as[ScorexSettings]("scorex")
     HybridSettings(miningSettings, scorexSettings)
   }
 }
