@@ -19,7 +19,7 @@ trait ModifierGenerators {
 
   private val hf = Blake2b256
 
-  val txCountGen: Gen[Int] = Gen.chooseNum(0, 30)
+  val txCountGen: Gen[Int] = Gen.chooseNum(0, 50)
   val insPerTxCountGen: Gen[Int] = Gen.chooseNum(1, 20)
   val attachGen: Gen[Array[Byte]] = genBoundedBytes(0, 4096)
 
@@ -29,10 +29,11 @@ trait ModifierGenerators {
     at <- attachGen
   } yield (tx, in, at)
 
-  def semanticallyValidModifier(state: HBoxStoredState): PosBlock = {
+  def validPosBlocks(state: HBoxStoredState, parentIds: Seq[ModifierId]): Seq[PosBlock] = {
+    val count = parentIds.size
     val (txCount, insPerTx, attach) = txGen.sample.get
 
-    assert(txCount >= 0 && txCount <= 30)
+    assert(txCount >= 0 && txCount <= 50)
     assert(insPerTx >= 1 && insPerTx <= 20)
 
     def filterOutForgedBoxes(in: (ByteArrayWrapper, ByteArrayWrapper)): Boolean = {
@@ -41,11 +42,11 @@ trait ModifierGenerators {
 
     val stateBoxes = state.store.getAll()
       .filter(filterOutForgedBoxes)
-      .take(txCount * insPerTx + 1)
+      .take(count * txCount * insPerTx + 1)
       .map { case (_, wrappedData) => PublicKey25519NoncedBoxSerializer.parseBytes(wrappedData.data).get }
       .toSeq
 
-    assert(stateBoxes.size == txCount * insPerTx + 1)
+    assert(stateBoxes.size == count * txCount * insPerTx + 1)
 
     val txs = stateBoxes.tail.grouped(insPerTx).map { inputs =>
       val fee = 0
@@ -58,12 +59,20 @@ trait ModifierGenerators {
       _.boxIdsToOpen.foreach { id => assert(state.closedBox(id).isDefined) }
     }
 
+    val txsGrouped = txs.grouped(txs.size / count)
+
+    assert(txsGrouped.size == count)
+
     val genBox: PublicKey25519NoncedBox = stateBoxes.head
     val generator = privKey(genBox.value)._1
-    val version = ModifierId @@ state.version
+    //val parentId = ModifierId @@ state.version
 
-    PosBlock.create(version, System.currentTimeMillis(), txs, genBox, attach, generator)
+    txsGrouped.zip(parentIds).map{case (blockTxs, parentId) =>
+      PosBlock.create(parentId, System.currentTimeMillis(), blockTxs, genBox, attach, generator)
+    }
   }
+
+  def semanticallyValidModifier(state: HBoxStoredState): PosBlock = validPosBlock(state, Seq(state.version))
 
   def pairCompleted(curHistory: HybridHistory, blocks: Seq[HybridBlock]): Boolean =
     if (blocks.isEmpty) curHistory.pairCompleted
@@ -137,16 +146,21 @@ trait ModifierGenerators {
     }
 
   def totallyValidModifiers(history: HT, state: ST, count: Int): Seq[HybridBlock] = {
+    require(count >= 1)
     val mods = syntacticallyValidModifiers(history, count)
-    val posBlocksCount = mods.count(_.isInstanceOf[PosBlock])
 
-    if (posBlocksCount > 0) {
-      val semValid = semanticallyInvalidModifier(state)
+    val filteredIds = mods.filter(_.isInstanceOf[PowBlock]).toBuffer
 
-      val txs = semValid.transactions
-      val perBlock = Math.min(txs.size / posBlocksCount, 1)
+    if(mods.head.isInstanceOf[PosBlock]) filteredIds.prepend(state.version)
+    if(mods.last.asInstanceOf[PowBlock]) filteredIds.remove(filteredIds.size-1)
+
+    assert(filteredIds.size == mods.filter(_.isInstanceOf[PosBlock].size))
+
+    val posBlocks = validPosBlocks(state, filteredIds).toBuffer
+
+    mods.map{_ match =>
+      case pw: PowBlock => pw
+      case _: PosBlock => posBlocks.head; posBlocks.remove(0)
     }
-
-    Seq()
   }
 }
