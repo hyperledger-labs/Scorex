@@ -14,7 +14,7 @@ import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
-import scorex.crypto.encode.Base58
+import scorex.crypto.encode.{Base16, Base58}
 import scorex.crypto.hash.Blake2b256
 
 import scala.annotation.tailrec
@@ -122,11 +122,11 @@ class HybridHistory(val storage: HistoryStorage,
           mod
 
         case None =>
-          log.warn("No parent block in history")
+          log.warn(s"No parent block ${powBlock.parentId} in history")
           ???
       }
     }
-    //        require(modifications.toApply.exists(_.id sameElements powBlock.id))
+    // require(modifications.toApply.exists(_.id sameElements powBlock.id))
     (new HybridHistory(storage, settings, validators, statsLogger), progress)
   }
 
@@ -224,6 +224,7 @@ class HybridHistory(val storage: HistoryStorage,
       (newPowDiff, newPosDiff)
     } else {
       //Same difficulty as in previous block
+      assert(modifierById(posBlock.parentId).isDefined)
       val parentPoSId: ModifierId = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock].prevPosId
       (storage.getPoWDifficulty(Some(parentPoSId)), storage.getPoSDifficulty(parentPoSId))
     }

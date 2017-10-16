@@ -11,6 +11,7 @@ import org.scalacheck.Gen
 import scorex.core.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
+import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 import scorex.testkit.generators.CoreGenerators
 
@@ -19,8 +20,8 @@ trait ModifierGenerators {
 
   private val hf = Blake2b256
 
-  val txCountGen: Gen[Int] = Gen.chooseNum(0, 50)
-  val insPerTxCountGen: Gen[Int] = Gen.chooseNum(1, 20)
+  val txCountGen: Gen[Int] = Gen.chooseNum(0, 40)
+  val insPerTxCountGen: Gen[Int] = Gen.chooseNum(1, 10)
   val attachGen: Gen[Array[Byte]] = genBoundedBytes(0, 4096)
 
   val txGen: Gen[(Int, Int, Array[Byte])] = for {
@@ -35,8 +36,8 @@ trait ModifierGenerators {
 
     val (txCount, insPerTx, attach) = txGen.sample.get
 
-    assert(txCount >= 0 && txCount <= 50)
-    assert(insPerTx >= 1 && insPerTx <= 20)
+    assert(txCount >= 0 && txCount <= 40)
+    assert(insPerTx >= 1 && insPerTx <= 10)
 
     def filterOutForgedBoxes(in: (ByteArrayWrapper, ByteArrayWrapper)): Boolean = {
       PublicKey25519NoncedBoxSerializer.parseBytes(in._2.data).map(_.value).getOrElse(0L) > 0
@@ -87,7 +88,7 @@ trait ModifierGenerators {
     syntacticallyValidModifier(curHistory, Seq())
 
   def syntacticallyValidModifier(curHistory: HybridHistory, blocks: Seq[HybridBlock]): HybridBlock = {
-    if (pairCompleted(curHistory, blocks)) {
+    if (pairCompleted(curHistory, blocks)) { //generate PoW Block
       for {
         timestamp: Long <- positiveLongGen
         nonce: Long <- positiveLongGen
@@ -106,7 +107,7 @@ trait ModifierGenerators {
 
         new PowBlock(bestPowId, bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
       }
-    } else {
+    } else { //generate PoS block
       for {
         timestamp: Long <- positiveLongGen
         txs: Seq[SimpleBoxTransaction] <- smallInt.flatMap(txNum => Gen.listOfN(txNum, simpleBoxTransactionGen))
@@ -156,16 +157,30 @@ trait ModifierGenerators {
 
     val parentIds = mods.filter(_.isInstanceOf[PowBlock]).map(_.id).toBuffer
 
-    if(mods.head.isInstanceOf[PosBlock]) parentIds.prepend(ModifierId @@ state.version)
+    if(mods.head.isInstanceOf[PosBlock]) parentIds.prepend(history.bestPowId)
     if(mods.last.isInstanceOf[PowBlock]) parentIds.remove(parentIds.size - 1)
 
     assert(parentIds.size == mods.count(_.isInstanceOf[PosBlock]))
 
     val posBlocks = validPosBlocks(state, parentIds).toBuffer
 
-    mods.map {
+    val validMods = mods.map {
       case pw: PowBlock => pw
-      case _: PosBlock => posBlocks.head; posBlocks.remove(0)
+      case _: PosBlock => posBlocks.remove(0)
     }
+
+    validMods.foldLeft((Seq[HybridBlock](), history.bestPowId, history.bestPosId)){case ((blocks, bestPw, bestPs), b) =>
+      b match {
+        case pwb: PowBlock =>
+          val newPwb = pwb.copy(parentId = bestPw, prevPosId = bestPs)
+          (blocks ++ Seq(newPwb), newPwb.id, bestPs)
+        case psb: PosBlock =>
+          val newPsb = psb.copy(parentId = bestPw)
+          (blocks ++ Seq(newPsb), bestPw, newPsb.id)
+      }
+    }._1
+  }.ensuring{blocks =>
+    history.modifierById(blocks.head.parentId).isDefined &&
+      history.applicable(blocks.head)
   }
 }

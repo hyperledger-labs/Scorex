@@ -20,7 +20,7 @@ import scala.concurrent.duration._
 trait NodeViewHolderTests[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier,
-ST <: MinimalState[PM,ST],
+ST <: MinimalState[PM, ST],
 SI <: SyncInfo,
 HT <: History[PM, SI, HT],
 MPool <: MemoryPool[TX, MPool],
@@ -44,42 +44,47 @@ VL <: Vault[P, TX, PM, VL]]
 
   import NodeViewHolder._
 
-  property("NodeViewHolder: check state after creation") { ctx => import ctx._
+  property("NodeViewHolder: check state after creation") { ctx =>
+    import ctx._
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
       v.state.version.sameElements(s.version)
     }
     expectMsg(true)
   }
 
-  property("NodeViewHolder: check that a valid modifier is applicable") { ctx => import ctx._
+  property("NodeViewHolder: check that a valid modifier is applicable") { ctx =>
+    import ctx._
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
       v.history.applicable(mod)
     }
     expectMsg(true)
   }
 
-  property("NodeViewHolder: check that valid modifiers are applicable") { ctx => import ctx._
+  property("NodeViewHolder: check that valid modifiers are applicable") { ctx =>
+    import ctx._
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
-      totallyValidModifiers(v.history, v.state, 10)
+      totallyValidModifiers(v.history, v.state, 10) //todo: fix magic number
     }
     val mods = receiveOne(5 seconds).asInstanceOf[Seq[PM]]
 
-    mods.foreach{mod =>
+    mods.foreach { mod =>
       node ! LocallyGeneratedModifier(mod)
     }
 
     (1 to mods.size).foreach(_ => expectMsgType[SuccessfulModification[PM]])
   }
 
-  property("NodeViewHolder: check sync info is synced") { ctx => import ctx._
+  property("NodeViewHolder: check sync info is synced") { ctx =>
+    import ctx._
     node ! GetSyncInfo
     val syncInfo = CurrentSyncInfo(h.syncInfo(false))
     expectMsg(syncInfo)
   }
 
-  property("NodeViewHolder: apply locally generated mod") { ctx => import ctx._
+  property("NodeViewHolder: apply locally generated mod") { ctx =>
+    import ctx._
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
 
     val invalid = syntacticallyInvalidModifier(h)
@@ -99,7 +104,8 @@ VL <: Vault[P, TX, PM, VL]]
     expectMsg(true)
   }
 
-  property("NodeViewHolder: simple forking") { ctx => import ctx._
+  property("NodeViewHolder: simple forking") { ctx =>
+    import ctx._
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
 
     node ! LocallyGeneratedModifier(mod)

@@ -5,8 +5,7 @@ import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{MiningConstants, PosForger}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.{ModifierId, NodeViewModifier}
-import scorex.core.NodeViewModifier._
+import scorex.core.ModifierId
 import scorex.core.block.Block
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
@@ -109,7 +108,6 @@ class HistoryStorage(storage: LSMStore,
     Longs.fromByteArray(storage.get(blockDiffKey(id, isPos = true)).get.data)
   }
 
-
   def parentHeight(b: HybridBlock): Long = heightOf(parentId(b)).getOrElse(0L)
 
   def parentId(block: HybridBlock): ModifierId = block match {
@@ -130,5 +128,4 @@ class HistoryStorage(storage: LSMStore,
     case powB: PowBlock => powB.parentId sameElements settings.GenesisParentId
     case posB: PosBlock => heightOf(posB.parentId).contains(1L)
   }
-
 }
