@@ -158,7 +158,7 @@ trait ModifierGenerators {
 
     val posBlocks = validPosBlocks(state, filteredIds).toBuffer
 
-    mods.map{_ match =>
+    mods.map {
       case pw: PowBlock => pw
       case _: PosBlock => posBlocks.head; posBlocks.remove(0)
     }
