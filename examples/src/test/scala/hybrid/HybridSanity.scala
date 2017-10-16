@@ -31,5 +31,5 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
 
   //Node view components
   override lazy val memPool: SimpleBoxTransactionMemPool = SimpleBoxTransactionMemPool.emptyPool
-  override lazy val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings.scorexSettings, "p"))((w, _) => w.generateNewSecret())
+  override lazy val wallet = (0 until 100).foldLeft(HWallet.readOrGenerate(settings.scorexSettings, ByteStr.decodeBase58("p").get))((w, _) => w.generateNewSecret())
 }
