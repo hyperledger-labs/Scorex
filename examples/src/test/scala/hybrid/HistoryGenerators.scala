@@ -18,7 +18,7 @@ trait HistoryGenerators { this: StoreGenerators =>
   private val historyBrothers = Seq.empty
   private val historyProposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
 
-  private val genesisBlock = PowBlock(
+  private lazy val genesisBlock = PowBlock(
     settings.mining.GenesisParentId,
     settings.mining.GenesisParentId,
     historyTimestamp,
