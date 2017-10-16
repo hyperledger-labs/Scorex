@@ -50,7 +50,7 @@ class ApiClient(settings: RESTApiSettings) {
 }
 
 object ApiClient extends App {
-  val settingsFilename = args.headOption.getOrElse("settings.json")
+  val settingsFilename = args.headOption.getOrElse("settings.conf")
   val settings = ScorexSettings.read(Some(settingsFilename))
   val apiClient = new ApiClient(settings.restApi)
 

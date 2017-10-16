@@ -42,7 +42,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
 
   type ChangesGen = Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]]
 
-  val originalSettings = HybridSettings.read(Some("settings.json"))
+  val originalSettings = HybridSettings.read(Some("settings.conf"))
   val settings = originalSettings.copy(mining = originalSettings.mining.copy(targetBlockDelay = 3.seconds, initialDifficulty = 1))
 
   lazy val hybridSyncInfoGen: Gen[HybridSyncInfo] = for {

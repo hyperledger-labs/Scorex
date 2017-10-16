@@ -66,6 +66,6 @@ class HybridApp(val settingsFilename: String) extends Application {
 }
 
 object HybridApp extends App {
-  val settingsFilename = args.headOption.getOrElse("settings.json")
+  val settingsFilename = args.headOption.getOrElse("settings.conf")
   new HybridApp(settingsFilename).run()
 }

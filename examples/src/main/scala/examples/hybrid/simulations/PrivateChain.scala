@@ -55,7 +55,7 @@ object PrivateChain extends App with ScorexLogging {
     step()
   }
 
-  private val hybridSettings = HybridSettings.read(Some("settings.json"))
+  private val hybridSettings = HybridSettings.read(Some("settings.conf"))
   implicit lazy val settings = hybridSettings.scorexSettings
 
   def timeSpent(adversarialStakePercent: Int, hashesPerSecond: Int): Long = {

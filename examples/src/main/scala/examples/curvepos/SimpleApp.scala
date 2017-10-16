@@ -46,6 +46,6 @@ class SimpleApp(val settingsFilename: String) extends Application {
 }
 
 object SimpleApp extends App {
-  val settingsFilename = args.headOption.getOrElse("settings.json")
+  val settingsFilename = args.headOption.getOrElse("settings.conf")
   new SimpleApp(settingsFilename).run()
 }
