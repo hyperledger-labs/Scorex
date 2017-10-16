@@ -51,11 +51,26 @@ VL <: Vault[P, TX, PM, VL]]
     expectMsg(true)
   }
 
-  property("NodeViewHolder: check valid modifier is applicable") { ctx => import ctx._
+  property("NodeViewHolder: check that a valid modifier is applicable") { ctx => import ctx._
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
       v.history.applicable(mod)
     }
     expectMsg(true)
+  }
+
+  property("NodeViewHolder: check that valid modifiers are applicable") { ctx => import ctx._
+    node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
+
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
+      totallyValidModifiers(v.history, v.state, 10)
+    }
+    val mods = receiveOne(5 seconds).asInstanceOf[Seq[PM]]
+
+    mods.foreach{mod =>
+      node ! LocallyGeneratedModifier(mod)
+    }
+
+    (1 to mods.size).foreach(_ => expectMsgType[SuccessfulModification[PM]])
   }
 
   property("NodeViewHolder: check sync info is synced") { ctx => import ctx._

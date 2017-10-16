@@ -31,6 +31,8 @@ trait ModifierGenerators {
 
   def validPosBlocks(state: HBoxStoredState, parentIds: Seq[ModifierId]): Seq[PosBlock] = {
     val count = parentIds.size
+    require(count >= 1)
+
     val (txCount, insPerTx, attach) = txGen.sample.get
 
     assert(txCount >= 0 && txCount <= 50)
@@ -59,13 +61,15 @@ trait ModifierGenerators {
       _.boxIdsToOpen.foreach { id => assert(state.closedBox(id).isDefined) }
     }
 
-    val txsGrouped = txs.grouped(txs.size / count).toSeq
+    val txsPerBlock = txs.size / count
+    val txsGrouped =
+      if(txsPerBlock == 0) Seq.fill(count)(Seq[SimpleBoxTransaction]())
+      else txs.grouped(txsPerBlock).toSeq
 
     assert(txsGrouped.size == count)
 
     val genBox: PublicKey25519NoncedBox = stateBoxes.head
     val generator = privKey(genBox.value)._1
-    //val parentId = ModifierId @@ state.version
 
     txsGrouped.zip(parentIds).map{case (blockTxs, parentId) =>
       PosBlock.create(parentId, System.currentTimeMillis(), blockTxs, genBox, attach, generator)
