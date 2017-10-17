@@ -44,7 +44,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   type NodeView = (HIS, MS, VL, MP)
   /**
-    * The main datastructure a node software is taking care about, a node view consists
+    * The main data structure a node software is taking care about, a node view consists
     * of four elements to be updated atomically: history (log of persistent modifiers),
     * state (result of log's modifiers application to pre-historical(genesis) state,
     * user-specific information stored in vault (it could be e.g. a wallet), and a memory pool.
@@ -225,7 +225,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
       history().append(pmod) match {
         case Success((historyBeforeStUpdate, progressInfo)) =>
-          log.debug(s"Going to apply modifications: $progressInfo")
+          log.debug(s"Going to apply modifications to the state: $progressInfo")
+          notifySubscribers(EventType.SuccessfulSyntacticallyValidModifier, SyntacticallySuccessfulModifier[PMOD](pmod, source))
 
           if (progressInfo.toApply.nonEmpty) {
             val (newHistory, newStateTry) = updateState(historyBeforeStUpdate, minimalState(), progressInfo)
@@ -242,8 +243,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 }
 
                 log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
+                notifySubscribers(EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier[PMOD](pmod, source))
                 nodeView = (newHistory, newMinState, newVault, newMemPool)
-                notifySubscribers(EventType.SuccessfulPersistentModifier, SuccessfulModification[PMOD](pmod, source))
 
               case Failure(e) =>
                 log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
@@ -401,13 +402,17 @@ object NodeViewHolder {
     val FailedTransaction = Value(1)
     val FailedPersistentModifier = Value(2)
     val SuccessfulTransaction = Value(3)
-    val SuccessfulPersistentModifier = Value(4)
+    val SuccessfulSyntacticallyValidModifier = Value(4)
+    val SuccessfulSemanticallyValidModifier = Value(5)
+
 
     //starting persistent modifier application. The application could be slow
-    val StartingPersistentModifierApplication = Value(5)
+    val StartingPersistentModifierApplication = Value(6)
+
+    val OpenSurfaceChanged = Value(7)
 
     //rollback failed, really wrong situation, probably
-    val FailedRollback = Value(6)
+    val FailedRollback = Value(8)
   }
 
   //a command to subscribe for events
@@ -438,11 +443,20 @@ object NodeViewHolder {
   case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]]
   (transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  case class SuccessfulModification[PMOD <: PersistentNodeViewModifier]
+  case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier]
   (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
+  case class SemanticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier]
+  (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+
+  case class NewOpenSurface[PMOD <: PersistentNodeViewModifier](newSurface: Seq[PMOD])
+    extends NodeViewHolderEvent
+
+  case class ModificationApplicationStarted[PMOD <: PersistentNodeViewModifier](modifier: PMOD)
+    extends NodeViewHolderEvent
 
   //todo: consider sending info on the rollback
   case object RollbackFailed extends NodeViewHolderEvent
+
+  case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
 }

@@ -22,7 +22,8 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.FailedPersistentModifier,
       NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.SuccessfulPersistentModifier
+      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
+      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier
     )
     viewHolderRef ! Subscribe(events)
   }
@@ -40,7 +41,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     case st: SuccessfulTransaction[P, TX] =>
       onSuccessfulTransaction(st.transaction)
 
-    case sm: SuccessfulModification[PMOD] =>
+    case sm: SyntacticallySuccessfulModifier[PMOD] =>
       onSuccessfulModification(sm.modifier)
   }
 

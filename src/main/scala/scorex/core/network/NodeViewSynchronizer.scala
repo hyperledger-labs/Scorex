@@ -55,7 +55,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.FailedPersistentModifier,
       NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.SuccessfulPersistentModifier
+      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
+      NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
     )
     viewHolderRef ! Subscribe(events)
 
@@ -74,7 +75,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     //todo: ban source peer?
 
     case SuccessfulTransaction(tx, source) => broadcastModifierInv(tx)
-    case SuccessfulModification(mod, source) => broadcastModifierInv(mod)
+    case SyntacticallySuccessfulModifier(mod, source) => broadcastModifierInv(mod)
   }
 
   private def getLocalSyncInfo: Receive = {

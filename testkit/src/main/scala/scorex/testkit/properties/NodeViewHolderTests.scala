@@ -4,7 +4,7 @@ import akka.actor._
 import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
 import scorex.core.LocalInterface.LocallyGeneratedModifier
-import scorex.core.NodeViewHolder.EventType.{FailedPersistentModifier, SuccessfulPersistentModifier}
+import scorex.core.NodeViewHolder.EventType._
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -62,7 +62,7 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewHolder: check that valid modifiers are applicable") { ctx =>
     import ctx._
-    node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
+    node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, FailedPersistentModifier))
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
       totallyValidModifiers(v.history, v.state, 10) //todo: fix magic number
@@ -73,7 +73,7 @@ VL <: Vault[P, TX, PM, VL]]
       node ! LocallyGeneratedModifier(mod)
     }
 
-    (1 to mods.size).foreach(_ => expectMsgType[SuccessfulModification[PM]])
+    (1 to mods.size).foreach(_ => expectMsgType[SyntacticallySuccessfulModifier[PM]])
   }
 
   property("NodeViewHolder: check sync info is synced") { ctx =>
@@ -85,7 +85,7 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewHolder: apply locally generated mod") { ctx =>
     import ctx._
-    node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
+    node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, FailedPersistentModifier))
 
     val invalid = syntacticallyInvalidModifier(h)
 
@@ -95,7 +95,7 @@ VL <: Vault[P, TX, PM, VL]]
 
     node ! LocallyGeneratedModifier(mod)
 
-    expectMsgType[SuccessfulModification[PM]]
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
       v.state.version.sameElements(s.version) && v.history.contains(mod.id)
@@ -106,10 +106,10 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewHolder: simple forking") { ctx =>
     import ctx._
-    node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
+    node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, FailedPersistentModifier))
 
     node ! LocallyGeneratedModifier(mod)
-    expectMsgType[SuccessfulModification[PM]]
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
       totallyValidModifier(v.history, v.state)
@@ -127,7 +127,8 @@ VL <: Vault[P, TX, PM, VL]]
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
       v.history.contains(fork1Mod.id) || v.history.contains(fork2Mod.id)
     }
-    expectMsgType[SuccessfulModification[PM]]
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
     expectMsg(true)
   }
