@@ -41,7 +41,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       .map(PublicKey25519NoncedBoxSerializer.parseBytes)
       .flatMap(_.toOption)
 
-  //there's no easy way to know boxes associated with a proposition, without an additional index
+  //there's no easy way to know boxes associated with a proposition without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
 
   override def changes(mod: HPMOD): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
@@ -63,7 +63,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
         closedBox(b.generatorBox.id).get
         b.transactions.foreach(tx => validate(tx).get)
     }
-  }
+  }.recoverWith{case t => log.warn(s"Not valid modifier ${mod.encodedId}", t); Failure(t)}
 
   override def applyChanges(changes: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {
@@ -86,7 +86,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     if (store.lastVersionID.exists(_.data sameElements version)) {
       this
     } else {
-      log.debug(s"Rollback HBoxStoredState to ${Base58.encode(version)} from version $lastVersionString")
+      log.info(s"Rollback HBoxStoredState to ${Base58.encode(version)} from version $lastVersionString")
       store.rollback(ByteArrayWrapper(version))
       new HBoxStoredState(store, version)
     }

@@ -131,4 +131,38 @@ VL <: Vault[P, TX, PM, VL]]
 
     expectMsg(true)
   }
+
+
+  property("NodeViewHolder: forking- switching") { ctx =>
+    import ctx._
+  //  node ! NodeViewHolder.Subscribe(Seq(SuccessfulPersistentModifier, FailedPersistentModifier))
+
+   //   node ! LocallyGeneratedModifier(mod)
+//    expectMsgType[SuccessfulModification[PM]]
+
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
+      totallyValidModifiers(v.history, v.state, 2)
+    }
+    val fork1Mods = receiveOne(5 seconds).asInstanceOf[Seq[PM]]
+
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
+      totallyValidModifiers(v.history, v.state, 3)
+    }
+    val fork2Mods = receiveOne(5 seconds).asInstanceOf[Seq[PM]]
+
+    fork1Mods.foreach{mod =>
+      node ! LocallyGeneratedModifier(mod)
+//      expectMsgType[SuccessfulModification[PM]]
+    }
+
+    fork2Mods.foreach{mod =>
+      node ! LocallyGeneratedModifier(mod)
+    //  expectMsgType[SuccessfulModification[PM]]
+    }
+
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
+      v.history.openSurfaceIds().contains(fork2Mods.last)
+    }
+    expectMsg(true)
+  }
 }
