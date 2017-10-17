@@ -50,18 +50,18 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   //Validate transactions in block and generator box
   override def validate(mod: HPMOD): Try[Unit] = Try {
     mod match {
-      case b: PowBlock =>
+      case pwb: PowBlock =>
         //coinbase transaction is generated implicitly when block is applied to state, no validation needed
-        require((b.parentId sameElements version) || (b.prevPosId sameElements version)
-          || b.brothers.exists(_.id sameElements version), s"Incorrect state version: ${Base58.encode(version)} " +
-          s"found, (${Base58.encode(b.prevPosId)} || ${Base58.encode(b.parentId)} ||" +
-          s" ${b.brothers.map(b => Base58.encode(b.id))}) expected")
+        require((pwb.parentId sameElements version) || (pwb.prevPosId sameElements version)
+          || pwb.brothers.exists(_.id sameElements version), s"Incorrect state version: ${Base58.encode(version)} " +
+          s"found, (${Base58.encode(pwb.prevPosId)} || ${Base58.encode(pwb.parentId)} ||" +
+          s" ${pwb.brothers.map(b => Base58.encode(b.id))}) expected")
 
-      case b: PosBlock =>
-        require(b.parentId sameElements version, s"Incorrect state version: ${Base58.encode(b.parentId)} " +
+      case psb: PosBlock =>
+        require(psb.parentId sameElements version, s"Incorrect state version: ${Base58.encode(psb.parentId)} " +
           s"found, ${Base58.encode(version)} expected.")
-        closedBox(b.generatorBox.id).get
-        b.transactions.foreach(tx => validate(tx).get)
+        closedBox(psb.generatorBox.id).get
+        psb.transactions.foreach(tx => validate(tx).get)
     }
   }.recoverWith{case t => log.warn(s"Not valid modifier ${mod.encodedId}", t); Failure(t)}
 
