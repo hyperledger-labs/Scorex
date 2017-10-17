@@ -233,6 +233,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
             newStateTry match {
               case Success(newMinState) =>
+                notifySubscribers(EventType.OpenSurfaceChanged, NewOpenSurface(newHistory.openSurfaceIds()))
                 val newMemPool = updateMemPool(progressInfo, memoryPool(), newMinState)
 
                 //we consider that vault always able to perform a rollback needed
@@ -252,7 +253,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 notifySubscribers(EventType.FailedPersistentModifier, FailedModification[PMOD](pmod, e, source))
             }
           } else {
-            //todo: send signal?
             nodeView = (historyBeforeStUpdate, minimalState(), vault(), memoryPool())
           }
         case Failure(e) =>
@@ -449,8 +449,7 @@ object NodeViewHolder {
   case class SemanticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier]
   (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  case class NewOpenSurface[PMOD <: PersistentNodeViewModifier](newSurface: Seq[PMOD])
-    extends NodeViewHolderEvent
+  case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
 
   case class ModificationApplicationStarted[PMOD <: PersistentNodeViewModifier](modifier: PMOD)
     extends NodeViewHolderEvent
