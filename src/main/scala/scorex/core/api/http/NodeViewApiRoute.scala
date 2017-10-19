@@ -12,7 +12,7 @@ import scorex.core.NodeViewModifier._
 import scorex.core.consensus.History
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.{GetLocalObjects, ResponseFromLocal}
-import scorex.core.settings.Settings
+import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -30,7 +30,7 @@ import scala.util.{Failure, Success, Try}
 @Path("/nodeView")
 @Api(value = "/nodeView", produces = "application/json")
 case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
-(override val settings: Settings, nodeViewHolderRef: ActorRef)
+(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
 (implicit val context: ActorRefFactory) extends ApiRoute {
 
   override val route = pathPrefix("nodeView") {

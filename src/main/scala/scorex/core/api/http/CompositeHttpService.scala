@@ -5,9 +5,9 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import scorex.core.api.http.swagger.{CorsSupport, SwaggerDocService}
-import scorex.core.settings.Settings
+import scorex.core.settings.RESTApiSettings
 
-case class CompositeHttpService(system: ActorSystem, apiTypes: Set[Class[_]], routes: Seq[ApiRoute], settings: Settings)
+case class CompositeHttpService(system: ActorSystem, apiTypes: Set[Class[_]], routes: Seq[ApiRoute], settings: RESTApiSettings)
   extends CorsSupport {
 
   implicit val actorSystem = system

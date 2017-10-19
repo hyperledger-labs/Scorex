@@ -5,13 +5,14 @@ import java.io.File
 
 import examples.commons.{FileLogger, SimpleBoxTransaction}
 import examples.hybrid.blocks._
-import examples.hybrid.mining.{MiningConstants, MiningSettings}
+import examples.hybrid.mining.HybridMiningSettings
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}
+import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
 import scorex.crypto.encode.Base58
@@ -25,7 +26,7 @@ import scala.util.{Failure, Try}
   * we store all the blocks, even if they are not in a main chain
   */
 class HybridHistory(val storage: HistoryStorage,
-                    settings: MiningConstants,
+                    settings: HybridMiningSettings,
                     validators: Seq[BlockValidator[HybridBlock]],
                     statsLogger: Option[FileLogger])
   extends History[HybridBlock, HybridSyncInfo, HybridHistory] with ScorexLogging {
@@ -210,14 +211,14 @@ class HybridHistory(val storage: HistoryStorage,
 
       val realTime = lastPow.timestamp - powBlocks.head.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
-      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.targetBlockDelay
+      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.targetBlockDelay.toSeconds
       val oldPowDifficulty = storage.getPoWDifficulty(Some(lastPow.prevPosId))
 
       val newPowDiffUnlimited = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))
       val newPowDiff = bounded(newPowDiffUnlimited, oldPowDifficulty)
 
       val oldPosDifficulty = storage.getPoSDifficulty(lastPow.prevPosId)
-      val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * settings.RParamX10 / 10)
+      val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * settings.rParamX10 / 10)
       log.info(s"PoW difficulty changed at ${Base58.encode(posBlock.id)}: old $oldPowDifficulty, new $newPowDiff. " +
         s" last: $lastPow, head: ${powBlocks.head} | $brothersCount")
       log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")
@@ -433,19 +434,16 @@ class HybridHistory(val storage: HistoryStorage,
 object HybridHistory extends ScorexLogging {
   val DifficultyRecalcPeriod = 20
 
-  def readOrGenerate(settings: MiningSettings): HybridHistory = {
-    val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
-    val dataDir = dataDirOpt.get
-    val logDirOpt = settings.logDirOpt
-    readOrGenerate(dataDir, logDirOpt, settings)
+  def readOrGenerate(settings: ScorexSettings, minerSettings: HybridMiningSettings): HybridHistory = {
+    readOrGenerate(settings.dataDir, settings.logDir, minerSettings)
   }
 
-  def readOrGenerate(dataDir: String, logDirOpt: Option[String], settings: MiningConstants): HybridHistory = {
-    val iFile = new File(s"$dataDir/blocks")
+  def readOrGenerate(dataDir: File, logDir: File, settings: HybridMiningSettings): HybridHistory = {
+    val iFile = new File(s"${dataDir.getAbsolutePath}/blocks")
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)
 
-    val loggerOpt = logDirOpt.map(logFir => new FileLogger(logFir + "/tails.data"))
+    val logger = new FileLogger(logDir.getAbsolutePath + "/tails.data")
 
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {
@@ -460,6 +458,6 @@ object HybridHistory extends ScorexLogging {
       new SemanticBlockValidator(Blake2b256)
     )
 
-    new HybridHistory(storage, settings, validators, loggerOpt)
+    new HybridHistory(storage, settings, validators, Some(logger))
   }
 }

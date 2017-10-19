@@ -8,7 +8,7 @@ import examples.trimchain.modifiers.{BlockHeader, TBlock, TModifier, UtxoSnapsho
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.VersionTag
-import scorex.core.settings.Settings
+import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
@@ -208,13 +208,10 @@ object PersistentAuthenticatedUtxo {
     }
   }
 
-  def readOrGenerate(settings: Settings): PersistentAuthenticatedUtxo = {
-    val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
-    val dataDir = dataDirOpt.get
+  def readOrGenerate(settings: ScorexSettings): PersistentAuthenticatedUtxo = {
+    settings.dataDir.mkdirs()
 
-    new File(dataDir).mkdirs()
-
-    val iFile = new File(s"$dataDir/state")
+    val iFile = new File(s"${settings.dataDir.getAbsolutePath}/state")
     iFile.mkdirs()
     val stateStorage = new LSMStore(iFile)
 
@@ -229,7 +226,7 @@ object PersistentAuthenticatedUtxo {
     PersistentAuthenticatedUtxo(stateStorage, stateStorage.getAll().size, None, version)
   }
 
-  def genesisState(settings: Settings, initialBlocks: Seq[TModifier]): PersistentAuthenticatedUtxo = {
+  def genesisState(settings: ScorexSettings, initialBlocks: Seq[TModifier]): PersistentAuthenticatedUtxo = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
       state.changes(mod).flatMap(cs => state.applyChanges(cs, VersionTag @@ mod.id)).get
     }

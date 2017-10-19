@@ -13,7 +13,7 @@ import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.ModifierId
 import scorex.core.api.http.{ApiRouteWithFullView, SuccessApiResponse}
-import scorex.core.settings.Settings
+import scorex.core.settings.{RESTApiSettings, ScorexSettings}
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,7 +21,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 @Path("/debug")
 @Api(value = "/debug", description = "Useful functions", position = 3, produces = "application/json")
-case class DebugApiRoute(override val settings: Settings, nodeViewHolderRef: ActorRef)
+case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                         (implicit val context: ActorRefFactory)
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
 

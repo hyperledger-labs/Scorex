@@ -1,17 +1,17 @@
 package examples.curvepos.transaction
 
-import scorex.core.{ModifierId, VersionTag}
-import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Constants25519.PrivKeyLength
-import scorex.core.transaction.box.proposition.{Constants25519, PublicKey25519Proposition}
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletTransaction}
+import scorex.core.utils.ByteStr
+import scorex.core.{ModifierId, VersionTag}
 import scorex.crypto.signatures.Curve25519
 import scorex.utils.Random
 
 import scala.util.Try
 
-case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
+case class SimpleWallet(seed: ByteStr = ByteStr(Random.randomBytes(PrivKeyLength)),
                         chainTransactions: Map[ModifierId, SimpleTransaction] = Map(),
                         offchainTransactions: Map[ModifierId, SimpleTransaction] = Map(),
                         currentBalance: Long = 0)
@@ -23,7 +23,7 @@ case class SimpleWallet(seed: Array[Byte] = Random.randomBytes(PrivKeyLength),
 
   //it's being recreated from seed on each wallet update, not efficient at all
   private val secret: S = {
-    val pair = Curve25519.createKeyPair(seed)
+    val pair = Curve25519.createKeyPair(seed.arr)
     PrivateKey25519(pair._1, pair._2)
   }
 

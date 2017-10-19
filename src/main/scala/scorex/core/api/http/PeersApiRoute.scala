@@ -13,7 +13,7 @@ import io.swagger.annotations._
 import scorex.core.network.Handshake
 import scorex.core.network.NetworkController.ConnectTo
 import scorex.core.network.peer.{PeerInfo, PeerManager}
-import scorex.core.settings.Settings
+import scorex.core.settings.RESTApiSettings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -21,7 +21,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 @Api(value = "/peers", description = "Get info about peers", position = 2)
 case class PeersApiRoute(peerManager: ActorRef,
                          networkController: ActorRef,
-                         override val settings: Settings)(implicit val context: ActorRefFactory)
+                         override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
   extends ApiRoute {
 
   override lazy val route =

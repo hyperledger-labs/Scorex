@@ -18,8 +18,12 @@ lazy val commonSettings = Seq(
           <name>Alexander Chepurnoy</name>
           <url>http://chepurnoy.org/</url>
         </developer>
-      </developers>)
+      </developers>),
+    git.useGitDescribe := true,
+    git.uncommittedSignifier := Some("SNAPSHOT")
 )
+
+enablePlugins(GitVersioning)
 
 scalaVersion := "2.12.3"
 organization := "org.scorexfoundation"
@@ -58,6 +62,7 @@ val testingDependencies = Seq(
 )
 
 libraryDependencies ++= Seq(
+  "com.iheart" %% "ficus" % "1.4.1",
   "org.scorexfoundation" %% "scrypto" % "2.+"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 

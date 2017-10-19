@@ -2,14 +2,13 @@ package scorex.core.api.client
 
 import java.net.{HttpURLConnection, URL}
 
-import io.circe
-import scorex.core.settings.Settings
+import scorex.core.settings.{RESTApiSettings, ScorexSettings}
 
 import scala.io.{Source, StdIn}
 import scala.util.{Failure, Success, Try}
 
 
-class ApiClient(settings: Settings) {
+class ApiClient(settings: RESTApiSettings) {
   private val OkHttpCode = 200
 
   def executeCommand(command: String): String = {
@@ -24,7 +23,7 @@ class ApiClient(settings: Settings) {
         command.substring((method + " " + path + " ").length())
       } else ""
 
-      val url = new URL("http://127.0.0.1:" + settings.rpcPort + "/" + path)
+      val url = new URL("http://127.0.0.1:" + settings.port + "/" + path)
       val connection = url.openConnection().asInstanceOf[HttpURLConnection]
       connection.setRequestMethod(method)
 
@@ -51,11 +50,9 @@ class ApiClient(settings: Settings) {
 }
 
 object ApiClient extends App {
-  val settingsFilename = args.headOption.getOrElse("settings.json")
-  val settings = new Settings {
-    override val settingsJSON: Map[String, circe.Json] = settingsFromFile(settingsFilename)
-  }
-  val apiClient = new ApiClient(settings)
+  val settingsFilename = args.headOption.getOrElse("settings.conf")
+  val settings = ScorexSettings.read(Some(settingsFilename))
+  val apiClient = new ApiClient(settings.restApi)
 
   println("Welcome to the Scorex command-line client...")
   Iterator.continually(StdIn.readLine()).takeWhile(!_.equals("quit")).foreach { command =>

@@ -4,7 +4,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.Actor
 import scorex.core.network._
-import scorex.core.settings.Settings
+import scorex.core.settings.ScorexSettings
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.mutable
@@ -14,17 +14,17 @@ import scala.util.Random
   * Peer manager takes care of peers connected and in process, and also choose a random peer to connect
   * Must be singleton
   */
-class PeerManager(settings: Settings) extends Actor with ScorexLogging {
+class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
 
   import PeerManager._
 
   private val connectedPeers = mutable.Map[ConnectedPeer, Option[Handshake]]()
   private var connectingPeer: Option[InetSocketAddress] = None
 
-  private lazy val peerDatabase = new PeerDatabaseImpl(settings, settings.dataDirOpt.map(_ + "/peers.dat"))
+  private lazy val peerDatabase = new PeerDatabaseImpl(settings.network, Some(settings.dataDir + "/peers.dat"))
 
   if (peerDatabase.isEmpty()) {
-    settings.knownPeers.foreach { address =>
+    settings.network.knownPeers.foreach { address =>
       val defaultPeerInfo = PeerInfo(System.currentTimeMillis(), None, None)
       peerDatabase.addOrUpdateKnownPeer(address, defaultPeerInfo)
     }
@@ -84,7 +84,7 @@ class PeerManager(settings: Settings) extends Actor with ScorexLogging {
         log.info(s"Got handshake from blacklisted $address")
       } else {
         val toUpdate = connectedPeers.filter { case (cp, h) =>
-          cp.socketAddress == address || h.map(_.nodeNonce == handshake.nodeNonce).getOrElse(true)
+          cp.socketAddress == address || h.forall(_.nodeNonce == handshake.nodeNonce)
         }
 
         if (toUpdate.isEmpty) {
@@ -98,7 +98,7 @@ class PeerManager(settings: Settings) extends Actor with ScorexLogging {
           toUpdate.keys.foreach(connectedPeers.remove)
 
           //drop connection to self if occurred
-          if (handshake.nodeNonce == settings.nodeNonce) {
+          if (settings.network.nodeNonce.contains(handshake.nodeNonce)) {
             newCp.handlerRef ! PeerConnectionHandler.CloseConnection
           } else {
             handshake.declaredAddress.foreach(address => self ! PeerManager.AddOrUpdatePeer(address, None, None))
@@ -116,7 +116,7 @@ class PeerManager(settings: Settings) extends Actor with ScorexLogging {
 
   override def receive: Receive = ({
     case CheckPeers =>
-      if (connectedPeers.size < settings.maxConnections && connectingPeer.isEmpty) {
+      if (connectedPeers.size < settings.network.maxConnections && connectingPeer.isEmpty) {
         randomPeer().foreach { address =>
           if (!connectedPeers.exists(_._1.socketAddress == address)) {
             connectingPeer = Some(address)
