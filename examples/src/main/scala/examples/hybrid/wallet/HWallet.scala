@@ -16,6 +16,7 @@ import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletBoxSerializer, W
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
+import scorex.testkit.utils.FileUtils
 
 import scala.util.Try
 
@@ -112,7 +113,7 @@ case class HWallet(seed: Array[Byte], store: LSMStore)
 
 }
 
-object HWallet {
+object HWallet extends FileUtils {
 
   def walletFile(settings: Settings): File = {
     val walletDirOpt = settings.walletDirOpt.ensuring(_.isDefined, "wallet dir must be specified")
@@ -125,8 +126,7 @@ object HWallet {
   def exists(settings: Settings): Boolean = walletFile(settings).exists()
 
   def readOrGenerate(settings: Settings, seed: String): HWallet = {
-    val wFile = walletFile(settings)
-    wFile.mkdirs()
+    val wFile = createTempDir
     val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000)
 
     Runtime.getRuntime.addShutdownHook(new Thread() {

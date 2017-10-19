@@ -16,6 +16,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
+import scorex.testkit.utils.FileUtils
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Try}
@@ -431,7 +432,7 @@ class HybridHistory(val storage: HistoryStorage,
 }
 
 
-object HybridHistory extends ScorexLogging {
+object HybridHistory extends ScorexLogging with FileUtils {
   val DifficultyRecalcPeriod = 20
 
   def readOrGenerate(settings: MiningSettings): HybridHistory = {
@@ -442,8 +443,7 @@ object HybridHistory extends ScorexLogging {
   }
 
   def readOrGenerate(dataDir: String, logDirOpt: Option[String], settings: MiningConstants): HybridHistory = {
-    val iFile = new File(s"$dataDir/blocks")
-    iFile.mkdirs()
+    val iFile = createTempDir
     val blockStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)
 
     val loggerOpt = logDirOpt.map(logFir => new FileLogger(logFir + "/tails.data"))
