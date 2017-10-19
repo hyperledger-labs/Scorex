@@ -11,6 +11,7 @@ import scorex.core.transaction.box.proposition.Proposition
 
 import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
@@ -32,7 +33,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 (networkControllerRef: ActorRef,
  viewHolderRef: ActorRef,
  localInterfaceRef: ActorRef,
- syncInfoSpec: SIS) extends Actor with ScorexLogging {
+ syncInfoSpec: SIS,
+ networkSettings: NetworkSettings,
+) extends Actor with ScorexLogging {
 
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
@@ -45,9 +48,11 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   private val juniors = mutable.Set[String]()
   private val equals = mutable.Set[String]()
 
+  private val invSpec = new InvSpec(networkSettings.maxInvObjects)
+  private val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
   override def preStart(): Unit = {
     //register as a handler for some types of messages
-    val messageSpecs = Seq(InvSpec, RequestModifierSpec, ModifiersSpec, syncInfoSpec)
+    val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
 
     //subscribe for failed transaction,
@@ -64,7 +69,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   }
 
   private def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
-      val msg = Message(InvSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
+      val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
       networkControllerRef ! SendToNetwork(msg, Broadcast)
     }
 
@@ -128,7 +133,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
           val ext = extOpt.get
           ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
             case (mid, mods) =>
-              networkControllerRef ! SendToNetwork(Message(InvSpec, Right(mid -> mods), None), SendToPeer(remote))
+              networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
           }
         case Equal =>
           equals.add(remoteHost)
@@ -148,7 +153,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //object ids coming from other node
   private def processInv: Receive = {
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
-      if spec.messageCode == InvSpec.messageCode =>
+      if spec.messageCode == InvSpec.MessageCode =>
 
       viewHolderRef ! CompareViews(remote, invData._1, invData._2)
   }
@@ -156,7 +161,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //other node asking for objects by their ids
   private def modifiersReq: Receive = {
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
-      if spec.messageCode == RequestModifierSpec.messageCode =>
+      if spec.messageCode == RequestModifierSpec.MessageCode =>
 
       viewHolderRef ! GetLocalObjects(remote, invData._1, invData._2)
   }
@@ -194,7 +199,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case RequestFromLocal(peer, modifierTypeId, modifierIds) =>
 
       if (modifierIds.nonEmpty) {
-        val msg = Message(RequestModifierSpec, Right(modifierTypeId -> modifierIds), None)
+        val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
       val newIds = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds

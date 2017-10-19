@@ -7,15 +7,16 @@ import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
 import com.google.common.primitives.Ints
+import scorex.core.app.Version
 import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
-import scorex.core.settings.Settings
+import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 
-import scala.util.{Failure, Random, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.{Failure, Random, Success}
 
 case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef) {
 
@@ -29,7 +30,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
 case object Ack extends Event
 
 
-case class PeerConnectionHandler(settings: Settings,
+case class PeerConnectionHandler(settings: NetworkSettings,
                                  networkControllerRef: ActorRef,
                                  peerManager: ActorRef,
                                  messagesHandler: MessageHandler,
@@ -81,9 +82,9 @@ case class PeerConnectionHandler(settings: Settings,
     case StartInteraction =>
       val hb = Handshake(
         settings.agentName,
-        settings.appVersion,
+        Version(settings.appVersion),
         settings.nodeName,
-        settings.nodeNonce,
+        settings.nodeNonce.get,
         ownSocketAddress,
         System.currentTimeMillis()
       ).bytes
@@ -94,7 +95,7 @@ case class PeerConnectionHandler(settings: Settings,
       if (handshakeGot && handshakeSent){
         self ! HandshakeDone
       } else {
-        handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout.millis)(self ! HandshakeTimeout))
+        handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)(self ! HandshakeTimeout))
       }
 
     case Received(data) =>
@@ -132,7 +133,7 @@ case class PeerConnectionHandler(settings: Settings,
       //simulating network delays
       settings.addedMaxDelay match {
         case Some(delay) =>
-          context.system.scheduler.scheduleOnce(Random.nextInt(delay).millis)(sendOutMessage())
+          context.system.scheduler.scheduleOnce(Random.nextInt(delay.toMillis.toInt).millis)(sendOutMessage())
         case None =>
           sendOutMessage()
       }

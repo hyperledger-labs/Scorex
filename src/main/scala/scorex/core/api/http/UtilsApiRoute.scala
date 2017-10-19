@@ -8,13 +8,13 @@ import akka.http.scaladsl.server.Route
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.crypto.encode.Base58
-import scorex.core.settings.Settings
+import scorex.core.settings.RESTApiSettings
 import scorex.crypto.hash.Blake2b256
 
 
 @Path("/utils")
 @Api(value = "/utils", description = "Useful functions", position = 3, produces = "application/json")
-case class UtilsApiRoute(override val settings: Settings)(implicit val context: ActorRefFactory) extends ApiRoute {
+case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val context: ActorRefFactory) extends ApiRoute {
   val SeedSize = 32
 
   private def seed(length: Int): SuccessApiResponse = {

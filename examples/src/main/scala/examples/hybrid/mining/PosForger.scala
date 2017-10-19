@@ -10,20 +10,16 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
-import scorex.core.settings.Settings
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
 import scorex.utils.Random
 
 
-class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
+class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
   import PosForger._
-
-  val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
-  val dataDir = dataDirOpt.get
 
   var forging = false
 
@@ -33,7 +29,7 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
       viewHolderRef ! getRequiredData
 
     case pfi: PosForgingInfo =>
-      val target = MaxTarget / pfi.diff
+      val target = settings.mining.MaxTarget / pfi.diff
 
       val boxKeys = pfi.boxKeys
 
@@ -44,8 +40,8 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
         val powBlock = pfi.bestPowBlock
         log.debug(s"Trying to generate PoS block on top of ${powBlock.encodedId} with balance " +
           s"${boxKeys.map(_._1.value.toLong).sum}")
-        val attachment = Random.randomBytes(settings.posAttachmentSize)
-        posIteration(powBlock, boxKeys, pfi.txsToInclude, attachment, target) match {
+        val attachment = Random.randomBytes(settings.mining.posAttachmentSize)
+        posIteration(powBlock, boxKeys, pfi.txsToInclude, attachment, target.longValue()) match {
           case Some(posBlock) =>
             log.debug(s"Locally generated PoS block: $posBlock")
             forging = false
@@ -63,7 +59,6 @@ class PosForger(settings: Settings with MiningSettings, viewHolderRef: ActorRef)
 
 object PosForger extends ScorexLogging {
   val InitialDifficuly = 15000000000L
-  val MaxTarget = Long.MaxValue
 
   case object StartForging
 

@@ -3,6 +3,7 @@ package scorex.core.network
 import java.nio.ByteOrder
 
 import akka.util.ByteString
+import scorex.core.settings.NetworkSettings
 
 import scala.annotation.tailrec
 
@@ -12,8 +13,7 @@ import scala.annotation.tailrec
 
 trait Buffering {
 
-  //1 MB max packet size
-  val MAX_PACKET_LEN: Int = 1024 * 1024
+  def settings: NetworkSettings
 
   /**
     * Extracts complete packets of the specified length, preserving remainder
@@ -34,7 +34,7 @@ trait Buffering {
         (packets.reverse, current)
       } else {
         val len = current.iterator.getInt(ByteOrder.BIG_ENDIAN)
-        if (len > MAX_PACKET_LEN || len < 0) throw new Exception(s"Invalid packet length: $len")
+        if (len > settings.maxPacketLen || len < 0) throw new Exception(s"Invalid packet length: $len")
         if (current.length < len + headerSize) {
           (packets.reverse, current)
         } else {

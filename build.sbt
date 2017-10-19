@@ -4,7 +4,7 @@ name := "scorex-core"
 lazy val commonSettings = Seq(
   scalaVersion := "2.12.3",
   organization := "org.scorexfoundation",
-  version := "2.0.0-RC3-SNAPSHOT",
+  version := "2.0.0-RC4-SNAPSHOT",
   licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
   homepage := Some(url("https://github.com/ScorexFoundation/Scorex")),
   pomExtra := (
@@ -18,12 +18,16 @@ lazy val commonSettings = Seq(
           <name>Alexander Chepurnoy</name>
           <url>http://chepurnoy.org/</url>
         </developer>
-      </developers>)
+      </developers>),
+    git.useGitDescribe := true,
+    git.uncommittedSignifier := Some("SNAPSHOT")
 )
+
+enablePlugins(GitVersioning)
 
 scalaVersion := "2.12.3"
 organization := "org.scorexfoundation"
-version := "2.0.0-RC3-SNAPSHOT"
+version := "2.0.0-RC4-SNAPSHOT"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
@@ -58,6 +62,7 @@ val testingDependencies = Seq(
 )
 
 libraryDependencies ++= Seq(
+  "com.iheart" %% "ficus" % "1.4.1",
   "org.scorexfoundation" %% "scrypto" % "2.+"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 

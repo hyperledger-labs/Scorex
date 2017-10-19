@@ -3,7 +3,7 @@ package examples.hybrid.history
 import com.google.common.primitives.Longs
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks._
-import examples.hybrid.mining.{MiningConstants, PosForger}
+import examples.hybrid.mining.{HybridMiningSettings, PosForger}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.ModifierId
 import scorex.core.block.Block
@@ -14,7 +14,7 @@ import scorex.crypto.hash.Sha256
 import scala.util.Failure
 
 class HistoryStorage(storage: LSMStore,
-                     settings: MiningConstants) extends ScorexLogging {
+                     settings: HybridMiningSettings) extends ScorexLogging {
 
   private val bestPowIdKey = ByteArrayWrapper(Array.fill(storage.keySize)(-1: Byte))
   private val bestPosIdKey = ByteArrayWrapper(Array.fill(storage.keySize)(-2: Byte))
@@ -92,13 +92,13 @@ class HistoryStorage(storage: LSMStore,
   def getPoWDifficulty(idOpt: Option[ModifierId]): BigInt = {
     idOpt match {
       case Some(id) if id sameElements settings.GenesisParentId =>
-        settings.Difficulty
+        settings.initialDifficulty
       case Some(id) =>
         BigInt(storage.get(blockDiffKey(id, isPos = false)).get.data)
       case None if height > 0 =>
         BigInt(storage.get(blockDiffKey(bestPosId, isPos = false)).get.data)
       case _ =>
-        settings.Difficulty
+        settings.initialDifficulty
     }
   }
 

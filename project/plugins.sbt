@@ -20,3 +20,5 @@ libraryDependencies += "com.typesafe" % "config" % "1.3.0"
 
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
 //sbt dependencyTree
+
+addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.9.3")

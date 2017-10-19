@@ -9,7 +9,7 @@ import examples.curvepos.{Nonce, Value}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.VersionTag
-import scorex.core.settings.Settings
+import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
@@ -132,13 +132,11 @@ object HBoxStoredState {
     }
   }
 
-  def readOrGenerate(settings: Settings): HBoxStoredState = {
-    val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
-    val dataDir = dataDirOpt.get
+  def readOrGenerate(settings: ScorexSettings): HBoxStoredState = {
+    import settings.dataDir
+    dataDir.mkdirs()
 
-    new File(dataDir).mkdirs()
-
-    val iFile = new File(s"$dataDir/state")
+    val iFile = new File(s"${dataDir.getAbsolutePath}/state")
     iFile.mkdirs()
     val stateStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)
 
@@ -152,7 +150,7 @@ object HBoxStoredState {
     HBoxStoredState(stateStorage, version)
   }
 
-  def genesisState(settings: Settings, initialBlocks: Seq[HybridBlock]): HBoxStoredState = {
+  def genesisState(settings: ScorexSettings, initialBlocks: Seq[HybridBlock]): HBoxStoredState = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
       state.changes(mod).flatMap(cs => state.applyChanges(cs, VersionTag @@ mod.id)).get
     }

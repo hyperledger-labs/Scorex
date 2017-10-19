@@ -13,7 +13,7 @@ import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.ModifierId
 import scorex.core.api.http.{ApiRouteWithFullView, ApiTry, SuccessApiResponse}
-import scorex.core.settings.Settings
+import scorex.core.settings.{RESTApiSettings, ScorexSettings}
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -22,7 +22,7 @@ import scala.util.Try
 
 @Path("/stats")
 @Api(value = "/stats", produces = "application/json")
-case class StatsApiRoute(override val settings: Settings, nodeViewHolderRef: ActorRef)
+case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                         (implicit val context: ActorRefFactory)
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
 

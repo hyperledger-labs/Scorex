@@ -12,7 +12,7 @@ import scorex.core.VersionTag
 import scorex.core.consensus.SyncInfo
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
-trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with Settings =>
+trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators =>
 
   type P = PublicKey25519Proposition
   type TX = SimpleBoxTransaction
@@ -23,16 +23,16 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
   type ST = HBoxStoredState
   type HT = HybridHistory
 
-  class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings) {
+  class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings.scorexSettings, settings.mining) {
 
     override protected def genesisState: (HIS, MS, VL, MP) = {
-      val gw = HWallet.genesisWallet(settings, Seq.empty)
+      val gw = HWallet.genesisWallet(settings.scorexSettings, Seq.empty)
       (h, s, gw, SimpleBoxTransactionMemPool.emptyPool)
     }
 
     override def restoreState(): Option[(HIS, MS, VL, MP)] =
-      if (HWallet.exists(settings)) {
-        Some((h, s, HWallet.genesisWallet(settings, Seq.empty), SimpleBoxTransactionMemPool.emptyPool))
+      if (HWallet.exists(settings.scorexSettings)) {
+        Some((h, s, HWallet.genesisWallet(settings.scorexSettings, Seq.empty), SimpleBoxTransactionMemPool.emptyPool))
       } else None
 
   }

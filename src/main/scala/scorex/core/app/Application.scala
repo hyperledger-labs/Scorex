@@ -8,7 +8,7 @@ import scorex.core.api.http.{ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.network.peer.PeerManager
-import scorex.core.settings.Settings
+import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
@@ -26,27 +26,30 @@ trait Application extends ScorexLogging {
   val ApplicationNameLimit = 50
 
   //settings
-  implicit val settings: Settings
+  implicit val settings: ScorexSettings
 
   //api
   val apiRoutes: Seq[ApiRoute]
   val apiTypes: Set[Class[_]]
 
-  protected implicit lazy val actorSystem = ActorSystem(settings.agentName)
+  protected implicit lazy val actorSystem = ActorSystem(settings.network.agentName)
 
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
   //p2p
-  lazy val upnp = new UPnP(settings)
+  lazy val upnp = new UPnP(settings.network)
 
-  private lazy val basicSpecs =
+  private lazy val basicSpecs = {
+    val invSpec = new InvSpec(settings.network.maxInvObjects)
+    val requestModifierSpec = new RequestModifierSpec(settings.network.maxInvObjects)
     Seq(
       GetPeersSpec,
       PeersSpec,
-      InvSpec,
-      RequestModifierSpec,
+      invSpec,
+      requestModifierSpec,
       ModifiersSpec
     )
+  }
 
   lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs)
 
@@ -55,22 +58,22 @@ trait Application extends ScorexLogging {
   val localInterface: ActorRef
 
 
-  val peerManagerRef = actorSystem.actorOf(Props(classOf[PeerManager], settings))
+  val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings)))
 
-  val nProps = Props(classOf[NetworkController], settings, messagesHandler, upnp, peerManagerRef)
+  val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef))
   val networkController = actorSystem.actorOf(nProps, "networkController")
 
-  lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings).compositeRoute
+  lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings.restApi).compositeRoute
 
   def run(): Unit = {
-    require(settings.agentName.length <= ApplicationNameLimit)
+    require(settings.network.agentName.length <= ApplicationNameLimit)
 
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
-    log.debug(s"RPC is allowed at 0.0.0.0:${settings.rpcPort}")
+    log.debug(s"RPC is allowed at 0.0.0.0:${settings.restApi.port}")
 
     implicit val materializer = ActorMaterializer()
-    Http().bindAndHandle(combinedRoute, "0.0.0.0", settings.rpcPort)
+    Http().bindAndHandle(combinedRoute, "0.0.0.0", settings.restApi.port)
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {
@@ -83,7 +86,7 @@ trait Application extends ScorexLogging {
 
   def stopAll(): Unit = synchronized {
     log.info("Stopping network services")
-    if (settings.upnpEnabled) upnp.deletePort(settings.port)
+    if (settings.network.upnpEnabled) upnp.deletePort(settings.network.port)
     networkController ! NetworkController.ShutdownNetwork
 
     log.info("Stopping actors (incl. block generator)")

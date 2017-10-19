@@ -2,19 +2,20 @@ package examples.curvepos
 
 import examples.curvepos.transaction.{SimplePayment, _}
 import scorex.core.serialization.Serializer
-import scorex.core.settings.Settings
+import scorex.core.settings.{NetworkSettings, ScorexSettings}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.utils.ByteStr
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.{Curve25519, PublicKey}
 
 import scala.util.{Failure, Success}
 
-class SimpleNodeViewHolder(settings: Settings)
+class SimpleNodeViewHolder(settings: ScorexSettings)
   extends NodeViewHolder[PublicKey25519Proposition, SimpleTransaction, SimpleBlock] {
 
 
-  override val networkChunkSize: Int = settings.networkChunkSize
+  override val networkChunkSize: Int = settings.network.networkChunkSize
   override type SI = SimpleSyncInfo
 
   override type HIS = SimpleBlockchain
@@ -31,8 +32,8 @@ class SimpleNodeViewHolder(settings: Settings)
     val emptyBlockchain = new SimpleBlockchain
     val emptyState = new SimpleState
 
-    val genesisAcc1 = SimpleWallet(Base58.decode("genesis").get).publicKeys.head
-    val genesisAcc2 = SimpleWallet(Base58.decode("genesis2").get).publicKeys.head
+    val genesisAcc1 = SimpleWallet(ByteStr(Base58.decode("genesis").get)).publicKeys.head
+    val genesisAcc2 = SimpleWallet(ByteStr(Base58.decode("genesis2").get)).publicKeys.head
 
     val IntitialBaseTarget = BaseTarget @@ 15372286700L
     val generator = PublicKey25519Proposition(PublicKey @@ Array.fill(Curve25519.KeyLength)(0: Byte))
@@ -59,6 +60,6 @@ class SimpleNodeViewHolder(settings: Settings)
 
     log.info(s"Genesis state with block (id: ${genesisBlock.id}) ${genesisBlock.json.noSpaces} created")
 
-    (blockchain, state, SimpleWallet(settings.walletSeed), new SimpleMemPool)
+    (blockchain, state, SimpleWallet(settings.wallet.seed), new SimpleMemPool)
   }
 }

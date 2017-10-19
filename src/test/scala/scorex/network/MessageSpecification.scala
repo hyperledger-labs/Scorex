@@ -7,49 +7,54 @@ import scorex.ObjectGenerators
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, ModifiersSpec, RequestModifierSpec}
+import scorex.core.settings.NetworkSettings
 
 import scala.util.Try
 
-class MessageSpecification extends PropSpec
+class MessageSpecification(networkSettings: NetworkSettings) extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks
   with Matchers
   with ObjectGenerators {
 
   property("InvData should remain the same after serialization/deserialization") {
+    val invSpec = new InvSpec(networkSettings.maxInvObjects)
     forAll(invDataGen) { data: InvData =>
-      whenever(data._2.length < InvSpec.MaxObjects) {
-        val bytes = InvSpec.toBytes(data)
-        val recovered = InvSpec.parseBytes(bytes).get
-        val bytes2 = InvSpec.toBytes(recovered)
+      whenever(data._2.length < networkSettings.maxInvObjects) {
+        val bytes = invSpec.toBytes(data)
+        val recovered = invSpec.parseBytes(bytes).get
+        val bytes2 = invSpec.toBytes(recovered)
         bytes shouldEqual bytes2
       }
     }
   }
 
   property("InvData should not serialize big arrays") {
-    forAll(modifierTypeIdGen, Gen.listOfN(InvSpec.MaxObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
+    val invSpec = new InvSpec(networkSettings.maxInvObjects)
+    forAll(modifierTypeIdGen, Gen.listOfN(networkSettings.maxInvObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
       val data: InvData = (b, s)
-      Try(InvSpec.toBytes(data)).isSuccess shouldBe false
+      Try(invSpec.toBytes(data)).isSuccess shouldBe false
     }
   }
 
   property("RequestModifierSpec serialization/deserialization") {
+    val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
     forAll(invDataGen) { data: InvData =>
-      whenever(data._2.length < InvSpec.MaxObjects) {
-        val bytes = RequestModifierSpec.toBytes(data)
-        val recovered = RequestModifierSpec.parseBytes(bytes).get
+      whenever(data._2.length < networkSettings.maxInvObjects) {
+        val bytes = requestModifierSpec.toBytes(data)
+        val recovered = requestModifierSpec.parseBytes(bytes).get
         recovered._2.length shouldEqual data._2.length
-        val bytes2 = RequestModifierSpec.toBytes(recovered)
+        val bytes2 = requestModifierSpec.toBytes(recovered)
         bytes shouldEqual bytes2
       }
     }
   }
 
   property("RequestModifierSpec should not serialize big arrays") {
-    forAll(modifierTypeIdGen, Gen.listOfN(InvSpec.MaxObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
+    val invSpec = new InvSpec(networkSettings.maxInvObjects)
+    forAll(modifierTypeIdGen, Gen.listOfN(networkSettings.maxInvObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
       val data: InvData = (b, s)
-      Try(InvSpec.toBytes(data)).isSuccess shouldBe false
+      Try(invSpec.toBytes(data)).isSuccess shouldBe false
     }
   }
 
