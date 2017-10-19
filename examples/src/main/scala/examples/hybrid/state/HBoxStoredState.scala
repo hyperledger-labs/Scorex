@@ -16,6 +16,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds._
 import scorex.crypto.encode.Base58
 import scorex.mid.state.BoxMinimalState
+import scorex.testkit.utils.FileUtils
 
 import scala.util.{Failure, Success, Try}
 
@@ -99,7 +100,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 
 }
 
-object HBoxStoredState {
+object HBoxStoredState extends FileUtils {
   def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = tx.semanticValidity
 
   def changes(mod: HybridBlock): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
@@ -133,13 +134,7 @@ object HBoxStoredState {
   }
 
   def readOrGenerate(settings: Settings): HBoxStoredState = {
-    val dataDirOpt = settings.dataDirOpt.ensuring(_.isDefined, "data dir must be specified")
-    val dataDir = dataDirOpt.get
-
-    new File(dataDir).mkdirs()
-
-    val iFile = new File(s"$dataDir/state")
-    iFile.mkdirs()
+    val iFile = createTempDir
     val stateStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)
 
     Runtime.getRuntime.addShutdownHook(new Thread() {
