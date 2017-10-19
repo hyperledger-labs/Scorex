@@ -14,7 +14,7 @@ import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
-import scorex.crypto.encode.{Base16, Base58}
+import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
 import scala.annotation.tailrec

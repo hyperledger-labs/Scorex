@@ -58,8 +58,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
           s" ${pwb.brothers.map(b => Base58.encode(b.id))}) expected")
 
       case psb: PosBlock =>
-        require(psb.parentId sameElements version, s"Incorrect state version: ${Base58.encode(psb.parentId)} " +
-          s"found, ${Base58.encode(version)} expected.")
+        require(psb.parentId sameElements version, s"Incorrect state version!: ${Base58.encode(psb.parentId)} found, " +
+          s"${Base58.encode(version)} expected")
         closedBox(psb.generatorBox.id).get
         psb.transactions.foreach(tx => validate(tx).get)
     }

@@ -192,6 +192,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       case Success(stateToApply) =>
         progressInfo.toApply.headOption match {
           case Some(modToApply) =>
+            println(s"state version: ${Base58.encode(stateToApply.version)}, " +
+              s"openSurface: ${history.openSurfaceIds().map(Base58.encode)}")
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)

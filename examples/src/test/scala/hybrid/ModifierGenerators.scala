@@ -180,7 +180,13 @@ trait ModifierGenerators {
       }
     }._1
   }.ensuring{blocks =>
-    history.modifierById(blocks.head.parentId).isDefined &&
-      history.applicable(blocks.head)
+    lazy val head = blocks.head
+    lazy val headLinksValid = head match {
+      case psb: PosBlock =>
+        history.bestPowId.sameElements(psb.parentId)
+      case pwb: PowBlock =>
+        history.bestPowId.sameElements(pwb.parentId) && history.bestPosId.sameElements(pwb.prevPosId)
+    }
+    headLinksValid && history.applicable(head)
   }
 }

@@ -7,6 +7,8 @@ import examples.hybrid.blocks._
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
+import io.iohk.iodb.ByteArrayWrapper
+import scorex.core.VersionTag
 import scorex.core.consensus.SyncInfo
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
@@ -41,7 +43,10 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
 
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, PM, ST, HT) = {
     val h = historyGen.sample.get
-    val s = stateGen.sample.get
+    val sRaw = stateGen.sample.get
+    val v = h.openSurfaceIds().last
+    sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
+    val s = sRaw.copy(version = VersionTag @@ v)
     val ref = system.actorOf(NodeViewHolderForTests.props(h, s))
     val m = totallyValidModifier(h, s)
     (ref, m, s, h)

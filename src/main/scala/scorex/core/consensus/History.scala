@@ -121,7 +121,8 @@ object History {
     lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
 
     override def toString: String = {
-      s"Modifications(${branchPoint.map(Base58.encode)}, ${toRemove.map(_.encodedId)}, ${toApply.map(_.encodedId)})"
+      s"ProgressInfo(BranchPoint: ${branchPoint.map(Base58.encode)}, " +
+        s" to remove: ${toRemove.map(_.encodedId)}, to apply: ${toApply.map(_.encodedId)})"
     }
   }
 }
