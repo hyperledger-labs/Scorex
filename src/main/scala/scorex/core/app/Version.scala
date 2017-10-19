@@ -5,7 +5,7 @@ import scala.util.Try
 
 object Version {
   def apply(v: String): Version = {
-    val splitted = v.split(".")
+    val splitted = v.split("\\.")
     Version(splitted(0).toByte, splitted(1).toByte, splitted(2).toByte)
   }
 }
