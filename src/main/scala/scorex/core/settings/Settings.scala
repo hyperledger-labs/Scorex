@@ -10,6 +10,8 @@ import net.ceedubs.ficus.Ficus._
 import scala.concurrent.duration._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 
+import scala.util.Random
+
 case class RESTApiSettings(bindAddress: String,
                            port: Int,
                            apiKeyHash: Option[String],
@@ -17,7 +19,7 @@ case class RESTApiSettings(bindAddress: String,
                            timeout: FiniteDuration)
 
 case class NetworkSettings(nodeName: String,
-                           nodeNonce: Long,
+                           nodeNonce: Option[Long] = Some(new Random().nextLong()),
                            addedMaxDelay: Option[FiniteDuration],
                            networkChunkSize: Int,
                            localOnly: Boolean,

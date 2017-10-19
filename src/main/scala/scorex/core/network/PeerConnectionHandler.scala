@@ -84,7 +84,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
         settings.agentName,
         Version(settings.appVersion),
         settings.nodeName,
-        settings.nodeNonce,
+        settings.nodeNonce.get,
         ownSocketAddress,
         System.currentTimeMillis()
       ).bytes
