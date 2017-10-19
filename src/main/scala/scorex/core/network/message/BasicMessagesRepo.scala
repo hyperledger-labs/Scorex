@@ -7,7 +7,8 @@ import java.util
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.consensus.SyncInfo
-import scorex.core.network.message.Message._
+import scorex.core.network.message.Message.{MessageCode, _}
+import scorex.core.settings.NetworkSettings
 
 import scala.util.Try
 
@@ -29,19 +30,22 @@ class SyncInfoMessageSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) 
   override def toBytes(data: SI): Array[Byte] = data.bytes
 }
 
-object InvSpec extends MessageSpec[InvData] {
-  //todo: fetch from settings file?
-  val MaxObjects = 500
+object InvSpec {
+  val MessageCode = 55: Byte
+  val MessageName: String = "Inv"
+}
+class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
+  import InvSpec._
 
-  override val messageCode: MessageCode = 55: Byte
-  override val messageName: String = "Inv"
+  override val messageCode = MessageCode
+  override val messageName: String = MessageName
 
   override def parseBytes(bytes: Array[Byte]): Try[InvData] = Try {
     val typeId = ModifierTypeId @@ bytes.head
     val count = Ints.fromByteArray(bytes.slice(1, 5))
 
     require(count > 0, "empty inv list")
-    require(count <= MaxObjects, s"more invs than $MaxObjects in a message")
+    require(count <= maxInvObjects, s"more invs than $maxInvObjects in a message")
 
     val elems = (0 until count).map { c =>
       ModifierId @@ bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize)
@@ -52,25 +56,31 @@ object InvSpec extends MessageSpec[InvData] {
 
   override def toBytes(data: InvData): Array[Byte] = {
     require(data._2.nonEmpty, "empty inv list")
-    require(data._2.size <= MaxObjects, s"more invs than $MaxObjects in a message")
-    require(data._2.forall(e => e.length == NodeViewModifier.ModifierIdSize))
+    require(data._2.size <= maxInvObjects, s"more invs than $maxInvObjects in a message")
+    data._2.foreach(e => require(e.length == NodeViewModifier.ModifierIdSize))
 
     Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(data._2))
   }
 }
 
-
-object RequestModifierSpec
+object RequestModifierSpec {
+  val MessageCode: MessageCode = 22: Byte
+  val MessageName: String = "RequestModifier"
+}
+class RequestModifierSpec(maxInvObjects: Int)
   extends MessageSpec[InvData] {
+  import RequestModifierSpec._
 
-  override val messageCode: MessageCode = 22: Byte
-  override val messageName: String = "RequestModifier"
+  override val messageCode: MessageCode = MessageCode
+  override val messageName: String = MessageName
+
+  private val invSpec = new InvSpec(maxInvObjects)
 
   override def toBytes(typeAndId: InvData): Array[Byte] =
-    InvSpec.toBytes(typeAndId)
+    invSpec.toBytes(typeAndId)
 
   override def parseBytes(bytes: Array[Byte]): Try[InvData] =
-    InvSpec.parseBytes(bytes)
+    invSpec.parseBytes(bytes)
 }
 
 

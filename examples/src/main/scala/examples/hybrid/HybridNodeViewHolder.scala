@@ -5,10 +5,11 @@ import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.PublicKey25519NoncedBox
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
-import examples.hybrid.mining.MiningSettings
+import examples.hybrid.mining.HybridMiningSettings
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import scorex.core.serialization.Serializer
+import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519Companion
@@ -17,10 +18,10 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 
-class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[PublicKey25519Proposition,
+class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMiningSettings) extends NodeViewHolder[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock] {
-  override val networkChunkSize: Int = settings.networkChunkSize
+  override val networkChunkSize: Int = settings.network.networkChunkSize
 
   override type SI = HybridSyncInfo
 
@@ -52,7 +53,7 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
 
     val genesisAccount = PrivateKey25519Companion.generateKeys("genesis".getBytes)
     val genesisAccountPriv = genesisAccount._1
-    val powGenesis = PowBlock(settings.GenesisParentId, settings.GenesisParentId, 1481110008516L, 38,
+    val powGenesis = PowBlock(minerSettings.GenesisParentId, minerSettings.GenesisParentId, 1481110008516L, 38,
       0, Array.fill(32)(0: Byte), genesisAccount._2, Seq())
 
 
@@ -69,13 +70,13 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
     val attachment = "genesis attachment".getBytes
     val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, genesisBox, attachment, genesisAccountPriv)
 
-    var history = HybridHistory.readOrGenerate(settings)
+    var history = HybridHistory.readOrGenerate(settings, minerSettings)
     history = history.append(powGenesis).get._1
     history = history.append(posGenesis).get._1
 
     val gs = HBoxStoredState.genesisState(settings, Seq(posGenesis, powGenesis))
     val gw = HWallet.genesisWallet(settings, Seq(posGenesis, powGenesis))
-    assert(!Base58.encode(settings.walletSeed).startsWith("genesis") || gw.boxes().map(_.box.value.toLong).sum >= GenesisBalance)
+    assert(!Base58.encode(settings.wallet.seed.arr).startsWith("genesis") || gw.boxes().map(_.box.value.toLong).sum >= GenesisBalance)
 
     assert(gw.boxes().forall(b => gs.closedBox(b.box.id).isDefined))
 
@@ -89,7 +90,7 @@ class HybridNodeViewHolder(settings: MiningSettings) extends NodeViewHolder[Publ
   override def restoreState(): Option[(HIS, MS, VL, MP)] = {
     if (HWallet.exists(settings)) {
       Some((
-        HybridHistory.readOrGenerate(settings),
+        HybridHistory.readOrGenerate(settings, minerSettings),
         HBoxStoredState.readOrGenerate(settings),
         HWallet.readOrGenerate(settings, 1),
         SimpleBoxTransactionMemPool.emptyPool))

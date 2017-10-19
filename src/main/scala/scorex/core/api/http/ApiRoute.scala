@@ -5,21 +5,17 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.{Directive0, Directives, Route}
 import akka.util.Timeout
-import scorex.core.settings.Settings
-import scorex.crypto.hash.{Blake2b256, CryptographicHash, Digest}
+import scorex.core.settings.RESTApiSettings
+import scorex.crypto.hash.{Blake2b256, Digest}
 
-import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 trait ApiRoute extends Directives {
-  val settings: Settings
+  val settings: RESTApiSettings
   val context: ActorRefFactory
   val route: Route
 
-  implicit val timeout = Timeout(5.seconds)
-
-  lazy val corsAllowed = settings.corsAllowed
-  lazy val apiKeyHash = settings.apiKeyHash
+  implicit val timeout = Timeout(settings.timeout)
 
   def actorRefFactory: ActorRefFactory = context
 
@@ -42,22 +38,22 @@ trait ApiRoute extends Directives {
   }
 
   def withCors(fn: => Route): Route = {
-    if (corsAllowed) respondWithHeaders(RawHeader("Access-Control-Allow-Origin", "*"))(fn)
+    if (settings.corsAllowed) respondWithHeaders(RawHeader("Access-Control-Allow-Origin", "*"))(fn)
     else fn
   }
 
   def withAuth(route: => Route): Route = {
-    optionalHeaderValueByName("api_key") { case keyOpt =>
+    optionalHeaderValueByName("api_key") { keyOpt =>
       if (isValid(keyOpt)) route
-      else complete(HttpEntity(ContentTypes.`application/json`, ApiError.apiKeyNotValid.toString()))
+      else complete(HttpEntity(ContentTypes.`application/json`, ApiError.apiKeyNotValid.toString))
     }
   }
 
   private def isValid(keyOpt: Option[String]): Boolean = {
     lazy val keyHash: Option[Digest] = keyOpt.map(Blake2b256(_))
-    (apiKeyHash, keyHash) match {
+    (settings.apiKeyHash, keyHash) match {
       case (None, _) => true
-      case (Some(expected), Some(passed)) => expected sameElements passed
+      case (Some(expected), Some(passed)) => expected.toCharArray sameElements passed
       case _ => false
     }
   }

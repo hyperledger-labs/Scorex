@@ -9,6 +9,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.core.utils.ByteStr
 import scorex.crypto.signatures.Signature
 
 import scala.annotation.tailrec
@@ -23,7 +24,7 @@ class HWalletSpecification extends PropSpec
   val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
   val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
-  val w = HWallet.readOrGenerate(settings, "p").generateNewSecret().generateNewSecret()
+  val w = HWallet.readOrGenerate(settings.scorexSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()
   w.secrets.size should be >= 2
   val fs = w.secrets.head
   val ss = w.secrets.tail.head

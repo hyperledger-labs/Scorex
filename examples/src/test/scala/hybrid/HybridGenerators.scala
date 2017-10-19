@@ -2,27 +2,28 @@ package hybrid
 
 import commons.ExamplesCommonGenerators
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
-import examples.curvepos.{Nonce, Value}
 import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
+import examples.curvepos.{Nonce, Value}
 import examples.hybrid.blocks._
 import examples.hybrid.history.HybridSyncInfo
+import examples.hybrid.mining.HybridSettings
 import examples.hybrid.state.HBoxStoredState
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
-import scorex.core.{ModifierId, NodeViewModifier}
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
+import scorex.core.{ModifierId, NodeViewModifier}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Signature
 import scorex.testkit.utils.{FileUtils, NoShrink}
 
+import scala.concurrent.duration._
 import scala.util.Random
 
 trait HybridGenerators extends ExamplesCommonGenerators
-  with Settings
   with StoreGenerators
   with HistoryGenerators
   with StateGenerators
@@ -33,6 +34,8 @@ trait HybridGenerators extends ExamplesCommonGenerators
 
   type ChangesGen = Gen[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]]
 
+  val originalSettings = HybridSettings.read(Some(getClass.getClassLoader.getResource("settings.conf").getPath))
+  override val settings = originalSettings.copy(mining = originalSettings.mining.copy(targetBlockDelay = 3.seconds, initialDifficulty = 1))
 
   lazy val hybridSyncInfoGen: Gen[HybridSyncInfo] = for {
     answer <- Arbitrary.arbitrary[Boolean]

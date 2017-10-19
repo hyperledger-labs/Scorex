@@ -3,13 +3,13 @@ package scorex.core.network
 import java.net.InetAddress
 
 import org.bitlet.weupnp.{GatewayDevice, GatewayDiscover}
-import scorex.core.settings.Settings
+import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class UPnP(settings: Settings) extends ScorexLogging {
+class UPnP(settings: NetworkSettings) extends ScorexLogging {
 
   private var gateway: Option[GatewayDevice] = None
 
@@ -18,10 +18,10 @@ class UPnP(settings: Settings) extends ScorexLogging {
 
   Try {
     log.info("Looking for UPnP gateway device...")
-    val defaultHttpReadTimeout = settings.upnpGatewayTimeout.getOrElse(GatewayDevice.getHttpReadTimeout)
+    val defaultHttpReadTimeout = settings.upnpGatewayTimeout.map(_.toMillis.toInt).getOrElse(GatewayDevice.getHttpReadTimeout)
     GatewayDevice.setHttpReadTimeout(defaultHttpReadTimeout)
     val discover = new GatewayDiscover()
-    val defaultDiscoverTimeout = settings.upnpDiscoverTimeout.getOrElse(discover.getTimeout)
+    val defaultDiscoverTimeout = settings.upnpDiscoverTimeout.map(_.toMillis.toInt).getOrElse(discover.getTimeout)
     discover.setTimeout(defaultDiscoverTimeout)
 
     val gatewayMap = Option(discover.discover).map(_.asScala).map(_.toMap).getOrElse(Map())
