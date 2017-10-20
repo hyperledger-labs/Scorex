@@ -199,7 +199,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(isRollback = true, rs.version))
             rs
           }
-        }
+        } else Success(state)
       }.flatten
     } else Success(state)
 
@@ -243,7 +243,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         case Success((historyBeforeStUpdate, progressInfo)) =>
           log.debug(s"Going to apply modifications to the state: $progressInfo")
           notifySubscribers(EventType.SuccessfulSyntacticallyValidModifier, SyntacticallySuccessfulModifier(pmod))
-          notifySubscribers(EventType.OpenSurfaceChanged, NewOpenSurface(newHistory.openSurfaceIds()))
+          notifySubscribers(EventType.OpenSurfaceChanged, NewOpenSurface(historyBeforeStUpdate.openSurfaceIds()))
 
           if (progressInfo.toApply.nonEmpty) {
             val (newHistory, newStateTry) = updateState(historyBeforeStUpdate, minimalState(), progressInfo)
@@ -475,7 +475,7 @@ object NodeViewHolder {
   //todo: consider sending info on the rollback
   case object RollbackFailed extends NodeViewHolderEvent
 
-  case class DownloadRequest(modifierId: ModifierId)
+  case class DownloadRequest(modifierId: ModifierId) extends NodeViewHolderEvent
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
 

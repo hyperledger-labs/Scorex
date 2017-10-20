@@ -47,7 +47,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
 
   //todo: use it
-  private val delivered = mutable.Map[ModifierId, ConnectedPeer]
+  private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
 
   private val seniors = mutable.Set[String]()
   private val juniors = mutable.Set[String]()

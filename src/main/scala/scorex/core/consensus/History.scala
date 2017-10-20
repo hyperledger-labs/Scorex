@@ -112,7 +112,7 @@ object History {
   case class ProgressInfo[PM <: PersistentNodeViewModifier](branchPoint: Option[ModifierId],
                                                             toRemove: Seq[PM],
                                                             toApply: Seq[PM],
-                                                            toDownload: Seq[PM]
+                                                            toDownload: Seq[ModifierId]
                                                            ) {
 
     require(branchPoint.isDefined == toRemove.nonEmpty, s"Branch point should be defined for non-empty toRemove," +
