@@ -40,10 +40,14 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
 
-  //todo: change with something like Bloom filters. make filters for asked and delivered objects
+  //todo: change with something like Bloom filters. make filters for asked and delivered objects?
   //modifier ids asked from other nodes are kept in order to check then
   //against objects delivered
+  //todo: use BAW for key?
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
+
+  //todo: use it
+  private val delivered = mutable.Map[ModifierId, ConnectedPeer]
 
   private val seniors = mutable.Set[String]()
   private val juniors = mutable.Set[String]()

@@ -134,7 +134,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
-  //todo: this method caused delays in a block processing as it removes transactions from mempool and checks
+  //todo: this method causes delays in a block processing as it removes transactions from mempool and checks
   //todo: validity of remaining transactions in a synchronous way. Do this job async!
   protected def updateMemPool(progressInfo: History.ProgressInfo[PMOD], memPool: MP, state: MS): MP = {
     val rolledBackTxs = extractTransactions(progressInfo.toRemove)
@@ -150,6 +150,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       }
     }
   }
+
+  private def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
+    pi.toDownload.foreach { id =>
+      notifySubscribers(EventType.DownloadNeeded, DownloadRequest(id))
+    }
 
   /*
 
@@ -183,16 +188,19 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def updateState(history: HIS,
                           state: MS,
                           progressInfo: ProgressInfo[PMOD]): (HIS, Try[MS]) = {
-    val stateToApplyTry = if (progressInfo.chainSwitchingNeeded) {
-      val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
-      if (!state.version.sameElements(branchingPoint)) {
-        state.rollbackTo(branchingPoint).map { rs =>
-          notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(isRollback = true, rs.version))
-          rs
+    requestDownloads(progressInfo)
+
+    val stateToApplyTry: Try[MS] = if (progressInfo.chainSwitchingNeeded) {
+      Try {
+        val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
+
+        if (!state.version.sameElements(branchingPoint)) {
+          state.rollbackTo(branchingPoint).map { rs =>
+            notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(isRollback = true, rs.version))
+            rs
+          }
         }
-      } else {
-        Success(state)
-      }
+      }.flatten
     } else Success(state)
 
     stateToApplyTry match {
@@ -219,7 +227,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       case Failure(e) =>
         log.error("Rollback failed: ", e)
         notifySubscribers[RollbackFailed.type](EventType.FailedRollback, RollbackFailed)
-        //todo: what to return here?
+        //todo: what to return here? the situation is totally wrong
         ???
     }
   }
@@ -227,24 +235,20 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   //todo: update state in async way?
   private def pmodModify(pmod: PMOD): Unit =
     if (!history().contains(pmod.id)) {
-      notifySubscribers(
-        EventType.StartingPersistentModifierApplication,
-        StartingPersistentModifierApplication[PMOD](pmod)
-      )
+      notifySubscribers(EventType.StartingPersistentModifierApplication, StartingPersistentModifierApplication(pmod))
 
       log.info(s"Apply modifier to nodeViewHolder: ${Base58.encode(pmod.id)}")
 
       history().append(pmod) match {
         case Success((historyBeforeStUpdate, progressInfo)) =>
           log.debug(s"Going to apply modifications to the state: $progressInfo")
-          notifySubscribers(EventType.SuccessfulSyntacticallyValidModifier, SyntacticallySuccessfulModifier[PMOD](pmod))
+          notifySubscribers(EventType.SuccessfulSyntacticallyValidModifier, SyntacticallySuccessfulModifier(pmod))
+          notifySubscribers(EventType.OpenSurfaceChanged, NewOpenSurface(newHistory.openSurfaceIds()))
 
           if (progressInfo.toApply.nonEmpty) {
             val (newHistory, newStateTry) = updateState(historyBeforeStUpdate, minimalState(), progressInfo)
-
             newStateTry match {
               case Success(newMinState) =>
-                notifySubscribers(EventType.OpenSurfaceChanged, NewOpenSurface(newHistory.openSurfaceIds()))
                 val newMemPool = updateMemPool(progressInfo, memoryPool(), newMinState)
 
                 //we consider that vault always able to perform a rollback needed
@@ -255,20 +259,21 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 }
 
                 log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
-                notifySubscribers(EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier[PMOD](pmod))
+                notifySubscribers(EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(pmod))
                 nodeView = (newHistory, newMinState, newVault, newMemPool)
 
               case Failure(e) =>
                 log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
                 nodeView = (newHistory, minimalState(), vault(), memoryPool())
-                notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification[PMOD](pmod, e))
+                notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification(pmod, e))
             }
           } else {
+            requestDownloads(progressInfo)
             nodeView = (historyBeforeStUpdate, minimalState(), vault(), memoryPool())
           }
         case Failure(e) =>
           log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to history", e)
-          notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification[PMOD](pmod, e))
+          notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification(pmod, e))
       }
     } else {
       log.warn(s"Trying to apply modifier ${Base58.encode(pmod.id)} that's already in history")
@@ -470,5 +475,8 @@ object NodeViewHolder {
   //todo: consider sending info on the rollback
   case object RollbackFailed extends NodeViewHolderEvent
 
+  case class DownloadRequest(modifierId: ModifierId)
+
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
+
 }
