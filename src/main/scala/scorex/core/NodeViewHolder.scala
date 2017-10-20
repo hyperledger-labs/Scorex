@@ -88,7 +88,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
   //todo: make configurable limited size
-  private val modifiersCache = mutable.Map[ModifierId, (ConnectedPeer, PMOD)]()
+  private val modifiersCache = mutable.Map[ModifierId, PMOD]()
 
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, Seq[ActorRef]]()
@@ -96,7 +96,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   private def notifySubscribers[O <: NodeViewHolderEvent](eventType: EventType.Value, signal: O) =
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! signal)
 
-  private def txModify(tx: TX, source: Option[ConnectedPeer]) = {
+  private def txModify(tx: TX) = {
     //todo: async validation?
     val errorOpt: Option[Throwable] = minimalState() match {
       case txValidator: TransactionValidation[P, TX] =>
@@ -114,14 +114,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             log.debug(s"Unconfirmed transaction $tx added to the memory pool")
             val updWallet = vault().scanOffchain(tx)
             nodeView = (history(), minimalState(), updWallet, updPool)
-            notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx, source))
+            notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
 
           case Failure(e) =>
-            notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e, source))
+            notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
         }
 
       case Some(e) =>
-        notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e, source))
+        notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
     }
   }
 
@@ -209,7 +209,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
-                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply))
+                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
                 updateState(newHis, stateToApply, newProgressInfo)
             }
 
@@ -225,7 +225,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   //todo: update state in async way?
-  private def pmodModify(pmod: PMOD, source: Option[ConnectedPeer]): Unit =
+  private def pmodModify(pmod: PMOD): Unit =
     if (!history().contains(pmod.id)) {
       notifySubscribers(
         EventType.StartingPersistentModifierApplication,
@@ -237,7 +237,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       history().append(pmod) match {
         case Success((historyBeforeStUpdate, progressInfo)) =>
           log.debug(s"Going to apply modifications to the state: $progressInfo")
-          notifySubscribers(EventType.SuccessfulSyntacticallyValidModifier, SyntacticallySuccessfulModifier[PMOD](pmod, source))
+          notifySubscribers(EventType.SuccessfulSyntacticallyValidModifier, SyntacticallySuccessfulModifier[PMOD](pmod))
 
           if (progressInfo.toApply.nonEmpty) {
             val (newHistory, newStateTry) = updateState(historyBeforeStUpdate, minimalState(), progressInfo)
@@ -255,20 +255,20 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 }
 
                 log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
-                notifySubscribers(EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier[PMOD](pmod, source))
+                notifySubscribers(EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier[PMOD](pmod))
                 nodeView = (newHistory, newMinState, newVault, newMemPool)
 
               case Failure(e) =>
                 log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
                 nodeView = (newHistory, minimalState(), vault(), memoryPool())
-                notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification[PMOD](pmod, e, source))
+                notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification[PMOD](pmod, e))
             }
           } else {
             nodeView = (historyBeforeStUpdate, minimalState(), vault(), memoryPool())
           }
         case Failure(e) =>
           log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to history", e)
-          notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification[PMOD](pmod, e, source))
+          notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification[PMOD](pmod, e))
       }
     } else {
       log.warn(s"Trying to apply modifier ${Base58.encode(pmod.id)} that's already in history")
@@ -315,18 +315,18 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       modifierSerializers.get(modifierTypeId) foreach { companion =>
         remoteObjects.flatMap(r => companion.parseBytes(r).toOption).foreach {
           case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
-            txModify(tx, Some(remote))
+            txModify(tx)
 
           case pmod: PMOD@unchecked =>
-            modifiersCache.put(pmod.id, remote -> pmod)
+            modifiersCache.put(pmod.id, pmod)
         }
 
         log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
 
-        var t: Option[(ConnectedPeer, PMOD)] = None
+        var t: Option[PMOD] = None
         do {
           t = {
-            modifiersCache.find { case (_, (_, pmod)) =>
+            modifiersCache.find { case (_, pmod) =>
               history().applicable(pmod)
             }.map { t =>
               val res = t._2
@@ -334,7 +334,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               res
             }
           }
-          t.foreach { case (peer, pmod) => pmodModify(pmod, Some(peer)) }
+          t.foreach(pmodModify)
         } while (t.isDefined)
 
         log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
@@ -343,11 +343,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def processLocallyGeneratedModifiers: Receive = {
     case lt: LocallyGeneratedTransaction[P, TX] =>
-      txModify(lt.tx, None)
+      txModify(lt.tx)
 
     case lm: LocallyGeneratedModifier[PMOD] =>
       log.info(s"Got locally generated modifier: ${Base58.encode(lm.pmod.id)}")
-      pmodModify(lm.pmod, None)
+      pmodModify(lm.pmod)
   }
 
   private def getCurrentInfo: Receive = {
@@ -435,7 +435,7 @@ object NodeViewHolder {
 
   trait NodeViewHolderEvent
 
-  case class OtherNodeSyncingStatus[SI <: SyncInfo](peer: ConnectedPeer,
+  case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
                                                     status: History.HistoryComparisonResult.Value,
                                                     remoteSyncInfo: SI,
                                                     localSyncInfo: SI,
@@ -445,27 +445,19 @@ object NodeViewHolder {
   case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
 
   //hierarchy of events regarding modifiers application outcome
-  trait ModificationOutcome extends NodeViewHolderEvent {
-    val source: Option[ConnectedPeer]
-  }
+  trait ModificationOutcome extends NodeViewHolderEvent
 
-  case class FailedTransaction[P <: Proposition, TX <: Transaction[P]]
-  (transaction: TX, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class FailedTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX, error: Throwable) extends ModificationOutcome
 
-  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]]
-  (transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX) extends ModificationOutcome
 
-  case class SyntacticallyFailedModification[PMOD <: PersistentNodeViewModifier]
-  (modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class SyntacticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
 
-  case class SemanticallyFailedModification[PMOD <: PersistentNodeViewModifier]
-  (modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class SemanticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
 
-  case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier]
-  (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
 
-  case class SemanticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier]
-  (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+  case class SemanticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
 
   case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
 
@@ -479,5 +471,4 @@ object NodeViewHolder {
   case object RollbackFailed extends NodeViewHolderEvent
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
-
 }

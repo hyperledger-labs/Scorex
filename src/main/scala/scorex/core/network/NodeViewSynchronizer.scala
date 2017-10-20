@@ -34,7 +34,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
  viewHolderRef: ActorRef,
  localInterfaceRef: ActorRef,
  syncInfoSpec: SIS,
- networkSettings: NetworkSettings,
+ networkSettings: NetworkSettings
 ) extends Actor with ScorexLogging {
 
   import NodeViewSynchronizer._
@@ -50,6 +50,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   private val invSpec = new InvSpec(networkSettings.maxInvObjects)
   private val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
+
   override def preStart(): Unit = {
     //register as a handler for some types of messages
     val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
@@ -69,18 +70,18 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   }
 
   private def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
-      val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
-      networkControllerRef ! SendToNetwork(msg, Broadcast)
-    }
+    val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
+    networkControllerRef ! SendToNetwork(msg, Broadcast)
+  }
 
   private def viewHolderEvents: Receive = {
-    case FailedTransaction(tx, throwable, source) =>
+    case FailedTransaction(tx, throwable) =>
     //todo: ban source peer?
-    case SyntacticallyFailedModification(mod, throwable, source) =>
+    case SyntacticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
 
-    case SuccessfulTransaction(tx, source) => broadcastModifierInv(tx)
-    case SyntacticallySuccessfulModifier(mod, source) => broadcastModifierInv(mod)
+    case SuccessfulTransaction(tx) => broadcastModifierInv(tx)
+    case SyntacticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
   }
 
   private def getLocalSyncInfo: Receive = {
@@ -127,7 +128,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
         case Younger =>
           juniors.add(remoteHost)
-          if(extOpt.isEmpty) {
+          if (extOpt.isEmpty) {
             log.warn("extOpt is empty for Younger brother")
           }
           val ext = extOpt.get
@@ -141,11 +142,11 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       val seniorsAfter = seniors.size
 
-      if (seniorsBefore > 0 && seniorsAfter == 0){
+      if (seniorsBefore > 0 && seniorsAfter == 0) {
         localInterfaceRef ! LocalInterface.NoBetterNeighbour
       }
 
-      if (seniorsBefore == 0 && seniorsAfter > 0){
+      if (seniorsBefore == 0 && seniorsAfter > 0) {
         localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
       }
   }
@@ -179,8 +180,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       log.info(s"Got modifiers with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
-      val fm = modifiers.flatMap{case(mid, mod) =>
-        if(askedIds.exists(id => id sameElements mid)){
+      val fm = modifiers.flatMap { case (mid, mod) =>
+        if (askedIds.exists(id => id sameElements mid)) {
           askedIds.retain(id => !(id sameElements mid))
           Some(mod)
         } else {
@@ -228,11 +229,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       responseFromLocal orElse
       modifiersFromRemote orElse
       viewHolderEvents orElse {
-        case a: Any => log.error("Strange input: " + a)
+      case a: Any => log.error("Strange input: " + a)
     }
 }
 
 object NodeViewSynchronizer {
+
   case object GetLocalSyncInfo
 
   case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
@@ -246,4 +248,5 @@ object NodeViewSynchronizer {
   case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
   case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
+
 }
