@@ -185,7 +185,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                           progressInfo: ProgressInfo[PMOD]): (HIS, Try[MS]) = {
     val stateToApplyTry = if (progressInfo.chainSwitchingNeeded) {
       val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
-      if (!state.version.sameElements(branchingPoint)) state.rollbackTo(branchingPoint) else Success(state)
+      if (!state.version.sameElements(branchingPoint)) {
+        state.rollbackTo(branchingPoint).map { rs =>
+          notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(isRollback = true, rs.version))
+          rs
+        }
+      } else {
+        Success(state)
+      }
     } else Success(state)
 
     stateToApplyTry match {
@@ -197,10 +204,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
+                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
+                notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(isRollback = false, stateToApply.version))
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
-                //todo: send signal
+                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply))
                 updateState(newHis, stateToApply, newProgressInfo)
             }
 
@@ -252,14 +261,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               case Failure(e) =>
                 log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
                 nodeView = (newHistory, minimalState(), vault(), memoryPool())
-                notifySubscribers(EventType.FailedPersistentModifier, FailedModification[PMOD](pmod, e, source))
+                notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification[PMOD](pmod, e, source))
             }
           } else {
             nodeView = (historyBeforeStUpdate, minimalState(), vault(), memoryPool())
           }
         case Failure(e) =>
           log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to history", e)
-          notifySubscribers(EventType.FailedPersistentModifier, FailedModification[PMOD](pmod, e, source))
+          notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification[PMOD](pmod, e, source))
       }
     } else {
       log.warn(s"Trying to apply modifier ${Base58.encode(pmod.id)} that's already in history")
@@ -402,19 +411,23 @@ object NodeViewHolder {
   object EventType extends Enumeration {
     //finished modifier application, successful of failed
     val FailedTransaction = Value(1)
-    val FailedPersistentModifier = Value(2)
-    val SuccessfulTransaction = Value(3)
-    val SuccessfulSyntacticallyValidModifier = Value(4)
-    val SuccessfulSemanticallyValidModifier = Value(5)
+    val SyntacticallyFailedPersistentModifier = Value(2)
+    val SemanticallyFailedPersistentModifier = Value(3)
+    val SuccessfulTransaction = Value(4)
+    val SuccessfulSyntacticallyValidModifier = Value(5)
+    val SuccessfulSemanticallyValidModifier = Value(6)
 
 
     //starting persistent modifier application. The application could be slow
-    val StartingPersistentModifierApplication = Value(6)
+    val StartingPersistentModifierApplication = Value(7)
 
-    val OpenSurfaceChanged = Value(7)
+    val OpenSurfaceChanged = Value(8)
+    val StateChanged = Value(9)
 
     //rollback failed, really wrong situation, probably
-    val FailedRollback = Value(8)
+    val FailedRollback = Value(10)
+
+    val DownloadNeeded = Value(11)
   }
 
   //a command to subscribe for events
@@ -439,11 +452,14 @@ object NodeViewHolder {
   case class FailedTransaction[P <: Proposition, TX <: Transaction[P]]
   (transaction: TX, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
-  case class FailedModification[PMOD <: PersistentNodeViewModifier]
-  (modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
-
   case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]]
   (transaction: TX, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+
+  case class SyntacticallyFailedModification[PMOD <: PersistentNodeViewModifier]
+  (modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
+
+  case class SemanticallyFailedModification[PMOD <: PersistentNodeViewModifier]
+  (modifier: PMOD, error: Throwable, override val source: Option[ConnectedPeer]) extends ModificationOutcome
 
   case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier]
   (modifier: PMOD, override val source: Option[ConnectedPeer]) extends ModificationOutcome
@@ -453,6 +469,9 @@ object NodeViewHolder {
 
   case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
 
+  //todo: separate classes instead of boolean flag?
+  case class ChangedState(isRollback: Boolean, newVersion: VersionTag) extends NodeViewHolderEvent
+
   case class ModificationApplicationStarted[PMOD <: PersistentNodeViewModifier](modifier: PMOD)
     extends NodeViewHolderEvent
 
@@ -460,4 +479,5 @@ object NodeViewHolder {
   case object RollbackFailed extends NodeViewHolderEvent
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
+
 }

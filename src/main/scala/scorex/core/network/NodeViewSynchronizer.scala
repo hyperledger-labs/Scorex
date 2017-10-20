@@ -58,7 +58,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     //subscribe for failed transaction,
     val events = Seq(
       NodeViewHolder.EventType.FailedTransaction,
-      NodeViewHolder.EventType.FailedPersistentModifier,
+      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
       NodeViewHolder.EventType.SuccessfulTransaction,
       NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
       NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
@@ -76,7 +76,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   private def viewHolderEvents: Receive = {
     case FailedTransaction(tx, throwable, source) =>
     //todo: ban source peer?
-    case FailedModification(mod, throwable, source) =>
+    case SyntacticallyFailedModification(mod, throwable, source) =>
     //todo: ban source peer?
 
     case SuccessfulTransaction(tx, source) => broadcastModifierInv(tx)
