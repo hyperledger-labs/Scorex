@@ -14,6 +14,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
+
 import scala.concurrent.duration._
 
 
@@ -136,38 +137,37 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewHolder: forking - switching") { ctx =>
     import ctx._
-    //node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, FailedPersistentModifier))
 
-  //  node ! LocallyGeneratedModifier(mod)
-   // expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    val opCountBeforeFork = 10
+    val fork1OpCount = 4
+    val fork2OpCount = 6
+
+    val waitDuration = 5.seconds
+
+    //some base operations, we don't wanna have fork right from genesis
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
+      totallyValidModifiers(v.history, v.state, opCountBeforeFork)
+    }
+    val plainMods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
+    plainMods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
-      val mods = totallyValidModifiers(v.history, v.state, 2)
+      val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
       assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
       mods
     }
-    val fork1Mods = receiveOne(5 seconds).asInstanceOf[Seq[PM]]
-
-
+    val fork1Mods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
-      totallyValidModifiers(v.history, v.state, 4)
+      totallyValidModifiers(v.history, v.state, fork2OpCount)
     }
+    val fork2Mods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
 
-    val fork2Mods = receiveOne(5 seconds).asInstanceOf[Seq[PM]]
-
-    fork1Mods.foreach{mod =>
-      node ! LocallyGeneratedModifier(mod)
-//      expectMsgType[SuccessfulModification[PM]]
-    }
-
-    fork2Mods.foreach{mod =>
-      node ! LocallyGeneratedModifier(mod)
-    //  expectMsgType[SuccessfulModification[PM]]
-    }
+    fork1Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
+    fork2Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
-      v.history.openSurfaceIds().contains(fork2Mods.last)
+      v.history.openSurfaceIds().contains(fork2Mods.last.id)
     }
     expectMsg(true)
   }

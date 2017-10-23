@@ -30,11 +30,7 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
       (h, s, gw, SimpleBoxTransactionMemPool.emptyPool)
     }
 
-    override def restoreState(): Option[(HIS, MS, VL, MP)] =
-      if (HWallet.exists(settings.scorexSettings)) {
-        Some((h, s, HWallet.genesisWallet(settings.scorexSettings, Seq.empty), SimpleBoxTransactionMemPool.emptyPool))
-      } else None
-
+    override def restoreState(): Option[(HIS, MS, VL, MP)] = None
   }
 
   object NodeViewHolderForTests {
