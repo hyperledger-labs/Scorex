@@ -176,7 +176,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       val askedIds = asked.getOrElse(typeId, mutable.Set())
 
-      log.info(s"Got modifiers with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+      log.info(s"Got modifiers type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
       val fm = modifiers.flatMap{case(mid, mod) =>
