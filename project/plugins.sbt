@@ -11,3 +11,5 @@ addSbtPlugin("com.github.tkawachi" % "sbt-lock" % "0.4.0")
 libraryDependencies += "com.typesafe" % "config" % "1.3.0"
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.9.3")
+
+addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.6")
