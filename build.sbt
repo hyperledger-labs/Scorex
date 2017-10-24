@@ -2,9 +2,8 @@
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.3",
+  scalaVersion := "2.12.4",
   organization := "org.scorexfoundation",
-  version := "2.0.0-RC4-SNAPSHOT",
   licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
   homepage := Some(url("https://github.com/ScorexFoundation/Scorex")),
   pomExtra := (
@@ -25,9 +24,8 @@ lazy val commonSettings = Seq(
 
 enablePlugins(GitVersioning)
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.4"
 organization := "org.scorexfoundation"
-version := "2.0.0-RC4-SNAPSHOT"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 

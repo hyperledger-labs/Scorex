@@ -63,7 +63,7 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewHolder: check that valid modifiers are applicable") { ctx =>
     import ctx._
-    node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, FailedPersistentModifier))
+    node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
       totallyValidModifiers(v.history, v.state, 10) //todo: fix magic number
@@ -86,13 +86,13 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewHolder: apply locally generated mod") { ctx =>
     import ctx._
-    node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, FailedPersistentModifier))
+    node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
     val invalid = syntacticallyInvalidModifier(h)
 
     node ! LocallyGeneratedModifier(invalid)
 
-    expectMsgType[FailedModification[PM]]
+    expectMsgType[SyntacticallyFailedModification[PM]]
 
     node ! LocallyGeneratedModifier(mod)
 
@@ -107,7 +107,7 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewHolder: simple forking") { ctx =>
     import ctx._
-    node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, FailedPersistentModifier))
+    node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
     node ! LocallyGeneratedModifier(mod)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
