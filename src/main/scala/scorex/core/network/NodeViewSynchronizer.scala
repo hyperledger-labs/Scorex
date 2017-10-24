@@ -34,8 +34,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
  viewHolderRef: ActorRef,
  localInterfaceRef: ActorRef,
  syncInfoSpec: SIS,
- networkSettings: NetworkSettings
-) extends Actor with ScorexLogging {
+ networkSettings: NetworkSettings) extends Actor with ScorexLogging {
 
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
