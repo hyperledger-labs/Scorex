@@ -131,7 +131,7 @@ VL <: Vault[P, TX, PM, VL]]
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
-    expectMsg(true)
+    expectMsg(10.seconds, true)
   }
 
 
