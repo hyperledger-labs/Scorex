@@ -152,8 +152,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   private def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
-    pi.toDownload.foreach { id =>
-      notifySubscribers(EventType.DownloadNeeded, DownloadRequest(id))
+    pi.toDownload.foreach { case (tid, id) =>
+      notifySubscribers(EventType.DownloadNeeded, DownloadRequest(tid, id))
     }
 
   /*
@@ -476,7 +476,7 @@ object NodeViewHolder {
   //todo: consider sending info on the rollback
   case object RollbackFailed extends NodeViewHolderEvent
 
-  case class DownloadRequest(modifierId: ModifierId) extends NodeViewHolderEvent
+  case class DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) extends NodeViewHolderEvent
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
 

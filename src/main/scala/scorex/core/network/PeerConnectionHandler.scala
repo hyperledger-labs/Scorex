@@ -23,7 +23,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
   import shapeless.syntax.typeable._
 
   override def hashCode(): Int = socketAddress.hashCode()
-  override def equals(obj: java.lang.Object): Boolean =
+  override def equals(obj: Any): Boolean =
     obj.cast[ConnectedPeer].exists(_.socketAddress.getAddress.getHostAddress == this.socketAddress.getAddress.getHostAddress)
 }
 
