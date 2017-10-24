@@ -39,7 +39,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
 
-  //todo: change with something like Bloom filters. make filters for asked and delivered objects?
+  //todo: change with something like Bloom filters? make filters for asked and delivered objects?
   //modifier ids asked from other nodes are kept in order to check then
   //against objects delivered
   private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
@@ -59,7 +59,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
 
-    //subscribe for failed transaction,
     val events = Seq(
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.SuccessfulTransaction,

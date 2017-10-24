@@ -290,7 +290,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 
   protected def compareViews: Receive = {
-    case CompareViews(sid, modifierTypeId, modifierIds) =>
+    case CompareViews(peer, modifierTypeId, modifierIds) =>
       val ids = modifierTypeId match {
         case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
           memoryPool().notIn(modifierIds)
@@ -298,7 +298,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
       }
 
-      sender() ! NodeViewSynchronizer.RequestFromLocal(sid, modifierTypeId, ids)
+      sender() ! NodeViewSynchronizer.RequestFromLocal(peer, modifierTypeId, ids)
   }
 
 
