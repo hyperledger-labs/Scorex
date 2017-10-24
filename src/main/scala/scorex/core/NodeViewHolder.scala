@@ -63,13 +63,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def genesisState: NodeView
 
 
-  private def history(): HIS = nodeView._1
+  protected def history(): HIS = nodeView._1
 
-  private def minimalState(): MS = nodeView._2
+  protected def minimalState(): MS = nodeView._2
 
-  private def vault(): VL = nodeView._3
+  protected def vault(): VL = nodeView._3
 
-  private def memoryPool(): MP = nodeView._4
+  protected def memoryPool(): MP = nodeView._4
 
 
   /**
@@ -93,10 +93,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, Seq[ActorRef]]()
 
-  private def notifySubscribers[O <: NodeViewHolderEvent](eventType: EventType.Value, signal: O) =
+  protected def notifySubscribers[O <: NodeViewHolderEvent](eventType: EventType.Value, signal: O) =
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! signal)
 
-  private def txModify(tx: TX) = {
+  protected def txModify(tx: TX) = {
     //todo: async validation?
     val errorOpt: Option[Throwable] = minimalState() match {
       case txValidator: TransactionValidation[P, TX] =>
@@ -233,7 +233,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   //todo: update state in async way?
-  private def pmodModify(pmod: PMOD): Unit =
+  protected def pmodModify(pmod: PMOD): Unit =
     if (!history().contains(pmod.id)) {
       notifySubscribers(EventType.StartingPersistentModifierApplication, StartingPersistentModifierApplication(pmod))
 
@@ -280,7 +280,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
 
 
-  private def handleSubscribe: Receive = {
+  protected def handleSubscribe: Receive = {
     case NodeViewHolder.Subscribe(events) =>
       events.foreach { evt =>
         val current = subscribers.getOrElse(evt, Seq())
@@ -289,7 +289,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
 
-  private def compareViews: Receive = {
+  protected def compareViews: Receive = {
     case CompareViews(sid, modifierTypeId, modifierIds) =>
       val ids = modifierTypeId match {
         case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
@@ -302,7 +302,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
 
-  private def readLocalObjects: Receive = {
+  protected def readLocalObjects: Receive = {
     case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
       val objs: Seq[NodeViewModifier] = modifierTypeId match {
         case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
@@ -315,7 +315,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
 
-  private def processRemoteModifiers: Receive = {
+  protected def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
       modifierSerializers.get(modifierTypeId) foreach { companion =>
         remoteObjects.flatMap(r => companion.parseBytes(r).toOption).foreach {
@@ -346,7 +346,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       }
   }
 
-  private def processLocallyGeneratedModifiers: Receive = {
+  protected def processLocallyGeneratedModifiers: Receive = {
     case lt: LocallyGeneratedTransaction[P, TX] =>
       txModify(lt.tx)
 
@@ -355,16 +355,17 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       pmodModify(lm.pmod)
   }
 
-  private def getCurrentInfo: Receive = {
+  protected def getCurrentInfo: Receive = {
     case GetDataFromCurrentView(f) =>
       sender() ! f(CurrentView(history(), minimalState(), vault(), memoryPool()))
   }
 
-  private def compareSyncInfo: Receive = {
+  protected def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
-      log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).map(Base58.encode)}")
+      log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).toList
+        .map(Base58.encode)}")
       syncInfo.startingPoints.map(_._2).headOption.foreach { head =>
-        log.debug(s"Local side contains head: $head")
+        log.debug(s"Local side contains head: ${Base58.encode(head)}")
       }
 
       val extensionOpt = history().continuationIds(syncInfo, networkChunkSize)
@@ -386,7 +387,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       )
   }
 
-  private def getSyncInfo: Receive = {
+  protected def getSyncInfo: Receive = {
     case GetSyncInfo =>
       sender() ! CurrentSyncInfo(history().syncInfo(false))
   }
