@@ -107,31 +107,37 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewHolder: simple forking") { ctx =>
     import ctx._
+
+    val waitDuration = 5.seconds
+
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
-    node ! LocallyGeneratedModifier(mod)
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => totallyValidModifier(v.history, v.state) }
+    val initMod = receiveOne(waitDuration).asInstanceOf[PM]
+    node ! LocallyGeneratedModifier(initMod)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
       totallyValidModifier(v.history, v.state)
     }
-    val fork1Mod = receiveOne(5 seconds).asInstanceOf[PM]
+    val fork1Mod = receiveOne(waitDuration).asInstanceOf[PM]
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
       totallyValidModifier(v.history, v.state)
     }
-    val fork2Mod = receiveOne(5 seconds).asInstanceOf[PM]
+    val fork2Mod = receiveOne(waitDuration).asInstanceOf[PM]
 
     node ! LocallyGeneratedModifier(fork1Mod)
     node ! LocallyGeneratedModifier(fork2Mod)
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
       v.history.contains(fork1Mod.id) || v.history.contains(fork2Mod.id)
     }
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
-    expectMsg(true)
+
+    expectMsg(10.seconds, true)
   }
 
 

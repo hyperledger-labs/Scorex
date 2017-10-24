@@ -8,3 +8,9 @@ libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % "1.13.+",
   "com.typesafe.akka" %% "akka-testkit" % "2.4.+"
 )
+
+fork in Test := true
+
+javaOptions in Test ++= Seq("-Xmx2G")
+
+parallelExecution in Test := false
