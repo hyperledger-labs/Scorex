@@ -18,8 +18,8 @@ lazy val commonSettings = Seq(
           <url>http://chepurnoy.org/</url>
         </developer>
       </developers>),
-    git.useGitDescribe := true,
-    git.uncommittedSignifier := Some("SNAPSHOT")
+    git.uncommittedSignifier := Some("SNAPSHOT"),
+    git.useGitDescribe := true
 )
 
 enablePlugins(GitVersioning)
