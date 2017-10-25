@@ -23,7 +23,7 @@ class SimpleNodeViewHolder(settings: ScorexSettings)
   override type VL = SimpleWallet
   override type MP = SimpleMemPool
 
-  override lazy val modifierCompanions: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
+  override lazy val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
     Map(SimpleBlock.ModifierTypeId -> SimpleBlockCompanion)
 
   override def restoreState(): Option[(HIS, MS, VL, MP)] = None

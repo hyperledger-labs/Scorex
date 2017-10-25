@@ -30,7 +30,7 @@ class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMining
   override type VL = HWallet
   override type MP = SimpleBoxTransactionMemPool
 
-  override val modifierCompanions: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
+  override val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
     Map(PosBlock.ModifierTypeId -> PosBlockCompanion,
       PowBlock.ModifierTypeId -> PowBlockCompanion,
       Transaction.ModifierTypeId -> SimpleBoxTransactionCompanion)

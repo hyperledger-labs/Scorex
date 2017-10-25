@@ -108,7 +108,6 @@ class HistoryStorage(storage: LSMStore,
     Longs.fromByteArray(storage.get(blockDiffKey(id, isPos = true)).get.data)
   }
 
-
   def parentHeight(b: HybridBlock): Long = heightOf(parentId(b)).getOrElse(0L)
 
   def parentId(block: HybridBlock): ModifierId = block match {
@@ -129,5 +128,4 @@ class HistoryStorage(storage: LSMStore,
     case powB: PowBlock => powB.parentId sameElements settings.GenesisParentId
     case posB: PosBlock => heightOf(posB.parentId).contains(1L)
   }
-
 }

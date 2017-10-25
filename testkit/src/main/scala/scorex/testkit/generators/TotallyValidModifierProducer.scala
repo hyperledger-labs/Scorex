@@ -9,4 +9,6 @@ trait TotallyValidModifierProducer[PM <: PersistentNodeViewModifier, ST <: Minim
 SI <: SyncInfo, HT <: History[PM, SI, HT]] {
 
   def totallyValidModifier(history: HT, state: ST): PM
+
+  def totallyValidModifiers(history: HT, state: ST, count: Int): Seq[PM]
 }

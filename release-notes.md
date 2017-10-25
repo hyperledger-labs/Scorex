@@ -1,3 +1,7 @@
+2.0.0-RC4
+---------
+* *modifierCompanions* renamed to *modifierSerializers* in *NodeViewHolder*
+
 2.0.0-RC3
 ---------
 * *MinimalState* interface simplification: *validate()* puled away from the basic trait 
