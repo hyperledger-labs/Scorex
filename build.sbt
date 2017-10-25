@@ -17,12 +17,8 @@ lazy val commonSettings = Seq(
           <name>Alexander Chepurnoy</name>
           <url>http://chepurnoy.org/</url>
         </developer>
-      </developers>),
-    git.uncommittedSignifier := Some("SNAPSHOT"),
-    git.useGitDescribe := true
+      </developers>)
 )
-
-enablePlugins(GitVersioning)
 
 scalaVersion := "2.12.4"
 organization := "org.scorexfoundation"
@@ -152,3 +148,9 @@ pomExtra in ThisBuild :=
         <url>https://github.com/catena2w</url>
       </developer>
     </developers>
+
+enablePlugins(GitVersioning)
+
+git.useGitDescribe in ThisBuild := true
+
+git.uncommittedSignifier in ThisBuild := Some("SNAPSHOT")
