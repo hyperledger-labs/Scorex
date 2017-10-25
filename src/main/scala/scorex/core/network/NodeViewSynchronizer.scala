@@ -219,7 +219,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         peer.handlerRef ! msg
       }
       val newIds = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds.map((_, peer))
-      asked.put(modifierTypeId, newIds)
+      asked(modifierTypeId) = newIds
   }
 
   //local node sending out objects requested to remote
