@@ -39,10 +39,11 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
 
-  //todo: change with something like Bloom filters? make filters for asked and delivered objects?
-  //modifier ids asked from other peers are kept in order to check them
-  //against objects delivered
+
+  //todo: make this class more general, in order to use it for `delivered` as well.
   private class Asked {
+    //todo: use a Bloom filter (https://en.wikipedia.org/wiki/Bloom_filter) to optimize `hasBeenAsked`
+
     private val m = mutable.Map[ModifierTypeId, mutable.Set[(ModifierId, ConnectedPeer)]]()
 
     private def get(mtid: ModifierTypeId) = m.getOrElseUpdate(mtid, mutable.Set())
@@ -63,8 +64,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     }
   }
 
+  // we keep track of modifier ids that have been asked from and delivered by other peers
+  // in order to ban or de-prioritize peers that deliver what has not been asked
   private val asked = new Asked
-
   private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
 
   //todo: should we use the following?
