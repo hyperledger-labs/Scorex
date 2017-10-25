@@ -182,11 +182,16 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       val askedIdsPeers = asked.getOrElse(typeId, mutable.Set())
 
+      def hasBeenAsked(mid: ModifierId, cp: ConnectedPeer) = askedIdsPeers.exists(e => {
+        val (id, peer) = e
+        mid == id && cp == peer
+      })
+
       log.info(s"Got modifiers type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
       val fm = modifiers.flatMap { case (mid, mod) =>
-        val modOption = if (askedIdsPeers.exists(idPeer => (idPeer._1 sameElements mid) && (idPeer._2 == remote))) {
+        val modOption = if (hasBeenAsked(mid, remote)) {
           askedIdsPeers.retain(idPeer => !(idPeer._1 sameElements mid))
           Some(mod)
         } else {
