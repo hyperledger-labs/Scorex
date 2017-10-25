@@ -22,7 +22,8 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
 
   import shapeless.syntax.typeable._
 
-  override def equals(obj: scala.Any): Boolean =
+  override def hashCode(): Int = socketAddress.hashCode()
+  override def equals(obj: Any): Boolean =
     obj.cast[ConnectedPeer].exists(_.socketAddress.getAddress.getHostAddress == this.socketAddress.getAddress.getHostAddress)
 }
 
@@ -47,7 +48,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
   override def preStart: Unit = connection ! ResumeReading
 
   // there is no recovery for broken connections
-  override val supervisorStrategy = SupervisorStrategy.stoppingStrategy
+  override val supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
 
   private def processErrors(stateName: String): Receive = {
     case CommandFailed(w: Write) =>
