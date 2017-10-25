@@ -32,7 +32,7 @@ class NetworkController(settings: NetworkSettings,
 
   import NetworkController._
 
-  val peerSynchronizer = context.system.actorOf(Props(classOf[PeerSynchronizer], self, peerManagerRef), "PeerSynchronizer")
+  val peerSynchronizer = context.system.actorOf(Props(new PeerSynchronizer(self, peerManagerRef)), "PeerSynchronizer")
 
   private implicit val system = context.system
 
@@ -129,8 +129,8 @@ class NetworkController(settings: NetworkSettings,
 
     case c@Connected(remote, local) =>
       val connection = sender()
-      val props = Props(classOf[PeerConnectionHandler], settings, self, peerManagerRef,
-        messageHandler, connection, externalSocketAddress, remote)
+      val props = Props(new PeerConnectionHandler(settings, self, peerManagerRef,
+        messageHandler, connection, externalSocketAddress, remote))
       val handler = context.actorOf(props)
       connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
       val newPeer = ConnectedPeer(remote, handler)

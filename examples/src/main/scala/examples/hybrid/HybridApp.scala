@@ -60,7 +60,7 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   if (settings.network.nodeName.startsWith("generatorNode")) {
     log.info("Starting transactions generation")
-    val generator: ActorRef = actorSystem.actorOf(Props(classOf[SimpleBoxTransactionGenerator], nodeViewHolderRef))
+    val generator: ActorRef = actorSystem.actorOf(Props(new SimpleBoxTransactionGenerator(nodeViewHolderRef)))
     generator ! StartGeneration(FiniteDuration(10, SECONDS))
   }
 }
