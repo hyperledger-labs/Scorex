@@ -42,7 +42,28 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //todo: change with something like Bloom filters? make filters for asked and delivered objects?
   //modifier ids asked from other peers are kept in order to check them
   //against objects delivered
-  private val asked = mutable.Map[ModifierTypeId, mutable.Set[(ModifierId, ConnectedPeer)]]()
+  private class Asked {
+    private val m = mutable.Map[ModifierTypeId, mutable.Set[(ModifierId, ConnectedPeer)]]()
+
+    private def get(mtid: ModifierTypeId) = m.getOrElseUpdate(mtid, mutable.Set())
+
+    def add(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId]): Unit = {
+      val newIds: mutable.Set[(ModifierId, ConnectedPeer)] = get(mtid) ++ mids.map((_, cp))
+      m(mtid) = newIds
+    }
+
+    def hasBeenAsked(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
+      get(mtid).exists(e => {
+        val (id, peer) = e
+        mid == id && cp == peer
+      })
+
+    def removeModifierId(mtid: ModifierTypeId, mid: ModifierId): Unit = {
+      get(mtid).retain(e => { val (id, _) = e; !(id sameElements mid) })
+    }
+  }
+
+  private val asked = new Asked
 
   private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
 
@@ -183,25 +204,13 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       val modifiers = data._2
 
 
-      //todo: should we create a class for `asked` and move `hasBeenAsked` and `removeModifierId` there?
-      val askedIdsPeers = asked.getOrElseUpdate(typeId, mutable.Set())
-
-      def hasBeenAsked(mid: ModifierId, cp: ConnectedPeer) = askedIdsPeers.exists(e => {
-        val (id, peer) = e
-        mid == id && cp == peer
-      })
-
-      def removeModifierId(mid: ModifierId): Unit = {
-        askedIdsPeers.retain(e => { val (id, _) = e; !(id sameElements mid) })
-      }
-
       log.info(s"Got modifiers type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"From remote connected peer: $remote")
       log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
       val fm = modifiers.flatMap { case (mid, mod) =>
-        val modOption = if (hasBeenAsked(mid, remote)) {
-          removeModifierId(mid)
+        val modOption = if (asked.hasBeenAsked(typeId, mid, remote)) {
+          asked.removeModifierId(typeId, mid)
           Some(mod)
         } else {
           //todo: remote peer has sent some object not requested -> ban?
@@ -224,8 +233,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
-      val newIds = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds.map((_, peer))
-      asked(modifierTypeId) = newIds
+      asked.add(peer, modifierTypeId, modifierIds)
   }
 
   //local node sending out objects requested to remote
