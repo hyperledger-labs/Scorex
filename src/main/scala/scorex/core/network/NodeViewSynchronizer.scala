@@ -175,6 +175,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //other node is sending objects
   private def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
+      //todo: should we ignore data from peers that have been banned?
+
       if spec.messageCode == ModifiersSpec.messageCode =>
 
       val typeId = data._1
@@ -189,6 +191,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       log.info(s"Got modifiers type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+      log.info(s"From remote connected peer: $remote")
 
       val fm = modifiers.flatMap { case (mid, mod) =>
         val modOption = if (hasBeenAsked(mid, remote)) {
