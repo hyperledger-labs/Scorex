@@ -32,7 +32,7 @@ trait ApiRoute extends Directives {
 
   def deleteJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, timeout.duration), delete)
 
-  private def jsonRoute(fn: ScorexApiResponse, method: Directive0): Route = method {
+  protected def jsonRoute(fn: ScorexApiResponse, method: Directive0): Route = method {
     val resp = complete(HttpEntity(ContentTypes.`application/json`, fn.toJson.spaces2))
     withCors(resp)
   }
