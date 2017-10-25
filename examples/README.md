@@ -37,7 +37,6 @@ In the terminal, run `sbt`, and then type the following commands in the SBT shel
 
 This will create and run a node with the given settings. To create and run more nodes, repeat the steps above using the other setting files (e.g. `settings2.conf`, `settings3.conf`, ...) in the `src/main/resources/` folder.
 
-Use `testnet-twins.conf` to create a node that connects to a public testnet. (FIXME: testnet peer is unreachable...)
 
 _Note to MacOS users:_ The 127.0.0.X loopback addresses (for X > 1) are disabled by default in MacOS. Therefore, the creation of nodes with `settingsX.conf` (for X > 1) fails. To prevent the failure, [enable the addresses](https://superuser.com/questions/458875/how-do-you-get-loopback-addresses-other-than-127-0-0-1-to-work-on-os-x?noredirect=1&lq=1).
 
