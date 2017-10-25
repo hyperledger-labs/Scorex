@@ -46,6 +46,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
 
+  //todo: should we use the following?
+  private val banned = mutable.Set[ConnectedPeer]()
 
   private val seniors = mutable.Set[String]()
   private val juniors = mutable.Set[String]()
@@ -188,8 +190,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
           askedIdsPeers.retain(idPeer => !(idPeer._1 sameElements mid))
           Some(mod)
         } else {
-          None
           //todo: remote peer has sent some object not requested -> ban?
+          banned += remote
+          None
         }
         delivered(mid) = remote
         modOption
