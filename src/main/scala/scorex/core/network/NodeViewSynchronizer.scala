@@ -42,7 +42,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //todo: make this class more general, in order to use it for `delivered` as well.
   private class Asked {
-    //todo: use a Bloom filter (https://en.wikipedia.org/wiki/Bloom_filter) to optimize `hasBeenAsked`
+    //todo: use a Bloom filter (https://en.wikipedia.org/wiki/Bloom_filter) to optimize `contains`
 
     private val m = mutable.Map[ModifierTypeId, mutable.Set[(ModifierId, ConnectedPeer)]]()
 
@@ -53,13 +53,13 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       m(mtid) = newIds
     }
 
-    def hasBeenAsked(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
+    def contains(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
       get(mtid).exists(e => {
         val (id, peer) = e
         mid == id && cp == peer
       })
 
-    def removeModifierId(mtid: ModifierTypeId, mid: ModifierId): Unit = {
+    def remove(mtid: ModifierTypeId, mid: ModifierId): Unit = {
       get(mtid).retain(e => { val (id, _) = e; !(id sameElements mid) })
     }
   }
@@ -211,8 +211,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
       val fm = modifiers.flatMap { case (mid, mod) =>
-        val modOption = if (asked.hasBeenAsked(typeId, mid, remote)) {
-          asked.removeModifierId(typeId, mid)
+        val modOption = if (asked.contains(typeId, mid, remote)) {
+          asked.remove(typeId, mid)
           Some(mod)
         } else {
           //todo: remote peer has sent some object not requested -> ban?
