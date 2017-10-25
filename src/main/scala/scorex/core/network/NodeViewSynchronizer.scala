@@ -182,6 +182,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       val typeId = data._1
       val modifiers = data._2
 
+
+      //todo: should we create a class for `asked` and move `hasBeenAsked` and `removeModifierId` there?
       val askedIdsPeers = asked.getOrElseUpdate(typeId, mutable.Set())
 
       def hasBeenAsked(mid: ModifierId, cp: ConnectedPeer) = askedIdsPeers.exists(e => {
