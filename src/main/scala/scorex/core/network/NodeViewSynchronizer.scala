@@ -40,12 +40,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   import History.HistoryComparisonResult._
 
   //todo: change with something like Bloom filters? make filters for asked and delivered objects?
-  //modifier ids asked from other nodes are kept in order to check then
+  //modifier ids asked from other peers are kept in order to check them
   //against objects delivered
-  private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
+  private val asked = mutable.Map[ModifierTypeId, mutable.Set[(ModifierId, ConnectedPeer)]]()
 
-  //todo: use it
   private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
+
 
   private val seniors = mutable.Set[String]()
   private val juniors = mutable.Set[String]()
@@ -178,22 +178,24 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       val typeId = data._1
       val modifiers = data._2
 
-      val askedIds = asked.getOrElse(typeId, mutable.Set())
+      val askedIdsPeers = asked.getOrElse(typeId, mutable.Set())
 
       log.info(s"Got modifiers type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
       val fm = modifiers.flatMap { case (mid, mod) =>
-        if (askedIds.exists(id => id sameElements mid)) {
-          askedIds.retain(id => !(id sameElements mid))
+        val modOption = if (askedIdsPeers.exists(idPeer => (idPeer._1 sameElements mid) && (idPeer._2 == remote))) {
+          askedIdsPeers.retain(idPeer => !(idPeer._1 sameElements mid))
           Some(mod)
         } else {
           None
           //todo: remote peer has sent some object not requested -> ban?
         }
+        delivered(mid) = remote
+        modOption
       }.toSeq
 
-      asked.put(typeId, askedIds)
+      asked.put(typeId, askedIdsPeers)
       val msg = ModifiersFromRemote(remote, data._1, fm)
       viewHolderRef ! msg
   }
@@ -206,7 +208,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
-      val newIds = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds
+      val newIds = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds.map((_, peer))
       asked.put(modifierTypeId, newIds)
   }
 
