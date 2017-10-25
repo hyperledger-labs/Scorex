@@ -189,13 +189,17 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         mid == id && cp == peer
       })
 
+      def removeModifierId(mid: ModifierId): Unit = {
+        askedIdsPeers.retain(e => { val (id, _) = e; !(id sameElements mid) })
+      }
+
       log.info(s"Got modifiers type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
-      log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"From remote connected peer: $remote")
+      log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
       val fm = modifiers.flatMap { case (mid, mod) =>
         val modOption = if (hasBeenAsked(mid, remote)) {
-          askedIdsPeers.retain(idPeer => !(idPeer._1 sameElements mid))
+          removeModifierId(mid)
           Some(mod)
         } else {
           //todo: remote peer has sent some object not requested -> ban?
