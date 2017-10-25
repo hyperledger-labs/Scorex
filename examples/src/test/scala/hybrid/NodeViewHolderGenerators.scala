@@ -11,6 +11,7 @@ import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
 import scorex.core.consensus.SyncInfo
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.utils.ByteStr
 
 trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators =>
 
@@ -26,7 +27,9 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
   class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings.scorexSettings, settings.mining) {
 
     override protected def genesisState: (HIS, MS, VL, MP) = {
-      val gw = HWallet.genesisWallet(settings.scorexSettings, Seq.empty)
+      val store = lsmStoreGen.sample.get
+      val byteStr = ByteStr(Array.fill(10)(1:Byte))
+      val gw = new HWallet(byteStr, store)
       (h, s, gw, SimpleBoxTransactionMemPool.emptyPool)
     }
 

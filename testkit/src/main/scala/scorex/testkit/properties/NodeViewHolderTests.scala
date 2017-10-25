@@ -147,10 +147,10 @@ VL <: Vault[P, TX, PM, VL]]
     import ctx._
 
     val opCountBeforeFork = 10
-    val fork1OpCount = 4
-    val fork2OpCount = 6
+    val fork1OpCount = 2
+    val fork2OpCount = 4
 
-    val waitDuration = 5.seconds
+    val waitDuration = 10.seconds
 
     //some base operations, we don't wanna have fork right from genesis
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
