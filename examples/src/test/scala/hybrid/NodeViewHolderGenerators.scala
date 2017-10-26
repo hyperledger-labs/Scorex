@@ -37,7 +37,7 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
   }
 
   object NodeViewHolderForTests {
-      def props(h: HT, s: ST): Props = Props(new NodeViewHolderForTests(h, s))
+    def props(h: HT, s: ST): Props = Props(new NodeViewHolderForTests(h, s))
   }
 
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, PM, ST, HT) = {
