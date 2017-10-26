@@ -17,46 +17,74 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   override def preStart(): Unit = {
     val events = Seq(
-      NodeViewHolder.EventType.StartingPersistentModifierApplication,
-
-      NodeViewHolder.EventType.FailedTransaction,
-      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
       NodeViewHolder.EventType.SuccessfulTransaction,
+      NodeViewHolder.EventType.FailedTransaction,
+
+      NodeViewHolder.EventType.StartingPersistentModifierApplication,
+      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
+      NodeViewHolder.EventType.SemanticallyFailedPersistentModifier,
       NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
-      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier
+      NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier,
+
+      NodeViewHolder.EventType.OpenSurfaceChanged,
+      NodeViewHolder.EventType.StateChanged,
+      NodeViewHolder.EventType.FailedRollback
     )
     viewHolderRef ! Subscribe(events)
   }
 
   private def viewHolderEvents: Receive = {
-    case stm: StartingPersistentModifierApplication[PMOD] =>
-      onStartingPersistentModifierApplication(stm.modifier)
+    case st: SuccessfulTransaction[P, TX] =>
+      onSuccessfulTransaction(st.transaction)
 
     case ft: FailedTransaction[P, TX] =>
       onFailedTransaction(ft.transaction)
 
-    case fm: SyntacticallyFailedModification[PMOD] =>
-      onFailedModification(fm.modifier)
 
-    case st: SuccessfulTransaction[P, TX] =>
-      onSuccessfulTransaction(st.transaction)
+    case stm: StartingPersistentModifierApplication[PMOD] =>
+      onStartingPersistentModifierApplication(stm.modifier)
 
-    case sm: SyntacticallySuccessfulModifier[PMOD] =>
-      onSuccessfulModification(sm.modifier)
+    case syns: SyntacticallySuccessfulModifier[PMOD] =>
+      onSyntacticallySuccessfulModification(syns.modifier)
+
+    case synf: SyntacticallyFailedModification[PMOD] =>
+      onSyntacticallyFailedModification(synf.modifier)
+
+    case sems: SemanticallySuccessfulModifier[PMOD] =>
+      onSemanticallySuccessfulModification(sems.modifier)
+
+    case semf: SemanticallyFailedModification[PMOD] =>
+      onSemanticallyFailedModification(semf.modifier)
+
+    case surf: NewOpenSurface =>
+      onNewSurface(surf.newSurface)
+
+    case state: ChangedState =>
+      onChangedState(state.isRollback, state.newVersion)
+
+    case RollbackFailed =>
+      onRollbackFailed()
   }
+
+
+  protected def onSuccessfulTransaction(tx: TX): Unit
+  protected def onFailedTransaction(tx: TX): Unit
+
 
   protected def onStartingPersistentModifierApplication(pmod: PMOD): Unit
 
-  protected def onFailedTransaction(tx: TX): Unit
+  protected def onSyntacticallySuccessfulModification(mod: PMOD): Unit
+  protected def onSyntacticallyFailedModification(mod: PMOD): Unit
 
-  protected def onFailedModification(mod: PMOD): Unit
+  protected def onSemanticallySuccessfulModification(mod: PMOD): Unit
+  protected def onSemanticallyFailedModification(mod: PMOD): Unit
 
-  protected def onSuccessfulTransaction(tx: TX): Unit
+  protected def onNewSurface(newSurface: Seq[ModifierId]): Unit
+  protected def onChangedState(isRollback: Boolean, newVersion: VersionTag): Unit
+  protected def onRollbackFailed(): Unit
 
-  protected def onSuccessfulModification(mod: PMOD): Unit
 
   protected def onNoBetterNeighbour(): Unit
-
   protected def onBetterNeighbourAppeared(): Unit
 
   override def receive: Receive = viewHolderEvents orElse {

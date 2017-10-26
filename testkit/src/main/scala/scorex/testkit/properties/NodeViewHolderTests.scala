@@ -112,18 +112,20 @@ VL <: Vault[P, TX, PM, VL]]
 
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => totallyValidModifier(v.history, v.state) }
-    val initMod = receiveOne(waitDuration).asInstanceOf[PM]
-    node ! LocallyGeneratedModifier(initMod)
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v => totallyValidModifiers(v.history, v.state, 2) }
+    val initMods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
+    initMods.foreach { mod =>
+      node ! LocallyGeneratedModifier(mod)
+      expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    }
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
-      totallyValidModifier(v.history, v.state)
+      totallyValidModifiers(v.history, v.state, 2).head
     }
     val fork1Mod = receiveOne(waitDuration).asInstanceOf[PM]
 
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
-      totallyValidModifier(v.history, v.state)
+      totallyValidModifiers(v.history, v.state, 2).head
     }
     val fork2Mod = receiveOne(waitDuration).asInstanceOf[PM]
 
@@ -145,10 +147,10 @@ VL <: Vault[P, TX, PM, VL]]
     import ctx._
 
     val opCountBeforeFork = 10
-    val fork1OpCount = 4
-    val fork2OpCount = 6
+    val fork1OpCount = 2
+    val fork2OpCount = 4
 
-    val waitDuration = 5.seconds
+    val waitDuration = 10.seconds
 
     //some base operations, we don't wanna have fork right from genesis
     node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
