@@ -22,6 +22,16 @@ lazy val commonSettings = Seq(
 
 enablePlugins(GitVersioning)
 
+version in ThisBuild := {
+  if (git.gitCurrentTags.value.nonEmpty) {
+    git.gitDescribedVersion.value.get
+  } else {
+    git.gitDescribedVersion.value.get + "-SNAPSHOT"
+  }
+}
+
+git.gitUncommittedChanges in ThisBuild := true
+
 scalaVersion := "2.12.4"
 organization := "org.scorexfoundation"
 
@@ -150,7 +160,3 @@ pomExtra in ThisBuild :=
         <url>https://github.com/catena2w</url>
       </developer>
     </developers>
-
-git.useGitDescribe in ThisBuild := true
-
-git.uncommittedSignifier in ThisBuild := Some("SNAPSHOT")
