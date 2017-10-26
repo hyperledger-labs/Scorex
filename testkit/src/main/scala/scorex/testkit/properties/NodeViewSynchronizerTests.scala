@@ -17,7 +17,7 @@ import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
 
 import scala.concurrent.duration._
 
-// todo: avoid code duplication between NodeViewSynchronizerTests and NodeViewHolderTests
+// todo: remove unnecessary type parameters
 
 trait NodeViewSynchronizerTests[P <: Proposition,
 TX <: Transaction[P],
