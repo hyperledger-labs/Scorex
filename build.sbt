@@ -17,15 +17,19 @@ lazy val commonSettings = Seq(
           <name>Alexander Chepurnoy</name>
           <url>http://chepurnoy.org/</url>
         </developer>
-      </developers>),
-  git.uncommittedSignifier := Some("SNAPSHOT"),
-  git.useGitDescribe := true,
-  git.gitUncommittedChanges := true
+      </developers>)
 )
 
 enablePlugins(GitVersioning)
-git.uncommittedSignifier in ThisBuild := Some("SNAPSHOT")
-git.useGitDescribe in ThisBuild := true
+
+version in ThisBuild := {
+  if (git.gitCurrentTags.value.nonEmpty) {
+    git.gitDescribedVersion.value.get
+  } else {
+    git.gitDescribedVersion.value.get + "-SNAPSHOT"
+  }
+}
+
 git.gitUncommittedChanges in ThisBuild := true
 
 scalaVersion := "2.12.4"
