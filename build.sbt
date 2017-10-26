@@ -18,13 +18,15 @@ lazy val commonSettings = Seq(
           <url>http://chepurnoy.org/</url>
         </developer>
       </developers>),
+  git.uncommittedSignifier := Some("SNAPSHOT"),
   git.useGitDescribe := true,
-  git.uncommittedSignifier := Some("SNAPSHOT")
+  git.gitUncommittedChanges := true
 )
 
 enablePlugins(GitVersioning)
-git.useGitDescribe in ThisBuild := true
 git.uncommittedSignifier in ThisBuild := Some("SNAPSHOT")
+git.useGitDescribe in ThisBuild := true
+git.gitUncommittedChanges in ThisBuild := true
 
 scalaVersion := "2.12.4"
 organization := "org.scorexfoundation"
