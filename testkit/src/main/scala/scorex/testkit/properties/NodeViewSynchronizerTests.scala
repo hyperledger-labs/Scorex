@@ -36,23 +36,21 @@ VL <: Vault[P, TX, PM, VL]]
 
   type Fixture = SynchronizerFixture
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ST, HT)
+  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer)
 
   class SynchronizerFixture extends AkkaFixture with FileUtils {
-    val (node, mod, s, h) = nodeViewSynchronizer
+    val (node, mod, peer) = nodeViewSynchronizer
   }
 
   def createAkkaFixture(): Fixture = new SynchronizerFixture
 
   import NodeViewSynchronizer._
 
-  property("NodeViewSynchronizer: check state after creation") { ctx =>
+  property("NodeViewSynchronizer: request from local") { ctx =>
     import ctx._
-    val source: ConnectedPeer = ???
-    val modifierTypeId: ModifierTypeId = ???
-    val modifierIds: Seq[ModifierId] = ???
 
-    node ! RequestFromLocal(source, modifierTypeId, modifierIds)
+    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
+    // todo: check that source is added to `added`
     expectMsg(true)
   }
 
