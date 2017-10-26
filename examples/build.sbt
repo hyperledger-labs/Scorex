@@ -20,3 +20,5 @@ parallelExecution in Test := true
 testForkedParallel in Test := true
 
 test in assembly := {}
+
+coverageExcludedPackages := "examples\\.hybrid\\.api\\.http.*"
