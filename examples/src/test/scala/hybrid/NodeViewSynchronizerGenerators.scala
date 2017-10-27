@@ -12,8 +12,8 @@ import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageHandler
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
-
 import examples.hybrid.history.HybridSyncInfoMessageSpec
+import examples.hybrid.mining.HybridSettings
 
 // todo: remove unused dependency injections
 trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes =>
@@ -78,7 +78,8 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
     val vhRef: ActorRef = system.actorOf(DummyActor.props()) // todo: is this ok?
     val liRef: ActorRef = system.actorOf(DummyActor.props()) // todo: is this ok?
     val sis = HybridSyncInfoMessageSpec
-    val ns: NetworkSettings = ???
+    val settingsFilename: String = ???
+    val ns: NetworkSettings = HybridSettings.read(Some(settingsFilename)).scorexSettings.network
 
     sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
     val s = sRaw.copy(version = VersionTag @@ v)
