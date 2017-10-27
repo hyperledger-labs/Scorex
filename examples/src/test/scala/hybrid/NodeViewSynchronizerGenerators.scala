@@ -42,32 +42,21 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
   } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
 
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe) = {
+  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
     val h = historyGen.sample.get
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
 
-
-    // todo: replace all occurrences of DummyActor by akka's TestProbes
-    class DummyActor extends Actor with ScorexLogging {
-      override def receive: Receive = {
-        case m => log.info(m.toString)
-      }
-    }
-    object DummyActor {
-      def props(): Props = Props(new DummyActor)
-    }
-
-    val ncRef: ActorRef = system.actorOf(DummyActor.props())
-    val vhRef: ActorRef = system.actorOf(DummyActor.props())
-    val liRef: ActorRef = system.actorOf(DummyActor.props())
+    val ncProbe = TestProbe("NetworkControllerProbe")
+    val vhProbe = TestProbe("ViewHolderProbe")
+    val liProbe = TestProbe("LocalInterfaceProbe")
     val sis = HybridSyncInfoMessageSpec
     val settingsFilename: String = "examples/src/main/resources/settings.conf" // fixme: avoid magic constant
     val ns: NetworkSettings = HybridSettings.read(Some(settingsFilename)).scorexSettings.network
 
     sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
     val s = sRaw.copy(version = VersionTag @@ v)
-    val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncRef, vhRef, liRef, sis, ns))
+    val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref, liProbe.ref, sis, ns))
     val m = totallyValidModifier(h, s)
 
     val pchProbe = TestProbe("PeerHandlerProbe")
@@ -76,6 +65,6 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
 
     val p : ConnectedPeer = ConnectedPeer(address, pchProbe.ref)
 
-    (ref, m, p, pchProbe)
+    (ref, m, p, pchProbe, ncProbe, vhProbe, liProbe)
   }
 }

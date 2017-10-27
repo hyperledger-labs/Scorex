@@ -43,10 +43,10 @@ VL <: Vault[P, TX, PM, VL]]
 
   type Fixture = SynchronizerFixture
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe)
+  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
 
   class SynchronizerFixture extends AkkaFixture with FileUtils {
-    val (node, mod, peer, pchProbe) = nodeViewSynchronizer
+    val (node, mod, peer, pchProbe, ncProbe, vhProbe, liProbe) = nodeViewSynchronizer
   }
 
   def createAkkaFixture(): Fixture = new SynchronizerFixture
