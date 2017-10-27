@@ -22,12 +22,39 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
               localInterfaceRef: ActorRef,
               syncInfoSpec: SIS,
               networkSettings: NetworkSettings): Props =
-      Props(new NodeViewSynchronizer(networkControllerRef,
+      Props(new NodeViewSynchronizer[P, TX, SI, SIS](networkControllerRef, // todo: do the type parameters really need to be passed explicitly here?
         viewHolderRef,
         localInterfaceRef,
         syncInfoSpec,
         networkSettings))
   }
+
+
+  // todo: move this to a PeerConnectionHandlerGenerators?
+  object PeerConnectionHandlerForTests {
+    def props(settings: NetworkSettings,
+              networkControllerRef: ActorRef,
+              peerManager: ActorRef,
+              messagesHandler: MessageHandler,
+              connection: ActorRef,
+              ownSocketAddress: Option[InetSocketAddress],
+              remote: InetSocketAddress): Props =
+      Props(new PeerConnectionHandler(
+        settings, networkControllerRef, peerManager, messagesHandler, connection, ownSocketAddress, remote
+      ))
+  }
+
+  // fixme: the following lines were copy-pasted from "src/test/scala/scorex/ObjectGenerators.scala" because it cannot be imported here.
+  private val MaxIp = 255
+  private val MaxPort = 65535
+  private lazy val inetSocketAddressGen = for {
+    ip1 <- Gen.choose(0, MaxIp)
+    ip2 <- Gen.choose(0, MaxIp)
+    ip3 <- Gen.choose(0, MaxIp)
+    ip4 <- Gen.choose(0, MaxIp)
+    port <- Gen.choose(0, MaxPort)
+  } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
+
 
   def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer) = {
     val h = historyGen.sample.get
@@ -44,6 +71,21 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
     val s = sRaw.copy(version = VersionTag @@ v)
     val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncRef, vhRef, liRef, sis, ns))
     val m = totallyValidModifier(h, s)
-    (ref, m, s, h)
+
+
+
+    val networkControllerRef: ActorRef = ???
+    val peerManagerRef: ActorRef = ???
+    val messageHandler: MessageHandler = ???
+    val connection: ActorRef = ???
+    val ownSocketAddress: Option[InetSocketAddress] = None // todo: does this make sense?
+    val remote: InetSocketAddress = inetSocketAddressGen.sample.get // todo: is this ok?
+
+    val pchRef: ActorRef = system.actorOf(PeerConnectionHandlerForTests.props(ns, ncRef, peerManagerRef, messageHandler, connection, ownSocketAddress, remote))
+    val address: InetSocketAddress = inetSocketAddressGen.sample.get // todo: is this ok?
+
+    val p : ConnectedPeer = ConnectedPeer(address, pchRef)
+
+    (ref, m, p)
   }
 }
