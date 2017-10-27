@@ -17,8 +17,13 @@ import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
 
 import scala.concurrent.duration._
 
-// todo: remove unnecessary type parameters
+// todo: think about the following:
+// with the current testing architecture, when a Scorex user (e.g. in "examples") wants to test his/her blockchain,
+// he/she writes a NodeViewSynchronizerSpec extending NodeViewSynchronizerTests, and this will execute some tests
+// that are actually independent of the particularities of his/her blockchain. Maybe we should test such
+// blockchain-non-specific properties in scorex's core, instead of testkit.
 
+// todo: remove unnecessary type parameters
 trait NodeViewSynchronizerTests[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier,

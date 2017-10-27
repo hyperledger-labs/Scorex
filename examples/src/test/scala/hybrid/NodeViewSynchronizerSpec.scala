@@ -8,13 +8,13 @@ import examples.hybrid.wallet.HWallet
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.testkit.properties.NodeViewSynchronizerTests
 
-class NodeViewSynchronizerSpec extends NodeViewSynchronizerTests[PublicKey25519Proposition,
-  SimpleBoxTransaction,
-  HybridBlock,
-  HBoxStoredState,
-  HybridSyncInfo,
-  HybridHistory,
-  SimpleBoxTransactionMemPool,
-  HWallet] with HybridGenerators {
-
-}
+//class NodeViewSynchronizerSpec extends NodeViewSynchronizerTests[PublicKey25519Proposition,
+//  SimpleBoxTransaction,
+//  HybridBlock,
+//  HBoxStoredState,
+//  HybridSyncInfo,
+//  HybridHistory,
+//  SimpleBoxTransactionMemPool,
+//  HWallet] with HybridGenerators {
+//
+//}
