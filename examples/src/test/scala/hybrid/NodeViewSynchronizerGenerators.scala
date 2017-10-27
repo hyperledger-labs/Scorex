@@ -2,7 +2,7 @@ package hybrid
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import scorex.core.VersionTag
@@ -11,6 +11,7 @@ import scorex.core.network.PeerConnectionHandler
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageHandler
 import scorex.core.settings.NetworkSettings
+import scorex.core.utils.ScorexLogging
 
 // todo: remove unused dependency injections
 trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes =>
@@ -44,6 +45,16 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
       ))
   }
 
+  class DummyActor extends Actor with ScorexLogging {
+    override def receive: Receive = {
+      case m => log.info(m.toString)
+    }
+  }
+  object DummyActor {
+    def props(): Props = Props(new DummyActor)
+  }
+
+
   // fixme: the following lines were copy-pasted from "src/test/scala/scorex/ObjectGenerators.scala" because it cannot be imported here.
   private val MaxIp = 255
   private val MaxPort = 65535
@@ -61,9 +72,9 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
 
-    val ncRef: ActorRef = ???
-    val vhRef: ActorRef = ???
-    val liRef: ActorRef = ???
+    val ncRef: ActorRef = system.actorOf(DummyActor.props()) // todo: is this ok?
+    val vhRef: ActorRef = system.actorOf(DummyActor.props()) // todo: is this ok?
+    val liRef: ActorRef = system.actorOf(DummyActor.props()) // todo: is this ok?
     val sis: SIS = ???
     val ns: NetworkSettings = ???
 
@@ -74,10 +85,10 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
 
 
 
-    val networkControllerRef: ActorRef = ???
-    val peerManagerRef: ActorRef = ???
-    val messageHandler: MessageHandler = ???
-    val connection: ActorRef = ???
+    val networkControllerRef: ActorRef = system.actorOf(DummyActor.props()) // todo: is this ok?
+    val peerManagerRef: ActorRef = system.actorOf(DummyActor.props()) // todo: is this ok?
+    val messageHandler: MessageHandler = system.actorOf(DummyActor.props()) // todo: is this ok?
+    val connection: ActorRef = system.actorOf(DummyActor.props()) // todo: is this ok?
     val ownSocketAddress: Option[InetSocketAddress] = None // todo: does this make sense?
     val remote: InetSocketAddress = inetSocketAddressGen.sample.get // todo: is this ok?
 
