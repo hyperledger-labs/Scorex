@@ -82,7 +82,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case FailedTransaction(tx, throwable) =>
     //todo: ban source peer?
 
-    case SyntacticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
+    case SyntacticallySuccessfulModifier(mod) =>
     case SyntacticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
 
