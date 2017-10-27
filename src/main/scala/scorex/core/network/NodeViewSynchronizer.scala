@@ -78,13 +78,17 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   }
 
   private def viewHolderEvents: Receive = {
+    case SuccessfulTransaction(tx) => broadcastModifierInv(tx)
     case FailedTransaction(tx, throwable) =>
     //todo: ban source peer?
+
+    case SyntacticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SyntacticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
 
-    case SuccessfulTransaction(tx) => broadcastModifierInv(tx)
-    case SyntacticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
+    case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
+    case SemanticallyFailedModification(mod, throwable) =>
+    //todo: ban source peer?
   }
 
   private def getLocalSyncInfo: Receive = {
