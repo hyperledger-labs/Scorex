@@ -259,7 +259,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 }
 
                 log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
-                notifySubscribers(EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(pmod))
                 nodeView = (newHistory, newMinState, newVault, newMemPool)
 
               case Failure(e) =>
