@@ -12,7 +12,7 @@ import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
-import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
+import scorex.testkit.generators.{SemanticallyInvalidModifierProducer, SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
 
 import scala.concurrent.duration._
@@ -31,7 +31,8 @@ VL <: Vault[P, TX, PM, VL]]
     with PropertyChecks
     with ScorexLogging
     with SyntacticallyTargetedModifierProducer[PM, SI, HT]
-    with TotallyValidModifierProducer[PM, ST, SI, HT] {
+    with TotallyValidModifierProducer[PM, ST, SI, HT]
+    with SemanticallyInvalidModifierProducer[PM, ST] {
 
   type Fixture = HolderFixture
 
@@ -43,7 +44,66 @@ VL <: Vault[P, TX, PM, VL]]
 
   def createAkkaFixture(): Fixture = new HolderFixture
 
+  val semantic = Seq(SuccessfulSemanticallyValidModifier, SemanticallyFailedPersistentModifier)
+  val syntactic = Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier)
+  val allEvents = semantic ++ syntactic
+
   import NodeViewHolder._
+
+
+  property("NodeViewHolder: syntactically valid modifier subscription") { ctx =>
+    import ctx._
+
+    node ! NodeViewHolder.Subscribe(syntactic)
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
+    val mod = receiveOne(5 seconds).asInstanceOf[PM]
+    node ! LocallyGeneratedModifier(mod)
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+
+  }
+
+  property("NodeViewHolder: syntactically failed modifier subscription") { ctx =>
+    import ctx._
+
+    node ! NodeViewHolder.Subscribe(syntactic)
+    val invalid = syntacticallyInvalidModifier(h)
+    node ! LocallyGeneratedModifier(invalid)
+    expectMsgType[SyntacticallyFailedModification[PM]]
+  }
+
+  property("NodeViewHolder: semantically valid modifier subscription") { ctx =>
+    import ctx._
+
+    node ! NodeViewHolder.Subscribe(allEvents)
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
+    val mod = receiveOne(5 seconds).asInstanceOf[PM]
+    node ! LocallyGeneratedModifier(mod)
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    expectMsgType[SemanticallySuccessfulModifier[PM]]
+  }
+
+  property("NodeViewHolder: semantically failed modifier subscription") { ctx =>
+    import ctx._
+
+    node ! NodeViewHolder.Subscribe(allEvents)
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => semanticallyInvalidModifier(v.state) }
+    val invalid = receiveOne(5 seconds).asInstanceOf[PM]
+    node ! LocallyGeneratedModifier(invalid)
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    expectMsgType[SemanticallyFailedModification[PM]]
+  }
+
+  property("NodeViewHolder: syntactically/semantically valid modifier subscription") { ctx =>
+    import ctx._
+
+    node ! NodeViewHolder.Subscribe(allEvents)
+
+    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
+    val mod = receiveOne(5 seconds).asInstanceOf[PM]
+    node ! LocallyGeneratedModifier(mod)
+    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    expectMsgType[SemanticallySuccessfulModifier[PM]]
+  }
 
   property("NodeViewHolder: check state after creation") { ctx =>
     import ctx._

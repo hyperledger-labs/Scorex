@@ -29,16 +29,16 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(SimpleSyncInfoMessageSpec)
 
-  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(classOf[SimpleNodeViewHolder], settings))
+  override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(new SimpleNodeViewHolder(settings)))
 
-  val forger = actorSystem.actorOf(Props(classOf[Forger], nodeViewHolderRef, settings))
+  val forger = actorSystem.actorOf(Props(new Forger(nodeViewHolderRef, settings.miner)))
 
-  override val localInterface: ActorRef = actorSystem.actorOf(Props(classOf[SimpleLocalInterface], nodeViewHolderRef,
-    forger))
+  override val localInterface: ActorRef = actorSystem.actorOf(Props(new SimpleLocalInterface(nodeViewHolderRef,
+    forger)))
 
   override val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(classOf[NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoMessageSpec.type]],
-      networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoMessageSpec))
+    actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoMessageSpec.type]
+    (networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoMessageSpec, settings.network)))
 
   override val apiTypes: Set[Class[_]] = Set(classOf[UtilsApiRoute], classOf[NodeViewApiRoute[P, TX]])
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings.restApi),
