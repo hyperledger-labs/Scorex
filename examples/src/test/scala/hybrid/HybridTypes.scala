@@ -15,7 +15,8 @@ trait HybridTypes {
   type TX = SimpleBoxTransaction
   type PM = HybridBlock
   type SI = SyncInfo
-  type SIS = SyncInfoMessageSpec[HybridSyncInfo]
+  type HSI = HybridSyncInfo
+  type SIS = HybridSyncInfoMessageSpec.type
 
   type NODE = HybridNodeViewHolder
   type ST = HBoxStoredState
