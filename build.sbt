@@ -2,7 +2,7 @@
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.4",
+  scalaVersion := "2.12.3",
   organization := "org.scorexfoundation",
   licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
   homepage := Some(url("https://github.com/ScorexFoundation/Scorex")),
@@ -32,7 +32,7 @@ version in ThisBuild := {
 
 git.gitUncommittedChanges in ThisBuild := true
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.3"
 organization := "org.scorexfoundation"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
