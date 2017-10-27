@@ -28,6 +28,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
   with HistoryGenerators
   with StateGenerators
   with ModifierGenerators
+  with HybridTypes
   with NodeViewHolderGenerators
   with NodeViewSynchronizerGenerators
   with FileUtils

@@ -1,34 +1,19 @@
 package hybrid
 
+import java.net.{InetAddress, InetSocketAddress}
+
 import akka.actor.{ActorRef, ActorSystem, Props}
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
-import examples.hybrid.HybridNodeViewHolder
-import examples.hybrid.blocks._
-import examples.hybrid.history.HybridHistory
-import examples.hybrid.state.HBoxStoredState
-import examples.hybrid.wallet.HWallet
 import io.iohk.iodb.ByteArrayWrapper
+import org.scalacheck.Gen
 import scorex.core.VersionTag
-import scorex.core.consensus.SyncInfo
 import scorex.core.network.ConnectedPeer
+import scorex.core.network.PeerConnectionHandler
 import scorex.core.network.NodeViewSynchronizer
-import scorex.core.network.message.SyncInfoMessageSpec
+import scorex.core.network.message.MessageHandler
 import scorex.core.settings.NetworkSettings
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.ByteStr
 
-trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators =>
-
-  //type P = PublicKey25519Proposition
-  //type TX = SimpleBoxTransaction
-  type PM = HybridBlock
-  type SI = SyncInfo
-  type SIS = SyncInfoMessageSpec[SI]
-
-  //type NODE = HybridNodeViewHolder
-  //type ST = HBoxStoredState
-  //type HT = HybridHistory
-
+// todo: remove unused dependency injections
+trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes =>
 
   object NodeViewSynchronizerForTests {
     // todo: there is nothing here that is special to tests. Should this `props` method be moved to NodeViewSynchronizer's companion object?
