@@ -235,7 +235,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     if (!history().contains(pmod.id)) {
       notifySubscribers(EventType.StartingPersistentModifierApplication, StartingPersistentModifierApplication(pmod))
 
-      log.info(s"Apply modifier to nodeViewHolder: ${Base58.encode(pmod.id)}")
+      log.info(s"Apply modifier ${pmod.encodedId} of type ${pmod.modifierTypeId} to nodeViewHolder")
 
       history().append(pmod) match {
         case Success((historyBeforeStUpdate, progressInfo)) =>
@@ -256,11 +256,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                   vault().scanPersistent(progressInfo.toApply)
                 }
 
-                log.info(s"Persistent modifier ${Base58.encode(pmod.id)} applied successfully")
+                log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
                 nodeView = (newHistory, newMinState, newVault, newMemPool)
 
               case Failure(e) =>
-                log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to minimal state", e)
+                log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to minimal state", e)
                 nodeView = (newHistory, minimalState(), vault(), memoryPool())
                 notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification(pmod, e))
             }
@@ -269,11 +269,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             nodeView = (historyBeforeStUpdate, minimalState(), vault(), memoryPool())
           }
         case Failure(e) =>
-          log.warn(s"Can`t apply persistent modifier (id: ${Base58.encode(pmod.id)}, contents: $pmod) to history", e)
+          log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to history", e)
           notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification(pmod, e))
       }
     } else {
-      log.warn(s"Trying to apply modifier ${Base58.encode(pmod.id)} that's already in history")
+      log.warn(s"Trying to apply modifier ${pmod.encodedId} that's already in history")
     }
 
 
@@ -348,7 +348,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       txModify(lt.tx)
 
     case lm: LocallyGeneratedModifier[PMOD] =>
-      log.info(s"Got locally generated modifier: ${Base58.encode(lm.pmod.id)}")
+      log.info(s"Got locally generated modifier ${lm.pmod.encodedId} of type ${lm.pmod.modifierTypeId}")
       pmodModify(lm.pmod)
   }
 
