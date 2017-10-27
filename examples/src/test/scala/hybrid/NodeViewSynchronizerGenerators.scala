@@ -3,6 +3,7 @@ package hybrid
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.testkit.TestProbe
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import scorex.core.VersionTag
@@ -41,7 +42,7 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
   } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
 
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer) = {
+  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe) = {
     val h = historyGen.sample.get
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
@@ -69,13 +70,12 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
     val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncRef, vhRef, liRef, sis, ns))
     val m = totallyValidModifier(h, s)
 
-    val pchRef: ActorRef = system.actorOf(DummyActor.props())
+    val pchProbe = TestProbe("PeerHandlerProbe")
 
     val address: InetSocketAddress = inetSocketAddressGen.sample.get
 
-    val p : ConnectedPeer = ConnectedPeer(address, pchRef)
+    val p : ConnectedPeer = ConnectedPeer(address, pchProbe.ref)
 
-    // todo: return the testprobes too, to be used in the tests in NodeViewSynchronizerTests
-    (ref, m, p)
+    (ref, m, p, pchProbe)
   }
 }

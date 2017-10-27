@@ -1,6 +1,7 @@
 package scorex.testkit.properties
 
 import akka.actor._
+import akka.testkit.TestProbe
 import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
@@ -13,6 +14,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.core.PersistentNodeViewModifier
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
+import scorex.core.network.message.Message
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -41,24 +43,22 @@ VL <: Vault[P, TX, PM, VL]]
 
   type Fixture = SynchronizerFixture
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer)
+  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe)
 
   class SynchronizerFixture extends AkkaFixture with FileUtils {
-    val (node, mod, peer) = nodeViewSynchronizer
+    val (node, mod, peer, pchProbe) = nodeViewSynchronizer
   }
 
   def createAkkaFixture(): Fixture = new SynchronizerFixture
 
   import NodeViewSynchronizer._
 
-  property("NodeViewSynchronizer: request from local") { ctx =>
+  property("NodeViewSynchronizer: request from local should result in message sent to peer's handler") { ctx =>
     import ctx._
     node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
-    // todo: check that source is added to `added`
-
-    true
-    // todo: use testprobe to intercept message that is sent to an actor different from solver
-    //expectMsg(true)
+    pchProbe.expectMsgType[Message[_]]
   }
+
+  // todo: check that source is added to `added`
 
 }
