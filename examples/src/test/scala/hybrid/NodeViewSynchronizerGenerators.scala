@@ -2,7 +2,7 @@ package hybrid
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
@@ -10,13 +10,14 @@ import scorex.core.VersionTag
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.ScorexLogging
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import examples.hybrid.mining.HybridSettings
+import scorex.testkit.generators.CoreGenerators
 
 
 // todo: remove unused dependency injections
-trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes =>
+trait NodeViewSynchronizerGenerators {
+  this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes with CoreGenerators =>
 
   object NodeViewSynchronizerForTests {
     // todo: there is nothing here that is special to tests. Should this `props` method be moved to NodeViewSynchronizer's companion object?
@@ -28,19 +29,6 @@ trait NodeViewSynchronizerGenerators { this: ModifierGenerators with StateGenera
       Props(new NodeViewSynchronizer[P, TX, HSI, SIS](
         networkControllerRef, viewHolderRef, localInterfaceRef, syncInfoSpec, networkSettings))
   }
-
-
-  // fixme: the following lines were copy-pasted from "src/test/scala/scorex/ObjectGenerators.scala" because it cannot be imported here.
-  private val MaxIp = 255
-  private val MaxPort = 65535
-  private lazy val inetSocketAddressGen = for {
-    ip1 <- Gen.choose(0, MaxIp)
-    ip2 <- Gen.choose(0, MaxIp)
-    ip3 <- Gen.choose(0, MaxIp)
-    ip4 <- Gen.choose(0, MaxIp)
-    port <- Gen.choose(0, MaxPort)
-  } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
-
 
   def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
     val h = historyGen.sample.get
