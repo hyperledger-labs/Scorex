@@ -32,7 +32,7 @@ trait NodeViewSynchronizerGenerators {
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
-  (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe, MessageSpec[Serializable]) = {
+  (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
     val h = historyGen.sample.get
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
@@ -55,6 +55,6 @@ trait NodeViewSynchronizerGenerators {
 
     val p : ConnectedPeer = ConnectedPeer(address, pchProbe.ref)
 
-    (ref, m, p, pchProbe, ncProbe, vhProbe, liProbe, sis)
+    (ref, m, p, pchProbe, ncProbe, vhProbe, liProbe)
   }
 }
