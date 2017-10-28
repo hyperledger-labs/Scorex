@@ -54,25 +54,91 @@ VL <: Vault[P, TX, PM, VL]]
   import NodeViewSynchronizer._   // NodeViewSynchronizer's messages
   import NetworkController._      // NetworkController's messages
 
-  property("NodeViewSynchronizer: request from local should result in message sent to peer's handler") { ctx =>
+  property("NodeViewSynchronizer: SuccessfulTransaction") { ctx =>
     import ctx._
-    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
-    pchProbe.expectMsgType[Message[_]]
+
   }
 
-  property("NodeViewSynchronizer: response from local should result in message sent to peer's handler") { ctx =>
+  property("NodeViewSynchronizer: FailedTransaction") { ctx =>
     import ctx._
-    node ! ResponseFromLocal(peer, mod.modifierTypeId, Seq(mod))
-    pchProbe.expectMsgType[Message[_]]
+
   }
 
-  property("NodeViewSynchronizer: modifier request from peer should result in GetLocalObjects message sent to view holder") { ctx =>
+  property("NodeViewSynchronizer: SyntacticallySuccessfulModifier") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: SyntacticallyFailedModification") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: SemanticallySuccessfulModifier") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: SemanticallyFailedModification") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: GetLocalSyncInfo") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: CurrentSyncInfo") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: DataFromPeer: SyncInfoSpec") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: DataFromPeer: InvSpec") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: DataFromPeer: RequestModifierSpec") { ctx =>
     import ctx._
     val spec = new RequestModifierSpec(3)
     val modifiers = Seq(mod.id)
     node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
     vhProbe.fishForMessage(3 seconds) { case m => m == GetLocalObjects(peer, mod.modifierTypeId, modifiers) }
   }
+
+  property("NodeViewSynchronizer: DataFromPeer: ModifiersSpec") { ctx =>
+    import ctx._
+
+  }
+
+  property("NodeViewSynchronizer: RequestFromLocal") { ctx =>
+    import ctx._
+    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
+    pchProbe.expectMsgType[Message[_]]
+  }
+
+  property("NodeViewSynchronizer: ResponseFromLocal") { ctx =>
+    import ctx._
+    node ! ResponseFromLocal(peer, mod.modifierTypeId, Seq(mod))
+    pchProbe.expectMsgType[Message[_]]
+  }
+
+  property("NodeViewSynchronizer: ") { ctx =>
+    import ctx._
+
+  }
+
 
   // todo: check that source is added to `added`
 
