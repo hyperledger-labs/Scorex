@@ -5,13 +5,14 @@ jdk:
 scala:
   - 2.12.3
 script:
-  - sbt "project examples" "test" && sbt test
+  - sbt "project examples" clean coverage test && sbt test
 cache:
   directories:
   - "$HOME/.ivy2/cache"
   - "$HOME/.sbt"
 after_success:
-  - "[[ $TRAVIS_REPO_SLUG == \"ScorexFoundation/Scorex\" ]] && [[ $TRAVIS_BRANCH == \"master\" ]] && { sbt publish; } && { sbt \"project testkit\" publish; };"
+  - sbt "project examples" coverageReport coveralls
+  - "{ sbt publish; } && { sbt \"project testkit\" publish; };"
 # These directories are cached to S3 at the end of the build
 before_cache:
   # Cleanup the cached directories to avoid unnecessary cache updates

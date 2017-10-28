@@ -7,7 +7,6 @@ import examples.hybrid.mining.HybridMiningSettings
 import examples.hybrid.mining.PosForger.{StartForging, StopForging}
 import examples.hybrid.mining.PowMiner.{MineBlock, StartMining, StopMining}
 import scorex.core.{LocalInterface, ModifierId, VersionTag}
-import scorex.core.settings.MinerSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 class HLocalInterface(override val viewHolderRef: ActorRef,
