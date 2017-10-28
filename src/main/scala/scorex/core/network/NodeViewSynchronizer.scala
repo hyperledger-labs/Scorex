@@ -244,7 +244,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //local node sending out objects requested to remote
   private def responseFromLocal: Receive = {
-    case ResponseFromLocal(peer, typeId, modifiers: Seq[NodeViewModifier]) =>
+    case ResponseFromLocal(peer, modifierTypeId, modifiers: Seq[NodeViewModifier]) =>
       if (modifiers.nonEmpty) {
         val modType = modifiers.head.modifierTypeId
         val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
