@@ -9,6 +9,7 @@ import org.scalacheck.Gen
 import scorex.core.VersionTag
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer
+import scorex.core.network.message.MessageSpec
 import scorex.core.settings.NetworkSettings
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import examples.hybrid.mining.HybridSettings
@@ -30,7 +31,8 @@ trait NodeViewSynchronizerGenerators {
         networkControllerRef, viewHolderRef, localInterfaceRef, syncInfoSpec, networkSettings))
   }
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
+  def nodeViewSynchronizer(implicit system: ActorSystem):
+  (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe, MessageSpec[Serializable]) = {
     val h = historyGen.sample.get
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
@@ -53,6 +55,6 @@ trait NodeViewSynchronizerGenerators {
 
     val p : ConnectedPeer = ConnectedPeer(address, pchProbe.ref)
 
-    (ref, m, p, pchProbe, ncProbe, vhProbe, liProbe)
+    (ref, m, p, pchProbe, ncProbe, vhProbe, liProbe, sis)
   }
 }

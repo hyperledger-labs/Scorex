@@ -4,7 +4,7 @@ import akka.actor._
 import akka.testkit.TestProbe
 import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
-import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer, NetworkController}
+import scorex.core.network.{ConnectedPeer, NetworkController, NodeViewSynchronizer}
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -14,7 +14,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.core.PersistentNodeViewModifier
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
-import scorex.core.network.message.{Message, MessageSpec, RequestModifierSpec}
+import scorex.core.network.message._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -43,10 +43,10 @@ VL <: Vault[P, TX, PM, VL]]
 
   type Fixture = SynchronizerFixture
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
+  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe, MessageSpec[Serializable])
 
   class SynchronizerFixture extends AkkaFixture with FileUtils {
-    val (node, mod, peer, pchProbe, ncProbe, vhProbe, liProbe) = nodeViewSynchronizer
+    val (node, mod, peer, pchProbe, ncProbe, vhProbe, liProbe, syncInfoMessageSpec) = nodeViewSynchronizer
   }
 
   def createAkkaFixture(): Fixture = new SynchronizerFixture
@@ -96,7 +96,9 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewSynchronizer: DataFromPeer: SyncInfoSpec") { ctx =>
     import ctx._
-
+    val modifiers = Seq(mod.id)
+    node ! DataFromPeer(syncInfoMessageSpec, (mod.modifierTypeId, modifiers), peer)
+    vhProbe.fishForMessage(3 seconds) { case m => m == CompareViews(peer, mod.modifierTypeId, modifiers) }
   }
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus") { ctx =>
