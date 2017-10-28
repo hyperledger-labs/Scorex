@@ -106,7 +106,10 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewSynchronizer: DataFromPeer: InvSpec") { ctx =>
     import ctx._
-
+    val spec = new InvSpec(3)
+    val modifiers = Seq(mod.id)
+    node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
+    vhProbe.fishForMessage(3 seconds) { case m => m == CompareViews(peer, mod.modifierTypeId, modifiers) }
   }
 
   property("NodeViewSynchronizer: DataFromPeer: RequestModifierSpec") { ctx =>
@@ -119,7 +122,11 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewSynchronizer: DataFromPeer: ModifiersSpec") { ctx =>
     import ctx._
-
+    // todo
+//    val spec = ModifiersSpec // fixme
+//    val modifiers = Seq(mod.id)
+//    node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer) // fixme
+//    vhProbe.fishForMessage(3 seconds) { case m => m == ModifiersFromRemote(peer, mod.modifierTypeId, modifiers) }
   }
 
   property("NodeViewSynchronizer: RequestFromLocal") { ctx =>
@@ -132,11 +139,6 @@ VL <: Vault[P, TX, PM, VL]]
     import ctx._
     node ! ResponseFromLocal(peer, mod.modifierTypeId, Seq(mod))
     pchProbe.expectMsgType[Message[_]]
-  }
-
-  property("NodeViewSynchronizer: ") { ctx =>
-    import ctx._
-
   }
 
 
