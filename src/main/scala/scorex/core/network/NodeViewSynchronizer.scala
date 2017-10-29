@@ -163,10 +163,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
           if (extOpt.isEmpty) {
             log.warn("extOpt is empty for Younger brother")
           }
-          val ext = extOpt.get
-          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
-            case (mid, mods) =>
-              networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
+          else {
+            val ext = extOpt.get
+            ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
+              case (mid, mods) =>
+                networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
+            }
           }
         case Equal =>
           equals.add(remoteHost)
