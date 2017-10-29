@@ -4,8 +4,8 @@ import akka.actor._
 import akka.testkit.TestProbe
 import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
-import scorex.core.NodeViewHolder.SuccessfulTransaction
-import scorex.core.network.{ConnectedPeer, NetworkController, NodeViewSynchronizer, Broadcast}
+import scorex.core.NodeViewHolder
+import scorex.core.network.{Broadcast, ConnectedPeer, NetworkController, NodeViewSynchronizer}
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.transaction.box.proposition.Proposition
@@ -55,6 +55,7 @@ VL <: Vault[P, TX, PM, VL]]
 
   def createAkkaFixture(): Fixture = new SynchronizerFixture
 
+  import NodeViewHolder._   // NodeViewHolder's messages
   import NodeViewSynchronizer._   // NodeViewSynchronizer's messages
   import NetworkController._      // NetworkController's messages
 
@@ -66,27 +67,32 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewSynchronizer: FailedTransaction") { ctx =>
     import ctx._
-
+    node ! FailedTransaction[P, TX](tx, new Exception)
+    // todo: NVS currently does nothing in this case. Should check banning.
   }
 
   property("NodeViewSynchronizer: SyntacticallySuccessfulModifier") { ctx =>
     import ctx._
-
+    node ! SyntacticallySuccessfulModifier(mod)
+    // todo ? : NVS currently does nothing in this case. Should it do?
   }
 
   property("NodeViewSynchronizer: SyntacticallyFailedModification") { ctx =>
     import ctx._
-
+    node ! SyntacticallyFailedModification(mod, new Exception)
+    // todo: NVS currently does nothing in this case. Should check banning.
   }
 
   property("NodeViewSynchronizer: SemanticallySuccessfulModifier") { ctx =>
     import ctx._
-
+    node ! SemanticallySuccessfulModifier(mod)
+    ncProbe.fishForMessage(3 seconds) { case m => m.isInstanceOf[SendToNetwork] }
   }
 
   property("NodeViewSynchronizer: SemanticallyFailedModification") { ctx =>
     import ctx._
-
+    node ! SemanticallyFailedModification(mod, new Exception)
+    // todo: NVS currently does nothing in this case. Should check banning.
   }
 
   property("NodeViewSynchronizer: GetLocalSyncInfo") { ctx =>
