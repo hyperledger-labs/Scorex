@@ -123,14 +123,14 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //sending out sync message to a random peer
   private def syncSend: Receive = {
-    case CurrentSyncInfo(syncInfo: SI) =>
+    case CurrentSyncInfo(syncInfo: SI@unchecked) =>
       networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToRandom)
   }
 
 
   //sync info is coming from another node
   private def processSync: Receive = {
-    case DataFromPeer(spec, syncData: SI, remote)
+    case DataFromPeer(spec, syncData: SI@unchecked, remote)
       if spec.messageCode == syncInfoSpec.messageCode =>
 
       viewHolderRef ! OtherNodeSyncingInfo(remote, syncData)
@@ -138,7 +138,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //view holder is telling other node status
   private def processSyncStatus: Receive = {
-    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI, extOpt) =>
+    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI@unchecked, extOpt) =>
       if (!remoteSyncInfo.answer) {
         networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(localSyncInfo), None), SendToRandom)
       }
