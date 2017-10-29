@@ -114,7 +114,7 @@ object HBoxStoredState {
         Try {
           val initial = (Seq(): Seq[Array[Byte]], Seq(): Seq[PublicKey25519NoncedBox], 0L)
 
-          val (toRemove: Seq[ADKey], toAdd: Seq[PublicKey25519NoncedBox], reward) =
+          val (toRemove: Seq[ADKey@unchecked], toAdd: Seq[PublicKey25519NoncedBox], reward) =
             ps.transactions.foldLeft(initial) { case ((sr, sa, f), tx) =>
               ((sr ++ tx.boxIdsToOpen.toSet).map(id => ADKey @@ id), sa ++ tx.newBoxes.toSet, f + tx.fee)
             }
