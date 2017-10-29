@@ -185,12 +185,20 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") { ctx =>
     import ctx._
-    val spec = ModifiersSpec
-    node ! DataFromPeer(spec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-    vhProbe.fishForMessage(3 seconds) { case m => {
+    node ! DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+    vhProbe.fishForMessage(3 seconds) { case m =>
       // Seq() because NodeViewSynchronizer ignores non-asked modifier
       m == ModifiersFromRemote(peer, mod.modifierTypeId, Seq())
-    } }
+    }
+  }
+
+  property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") { ctx =>
+    import ctx._
+    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
+    node ! DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+    vhProbe.fishForMessage(3 seconds) { case m =>
+      m == ModifiersFromRemote(peer, mod.modifierTypeId, Seq(mod.bytes))
+    }
   }
 
   property("NodeViewSynchronizer: RequestFromLocal") { ctx =>
