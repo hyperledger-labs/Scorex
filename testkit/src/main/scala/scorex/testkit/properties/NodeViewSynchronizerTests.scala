@@ -9,13 +9,12 @@ import scorex.core.NodeViewHolder
 import scorex.core.consensus.History.HistoryComparisonResult.{Equal, Nonsense, Older, Younger}
 import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.network.message.Message.MessageCode
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
-import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier}
+import scorex.core.{PersistentNodeViewModifier}
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
 import scorex.core.network.message._
@@ -23,7 +22,7 @@ import scorex.core.serialization.{BytesSerializable, Serializer}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.{Failure, Try}
+import scala.util.Failure
 
 // todo: think about the following:
 // with the current testing architecture, when a Scorex user (e.g. in "examples") wants to test his/her blockchain,
