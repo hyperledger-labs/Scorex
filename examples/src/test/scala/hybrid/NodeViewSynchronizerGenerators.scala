@@ -16,6 +16,7 @@ import examples.hybrid.history.HybridSyncInfoMessageSpec
 import examples.hybrid.mining.HybridSettings
 import scorex.core.transaction.Transaction
 import scorex.testkit.generators.CoreGenerators
+import scorex.core.consensus.SyncInfo
 
 
 // todo: remove unused dependency injections
@@ -34,7 +35,7 @@ trait NodeViewSynchronizerGenerators {
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
-  (ActorRef, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
+  (ActorRef, HSI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
     val h = historyGen.sample.get
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
@@ -58,6 +59,6 @@ trait NodeViewSynchronizerGenerators {
 
     val p : ConnectedPeer = ConnectedPeer(address, pchProbe.ref)
 
-    (ref, m, tx, p, pchProbe, ncProbe, vhProbe, liProbe)
+    (ref, h.syncInfo(false), m, tx, p, pchProbe, ncProbe, vhProbe, liProbe)
   }
 }

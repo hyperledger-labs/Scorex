@@ -5,7 +5,7 @@ import akka.testkit.TestProbe
 import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
 import scorex.core.NodeViewHolder
-import scorex.core.network.{Broadcast, ConnectedPeer, NetworkController, NodeViewSynchronizer}
+import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.transaction.box.proposition.Proposition
@@ -47,10 +47,10 @@ VL <: Vault[P, TX, PM, VL]]
 
   type Fixture = SynchronizerFixture
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
+  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
 
   class SynchronizerFixture extends AkkaFixture with FileUtils {
-    val (node, mod, tx, peer, pchProbe, ncProbe, vhProbe, liProbe) = nodeViewSynchronizer
+    val (node, syncInfo, mod, tx, peer, pchProbe, ncProbe, vhProbe, liProbe) = nodeViewSynchronizer
   }
 
   def createAkkaFixture(): Fixture = new SynchronizerFixture
@@ -97,12 +97,19 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewSynchronizer: GetLocalSyncInfo") { ctx =>
     import ctx._
-
+    node ! GetLocalSyncInfo
+    vhProbe.fishForMessage(3 seconds) { case m => m == GetSyncInfo }
   }
 
   property("NodeViewSynchronizer: CurrentSyncInfo") { ctx =>
     import ctx._
-
+    node ! CurrentSyncInfo(syncInfo)
+    ncProbe.fishForMessage(3 seconds) { case m =>
+      m match {
+        case SendToNetwork(Message (_, Right (info), None), SendToRandom) if info == syncInfo => true
+        case _ => false
+      }
+    }
   }
 
   property("NodeViewSynchronizer: DataFromPeer: SyncInfoSpec") { ctx =>
