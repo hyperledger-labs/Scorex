@@ -4,7 +4,9 @@ import akka.actor._
 import akka.testkit.TestProbe
 import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
+import scorex.core.LocalInterface.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.NodeViewHolder
+import scorex.core.consensus.History.HistoryComparisonResult.{Equal, Nonsense, Older, Younger}
 import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.message.Message.MessageCode
@@ -128,9 +130,41 @@ VL <: Vault[P, TX, PM, VL]]
     vhProbe.fishForMessage(3 seconds) { case m => m == OtherNodeSyncingInfo(peer, dummySyncInfo) }
   }
 
-  property("NodeViewSynchronizer: OtherNodeSyncingStatus") { ctx =>
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Nonsense") { ctx =>
     import ctx._
+    node ! OtherNodeSyncingStatus(peer, Nonsense, syncInfo, syncInfo, None)
+    // NVS does nothing in this case
+  }
 
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older") { ctx =>
+    import ctx._
+    node ! OtherNodeSyncingStatus(peer, Older, syncInfo, syncInfo, None)
+    liProbe.fishForMessage(3 seconds) { case m => m == BetterNeighbourAppeared }
+  }
+
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older and then Younger") { ctx =>
+    import ctx._
+    node ! OtherNodeSyncingStatus(peer, Older, syncInfo, syncInfo, None)
+    node ! OtherNodeSyncingStatus(peer, Younger, syncInfo, syncInfo, None)
+    liProbe.fishForMessage(3 seconds) { case m => m == NoBetterNeighbour }
+  }
+
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Younger with Non-Empty Extension") { ctx =>
+    import ctx._
+    node ! OtherNodeSyncingStatus(peer, Younger, syncInfo, syncInfo, Some(Seq((mod.modifierTypeId, mod.id))))
+    ncProbe.fishForMessage(3 seconds) { case m =>
+      m match {
+        case SendToNetwork(Message(_, Right((tid, ids)), None), SendToPeer(p))
+          if p == peer && tid == mod.modifierTypeId && ids == Seq(mod.id) => true
+        case _ => false
+      }
+    }
+  }
+
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Equal") { ctx =>
+    import ctx._
+    node ! OtherNodeSyncingStatus(peer, Equal, syncInfo, syncInfo, None)
+    // NVS does nothing significant in this case
   }
 
   property("NodeViewSynchronizer: DataFromPeer: InvSpec") { ctx =>
