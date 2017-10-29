@@ -183,13 +183,14 @@ VL <: Vault[P, TX, PM, VL]]
     vhProbe.fishForMessage(3 seconds) { case m => m == GetLocalObjects(peer, mod.modifierTypeId, modifiers) }
   }
 
-  property("NodeViewSynchronizer: DataFromPeer: ModifiersSpec") { ctx =>
+  property("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") { ctx =>
     import ctx._
-    // todo
-//    val spec = ModifiersSpec // fixme
-//    val modifiers = Seq(mod.id)
-//    node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer) // fixme
-//    vhProbe.fishForMessage(3 seconds) { case m => m == ModifiersFromRemote(peer, mod.modifierTypeId, modifiers) }
+    val spec = ModifiersSpec
+    node ! DataFromPeer(spec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+    vhProbe.fishForMessage(3 seconds) { case m => {
+      // Seq() because NodeViewSynchronizer ignores non-asked modifier
+      m == ModifiersFromRemote(peer, mod.modifierTypeId, Seq())
+    } }
   }
 
   property("NodeViewSynchronizer: RequestFromLocal") { ctx =>
@@ -203,8 +204,5 @@ VL <: Vault[P, TX, PM, VL]]
     node ! ResponseFromLocal(peer, mod.modifierTypeId, Seq(mod))
     pchProbe.expectMsgType[Message[_]]
   }
-
-
-  // todo: check that source is added to `added`
 
 }
