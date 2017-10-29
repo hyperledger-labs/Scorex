@@ -204,7 +204,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //other node is sending objects
   private def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
-      //todo: should we ignore data from peers that have been banned?
 
       if spec.messageCode == ModifiersSpec.messageCode =>
 
@@ -228,6 +227,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         delivered(mid) = remote
         modOption
       }.toSeq
+
+      // todo: when a modifier has not been asked, the code above returns None,
+      // todo: and the code below sends a mesage with an empty `fm` to NodeViewHolder.
+      // todo: wouldn't it make more sense to send no message at all?
 
       val msg = ModifiersFromRemote(remote, data._1, fm)
       viewHolderRef ! msg
