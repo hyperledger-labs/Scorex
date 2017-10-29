@@ -28,10 +28,9 @@ trait NodeViewSynchronizerGenerators {
     def props(networkControllerRef: ActorRef,
               viewHolderRef: ActorRef,
               localInterfaceRef: ActorRef,
-              syncInfoSpec: SIS,
-              networkSettings: NetworkSettings): Props =
+              syncInfoSpec: SIS): Props =
       Props(new NodeViewSynchronizer[P, TX, HSI, SIS](
-        networkControllerRef, viewHolderRef, localInterfaceRef, syncInfoSpec, networkSettings))
+        networkControllerRef, viewHolderRef, localInterfaceRef, syncInfoSpec, settings.scorexSettings.network))
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
@@ -44,12 +43,10 @@ trait NodeViewSynchronizerGenerators {
     val vhProbe = TestProbe("ViewHolderProbe")
     val liProbe = TestProbe("LocalInterfaceProbe")
     val sis = HybridSyncInfoMessageSpec
-    val settingsFilename: String = "examples/src/main/resources/settings.conf" // fixme: avoid magic constant
-    val ns: NetworkSettings = HybridSettings.read(Some(settingsFilename)).scorexSettings.network
 
     sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
     val s = sRaw.copy(version = VersionTag @@ v)
-    val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref, liProbe.ref, sis, ns))
+    val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref, liProbe.ref, sis))
     val m = totallyValidModifier(h, s)
     val tx: TX = simpleBoxTransactionGen.sample.get
 
