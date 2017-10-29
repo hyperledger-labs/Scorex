@@ -4,7 +4,8 @@ import akka.actor._
 import akka.testkit.TestProbe
 import org.scalatest.Matchers
 import org.scalatest.prop.PropertyChecks
-import scorex.core.network.{ConnectedPeer, NetworkController, NodeViewSynchronizer}
+import scorex.core.NodeViewHolder.SuccessfulTransaction
+import scorex.core.network.{ConnectedPeer, NetworkController, NodeViewSynchronizer, Broadcast}
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.transaction.box.proposition.Proposition
@@ -46,10 +47,10 @@ VL <: Vault[P, TX, PM, VL]]
 
   type Fixture = SynchronizerFixture
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
+  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
 
   class SynchronizerFixture extends AkkaFixture with FileUtils {
-    val (node, mod, peer, pchProbe, ncProbe, vhProbe, liProbe) = nodeViewSynchronizer
+    val (node, mod, tx, peer, pchProbe, ncProbe, vhProbe, liProbe) = nodeViewSynchronizer
   }
 
   def createAkkaFixture(): Fixture = new SynchronizerFixture
@@ -59,7 +60,8 @@ VL <: Vault[P, TX, PM, VL]]
 
   property("NodeViewSynchronizer: SuccessfulTransaction") { ctx =>
     import ctx._
-
+    node ! SuccessfulTransaction[P, TX](tx)
+    ncProbe.fishForMessage(3 seconds) { case m => m.isInstanceOf[SendToNetwork] }
   }
 
   property("NodeViewSynchronizer: FailedTransaction") { ctx =>

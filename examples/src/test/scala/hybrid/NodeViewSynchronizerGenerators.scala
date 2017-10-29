@@ -4,6 +4,7 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
+import commons.ExamplesCommonGenerators
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import scorex.core.VersionTag
@@ -13,12 +14,13 @@ import scorex.core.network.message.MessageSpec
 import scorex.core.settings.NetworkSettings
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import examples.hybrid.mining.HybridSettings
+import scorex.core.transaction.Transaction
 import scorex.testkit.generators.CoreGenerators
 
 
 // todo: remove unused dependency injections
 trait NodeViewSynchronizerGenerators {
-  this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes with CoreGenerators =>
+  this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes with CoreGenerators with ExamplesCommonGenerators =>
 
   object NodeViewSynchronizerForTests {
     // todo: there is nothing here that is special to tests. Should this `props` method be moved to NodeViewSynchronizer's companion object?
@@ -32,7 +34,7 @@ trait NodeViewSynchronizerGenerators {
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
-  (ActorRef, PM, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
+  (ActorRef, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
     val h = historyGen.sample.get
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
@@ -48,6 +50,7 @@ trait NodeViewSynchronizerGenerators {
     val s = sRaw.copy(version = VersionTag @@ v)
     val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref, liProbe.ref, sis, ns))
     val m = totallyValidModifier(h, s)
+    val tx: TX = simpleBoxTransactionGen.sample.get
 
     val pchProbe = TestProbe("PeerHandlerProbe")
 
@@ -55,6 +58,6 @@ trait NodeViewSynchronizerGenerators {
 
     val p : ConnectedPeer = ConnectedPeer(address, pchProbe.ref)
 
-    (ref, m, p, pchProbe, ncProbe, vhProbe, liProbe)
+    (ref, m, tx, p, pchProbe, ncProbe, vhProbe, liProbe)
   }
 }
