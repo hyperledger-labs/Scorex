@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core._
 import scorex.core.NodeViewHolder._
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
+import scorex.core.network.NetworkController.{DataFromPeer, DisconnectFrom, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
@@ -220,8 +220,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
           asked.remove(typeId, id)
           Some(mod)
         } else {
-          //todo: remote peer has sent some object not requested -> ban?
           banned += remote
+          networkControllerRef ! DisconnectFrom(remote)
           None
         }
         delivered(id) = remote

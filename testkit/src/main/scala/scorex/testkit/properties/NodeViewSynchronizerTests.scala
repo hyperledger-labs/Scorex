@@ -182,6 +182,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
       case ModifiersFromRemote(p, _, _) if p == peer => true
       case _ => false
     } )
+    ncProbe.fishForMessage(3 seconds) { case m => m == DisconnectFrom(peer) }
   }
 
   property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") { ctx =>
