@@ -11,8 +11,7 @@ import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
-import scorex.core.transaction.wallet.Vault
-import scorex.core.transaction.{MemoryPool, Transaction}
+import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
 import scorex.core.{PersistentNodeViewModifier}
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
@@ -24,22 +23,13 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Failure
 
-// todo: think about the following:
-// with the current testing architecture, when a Scorex user (e.g. in "examples") wants to test his/her blockchain,
-// he/she writes a NodeViewSynchronizerSpec extending NodeViewSynchronizerTests, and this will execute some tests
-// that are actually independent of the particularities of his/her blockchain. Maybe we should test such
-// blockchain-non-specific properties in scorex's core, instead of testkit.
-
-// todo: remove unnecessary type parameters and traits
 trait NodeViewSynchronizerTests[P <: Proposition,
-TX <: Transaction[P],
-PM <: PersistentNodeViewModifier,
-ST <: MinimalState[PM, ST],
-SI <: SyncInfo,
-HT <: History[PM, SI, HT],
-MPool <: MemoryPool[TX, MPool],
-VL <: Vault[P, TX, PM, VL]]
-  extends SequentialAkkaFixture
+  TX <: Transaction[P],
+  PM <: PersistentNodeViewModifier,
+  ST <: MinimalState[PM, ST],
+  SI <: SyncInfo,
+  HT <: History[PM, SI, HT]
+] extends SequentialAkkaFixture
     with Matchers
     with PropertyChecks
     with ScorexLogging
