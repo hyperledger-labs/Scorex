@@ -215,25 +215,20 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       log.info(s"From remote connected peer: $remote")
       log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
-      val fm = modifiers.flatMap { case (mid, mod) =>
-        val modOption = if (asked.contains(typeId, mid, remote)) {
-          asked.remove(typeId, mid)
+      val fm = modifiers.flatMap { case (id, mod) =>
+        val modOption = if (asked.contains(typeId, id, remote)) {
+          asked.remove(typeId, id)
           Some(mod)
         } else {
           //todo: remote peer has sent some object not requested -> ban?
           banned += remote
           None
         }
-        delivered(mid) = remote
+        delivered(id) = remote
         modOption
       }.toSeq
 
-      // todo: when a modifier has not been asked, the code above returns None,
-      // todo: and the code below sends a mesage with an empty `fm` to NodeViewHolder.
-      // todo: wouldn't it make more sense to send no message at all?
-
-      val msg = ModifiersFromRemote(remote, data._1, fm)
-      viewHolderRef ! msg
+      if (!fm.isEmpty) viewHolderRef ! ModifiersFromRemote(remote, typeId, fm)
   }
 
   //local node sending object ids to remote

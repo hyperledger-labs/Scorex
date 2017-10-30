@@ -185,10 +185,10 @@ VL <: Vault[P, TX, PM, VL]]
   property("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") { ctx =>
     import ctx._
     node ! DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-    vhProbe.fishForMessage(3 seconds) { case m =>
-      // Seq() because NodeViewSynchronizer ignores non-asked modifier
-      m == ModifiersFromRemote(peer, mod.modifierTypeId, Seq())
+    val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
+      case m => m
     }
+    !messages.exists(_ == ModifiersFromRemote(peer, mod.modifierTypeId, Seq()))
   }
 
   property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") { ctx =>
