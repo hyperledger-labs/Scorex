@@ -178,7 +178,10 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
       case m => m
     }
-    !messages.exists(_ == ModifiersFromRemote(peer, mod.modifierTypeId, Seq()))
+    !messages.exists(m => m match {
+      case ModifiersFromRemote(p, _, _) if p == peer => true
+      case _ => false
+    } )
   }
 
   property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") { ctx =>
