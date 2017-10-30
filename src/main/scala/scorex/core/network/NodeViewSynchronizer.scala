@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core._
 import scorex.core.NodeViewHolder._
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.network.NetworkController.{DataFromPeer, DisconnectFrom, SendToNetwork}
+import scorex.core.network.NetworkController.{Blacklist, DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
@@ -42,7 +42,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //todo: make this class more general, in order to use it for `delivered` as well.
   private class Asked {
-    //todo: use a Bloom filter (https://en.wikipedia.org/wiki/Bloom_filter) to optimize `contains`
 
     private val m = mutable.Map[ModifierTypeId, mutable.Set[(ModifierId, ConnectedPeer)]]()
 
@@ -68,9 +67,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   // in order to ban or de-prioritize peers that deliver what has not been asked
   private val asked = new Asked
   private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
-
-  //todo: should we use the following?
-  private val banned = mutable.Set[ConnectedPeer]()
 
   private val seniors = mutable.Set[String]()
   private val juniors = mutable.Set[String]()
@@ -220,8 +216,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
           asked.remove(typeId, id)
           Some(mod)
         } else {
-          banned += remote
-          networkControllerRef ! DisconnectFrom(remote)
+          networkControllerRef ! Blacklist(remote)
           None
         }
         delivered(id) = remote

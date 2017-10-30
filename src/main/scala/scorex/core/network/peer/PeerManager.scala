@@ -128,6 +128,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
     case AddToBlacklist(peer) =>
       log.info(s"Blacklist peer $peer")
       peerDatabase.blacklistPeer(peer)
+      // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
   }: Receive) orElse peerListOperations orElse apiInterface orElse peerCycle
 }
 
