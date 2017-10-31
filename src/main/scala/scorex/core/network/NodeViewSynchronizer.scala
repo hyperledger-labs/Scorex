@@ -44,33 +44,47 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   val deliveryTimeout = 2 seconds // fixme: we should get this from networkSettings
 
 
-  //todo: make this class more general, in order to use it for `delivered` as well.
-  private class Asked {
+  // This class tracks modifier ids that are expected from and delivered by other peers
+  // in order to ban or de-prioritize peers that deliver what is not expected
+  private class Inbox {
 
-    private val m = mutable.Map[ModifierTypeId, mutable.Set[(ModifierId, ConnectedPeer)]]()
+    // when a remote peer is asked a modifier, we add data to `expecting`
+    // when a remote peer delivers expected data, it is removed from `expecting` and added to `delivered`.
+    // when a remote peer delivers unexpected data, it is added to `deliveredSpam`.
+    private val expecting = mutable.Map[ModifierTypeId, mutable.Set[(ModifierId, ConnectedPeer)]]()
+    private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
+    private val deliveredSpam = mutable.Map[ModifierId, ConnectedPeer]()
 
-    private def get(mtid: ModifierTypeId) = m.getOrElseUpdate(mtid, mutable.Set())
+    private def expectingGetOrElseInitialize(mtid: ModifierTypeId) = expecting.getOrElseUpdate(mtid, mutable.Set())
 
-    def add(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId]): Unit = {
-      val newIds: mutable.Set[(ModifierId, ConnectedPeer)] = get(mtid) ++ mids.map((_, cp))
-      m(mtid) = newIds
+    def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId]): Unit = {
+      expecting(mtid) = expectingGetOrElseInitialize(mtid) ++ mids.map((_, cp))
     }
 
-    def contains(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
-      get(mtid).exists(e => {
-        val (id, peer) = e
-        mid == id && cp == peer
-      })
+    def isExpecting(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
+      expectingGetOrElseInitialize(mtid) contains (mid, cp)
 
-    def remove(mtid: ModifierTypeId, mid: ModifierId): Unit = {
-      get(mtid).retain(e => { val (id, _) = e; !(id sameElements mid) })
+    def receive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = {
+      if (isExpecting(mtid, mid, cp)) {
+        expectingGetOrElseInitialize(mtid).retain(e => { val (id, _) = e; !(id sameElements mid) })
+        delivered(mid) = cp
+      }
+      else {
+        deliveredSpam(mid) = cp
+      }
     }
+
+    def delete(mids: Seq[ModifierId]): Unit = for (id <- mids) delivered -= id
+
+    def deleteSpam(mids: Seq[ModifierId]): Unit = for (id <- mids) deliveredSpam -= id
+
+    def isSpam(mid: ModifierId): Boolean = deliveredSpam contains mid
+
+    def peerWhoDelivered(mid: ModifierId): Option[ConnectedPeer] = delivered.get(mid)
+
   }
 
-  // we keep track of modifier ids that have been asked from and delivered by other peers
-  // in order to ban or de-prioritize peers that deliver what has not been asked
-  private val asked = new Asked
-  private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
+  private val inbox = new Inbox
 
   private val seniors = mutable.Set[String]()
   private val juniors = mutable.Set[String]()
@@ -204,30 +218,31 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //other node is sending objects
   private def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
-
       if spec.messageCode == ModifiersSpec.messageCode =>
 
       val typeId = data._1
       val modifiers = data._2
 
 
-      log.info(s"Got modifiers type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+      log.info(s"Got modifiers of type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"From remote connected peer: $remote")
-      log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
-      val fm = modifiers.flatMap { case (id, mod) =>
-        val modOption = if (asked.contains(typeId, id, remote)) {
-          asked.remove(typeId, id)
-          Some(mod)
-        } else {
-          networkControllerRef ! Blacklist(remote)
-          None
-        }
-        delivered(id) = remote
-        modOption
-      }.toSeq
+      for ((id, _) <- modifiers) inbox.receive(typeId, id, remote)
 
-      if (!fm.isEmpty) viewHolderRef ! ModifiersFromRemote(remote, typeId, fm)
+      val (spam, fm) = modifiers partition { _ match {
+        case (id, _) => inbox.isSpam(id)
+      }}
+
+      if (spam.size > 0) {
+        penalizeSpammingPeer(remote)
+        val mids = spam.map(_._1).toSeq
+        inbox.deleteSpam(mids)
+      }
+
+      if (!fm.isEmpty) {
+        val mods = fm.map(_._2).toSeq
+        viewHolderRef ! ModifiersFromRemote(remote, typeId, mods)
+      }
   }
 
   //local node sending object ids to remote
@@ -238,25 +253,28 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
-      asked.add(peer, modifierTypeId, modifierIds)
+      inbox.expect(peer, modifierTypeId, modifierIds)
       context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, modifierIds) )
   }
 
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
   private def checkDelivery: Receive = {
     case CheckDelivery(peer, modifierTypeId, modifierIds) =>
-      val (alreadyDelivered, notYetDelivered) = modifierIds.partition(delivered.get(_) == Some(peer))
-      for (id <- alreadyDelivered) delivered -= id
+      val (alreadyDelivered, notYetDelivered) = modifierIds.partition(inbox.peerWhoDelivered(_) == Some(peer))
+      inbox.delete(alreadyDelivered)
 
       if (notYetDelivered.length > 0) {
         context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, notYetDelivered) )
-        penalize(peer)
+        penalizeSlowPeer(peer)
       }
   }
 
-  //penalizes peer for not delivering within the timeout
-  private def penalize(peer: ConnectedPeer): Unit = {
-    // todo: do something less harsh than banning
+  private def penalizeSlowPeer(peer: ConnectedPeer): Unit = {
+    // todo: do something less harsh than blacklisting?
+    networkControllerRef ! Blacklist(peer)
+  }
+
+  private def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
     networkControllerRef ! Blacklist(peer)
   }
 
