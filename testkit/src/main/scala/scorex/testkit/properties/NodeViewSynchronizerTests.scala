@@ -13,7 +13,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
-import scorex.core.{PersistentNodeViewModifier}
+import scorex.core.PersistentNodeViewModifier
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
 import scorex.core.network.message._
@@ -106,13 +106,13 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   property("NodeViewSynchronizer: DataFromPeer: SyncInfoSpec") { ctx =>
     import ctx._
 
-    val dummySyncInfoMessageSpec = new SyncInfoMessageSpec[SyncInfo](_ => Failure[SyncInfo](???)) { }
+    val dummySyncInfoMessageSpec = new SyncInfoMessageSpec[SyncInfo](_ => Failure[SyncInfo](new Exception)) { }
 
     val dummySyncInfo = new SyncInfo {
       def answer: Boolean = true
       def startingPoints: History.ModifierIds = Seq((mod.modifierTypeId, mod.id))
       type M = BytesSerializable
-      def serializer: Serializer[M] = ???
+      def serializer: Serializer[M] = throw new Exception
     }
 
     node ! DataFromPeer(dummySyncInfoMessageSpec, dummySyncInfo, peer)
@@ -178,7 +178,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
       case m => m
     }
-    assert(!messages.exists(m => m match {
+    assert(!messages.exists(_ match {
       case ModifiersFromRemote(p, _, _) if p == peer => true
       case _ => false
     } ))
@@ -212,7 +212,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     import scala.concurrent.ExecutionContext.Implicits.global
     system.scheduler.scheduleOnce(1 second, node, DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer) )
     val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
-    assert(!messages.exists(_ == Blacklist(peer)))
+    assert(!messages.contains(Blacklist(peer)))
   }
 
 
