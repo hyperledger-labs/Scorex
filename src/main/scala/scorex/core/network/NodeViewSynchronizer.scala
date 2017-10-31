@@ -41,8 +41,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
 
-  val deliveryTimeout = 2 seconds // fixme: we should get this from networkSettings
-
+  private val deliveryTimeout = 2 seconds // fixme: we should get this from networkSettings
+  private val maxDeliveryChecks = 1 // fixme: take this from networkSettings
 
   // This class tracks modifier ids that are expected from and delivered by other peers
   // in order to ban or de-prioritize peers that deliver what is not expected
@@ -250,18 +250,23 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         peer.handlerRef ! msg
       }
       DeliveryTracker.expect(peer, modifierTypeId, modifierIds)
-      context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, modifierIds) )
+      // TODO: move this to DeliveryTracker
+      context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, modifierIds, maxDeliveryChecks) )
   }
 
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
   private def checkDelivery: Receive = {
-    case CheckDelivery(peer, modifierTypeId, modifierIds) =>
+    case CheckDelivery(peer, modifierTypeId, modifierIds, remainingAttempts) =>
       val (alreadyDelivered, notYetDelivered) = modifierIds.partition(DeliveryTracker.peerWhoDelivered(_) == Some(peer))
       DeliveryTracker.delete(alreadyDelivered)
 
       if (notYetDelivered.length > 0) {
-        context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, notYetDelivered) )
-        penalizeSlowPeer(peer)
+        if (remainingAttempts > 0) {
+          context.system.scheduler.scheduleOnce(deliveryTimeout,
+            self,
+            CheckDelivery(peer, modifierTypeId, notYetDelivered, remainingAttempts - 1) )
+        }
+        penalizeNonDeliveringPeer(peer)
       }
   }
 
@@ -318,6 +323,9 @@ object NodeViewSynchronizer {
 
   case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
 
-  case class CheckDelivery(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
+  case class CheckDelivery(source: ConnectedPeer,
+                           modifierTypeId: ModifierTypeId,
+                           modifierIds: Seq[ModifierId],
+                           remainingAttempts: Int)
 
 }
