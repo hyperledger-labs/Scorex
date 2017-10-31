@@ -270,8 +270,13 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       }
   }
 
-  private def penalizeSlowPeer(peer: ConnectedPeer): Unit = {
-    // todo: do something less harsh than blacklisting?
+  private def penalizeNonDeliveringPeer(peer: ConnectedPeer): Unit = {
+    //todo: do something less harsh than blacklisting?
+    //todo: proposal: add a new field to PeerInfo to count how many times
+    //todo: the peer has been penalized for not delivering. In PeerManager,
+    //todo: add something similar to FilterPeers to return only peers that
+    //todo: have not been penalized too many times.
+
     networkControllerRef ! Blacklist(peer)
   }
 
