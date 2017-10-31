@@ -18,6 +18,8 @@ import scorex.crypto.encode.Base58
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.language.postfixOps
+
 /**
   * A middle layer between a node view holder(NodeViewHolder) and the p2p network
   *
@@ -38,6 +40,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
+
+  val deliveryTimeout = 2 seconds // fixme: we should get this from networkSettings
 
 
   //todo: make this class more general, in order to use it for `delivered` as well.
