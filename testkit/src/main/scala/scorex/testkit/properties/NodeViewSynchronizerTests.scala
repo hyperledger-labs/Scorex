@@ -178,10 +178,10 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
       case m => m
     }
-    !messages.exists(m => m match {
+    assert(!messages.exists(m => m match {
       case ModifiersFromRemote(p, _, _) if p == peer => true
       case _ => false
-    } )
+    } ))
     ncProbe.fishForMessage(3 seconds) { case m => m == Blacklist(peer) }
   }
 
