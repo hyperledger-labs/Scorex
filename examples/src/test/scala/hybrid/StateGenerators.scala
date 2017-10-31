@@ -30,7 +30,8 @@ trait StateGenerators extends StoreGenerators { this: HybridGenerators with Core
 
       val store = new LSMStore(dir, keepVersions = keepVersions)
       val s0 = HBoxStoredState(store, versionTagGen.sample.get)
-      val inserts = (1 to 5000).map(_ => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](randomBox()))
+      val inserts = (1 to 10000)
+        .map(_ => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](randomBox()))
       s0.applyChanges(BoxStateChanges(inserts), versionTagGen.sample.get).get
     }
 }
