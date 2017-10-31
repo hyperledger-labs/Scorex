@@ -200,6 +200,22 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     pchProbe.expectMsgType[Message[_]]
   }
 
+  property("NodeViewSynchronizer: RequestFromLocal - CheckDelivery - Penalize if not delivered") { ctx =>
+    import ctx._
+    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
+    ncProbe.fishForMessage(5 seconds) { case m => m == Blacklist(peer) }
+  }
+
+  property("NodeViewSynchronizer: RequestFromLocal - CheckDelivery -  Do not penalize if delivered") { ctx =>
+    import ctx._
+    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
+    import scala.concurrent.ExecutionContext.Implicits.global
+    system.scheduler.scheduleOnce(1 second, node, DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer) )
+    val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
+    assert(!messages.exists(_ == Blacklist(peer)))
+  }
+
+
   property("NodeViewSynchronizer: ResponseFromLocal") { ctx =>
     import ctx._
     node ! ResponseFromLocal(peer, mod.modifierTypeId, Seq(mod))

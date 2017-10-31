@@ -239,7 +239,27 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         peer.handlerRef ! msg
       }
       asked.add(peer, modifierTypeId, modifierIds)
+      context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, modifierIds) )
   }
+
+  //scheduler asking node view synchronizer to check whether requested messages have been delivered
+  private def checkDelivery: Receive = {
+    case CheckDelivery(peer, modifierTypeId, modifierIds) =>
+      val (alreadyDelivered, notYetDelivered) = modifierIds.partition(delivered.get(_) == Some(peer))
+      for (id <- alreadyDelivered) delivered -= id
+
+      if (notYetDelivered.length > 0) {
+        context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, notYetDelivered) )
+        penalize(peer)
+      }
+  }
+
+  //penalizes peer for not delivering within the timeout
+  private def penalize(peer: ConnectedPeer): Unit = {
+    // todo: do something less harsh than banning
+    networkControllerRef ! Blacklist(peer)
+  }
+
 
   //local node sending out objects requested to remote
   private def responseFromLocal: Receive = {
@@ -262,7 +282,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       requestFromLocal orElse
       responseFromLocal orElse
       modifiersFromRemote orElse
-      viewHolderEvents orElse {
+      viewHolderEvents orElse
+      checkDelivery orElse {
       case a: Any => log.error("Strange input: " + a)
     }
 }
@@ -282,5 +303,7 @@ object NodeViewSynchronizer {
   case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
   case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
+
+  case class CheckDelivery(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
 }
