@@ -23,13 +23,13 @@ import scala.language.postfixOps
 /**
   * A middle layer between a node view holder(NodeViewHolder) and the p2p network
   *
-  * @param networkControllerRef
-  * @param viewHolderRef
-  * @param localInterfaceRef
-  * @param syncInfoSpec
-  * @tparam P
-  * @tparam TX
-  * @tparam SIS
+  * @param networkControllerRef reference to network controller actor
+  * @param viewHolderRef reference to node view holder actor
+  * @param localInterfaceRef reference to local interface actor
+  * @param syncInfoSpec SyncInfo specification
+  * @tparam P proposition
+  * @tparam TX transaction
+  * @tparam SIS SyncInfoMessage specification
   */
 class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI]]
 (networkControllerRef: ActorRef,
@@ -162,12 +162,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       equals.remove(remoteHost)
 
       status match {
-        case Nonsense =>
-          log.warn("Got nonsense")
-
-        case Older =>
-          seniors.add(remoteHost)
-
+        case Nonsense => log.warn("Got nonsense")
+        case Equal => equals.add(remoteHost)
+        case Older => seniors.add(remoteHost)
         case Younger =>
           juniors.add(remoteHost)
           if (extOpt.isEmpty) {
@@ -180,8 +177,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
                 networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
             }
           }
-        case Equal =>
-          equals.add(remoteHost)
       }
 
       val seniorsAfter = seniors.size
@@ -229,14 +224,14 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         case (id, _) => DeliveryTracker.isSpam(id)
       }}
 
-      if (spam.size > 0) {
+      if (spam.nonEmpty) {
         penalizeSpammingPeer(remote)
-        val mids = spam.map(_._1).toSeq
+        val mids = spam.keys.toSeq
         DeliveryTracker.deleteSpam(mids)
       }
 
-      if (!fm.isEmpty) {
-        val mods = fm.map(_._2).toSeq
+      if (fm.nonEmpty) {
+        val mods = fm.values.toSeq
         viewHolderRef ! ModifiersFromRemote(remote, typeId, mods)
       }
   }
@@ -257,10 +252,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
   private def checkDelivery: Receive = {
     case CheckDelivery(peer, modifierTypeId, modifierIds, remainingAttempts) =>
-      val (alreadyDelivered, notYetDelivered) = modifierIds.partition(DeliveryTracker.peerWhoDelivered(_) == Some(peer))
+      val (alreadyDelivered, notYetDelivered) = modifierIds.partition(DeliveryTracker.peerWhoDelivered(_).contains(peer))
       DeliveryTracker.delete(alreadyDelivered)
 
-      if (notYetDelivered.length > 0) {
+      if (notYetDelivered.nonEmpty) {
         if (remainingAttempts > 0) {
           context.system.scheduler.scheduleOnce(deliveryTimeout,
             self,
@@ -287,7 +282,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //local node sending out objects requested to remote
   private def responseFromLocal: Receive = {
-    case ResponseFromLocal(peer, modifierTypeId, modifiers: Seq[NodeViewModifier]) =>
+    case ResponseFromLocal(peer, _, modifiers: Seq[NodeViewModifier]) =>
       if (modifiers.nonEmpty) {
         val modType = modifiers.head.modifierTypeId
         val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
