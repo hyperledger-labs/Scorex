@@ -24,8 +24,9 @@ trait StateGenerators extends StoreGenerators { this: HybridGenerators with Core
         val value: Value = Value @@ (Random.nextInt(valueSeed) + valueSeed).toLong
         val nonce: Nonce = Nonce @@ Random.nextLong()
         val keyPair = privKey(value)
-        PublicKey25519NoncedBox(keyPair._2, nonce, value)
-          .ensuring(box => PrivateKey25519Companion.owns(keyPair._1, box))
+        val box = PublicKey25519NoncedBox(keyPair._2, nonce, value)
+        require(PrivateKey25519Companion.owns(keyPair._1, box))
+        box
       }
 
       val store = new LSMStore(dir, keepVersions = keepVersions)

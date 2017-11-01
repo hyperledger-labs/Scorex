@@ -398,8 +398,10 @@ class HybridHistory(val storage: HistoryStorage,
     def in(m: HybridBlock): Boolean = loserChain.exists(s => s sameElements m.id)
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
     val i = loserChain.indexWhere(id => id sameElements winnerChain.head)
-    (winnerChain, loserChain.takeRight(loserChain.length - i))
-  }.ensuring(r => r._1.head sameElements r._2.head)
+    val r = loserChain.takeRight(loserChain.length - i)
+    require(winnerChain.head sameElements r.head)
+    (winnerChain, r)
+  }
 
   /**
     * Average delay in milliseconds between last $blockNum blocks starting from $block

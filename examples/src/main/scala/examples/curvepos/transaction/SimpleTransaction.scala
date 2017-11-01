@@ -12,7 +12,7 @@ import scorex.crypto.signatures.PublicKey
 
 import scala.util.Try
 
-sealed trait SimpleTransaction extends BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox]{
+sealed trait SimpleTransaction extends BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
   val fee: Long
 
   val timestamp: Long
@@ -49,13 +49,15 @@ object SimplePaymentCompanion extends Serializer[SimplePayment] {
   val TransactionLength: Int = 2 * Constants25519.PubKeyLength + 32
 
   override def toBytes(m: SimplePayment): Array[Byte] = {
-    m.sender.bytes ++
+    val bytes = m.sender.bytes ++
       m.recipient.bytes ++
       Longs.toByteArray(m.amount) ++
       Longs.toByteArray(m.fee) ++
       Longs.toByteArray(m.nonce) ++
       Longs.toByteArray(m.timestamp)
-  }.ensuring(_.length == TransactionLength)
+    require(bytes.length == TransactionLength)
+    bytes
+  }
 
   override def parseBytes(bytes: Array[Byte]): Try[SimplePayment] = Try {
     val sender = PublicKey25519Proposition(PublicKey @@ bytes.slice(0, Constants25519.PubKeyLength))

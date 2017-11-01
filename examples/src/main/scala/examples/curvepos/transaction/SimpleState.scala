@@ -75,7 +75,8 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
         val newSenderBox = oldSenderBox.copy(nonce = Nonce @@ (oldSenderBox.nonce + 1),
           value = Value @@ Math.addExact(Math.addExact(oldSenderBox.value, -tx.amount), -tx.fee))
         val toRemove = Set(oldSenderBox) ++ oldRecipientBox
-        val toAppend = Set(newRecipientBox, newSenderBox).ensuring(_.forall(_.value >= 0))
+        val toAppend = Set(newRecipientBox, newSenderBox)
+        require(toAppend.forall(_.value >= 0))
 
         TransactionChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove, toAppend, tx.fee)
       }
@@ -111,8 +112,9 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
 
   override def semanticValidity(tx: SimpleTransaction): Try[Unit] = Success()
 
-  override def validate(mod: SimpleBlock): Try[Unit] =
-    Try(mod.transactions.foreach(tx => validate(tx).ensuring(_.isSuccess)))
+  override def validate(mod: SimpleBlock): Try[Unit] = {
+    mod.transactions.foldLeft[Try[Unit]](Success()){ case (s, tx) => s.flatMap(_ => validate(tx))}
+  }
 }
 
 object SimpleState {
