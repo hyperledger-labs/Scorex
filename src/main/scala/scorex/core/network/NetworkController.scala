@@ -127,6 +127,16 @@ class NetworkController(settings: NetworkSettings,
       log.info(s"Connecting to: $remote")
       IO(Tcp) ! Connect(remote, localAddress = None, timeout = connTimeout, pullMode = true)
 
+    case DisconnectFrom(peer) =>
+      peer.handlerRef ! PeerConnectionHandler.CloseConnection
+      peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
+
+    case Blacklist(peer) =>
+      peer.handlerRef ! PeerConnectionHandler.Blacklist
+      // todo: the following message might become unnecessary if we refactor PeerManager to automatically
+      // todo: remove peer from `connectedPeers` on receiving `AddToBlackList` message.
+      peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
+
     case c@Connected(remote, local) =>
       val connection = sender()
       val props = Props(new PeerConnectionHandler(settings, self, peerManagerRef,
@@ -175,6 +185,10 @@ object NetworkController {
   case object ShutdownNetwork
 
   case class ConnectTo(address: InetSocketAddress)
+
+  case class DisconnectFrom(peer: ConnectedPeer)
+
+  case class Blacklist(peer: ConnectedPeer)
 
   case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
 

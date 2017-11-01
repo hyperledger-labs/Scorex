@@ -33,6 +33,7 @@ case class NetworkSettings(nodeName: String,
                            port: Int,
                            declaredAddress: Option[String],
                            handshakeTimeout: FiniteDuration,
+                           //deliveryTimeout: FiniteDuration, // fixme
                            appVersion: String,
                            agentName: String,
                            maxPacketLen: Int,
@@ -78,9 +79,9 @@ object ScorexSettings extends ScorexLogging {
         }
         ConfigFactory
           .defaultOverrides()
-          .withFallback(cfg)
+          .withFallback(cfg) // user-supplied config
           .withFallback(ConfigFactory.defaultApplication())
-          .withFallback(ConfigFactory.defaultReference())
+          .withFallback(ConfigFactory.defaultReference()) // "src/main/resources/reference.conf"
           .resolve()
     }
 
