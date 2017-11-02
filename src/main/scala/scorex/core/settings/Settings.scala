@@ -39,11 +39,12 @@ case class NetworkSettings(nodeName: String,
                            maxPacketLen: Int,
                            maxInvObjects: Int)
 
-case class MinerSettings(offlineGeneration: Boolean,
+case class MinerSettings(deliveryTimeout: FiniteDuration, //fixme
+                         offlineGeneration: Boolean,
                          targetBlockDelay: FiniteDuration,
                          blockGenerationDelay: FiniteDuration)
 
-case class WalletSettings(deliveryTimeout: FiniteDuration, //fixme
+case class WalletSettings(//deliveryTimeout: FiniteDuration, //fixme
                           seed: ByteStr,
                           password: String,
                           walletDir: File)
