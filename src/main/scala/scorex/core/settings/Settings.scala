@@ -33,27 +33,22 @@ case class NetworkSettings(nodeName: String,
                            port: Int,
                            declaredAddress: Option[String],
                            handshakeTimeout: FiniteDuration,
-                           //deliveryTimeout: FiniteDuration,
+                           deliveryTimeout: FiniteDuration,
+                           maxDeliveryChecks: Int,
                            appVersion: String,
                            agentName: String,
                            maxPacketLen: Int,
                            maxInvObjects: Int)
 
-case class MinerSettings(//deliveryTimeout: FiniteDuration, //fixme
-                         offlineGeneration: Boolean,
+case class MinerSettings(offlineGeneration: Boolean,
                          targetBlockDelay: FiniteDuration,
                          blockGenerationDelay: FiniteDuration)
 
-case class WalletSettings(//deliveryTimeout: FiniteDuration, //fixme
-                          seed: ByteStr,
+case class WalletSettings(seed: ByteStr,
                           password: String,
                           walletDir: File)
 
-case class DeliverySettings(deliveryTimeout: FiniteDuration,
-                            anotherTimeout: FiniteDuration) //fixme
-
-case class ScorexSettings(delivery: DeliverySettings, //fixme
-                          dataDir: File,
+case class ScorexSettings(dataDir: File,
                           logDir: File,
                           network: NetworkSettings,
                           restApi: RESTApiSettings,
