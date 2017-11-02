@@ -47,7 +47,9 @@ case class WalletSettings(seed: ByteStr,
                           password: String,
                           walletDir: File)
 
-case class ScorexSettings(deliveryTimeout: FiniteDuration, //fixme
+case class DeliverySettings(deliveryTimeout: FiniteDuration) //fixme
+
+case class ScorexSettings(delivery: DeliverySettings, //fixme
                           dataDir: File,
                           logDir: File,
                           network: NetworkSettings,
