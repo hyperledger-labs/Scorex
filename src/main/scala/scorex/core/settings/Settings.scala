@@ -33,7 +33,7 @@ case class NetworkSettings(nodeName: String,
                            port: Int,
                            declaredAddress: Option[String],
                            handshakeTimeout: FiniteDuration,
-                           //deliveryTimeout: FiniteDuration, // fixme
+                           //deliveryTimeout: FiniteDuration,
                            appVersion: String,
                            agentName: String,
                            maxPacketLen: Int,
@@ -47,7 +47,8 @@ case class WalletSettings(seed: ByteStr,
                           password: String,
                           walletDir: File)
 
-case class ScorexSettings(dataDir: File,
+case class ScorexSettings(deliveryTimeout: FiniteDuration, //fixme
+                          dataDir: File,
                           logDir: File,
                           network: NetworkSettings,
                           restApi: RESTApiSettings,

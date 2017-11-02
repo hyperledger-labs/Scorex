@@ -42,6 +42,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   import History.HistoryComparisonResult._
 
   private val deliveryTimeout = 2 seconds // fixme: we should get this from networkSettings
+  //private val deliveryTimeout = networkSettings.deliveryTimeout
   private val maxDeliveryChecks = 1 // fixme: take this from networkSettings
 
   // This class tracks modifier ids that are expected from and delivered by other peers
