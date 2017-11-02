@@ -39,7 +39,7 @@ case class NetworkSettings(nodeName: String,
                            maxPacketLen: Int,
                            maxInvObjects: Int)
 
-case class MinerSettings(deliveryTimeout: FiniteDuration, //fixme
+case class MinerSettings(//deliveryTimeout: FiniteDuration, //fixme
                          offlineGeneration: Boolean,
                          targetBlockDelay: FiniteDuration,
                          blockGenerationDelay: FiniteDuration)
@@ -49,7 +49,8 @@ case class WalletSettings(//deliveryTimeout: FiniteDuration, //fixme
                           password: String,
                           walletDir: File)
 
-case class DeliverySettings(deliveryTimeout: FiniteDuration) //fixme
+case class DeliverySettings(deliveryTimeout: FiniteDuration,
+                            anotherTimeout: FiniteDuration) //fixme
 
 case class ScorexSettings(delivery: DeliverySettings, //fixme
                           dataDir: File,
