@@ -33,7 +33,7 @@ case class NetworkSettings(nodeName: String,
                            port: Int,
                            declaredAddress: Option[String],
                            handshakeTimeout: FiniteDuration,
-                           deliveryTimeout: FiniteDuration,
+                           //deliveryTimeout: FiniteDuration,
                            appVersion: String,
                            agentName: String,
                            maxPacketLen: Int,
@@ -43,7 +43,8 @@ case class MinerSettings(offlineGeneration: Boolean,
                          targetBlockDelay: FiniteDuration,
                          blockGenerationDelay: FiniteDuration)
 
-case class WalletSettings(seed: ByteStr,
+case class WalletSettings(deliveryTimeout: FiniteDuration, //fixme
+                          seed: ByteStr,
                           password: String,
                           walletDir: File)
 
