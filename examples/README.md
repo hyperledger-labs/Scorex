@@ -32,9 +32,9 @@ then type following in the sbt console:
 
 ```
     project examples
-    run-main examples.hybrid.HybridApp 
+    runMain examples.hybrid.HybridApp 
 ```
 
-Use `run-main examples.hybrid.HybridApp settings2.json`...
-`run-main examples.hybrid.HybridApp settings10.json` to create more local nodes on your machine,
-or `run-main examples.hybrid.HybridApp testnet-twins.json` to connect to a public testnet.
+Use `runMain examples.hybrid.HybridApp settings2.json`...
+`runMain examples.hybrid.HybridApp settings10.json` to create more local nodes on your machine,
+or `runMain examples.hybrid.HybridApp testnet-twins.json` to connect to a public testnet.
