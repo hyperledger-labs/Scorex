@@ -17,6 +17,8 @@ import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
 
 import scala.concurrent.duration._
 
+import scala.language.postfixOps
+
 
 trait NodeViewHolderTests[P <: Proposition,
 TX <: Transaction[P],
