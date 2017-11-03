@@ -36,7 +36,7 @@ MPool <: MemoryPool[TX, MPool]]
     with SemanticallyInvalidModifierProducer[PM, ST] {
 
   type Fixture = HolderFixture
-  type VL <: Vault[P, TX, PM, VL]
+  //type VL <: Vault[P, TX, PM, VL]
 
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, PM, ST, HT)
 
@@ -57,7 +57,7 @@ MPool <: MemoryPool[TX, MPool]]
     import ctx._
 
     node ! NodeViewHolder.Subscribe(syntactic)
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
+    node ! GetDataFromCurrentView[HT, ST, _ <: Vault[P, TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
@@ -77,7 +77,7 @@ MPool <: MemoryPool[TX, MPool]]
     import ctx._
 
     node ! NodeViewHolder.Subscribe(allEvents)
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
@@ -88,7 +88,7 @@ MPool <: MemoryPool[TX, MPool]]
     import ctx._
 
     node ! NodeViewHolder.Subscribe(allEvents)
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => semanticallyInvalidModifier(v.state) }
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, PM] { v => semanticallyInvalidModifier(v.state) }
     val invalid = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(invalid)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
@@ -100,7 +100,7 @@ MPool <: MemoryPool[TX, MPool]]
 
     node ! NodeViewHolder.Subscribe(allEvents)
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
@@ -109,7 +109,7 @@ MPool <: MemoryPool[TX, MPool]]
 
   property("NodeViewHolder: check state after creation") { ctx =>
     import ctx._
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Boolean] { v =>
       v.state.version.sameElements(s.version)
     }
     expectMsg(true)
@@ -117,7 +117,7 @@ MPool <: MemoryPool[TX, MPool]]
 
   property("NodeViewHolder: check that a valid modifier is applicable") { ctx =>
     import ctx._
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Boolean] { v =>
       v.history.applicable(mod)
     }
     expectMsg(true)
@@ -127,7 +127,7 @@ MPool <: MemoryPool[TX, MPool]]
     import ctx._
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Seq[PM]] { v =>
       totallyValidModifiers(v.history, v.state, 10) //todo: fix magic number
     }
     val mods = receiveOne(5 seconds).asInstanceOf[Seq[PM]]
@@ -160,7 +160,7 @@ MPool <: MemoryPool[TX, MPool]]
 
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Boolean] { v =>
       v.state.version.sameElements(s.version) && v.history.contains(mod.id)
     }
 
@@ -174,19 +174,19 @@ MPool <: MemoryPool[TX, MPool]]
 
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v => totallyValidModifiers(v.history, v.state, 2) }
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Seq[PM]] { v => totallyValidModifiers(v.history, v.state, 2) }
     val initMods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
     initMods.foreach { mod =>
       node ! LocallyGeneratedModifier(mod)
       expectMsgType[SyntacticallySuccessfulModifier[PM]]
     }
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, PM] { v =>
       totallyValidModifiers(v.history, v.state, 2).head
     }
     val fork1Mod = receiveOne(waitDuration).asInstanceOf[PM]
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, PM] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, PM] { v =>
       totallyValidModifiers(v.history, v.state, 2).head
     }
     val fork2Mod = receiveOne(waitDuration).asInstanceOf[PM]
@@ -196,7 +196,7 @@ MPool <: MemoryPool[TX, MPool]]
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Boolean] { v =>
       v.history.contains(fork1Mod.id) || v.history.contains(fork2Mod.id)
     }
 
@@ -215,20 +215,20 @@ MPool <: MemoryPool[TX, MPool]]
     val waitDuration = 10.seconds
 
     //some base operations, we don't wanna have fork right from genesis
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Seq[PM]] { v =>
       totallyValidModifiers(v.history, v.state, opCountBeforeFork)
     }
     val plainMods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
     plainMods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Seq[PM]] { v =>
       val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
       assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
       mods
     }
     val fork1Mods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Seq[PM]] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Seq[PM]] { v =>
       totallyValidModifiers(v.history, v.state, fork2OpCount)
     }
     val fork2Mods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
@@ -236,7 +236,7 @@ MPool <: MemoryPool[TX, MPool]]
     fork1Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
     fork2Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
 
-    node ! GetDataFromCurrentView[HT, ST, VL, MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, _, MPool, Boolean] { v =>
       v.history.openSurfaceIds().contains(fork2Mods.last.id)
     }
     expectMsg(true)
