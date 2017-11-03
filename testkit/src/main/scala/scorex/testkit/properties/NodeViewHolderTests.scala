@@ -24,8 +24,7 @@ PM <: PersistentNodeViewModifier,
 ST <: MinimalState[PM, ST],
 SI <: SyncInfo,
 HT <: History[PM, SI, HT],
-MPool <: MemoryPool[TX, MPool],
-VL <: Vault[P, TX, PM, VL]]
+MPool <: MemoryPool[TX, MPool]]
   extends SequentialAkkaFixture
     with Matchers
     with PropertyChecks
@@ -35,6 +34,7 @@ VL <: Vault[P, TX, PM, VL]]
     with SemanticallyInvalidModifierProducer[PM, ST] {
 
   type Fixture = HolderFixture
+  type VL <: Vault[P, TX, PM, VL]
 
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, PM, ST, HT)
 

@@ -14,7 +14,6 @@ class NodeViewHolderSpec extends NodeViewHolderTests[PublicKey25519Proposition,
   HBoxStoredState,
   HybridSyncInfo,
   HybridHistory,
-  SimpleBoxTransactionMemPool,
-  HWallet] with HybridGenerators {
-
+  SimpleBoxTransactionMemPool] with HybridGenerators {
+  type VL = HWallet
 }
