@@ -207,23 +207,23 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       case Success(stateToApply) =>
         progressInfo.toApply.headOption match {
           case Some(modToApply) =>
-            println(s"state version: ${Base58.encode(stateToApply.version)}, " +
-              s"openSurface: ${history.openSurfaceIds().map(Base58.encode)}")
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
+                //TODO may we need ProgressInfo in case of valid modifier?
+                val (newHis, _) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
                 notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
                 notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(isRollback = false, stateToApply.version))
+                val newProgressInfo = ProgressInfo(None, Seq(), progressInfo.toApply.tail, Seq())
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
                 notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
                 updateState(newHis, stateToApply, newProgressInfo)
             }
-
           case None =>
             history -> Success(stateToApply)
         }
+
       case Failure(e) =>
         log.error("Rollback failed: ", e)
         notifySubscribers[RollbackFailed.type](EventType.FailedRollback, RollbackFailed)
