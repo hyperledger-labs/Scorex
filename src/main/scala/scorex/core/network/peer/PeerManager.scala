@@ -11,7 +11,7 @@ import scala.collection.mutable
 import scala.util.Random
 
 /**
-  * Peer manager takes care of peers connected and in process, and also choose a random peer to connect
+  * Peer manager takes care of peers connected and in process, and also chooses a random peer to connect
   * Must be singleton
   */
 class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
