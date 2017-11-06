@@ -38,7 +38,7 @@ case class HWallet(seed: ByteStr, store: LSMStore)
   private lazy val walletBoxSerializer =
     new WalletBoxSerializer[PublicKey25519Proposition, PublicKey25519NoncedBox](PublicKey25519NoncedBoxSerializer)
 
-  //not implemented intentionally for now
+  //intentionally not implemented for now
   override def historyTransactions: Seq[WalletTransaction[PublicKey25519Proposition, SimpleBoxTransaction]] = ???
 
   override def boxes(): Seq[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
