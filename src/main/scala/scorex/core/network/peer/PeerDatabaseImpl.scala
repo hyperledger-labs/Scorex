@@ -35,10 +35,8 @@ class PeerDatabaseImpl(settings: NetworkSettings, filename: Option[String]) exte
   }
 
   override def knownPeers(excludeSelf: Boolean): Map[InetSocketAddress, PeerInfo] =
-    (excludeSelf match {
-      case true => knownPeers(false).filter(_._2.nonce.getOrElse(-1) != ownNonce)
-      case false => whitelistPersistence.keys.flatMap(k => whitelistPersistence.get(k).map(v => k -> v))
-    }).toMap
+    (if (excludeSelf) knownPeers(false).filter(_._2.nonce.getOrElse(-1) != ownNonce)
+     else whitelistPersistence.keys.flatMap(k => whitelistPersistence.get(k).map(v => k -> v))).toMap
 
   override def blacklistedPeers(): Seq[String] = blacklist.keys.toSeq
 

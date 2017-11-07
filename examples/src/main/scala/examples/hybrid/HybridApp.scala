@@ -12,9 +12,11 @@ import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApi
 import scorex.core.app.Application
 import scorex.core.network.NodeViewSynchronizer
 import scorex.core.network.message.MessageSpec
+import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class HybridApp(val settingsFilename: String) extends Application {
 
@@ -24,7 +26,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   override type NVHT = HybridNodeViewHolder
 
   private val hybridSettings = HybridSettings.read(Some(settingsFilename))
-  implicit override lazy val settings = HybridSettings.read(Some(settingsFilename)).scorexSettings
+  implicit override lazy val settings: ScorexSettings = HybridSettings.read(Some(settingsFilename)).scorexSettings
 
   log.debug(s"Starting application with settings \n$settings")
 
@@ -61,7 +63,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   if (settings.network.nodeName.startsWith("generatorNode")) {
     log.info("Starting transactions generation")
     val generator: ActorRef = actorSystem.actorOf(Props(new SimpleBoxTransactionGenerator(nodeViewHolderRef)))
-    generator ! StartGeneration(FiniteDuration(10, SECONDS))
+    generator ! StartGeneration(10 seconds)
   }
 }
 

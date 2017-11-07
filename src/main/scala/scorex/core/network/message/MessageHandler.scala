@@ -28,25 +28,23 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
     val length = bytes.getInt
     require(length >= 0, "Data length is negative!")
 
-    val msgData: Array[Byte] = length > 0 match {
-      case true =>
-        val data = new Array[Byte](length)
-        //READ CHECKSUM
-        val checksum = new Array[Byte](Message.ChecksumLength)
-        bytes.get(checksum)
+    val msgData: Array[Byte] = if (length > 0) {
+      val data = new Array[Byte](length)
+      //READ CHECKSUM
+      val checksum = new Array[Byte](Message.ChecksumLength)
+      bytes.get(checksum)
 
-        //READ DATA
-        bytes.get(data)
+      //READ DATA
+      bytes.get(data)
 
-        //VALIDATE CHECKSUM
-        val digest = Blake2b256.hash(data).take(Message.ChecksumLength)
+      //VALIDATE CHECKSUM
+      val digest = Blake2b256.hash(data).take(Message.ChecksumLength)
 
-        //CHECK IF CHECKSUM MATCHES
-        assert(checksum.sameElements(digest), s"Invalid data checksum length = $length")
-        data
-
-      case false => Array()
+      //CHECK IF CHECKSUM MATCHES
+      assert(checksum.sameElements(digest), s"Invalid data checksum length = $length")
+      data
     }
+    else Array()
 
     val spec = specsMap.get(msgCode).ensuring(_.isDefined, s"No message handler found for $msgCode").get
 

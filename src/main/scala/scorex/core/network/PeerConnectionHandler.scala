@@ -31,6 +31,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
 case object Ack extends Event
 
 
+//fixme: is there a reason for this class to be a case class?
 case class PeerConnectionHandler(settings: NetworkSettings,
                                  networkControllerRef: ActorRef,
                                  peerManager: ActorRef,
@@ -72,6 +73,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
       connection ! ResumeReading
   }
 
+  //todo: use `become` to handle handshake state instead?
   private var handshakeGot = false
   private var handshakeSent = false
 
