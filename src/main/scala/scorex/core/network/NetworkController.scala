@@ -20,6 +20,8 @@ import scala.language.existentials
 import scala.reflect.runtime.universe.TypeTag
 import scala.util.{Failure, Success, Try}
 
+import scala.language.postfixOps
+
 /**
   * Control all network interaction
   * must be singleton
@@ -34,9 +36,9 @@ class NetworkController(settings: NetworkSettings,
 
   val peerSynchronizer = context.system.actorOf(Props(new PeerSynchronizer(self, peerManagerRef)), "PeerSynchronizer")
 
-  private implicit val system = context.system
+  private implicit val system: ActorSystem = context.system
 
-  private implicit val timeout = Timeout(5.seconds)
+  private implicit val timeout: Timeout = Timeout(5 seconds) //fixme: magic constant
 
   private val messageHandlers = mutable.Map[Seq[Message.MessageCode], ActorRef]()
 
@@ -86,7 +88,7 @@ class NetworkController(settings: NetworkSettings,
   IO(Tcp) ! Bind(self, localAddress)
 
   private def bindingLogic: Receive = {
-    case b@Bound(localAddr) =>
+    case Bound(_) =>
       log.info("Successfully bound to the port " + settings.port)
       context.system.scheduler.schedule(600.millis, 5.seconds)(peerManagerRef ! PeerManager.CheckPeers)
 
@@ -127,7 +129,17 @@ class NetworkController(settings: NetworkSettings,
       log.info(s"Connecting to: $remote")
       IO(Tcp) ! Connect(remote, localAddress = None, timeout = connTimeout, pullMode = true)
 
-    case c@Connected(remote, local) =>
+    case DisconnectFrom(peer) =>
+      peer.handlerRef ! PeerConnectionHandler.CloseConnection
+      peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
+
+    case Blacklist(peer) =>
+      peer.handlerRef ! PeerConnectionHandler.Blacklist
+      // todo: the following message might become unnecessary if we refactor PeerManager to automatically
+      // todo: remove peer from `connectedPeers` on receiving `AddToBlackList` message.
+      peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
+
+    case Connected(remote, _) =>
       val connection = sender()
       val props = Props(new PeerConnectionHandler(settings, self, peerManagerRef,
         messageHandler, connection, externalSocketAddress, remote))
@@ -175,6 +187,10 @@ object NetworkController {
   case object ShutdownNetwork
 
   case class ConnectTo(address: InetSocketAddress)
+
+  case class DisconnectFrom(peer: ConnectedPeer)
+
+  case class Blacklist(peer: ConnectedPeer)
 
   case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
 

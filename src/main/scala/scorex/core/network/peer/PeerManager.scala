@@ -11,7 +11,7 @@ import scala.collection.mutable
 import scala.util.Random
 
 /**
-  * Peer manager takes care of peers connected and in process, and also choose a random peer to connect
+  * Peer manager takes care of peers connected and in process, and also chooses a random peer to connect
   * Must be singleton
   */
 class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
@@ -128,6 +128,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
     case AddToBlacklist(peer) =>
       log.info(s"Blacklist peer $peer")
       peerDatabase.blacklistPeer(peer)
+      // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
   }: Receive) orElse peerListOperations orElse apiInterface orElse peerCycle
 }
 

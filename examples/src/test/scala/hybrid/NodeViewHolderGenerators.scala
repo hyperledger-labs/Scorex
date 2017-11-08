@@ -1,28 +1,14 @@
 package hybrid
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
+import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.HybridNodeViewHolder
-import examples.hybrid.blocks._
-import examples.hybrid.history.HybridHistory
-import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
-import scorex.core.consensus.SyncInfo
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ByteStr
 
-trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators =>
-
-  type P = PublicKey25519Proposition
-  type TX = SimpleBoxTransaction
-  type PM = HybridBlock
-  type SI = SyncInfo
-
-  type NODE = HybridNodeViewHolder
-  type ST = HBoxStoredState
-  type HT = HybridHistory
+trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes =>
 
   class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings.scorexSettings, settings.mining) {
 
@@ -37,7 +23,7 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
   }
 
   object NodeViewHolderForTests {
-      def props(h: HT, s: ST): Props = Props(new NodeViewHolderForTests(h, s))
+    def props(h: HT, s: ST): Props = Props(new NodeViewHolderForTests(h, s))
   }
 
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, PM, ST, HT) = {
