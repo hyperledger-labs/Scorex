@@ -105,13 +105,13 @@ object History {
     *
     * @param branchPoint - branch point in case of rollback
     * @param toRemove - modifiers to remove from current node view
-    * @param toApply - modifiers to apply to current node view
+    * @param toApply - modifier to apply to current node view. Apply at most 1 modifier
     * @param toDownload - modifiers to download from other nodes
     * @tparam PM - type of used modifier
     */
   case class ProgressInfo[PM <: PersistentNodeViewModifier](branchPoint: Option[ModifierId],
                                                             toRemove: Seq[PM],
-                                                            toApply: Seq[PM],
+                                                            toApply: Option[PM],
                                                             toDownload: Seq[(ModifierTypeId, ModifierId)]
                                                            ) {
 

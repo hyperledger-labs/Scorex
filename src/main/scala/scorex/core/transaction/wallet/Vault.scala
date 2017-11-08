@@ -20,7 +20,7 @@ trait Vault[P <: Proposition, TX <: Transaction[P],
 
   def scanPersistent(modifier: PMOD): V
 
-  def scanPersistent(modifiers: Seq[PMOD]): V = modifiers.foldLeft(this) { case (v, mod) =>
+  def scanPersistent(modifiers: Option[PMOD]): V = modifiers.foldLeft(this) { case (v, mod) =>
     v.scanPersistent(mod)
   }
 
