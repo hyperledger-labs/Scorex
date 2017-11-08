@@ -360,7 +360,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   protected def compareSyncInfo: Receive = {
-    case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
+    case OtherNodeSyncingInfo(remote, syncInfo: SI@unchecked) =>
       log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).toList
         .map(Base58.encode)}")
       syncInfo.startingPoints.map(_._2).headOption.foreach { head =>
