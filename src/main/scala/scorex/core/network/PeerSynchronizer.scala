@@ -15,10 +15,12 @@ import shapeless.syntax.typeable._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
+import scala.language.postfixOps
+
 
 class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef) extends Actor with ScorexLogging {
 
-  private implicit val timeout = Timeout(5.seconds)
+  private implicit val timeout: Timeout = 5 seconds
 
   val messageSpecs = Seq(GetPeersSpec, PeersSpec)
 
@@ -33,7 +35,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
   }
 
   override def receive: Receive = {
-    case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, remote)
+    case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, _)
       if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[InetSocketAddress]].isDefined =>
 
       peers.foreach(isa => peerManager ! PeerManager.AddOrUpdatePeer(isa, None, None))

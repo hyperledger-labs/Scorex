@@ -34,7 +34,7 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
   override protected def onChangedState(isRollback: Boolean, newVersion: VersionTag): Unit = {}
 
   override protected def onRollbackFailed(): Unit = {
-    log.error("Too deep rollback occured!")
+    log.error("Too deep rollback occurred!")
   }
 
   //stop PoW miner and start PoS forger if PoW block comes

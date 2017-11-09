@@ -262,7 +262,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               case Failure(e) =>
                 log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to minimal state", e)
                 nodeView = (newHistory, minimalState(), vault(), memoryPool())
-                notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification(pmod, e))
+                notifySubscribers(EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(pmod, e))
             }
           } else {
             requestDownloads(progressInfo)
@@ -358,7 +358,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   protected def compareSyncInfo: Receive = {
-    case OtherNodeSyncingInfo(remote, syncInfo: SI) =>
+    case OtherNodeSyncingInfo(remote, syncInfo: SI@unchecked) =>
       log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).toList
         .map(Base58.encode)}")
       syncInfo.startingPoints.map(_._2).headOption.foreach { head =>

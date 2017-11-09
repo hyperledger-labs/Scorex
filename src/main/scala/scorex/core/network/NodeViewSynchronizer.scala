@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core._
 import scorex.core.NodeViewHolder._
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
+import scorex.core.network.NetworkController.{Blacklist, DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
@@ -18,16 +18,18 @@ import scorex.crypto.encode.Base58
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.language.postfixOps
+
 /**
   * A middle layer between a node view holder(NodeViewHolder) and the p2p network
   *
-  * @param networkControllerRef
-  * @param viewHolderRef
-  * @param localInterfaceRef
-  * @param syncInfoSpec
-  * @tparam P
-  * @tparam TX
-  * @tparam SIS
+  * @param networkControllerRef reference to network controller actor
+  * @param viewHolderRef reference to node view holder actor
+  * @param localInterfaceRef reference to local interface actor
+  * @param syncInfoSpec SyncInfo specification
+  * @tparam P proposition
+  * @tparam TX transaction
+  * @tparam SIS SyncInfoMessage specification
   */
 class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI]]
 (networkControllerRef: ActorRef,
@@ -39,14 +41,47 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
 
-  //todo: change with something like Bloom filters? make filters for asked and delivered objects?
-  //modifier ids asked from other nodes are kept in order to check then
-  //against objects delivered
-  private val asked = mutable.Map[ModifierTypeId, mutable.Set[ModifierId]]()
+  private val deliveryTimeout = networkSettings.deliveryTimeout
+  private val maxDeliveryChecks = networkSettings.maxDeliveryChecks
 
-  //todo: use it
-  private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
+  // This class tracks modifier ids that are expected from and delivered by other peers
+  // in order to ban or de-prioritize peers that deliver what is not expected
+  private object DeliveryTracker {
 
+    // when a remote peer is asked a modifier, we add the expected data to `expecting`
+    // when a remote peer delivers expected data, it is removed from `expecting` and added to `delivered`.
+    // when a remote peer delivers unexpected data, it is added to `deliveredSpam`.
+    private val expecting = mutable.Set[(ModifierTypeId, ModifierId, ConnectedPeer)]()
+    private val delivered = mutable.Map[ModifierId, ConnectedPeer]()
+    private val deliveredSpam = mutable.Map[ModifierId, ConnectedPeer]()
+    
+    def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId]): Unit = {
+      for (id <- mids) expecting += ((mtid, id, cp))
+    }
+
+    def isExpecting(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
+      expecting contains (mtid, mid, cp)
+
+    def receive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = {
+      if (isExpecting(mtid, mid, cp)) {
+        expecting -= ((mtid, mid, cp))
+        delivered(mid) = cp
+      }
+      else {
+        deliveredSpam(mid) = cp
+      }
+    }
+
+    def delete(mids: Seq[ModifierId]): Unit = for (id <- mids) delivered -= id
+
+    def deleteSpam(mids: Seq[ModifierId]): Unit = for (id <- mids) deliveredSpam -= id
+
+    def isSpam(mid: ModifierId): Boolean = deliveredSpam contains mid
+
+    def peerWhoDelivered(mid: ModifierId): Option[ConnectedPeer] = delivered.get(mid)
+
+  }
+  
   private val seniors = mutable.Set[String]()
   private val juniors = mutable.Set[String]()
   private val equals = mutable.Set[String]()
@@ -98,14 +133,14 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //sending out sync message to a random peer
   private def syncSend: Receive = {
-    case CurrentSyncInfo(syncInfo: SI) =>
+    case CurrentSyncInfo(syncInfo: SI@unchecked) =>
       networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToRandom)
   }
 
 
   //sync info is coming from another node
   private def processSync: Receive = {
-    case DataFromPeer(spec, syncData: SI, remote)
+    case DataFromPeer(spec, syncData: SI@unchecked, remote)
       if spec.messageCode == syncInfoSpec.messageCode =>
 
       viewHolderRef ! OtherNodeSyncingInfo(remote, syncData)
@@ -113,7 +148,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //view holder is telling other node status
   private def processSyncStatus: Receive = {
-    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI, extOpt) =>
+    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI@unchecked, extOpt) =>
       if (!remoteSyncInfo.answer) {
         networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(localSyncInfo), None), SendToRandom)
       }
@@ -127,24 +162,21 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       equals.remove(remoteHost)
 
       status match {
-        case Nonsense =>
-          log.warn("Got nonsense")
-
-        case Older =>
-          seniors.add(remoteHost)
-
+        case Nonsense => log.warn("Got nonsense")
+        case Equal => equals.add(remoteHost)
+        case Older => seniors.add(remoteHost)
         case Younger =>
           juniors.add(remoteHost)
           if (extOpt.isEmpty) {
             log.warn("extOpt is empty for Younger brother")
           }
-          val ext = extOpt.get
-          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
-            case (mid, mods) =>
-              networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
+          else {
+            val ext = extOpt.get
+            ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
+              case (mid, mods) =>
+                networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
+            }
           }
-        case Equal =>
-          equals.add(remoteHost)
       }
 
       val seniorsAfter = seniors.size
@@ -182,24 +214,26 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       val typeId = data._1
       val modifiers = data._2
 
-      val askedIds = asked.getOrElse(typeId, mutable.Set())
 
-      log.info(s"Got modifiers type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
-      log.info(s"Asked ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+      log.info(s"Got modifiers of type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+      log.info(s"From remote connected peer: $remote")
 
-      val fm = modifiers.flatMap { case (mid, mod) =>
-        if (askedIds.exists(id => id sameElements mid)) {
-          askedIds.retain(id => !(id sameElements mid))
-          Some(mod)
-        } else {
-          None
-          //todo: remote peer has sent some object not requested -> ban?
-        }
-      }.toSeq
+      for ((id, _) <- modifiers) DeliveryTracker.receive(typeId, id, remote)
 
-      asked.put(typeId, askedIds)
-      val msg = ModifiersFromRemote(remote, data._1, fm)
-      viewHolderRef ! msg
+      val (spam, fm) = modifiers partition { _ match {
+        case (id, _) => DeliveryTracker.isSpam(id)
+      }}
+
+      if (spam.nonEmpty) {
+        penalizeSpammingPeer(remote)
+        val mids = spam.keys.toSeq
+        DeliveryTracker.deleteSpam(mids)
+      }
+
+      if (fm.nonEmpty) {
+        val mods = fm.values.toSeq
+        viewHolderRef ! ModifiersFromRemote(remote, typeId, mods)
+      }
   }
 
   //local node sending object ids to remote
@@ -210,13 +244,45 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
-      val newIds = asked.getOrElse(modifierTypeId, mutable.Set()) ++ modifierIds
-      asked.put(modifierTypeId, newIds)
+      DeliveryTracker.expect(peer, modifierTypeId, modifierIds)
+      // TODO: move this to DeliveryTracker
+      context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, modifierIds, maxDeliveryChecks) )
   }
+
+  //scheduler asking node view synchronizer to check whether requested messages have been delivered
+  private def checkDelivery: Receive = {
+    case CheckDelivery(peer, modifierTypeId, modifierIds, remainingAttempts) =>
+      val (alreadyDelivered, notYetDelivered) = modifierIds.partition(DeliveryTracker.peerWhoDelivered(_).contains(peer))
+      DeliveryTracker.delete(alreadyDelivered)
+
+      if (notYetDelivered.nonEmpty) {
+        if (remainingAttempts > 0) {
+          context.system.scheduler.scheduleOnce(deliveryTimeout,
+            self,
+            CheckDelivery(peer, modifierTypeId, notYetDelivered, remainingAttempts - 1) )
+        }
+        penalizeNonDeliveringPeer(peer)
+      }
+  }
+
+  private def penalizeNonDeliveringPeer(peer: ConnectedPeer): Unit = {
+    //todo: do something less harsh than blacklisting?
+    //todo: proposal: add a new field to PeerInfo to count how many times
+    //todo: the peer has been penalized for not delivering. In PeerManager,
+    //todo: add something similar to FilterPeers to return only peers that
+    //todo: have not been penalized too many times.
+
+    networkControllerRef ! Blacklist(peer)
+  }
+
+  private def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
+    networkControllerRef ! Blacklist(peer)
+  }
+
 
   //local node sending out objects requested to remote
   private def responseFromLocal: Receive = {
-    case ResponseFromLocal(peer, typeId, modifiers: Seq[NodeViewModifier]) =>
+    case ResponseFromLocal(peer, _, modifiers: Seq[NodeViewModifier]) =>
       if (modifiers.nonEmpty) {
         val modType = modifiers.head.modifierTypeId
         val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
@@ -235,7 +301,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       requestFromLocal orElse
       responseFromLocal orElse
       modifiersFromRemote orElse
-      viewHolderEvents orElse {
+      viewHolderEvents orElse
+      checkDelivery orElse {
       case a: Any => log.error("Strange input: " + a)
     }
 }
@@ -255,5 +322,10 @@ object NodeViewSynchronizer {
   case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
   case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
+
+  case class CheckDelivery(source: ConnectedPeer,
+                           modifierTypeId: ModifierTypeId,
+                           modifierIds: Seq[ModifierId],
+                           remainingAttempts: Int)
 
 }
