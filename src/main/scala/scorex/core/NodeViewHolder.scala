@@ -139,7 +139,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def updateMemPool(progressInfo: History.ProgressInfo[PMOD], memPool: MP, state: MS): MP = {
     val rolledBackTxs = extractTransactions(progressInfo.toRemove)
 
-    val appliedTxs = extractTransactions(progressInfo.toApply)
+    val appliedTxs = extractTransactions(progressInfo.toApply.toSeq)
 
     memPool.putWithoutCheck(rolledBackTxs).filter { tx =>
       !appliedTxs.exists(t => t.id sameElements tx.id) && {
@@ -205,7 +205,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
     stateToApplyTry match {
       case Success(stateToApply) =>
-        progressInfo.toApply.headOption match {
+        progressInfo.toApply match {
           case Some(modToApply) =>
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
