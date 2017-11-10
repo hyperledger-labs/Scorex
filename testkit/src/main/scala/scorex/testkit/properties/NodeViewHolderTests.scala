@@ -1,7 +1,7 @@
 package scorex.testkit.properties
 
 import akka.actor._
-import org.scalatest.{FlatSpec, Matchers, PropSpec}
+import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.EventType._
@@ -36,17 +36,13 @@ MPool <: MemoryPool[TX, MPool]]
     with TotallyValidModifierProducer[PM, ST, SI, HT]
     with SemanticallyInvalidModifierProducer[PM, ST] {
 
-  type Fixture = HolderFixture
-
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, PM, ST, HT)
 
   class HolderFixture extends AkkaFixture with FileUtils {
     val (node, mod, s, h) = nodeViewHolder
   }
 
-  //case class NVHFixture(node: ActorRef, mod: PM, s: ST, h: HT)
-
-  def withFixture(testCode: HolderFixture => Any): Unit = {
+  private def withFixture(testCode: HolderFixture => Any): Unit = {
     val fixture = new HolderFixture
     try {
       testCode(fixture)
@@ -55,8 +51,6 @@ MPool <: MemoryPool[TX, MPool]]
       Await.result(fixture.system.terminate(), Duration.Inf)
     }
   }
-
-  def createAkkaFixture(): Fixture = new HolderFixture // fixme: remove
 
   val semantic = Seq(SuccessfulSemanticallyValidModifier, SemanticallyFailedPersistentModifier)
   val syntactic = Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier)

@@ -38,16 +38,14 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     with SyntacticallyTargetedModifierProducer[PM, SI, HT]
     with TotallyValidModifierProducer[PM, ST, SI, HT] {
 
-  type Fixture = SynchronizerFixture
-
   def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
 
   class SynchronizerFixture extends AkkaFixture with FileUtils {
     val (node, syncInfo, mod, tx, peer, pchProbe, ncProbe, vhProbe, liProbe) = nodeViewSynchronizer
   }
 
-  // ToDo: factor this out of here and NVHTests
-  def withFixture(testCode: SynchronizerFixture => Any): Unit = {
+  // ToDo: factor this out of here and NVHTests?
+  private def withFixture(testCode: SynchronizerFixture => Any): Unit = {
     val fixture = new SynchronizerFixture
     try {
       testCode(fixture)
@@ -56,8 +54,6 @@ trait NodeViewSynchronizerTests[P <: Proposition,
       Await.result(fixture.system.terminate(), Duration.Inf)
     }
   }
-
-  def createAkkaFixture(): Fixture = new SynchronizerFixture
 
   import NodeViewHolder._   // NodeViewHolder's messages
   import NodeViewSynchronizer._   // NodeViewSynchronizer's messages
