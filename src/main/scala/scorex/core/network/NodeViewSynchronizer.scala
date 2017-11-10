@@ -220,7 +220,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       for ((id, _) <- modifiers) DeliveryTracker.receive(typeId, id, remote)
 
-      val (spam, fm) = modifiers partition { _ match {
+      val (spam, fm) = modifiers partition {_ match {
         case (id, _) => DeliveryTracker.isSpam(id)
       }}
 
@@ -262,7 +262,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
             self,
             CheckDelivery(peer, modifierTypeId, notYetDelivered, remainingAttempts - 1) )
         }
-        log.info(s"Peer $remote has not delivered asked modifiers on time")
+        log.info(s"Peer $peer has not delivered asked modifiers on time")
         penalizeNonDeliveringPeer(peer)
       }
   }
