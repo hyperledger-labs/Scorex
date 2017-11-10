@@ -1,7 +1,7 @@
 package scorex.testkit.properties
 
 import akka.actor._
-import org.scalatest.Matchers
+import org.scalatest.{FlatSpec, Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.EventType._
@@ -15,8 +15,8 @@ import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.testkit.generators.{SemanticallyInvalidModifierProducer, SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
-
 import scala.language.postfixOps
 
 
@@ -27,7 +27,8 @@ ST <: MinimalState[PM, ST],
 SI <: SyncInfo,
 HT <: History[PM, SI, HT],
 MPool <: MemoryPool[TX, MPool]]
-  extends SequentialAkkaFixture
+  extends PropSpec
+    with SequentialAkkaFixture
     with Matchers
     with PropertyChecks
     with ScorexLogging
@@ -43,7 +44,19 @@ MPool <: MemoryPool[TX, MPool]]
     val (node, mod, s, h) = nodeViewHolder
   }
 
-  def createAkkaFixture(): Fixture = new HolderFixture
+  //case class NVHFixture(node: ActorRef, mod: PM, s: ST, h: HT)
+
+  def withFixture(testCode: HolderFixture => Any): Unit = {
+    val fixture = new HolderFixture
+    try {
+      testCode(fixture)
+    }
+    finally {
+      Await.result(fixture.system.terminate(), Duration.Inf)
+    }
+  }
+
+  def createAkkaFixture(): Fixture = new HolderFixture // fixme: remove
 
   val semantic = Seq(SuccessfulSemanticallyValidModifier, SemanticallyFailedPersistentModifier)
   val syntactic = Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier)
@@ -52,7 +65,7 @@ MPool <: MemoryPool[TX, MPool]]
   import NodeViewHolder._
 
 
-  property("NodeViewHolder: syntactically valid modifier subscription") { ctx =>
+  property("NodeViewHolder syntactically valid modifier subscription") { withFixture { ctx =>
     import ctx._
 
     node ! NodeViewHolder.Subscribe(syntactic)
@@ -60,19 +73,18 @@ MPool <: MemoryPool[TX, MPool]]
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
+  }}
 
-  }
-
-  property("NodeViewHolder: syntactically failed modifier subscription") { ctx =>
+  property("NodeViewHolder: syntactically failed modifier subscription") { withFixture { ctx =>
     import ctx._
 
     node ! NodeViewHolder.Subscribe(syntactic)
     val invalid = syntacticallyInvalidModifier(h)
     node ! LocallyGeneratedModifier(invalid)
     expectMsgType[SyntacticallyFailedModification[PM]]
-  }
+  }}
 
-  property("NodeViewHolder: semantically valid modifier subscription") { ctx =>
+  property("NodeViewHolder: semantically valid modifier subscription") { withFixture { ctx =>
     import ctx._
 
     node ! NodeViewHolder.Subscribe(allEvents)
@@ -81,9 +93,9 @@ MPool <: MemoryPool[TX, MPool]]
     node ! LocallyGeneratedModifier(mod)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
     expectMsgType[SemanticallySuccessfulModifier[PM]]
-  }
+  }}
 
-  property("NodeViewHolder: semantically failed modifier subscription") { ctx =>
+  property("NodeViewHolder: semantically failed modifier subscription") { withFixture { ctx =>
     import ctx._
 
     node ! NodeViewHolder.Subscribe(allEvents)
@@ -92,9 +104,9 @@ MPool <: MemoryPool[TX, MPool]]
     node ! LocallyGeneratedModifier(invalid)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
     expectMsgType[SemanticallyFailedModification[PM]]
-  }
+  }}
 
-  property("NodeViewHolder: syntactically/semantically valid modifier subscription") { ctx =>
+  property("NodeViewHolder: syntactically/semantically valid modifier subscription") { withFixture { ctx =>
     import ctx._
 
     node ! NodeViewHolder.Subscribe(allEvents)
@@ -104,25 +116,25 @@ MPool <: MemoryPool[TX, MPool]]
     node ! LocallyGeneratedModifier(mod)
     expectMsgType[SyntacticallySuccessfulModifier[PM]]
     expectMsgType[SemanticallySuccessfulModifier[PM]]
-  }
+  }}
 
-  property("NodeViewHolder: check state after creation") { ctx =>
+  property("NodeViewHolder: check state after creation") { withFixture { ctx =>
     import ctx._
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
       v.state.version.sameElements(s.version)
     }
     expectMsg(true)
-  }
+  }}
 
-  property("NodeViewHolder: check that a valid modifier is applicable") { ctx =>
+  property("NodeViewHolder: check that a valid modifier is applicable") { withFixture { ctx =>
     import ctx._
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
       v.history.applicable(mod)
     }
     expectMsg(true)
-  }
+  }}
 
-  property("NodeViewHolder: check that valid modifiers are applicable") { ctx =>
+  property("NodeViewHolder: check that valid modifiers are applicable") { withFixture { ctx =>
     import ctx._
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
@@ -136,16 +148,16 @@ MPool <: MemoryPool[TX, MPool]]
     }
 
     (1 to mods.size).foreach(_ => expectMsgType[SyntacticallySuccessfulModifier[PM]])
-  }
+  }}
 
-  property("NodeViewHolder: check sync info is synced") { ctx =>
+  property("NodeViewHolder: check sync info is synced") { withFixture { ctx =>
     import ctx._
     node ! GetSyncInfo
     val syncInfo = CurrentSyncInfo(h.syncInfo(false))
     expectMsg(syncInfo)
-  }
+  }}
 
-  property("NodeViewHolder: apply locally generated mod") { ctx =>
+  property("NodeViewHolder: apply locally generated mod") { withFixture { ctx =>
     import ctx._
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
@@ -164,9 +176,9 @@ MPool <: MemoryPool[TX, MPool]]
     }
 
     expectMsg(true)
-  }
+  }}
 
-  property("NodeViewHolder: simple forking") { ctx =>
+  property("NodeViewHolder: simple forking") { withFixture { ctx =>
     import ctx._
 
     val waitDuration = 5.seconds
@@ -201,10 +213,10 @@ MPool <: MemoryPool[TX, MPool]]
 
 
     expectMsg(10.seconds, true)
-  }
+  }}
 
 
-  property("NodeViewHolder: forking - switching") { ctx =>
+  property("NodeViewHolder: forking - switching") { withFixture { ctx =>
     import ctx._
 
     val opCountBeforeFork = 10
@@ -239,5 +251,5 @@ MPool <: MemoryPool[TX, MPool]]
       v.history.openSurfaceIds().contains(fork2Mods.last.id)
     }
     expectMsg(true)
-  }
+  }}
 }
