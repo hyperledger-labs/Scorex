@@ -13,7 +13,7 @@ import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.testkit.generators.{SemanticallyInvalidModifierProducer, SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
-import scorex.testkit.utils.{FileUtils, AkkaFixture}
+import scorex.testkit.utils.AkkaFixture
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -37,7 +37,7 @@ MPool <: MemoryPool[TX, MPool]]
 
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, PM, ST, HT)
 
-  class HolderFixture extends AkkaFixture with FileUtils {
+  class HolderFixture extends AkkaFixture {
     val (node, mod, s, h) = nodeViewHolder
   }
 

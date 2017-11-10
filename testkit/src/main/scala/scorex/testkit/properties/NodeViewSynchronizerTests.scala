@@ -15,7 +15,7 @@ import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
 import scorex.core.PersistentNodeViewModifier
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
-import scorex.testkit.utils.{FileUtils, AkkaFixture}
+import scorex.testkit.utils.AkkaFixture
 import scorex.core.network.message._
 import scorex.core.serialization.{BytesSerializable, Serializer}
 
@@ -39,7 +39,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
 
   def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
 
-  class SynchronizerFixture extends AkkaFixture with FileUtils {
+  class SynchronizerFixture extends AkkaFixture {
     val (node, syncInfo, mod, tx, peer, pchProbe, ncProbe, vhProbe, liProbe) = nodeViewSynchronizer
   }
 
