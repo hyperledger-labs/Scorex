@@ -15,7 +15,7 @@ import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
 import scorex.core.PersistentNodeViewModifier
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
-import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
+import scorex.testkit.utils.{FileUtils, AkkaFixture}
 import scorex.core.network.message._
 import scorex.core.serialization.{BytesSerializable, Serializer}
 
@@ -31,7 +31,6 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   SI <: SyncInfo,
   HT <: History[PM, SI, HT]
 ] extends PropSpec
-    with SequentialAkkaFixture
     with Matchers
     with PropertyChecks
     with ScorexLogging

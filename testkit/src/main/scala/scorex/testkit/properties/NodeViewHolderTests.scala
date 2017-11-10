@@ -13,7 +13,7 @@ import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.testkit.generators.{SemanticallyInvalidModifierProducer, SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
-import scorex.testkit.utils.{FileUtils, SequentialAkkaFixture}
+import scorex.testkit.utils.{FileUtils, AkkaFixture}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -28,7 +28,6 @@ SI <: SyncInfo,
 HT <: History[PM, SI, HT],
 MPool <: MemoryPool[TX, MPool]]
   extends PropSpec
-    with SequentialAkkaFixture
     with Matchers
     with PropertyChecks
     with ScorexLogging

@@ -5,13 +5,11 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
 
-object SequentialAkkaFixture {
-  val sysId = new AtomicInteger()
+object SysId {
+  private val i = new AtomicInteger()
+  def incrementAndGet(): Int = i.incrementAndGet()
 }
 
-trait SequentialAkkaFixture {
-  import SequentialAkkaFixture._
-
-  class AkkaFixture extends TestKit(ActorSystem("WithIsoFix-%d".format(sysId.incrementAndGet()))) with ImplicitSender
-
-}
+class AkkaFixture
+  extends TestKit(ActorSystem("WithIsoFix-%d".format(SysId.incrementAndGet())))
+    with ImplicitSender
