@@ -80,7 +80,9 @@ class NetworkController(settings: NetworkSettings,
         Try(InetAddress.getByName(address)).map(address =>
           new InetSocketAddress(address, port.toInt)).toOption
       }).orElse {
-      if (settings.upnpEnabled) upnp.externalAddress else None
+      if (settings.upnpEnabled) {
+        upnp.externalAddress.map(a => new InetSocketAddress(a, settings.port))
+      } else None
     }
   }
 
