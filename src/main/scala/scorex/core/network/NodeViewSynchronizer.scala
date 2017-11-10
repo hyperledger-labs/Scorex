@@ -220,11 +220,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       for ((id, _) <- modifiers) DeliveryTracker.receive(typeId, id, remote)
 
-      val (spam, fm) = modifiers partition { _ match {
+      val (spam, fm) = modifiers partition {_ match {
         case (id, _) => DeliveryTracker.isSpam(id)
       }}
 
       if (spam.nonEmpty) {
+        log.info(s"Spam attempt: peer $remote has sent a non-requested modifier")
         penalizeSpammingPeer(remote)
         val mids = spam.keys.toSeq
         DeliveryTracker.deleteSpam(mids)
@@ -261,6 +262,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
             self,
             CheckDelivery(peer, modifierTypeId, notYetDelivered, remainingAttempts - 1) )
         }
+        log.info(s"Peer $peer has not delivered asked modifiers on time")
         penalizeNonDeliveringPeer(peer)
       }
   }
@@ -272,11 +274,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     //todo: add something similar to FilterPeers to return only peers that
     //todo: have not been penalized too many times.
 
-    networkControllerRef ! Blacklist(peer)
+    // networkControllerRef ! Blacklist(peer)
   }
 
   private def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
-    networkControllerRef ! Blacklist(peer)
+    //todo: consider something less harsh than blacklisting, see comment for previous function
+    // networkControllerRef ! Blacklist(peer)
   }
 
 

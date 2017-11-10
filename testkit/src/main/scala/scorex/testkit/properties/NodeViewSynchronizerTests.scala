@@ -172,7 +172,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     vhProbe.fishForMessage(3 seconds) { case m => m == GetLocalObjects(peer, mod.modifierTypeId, modifiers) }
   }
 
-  property("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") { ctx =>
+  ignore("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") { ctx =>
     import ctx._
     node ! DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
     val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
@@ -200,7 +200,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     pchProbe.expectMsgType[Message[_]]
   }
 
-  property("NodeViewSynchronizer: RequestFromLocal - CheckDelivery - Penalize if not delivered") { ctx =>
+  ignore("NodeViewSynchronizer: RequestFromLocal - CheckDelivery - Penalize if not delivered") { ctx =>
     import ctx._
     node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
     ncProbe.fishForMessage(5 seconds) { case m => m == Blacklist(peer) }

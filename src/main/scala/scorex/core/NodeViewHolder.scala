@@ -93,10 +93,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, Seq[ActorRef]]()
 
-  protected def notifySubscribers[O <: NodeViewHolderEvent](eventType: EventType.Value, signal: O) =
+  protected def notifySubscribers[O <: NodeViewHolderEvent](eventType: EventType.Value, signal: O): Unit =
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! signal)
 
-  protected def txModify(tx: TX) = {
+  protected def txModify(tx: TX): Unit = {
     //todo: async validation?
     val errorOpt: Option[Throwable] = minimalState() match {
       case txValidator: TransactionValidation[P, TX] =>
@@ -125,21 +125,18 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     }
   }
 
-  protected def extractTransactions(mods: Seq[PMOD]): Seq[TX] = {
-    mods.flatMap { mod =>
-      mod match {
-        case tcm: TransactionsCarryingPersistentNodeViewModifier[P, TX] => tcm.transactions
-        case _ => Seq()
-      }
-    }
+  protected def extractTransactions(mod: PMOD): Seq[TX] = mod match {
+    case tcm: TransactionsCarryingPersistentNodeViewModifier[P, TX] => tcm.transactions
+    case _ => Seq()
   }
+
 
   //todo: this method causes delays in a block processing as it removes transactions from mempool and checks
   //todo: validity of remaining transactions in a synchronous way. Do this job async!
   protected def updateMemPool(progressInfo: History.ProgressInfo[PMOD], memPool: MP, state: MS): MP = {
-    val rolledBackTxs = extractTransactions(progressInfo.toRemove)
+    val rolledBackTxs = progressInfo.toRemove.flatMap(extractTransactions)
 
-    val appliedTxs = extractTransactions(progressInfo.toApply.toSeq)
+    val appliedTxs = progressInfo.toApply.map(extractTransactions).getOrElse(Seq())
 
     memPool.putWithoutCheck(rolledBackTxs).filter { tx =>
       !appliedTxs.exists(t => t.id sameElements tx.id) && {
@@ -359,8 +356,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   protected def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI@unchecked) =>
-      log.debug(s"Comparing remote info having starting points: ${syncInfo.startingPoints.map(_._2).toList
-        .map(Base58.encode)}")
+      log.debug(s"Comparing remote info having starting points: ${
+        syncInfo.startingPoints.map(_._2).toList
+          .map(Base58.encode)
+      }")
       syncInfo.startingPoints.map(_._2).headOption.foreach { head =>
         log.debug(s"Local side contains head: ${Base58.encode(head)}")
       }
@@ -413,24 +412,24 @@ object NodeViewHolder {
 
   object EventType extends Enumeration {
     //finished modifier application, successful of failed
-    val FailedTransaction = Value(1)
-    val SyntacticallyFailedPersistentModifier = Value(2)
-    val SemanticallyFailedPersistentModifier = Value(3)
-    val SuccessfulTransaction = Value(4)
-    val SuccessfulSyntacticallyValidModifier = Value(5)
-    val SuccessfulSemanticallyValidModifier = Value(6)
+    val FailedTransaction: EventType.Value = Value(1)
+    val SyntacticallyFailedPersistentModifier: EventType.Value = Value(2)
+    val SemanticallyFailedPersistentModifier: EventType.Value = Value(3)
+    val SuccessfulTransaction: EventType.Value = Value(4)
+    val SuccessfulSyntacticallyValidModifier: EventType.Value = Value(5)
+    val SuccessfulSemanticallyValidModifier: EventType.Value = Value(6)
 
 
     //starting persistent modifier application. The application could be slow
-    val StartingPersistentModifierApplication = Value(7)
+    val StartingPersistentModifierApplication: EventType.Value = Value(7)
 
-    val OpenSurfaceChanged = Value(8)
-    val StateChanged = Value(9)
+    val OpenSurfaceChanged: EventType.Value = Value(8)
+    val StateChanged: EventType.Value = Value(9)
 
     //rollback failed, really wrong situation, probably
-    val FailedRollback = Value(10)
+    val FailedRollback: EventType.Value = Value(10)
 
-    val DownloadNeeded = Value(11)
+    val DownloadNeeded: EventType.Value = Value(11)
   }
 
   //a command to subscribe for events
