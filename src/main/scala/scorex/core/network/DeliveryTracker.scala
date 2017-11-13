@@ -6,7 +6,7 @@ import scala.collection.mutable
 
 // This class tracks modifier ids that are expected from and delivered by other peers
 // in order to ban or de-prioritize peers that deliver what is not expected
-protected object DeliveryTracker {
+class DeliveryTracker {
 
   // when a remote peer is asked a modifier, we add the expected data to `expecting`
   // when a remote peer delivers expected data, it is removed from `expecting` and added to `delivered`.

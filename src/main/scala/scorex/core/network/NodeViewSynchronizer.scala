@@ -17,7 +17,6 @@ import scorex.crypto.encode.Base58
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.language.postfixOps
 
 /**
@@ -43,6 +42,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   protected val deliveryTimeout = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks = networkSettings.maxDeliveryChecks
+  protected val deliveryTracker = new DeliveryTracker
 
   protected val seniors = mutable.Set[String]()
   protected val juniors = mutable.Set[String]()
@@ -180,10 +180,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       log.info(s"Got modifiers of type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"From remote connected peer: $remote")
 
-      for ((id, _) <- modifiers) DeliveryTracker.receive(typeId, id, remote)
+      for ((id, _) <- modifiers) deliveryTracker.receive(typeId, id, remote)
 
       val (spam, fm) = modifiers partition {_ match {
-        case (id, _) => DeliveryTracker.isSpam(id)
+        case (id, _) => deliveryTracker.isSpam(id)
       }}
 
       if (spam.nonEmpty) {
@@ -191,7 +191,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
           s": ${spam.keys.map(Base58.encode)}")
         penalizeSpammingPeer(remote)
         val mids = spam.keys.toSeq
-        DeliveryTracker.deleteSpam(mids)
+        deliveryTracker.deleteSpam(mids)
       }
 
       if (fm.nonEmpty) {
@@ -208,7 +208,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
-      DeliveryTracker.expect(peer, modifierTypeId, modifierIds)
+      deliveryTracker.expect(peer, modifierTypeId, modifierIds)
       // TODO: move this to DeliveryTracker
       context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, modifierIds, maxDeliveryChecks) )
   }
@@ -216,8 +216,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
   protected def checkDelivery: Receive = {
     case CheckDelivery(peer, modifierTypeId, modifierIds, remainingAttempts) =>
-      val (alreadyDelivered, notYetDelivered) = modifierIds.partition(DeliveryTracker.peerWhoDelivered(_).contains(peer))
-      DeliveryTracker.delete(alreadyDelivered)
+      val (alreadyDelivered, notYetDelivered) = modifierIds.partition(deliveryTracker.peerWhoDelivered(_).contains(peer))
+      deliveryTracker.delete(alreadyDelivered)
 
       if (notYetDelivered.nonEmpty) {
         if (remainingAttempts > 0) {
