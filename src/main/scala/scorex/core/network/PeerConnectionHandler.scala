@@ -25,6 +25,8 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
   override def hashCode(): Int = socketAddress.hashCode()
   override def equals(obj: Any): Boolean =
     obj.cast[ConnectedPeer].exists(_.socketAddress.getAddress.getHostAddress == this.socketAddress.getAddress.getHostAddress)
+
+  override def toString = s"ConnectedPeer($socketAddress)"
 }
 
 

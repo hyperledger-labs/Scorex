@@ -225,7 +225,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       }}
 
       if (spam.nonEmpty) {
-        log.info(s"Spam attempt: peer $remote has sent a non-requested modifier")
+        log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
+          s": ${spam.keys.map(Base58.encode)}")
         penalizeSpammingPeer(remote)
         val mids = spam.keys.toSeq
         DeliveryTracker.deleteSpam(mids)
