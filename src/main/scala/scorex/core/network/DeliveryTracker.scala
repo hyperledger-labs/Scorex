@@ -36,7 +36,7 @@ class DeliveryTracker {
 
   def deleteSpam(mids: Seq[ModifierId]): Unit = for (id <- mids) deliveredSpam -= id
 
-  def isSpam(mid: ModifierId): Boolean = deliveredSpam contains mid
+  def isSpam(mid: ModifierId): Boolean = deliveredSpam.exists(_._1 sameElements mid)
 
   def peerWhoDelivered(mid: ModifierId): Option[ConnectedPeer] = delivered.get(mid)
 
