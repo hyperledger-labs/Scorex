@@ -225,7 +225,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
             self,
             CheckDelivery(peer, modifierTypeId, notYetDelivered, remainingAttempts - 1) )
         }
-        log.info(s"Peer $peer has not delivered asked modifiers on time")
+        log.info(s"Peer $peer has not delivered asked modifiers ${notYetDelivered.map(Base58.encode)} on time")
         penalizeNonDeliveringPeer(peer)
       }
   }
