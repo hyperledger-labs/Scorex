@@ -20,7 +20,7 @@ class DeliveryTracker {
   }
 
   def isExpecting(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
-    expecting contains (mtid, mid, cp)
+    expecting.exists(e => (mtid == e._1) && (mid sameElements e._2) && cp == e._3)
 
   def receive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = {
     if (isExpecting(mtid, mid, cp)) {
