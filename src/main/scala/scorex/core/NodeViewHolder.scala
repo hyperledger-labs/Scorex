@@ -84,11 +84,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   val networkChunkSize: Int
 
 
+  protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
+  protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
   //todo: make configurable limited size
-  private val modifiersCache = mutable.Map[ModifierId, PMOD]()
+  private val modifiersCache = mutable.Map[MapKey, PMOD]()
 
 
   private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, Seq[ActorRef]]()
@@ -289,7 +291,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
           memoryPool().notIn(modifierIds)
         case _ =>
-          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
+          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(key(mid)))
       }
 
       sender() ! NodeViewSynchronizer.RequestFromLocal(peer, modifierTypeId, ids)
@@ -317,10 +319,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             txModify(tx)
 
           case pmod: PMOD@unchecked =>
-            modifiersCache.put(pmod.id, pmod)
+            if(history().contains(pmod) || modifiersCache.contains(key(pmod.id))) {
+              log.warn(s"Received modifier ${pmod.encodedId} that is already in history")
+            } else {
+              modifiersCache.put(key(pmod.id), pmod)
+            }
         }
 
-        log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(Base58.encode).mkString(",")}")
 
         var t: Option[PMOD] = None
         do {
@@ -336,7 +342,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           t.foreach(pmodModify)
         } while (t.isDefined)
 
-        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(Base58.encode).mkString(",")}")
       }
   }
 
