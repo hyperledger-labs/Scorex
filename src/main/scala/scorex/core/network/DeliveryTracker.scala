@@ -27,7 +27,8 @@ class DeliveryTracker {
 
   def receive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = {
     if (isExpecting(mtid, mid, cp)) {
-      expecting -= ((mtid, mid, cp))
+      val eo = expecting.find(e => (mtid == e._1) && (mid sameElements e._2) && cp == e._3)
+      for (e <- eo) expecting -= e
       delivered(key(mid)) = cp
     }
     else {
