@@ -14,7 +14,7 @@ dependencyOverrides in ThisBuild ++= Seq(
   "com.github.mpilquist" % "simulacrum_2.12" % "0.10.0",
   "com.github.swagger-akka-http" % "swagger-akka-http_2.12" % "0.10.0",
   "com.google.guava" % "guava" % "20.0",
-  "com.iheart" % "ficus_2.12" % "1.4.1",
+  "com.iheart" % "ficus_2.12" % "1.4.2",
   "com.thoughtworks.paranamer" % "paranamer" % "2.8",
   "com.typesafe" % "config" % "1.3.1",
   "com.typesafe" % "ssl-config-core_2.12" % "0.2.1",
@@ -56,4 +56,4 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.whispersystems" % "curve25519-java" % "0.4.1",
   "org.yaml" % "snakeyaml" % "1.17"
 )
-// LIBRARY_DEPENDENCIES_HASH 03488d9f3681258af28a8150b7d65453e611aa12
+// LIBRARY_DEPENDENCIES_HASH 5895ca7d7fe2237e06f13e5d7675bedfccbf031b
