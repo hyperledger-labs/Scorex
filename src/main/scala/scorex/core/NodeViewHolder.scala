@@ -362,8 +362,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   protected def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI@unchecked) =>
-      val siHead = syncInfo.startingPoints.headOption.map(_._2).map(Base58.encode)
-      val siLast = syncInfo.startingPoints.lastOption.map(_._2).map(Base58.encode)
+      val siHead = syncInfo.startingPoints.headOption.map(_._2).map(Base58.encode).getOrElse("None")
+      val siLast = syncInfo.startingPoints.lastOption.map(_._2).map(Base58.encode).getOrElse("None")
       log.debug(s"Comparing remote info having starting points: $siHead...$siLast")
 
       val extensionOpt = history().continuationIds(syncInfo, networkChunkSize)
