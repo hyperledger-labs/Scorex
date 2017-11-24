@@ -233,14 +233,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     //todo: the peer has been penalized for not delivering. In PeerManager,
     //todo: add something similar to FilterPeers to return only peers that
     //todo: have not been penalized too many times.
-    //networkControllerRef ! Penalize(peer)
 
     // networkControllerRef ! Blacklist(peer)
   }
 
   protected def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
     //todo: consider something less harsh than blacklisting, see comment for previous function
-    //networkControllerRef ! Penalize(peer)
     // networkControllerRef ! Blacklist(peer)
   }
 
