@@ -4,11 +4,10 @@ import java.net.{InetAddress, InetSocketAddress}
 import javax.ws.rs.Path
 
 import akka.actor.{ActorRef, ActorRefFactory}
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
-import io.circe.JsonObject
 import io.circe.generic.auto._
-import io.circe.parser._
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.network.Handshake
@@ -74,7 +73,7 @@ case class PeersApiRoute(peerManager: ActorRef,
     }
   }
 
-  private case class ConnectCommandParams(host: String, port: Int)
+  private val addressAndPortRegexp = "\\w+:\\d{1,5}".r
 
   @Path("/connect")
   @ApiOperation(value = "Connect to peer", notes = "Connect to peer", httpMethod = "POST")
@@ -89,14 +88,14 @@ case class PeersApiRoute(peerManager: ActorRef,
   )) def connect: Route = path("connect") {
     entity(as[String]) { body =>
       withAuth {
-        postJsonRoute {
-          decode[ConnectCommandParams](body) match {
-            case Right(ConnectCommandParams(host, port)) =>
-              val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port)
-              networkController ! ConnectTo(add)
-              SuccessApiResponse(JsonObject.empty.asJson)
-            case _ =>
-              ApiError.wrongJson
+        complete {
+          if (addressAndPortRegexp.findFirstMatchIn(body).isDefined) {
+            val Array(host, port) = body.split(":")
+            val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port.toInt)
+            networkController ! ConnectTo(add)
+            StatusCodes.OK
+          } else {
+            StatusCodes.BadRequest
           }
         }
       }
