@@ -291,6 +291,4 @@ object NodeViewSynchronizer {
   case class CheckDelivery(source: ConnectedPeer,
                            modifierTypeId: ModifierTypeId,
                            modifierId: ModifierId)
-
-  //case class Penalize(peer: ConnectedPeer)
 }
