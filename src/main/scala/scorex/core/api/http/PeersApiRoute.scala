@@ -6,6 +6,7 @@ import javax.ws.rs.Path
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
+import io.circe.JsonObject
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
@@ -40,11 +41,11 @@ case class PeersApiRoute(peerManager: ActorRef,
         .mapTo[Map[InetSocketAddress, PeerInfo]]
         .map { peers =>
           peers.map { case (address, peerInfo) =>
-            Map(
-              "address" -> address.toString,
-              "nodeName" -> (peerInfo.nodeName.getOrElse("N/A"): String),
-              "nodeNonce" -> (peerInfo.nonce.map(_.toString).getOrElse("N/A"): String)
-            )
+            Seq(
+              Some("address" -> address.toString),
+              Some("lastSeen" -> peerInfo.lastSeen),
+              peerInfo.nodeName.map(name => "name" -> name),
+              peerInfo.nonce.map(nonce => "nonce" -> nonce)).flatten.toMap
           }.asJson
         }.map(s => SuccessApiResponse(s))
     }
@@ -57,17 +58,18 @@ case class PeersApiRoute(peerManager: ActorRef,
   ))
   def connectedPeers: Route = path("connected") {
     getJsonRoute {
+      val now = System.currentTimeMillis()
       (peerManager ? PeerManager.GetConnectedPeers)
         .mapTo[Seq[Handshake]]
         .map { handshakes =>
-          val peerData = handshakes.map { handshake =>
+          handshakes.map { handshake =>
             Map(
-              "declaredAddress" -> handshake.declaredAddress.toString,
-              "peerName" -> handshake.nodeName,
-              "peerNonce" -> handshake.nodeNonce.toString
+              "address" -> handshake.declaredAddress.toString,
+              "name" -> handshake.nodeName,
+              "nonce" -> handshake.nodeNonce,
+              "lastSeen" -> now
             ).asJson
           }.asJson
-          Map("peers" -> peerData).asJson
         }.map(s => SuccessApiResponse(s))
     }
   }
@@ -92,7 +94,7 @@ case class PeersApiRoute(peerManager: ActorRef,
             case Right(ConnectCommandParams(host, port)) =>
               val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port)
               networkController ! ConnectTo(add)
-              SuccessApiResponse(Map("hostname" -> add.getHostName, "status" -> "Trying to connect").asJson)
+              SuccessApiResponse(JsonObject.empty.asJson)
             case _ =>
               ApiError.wrongJson
           }
@@ -110,7 +112,7 @@ case class PeersApiRoute(peerManager: ActorRef,
     getJsonRoute {
       (peerManager ? PeerManager.GetBlacklistedPeers)
         .mapTo[Seq[String]]
-        .map(s => SuccessApiResponse(s.asJson))
+        .map(s => SuccessApiResponse(Map("address" -> s).asJson))
     }
   }
 }
