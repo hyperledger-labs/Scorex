@@ -182,7 +182,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
       case ModifiersFromRemote(p, _, _) if p == peer => true
       case _ => false
     } ))
-    ncProbe.fishForMessage(3 seconds) { case m => m == Blacklist(peer) }
+    //ncProbe.fishForMessage(3 seconds) { case m => m == Penalize(peer) }
   }
 
   property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") { ctx =>
@@ -203,7 +203,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   ignore("NodeViewSynchronizer: RequestFromLocal - CheckDelivery - Penalize if not delivered") { ctx =>
     import ctx._
     node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
-    ncProbe.fishForMessage(5 seconds) { case m => m == Blacklist(peer) }
+    //ncProbe.fishForMessage(5 seconds) { case m => m == Penalize(peer) }
   }
 
   property("NodeViewSynchronizer: RequestFromLocal - CheckDelivery -  Do not penalize if delivered") { ctx =>
