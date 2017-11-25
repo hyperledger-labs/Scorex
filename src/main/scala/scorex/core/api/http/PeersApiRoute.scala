@@ -41,10 +41,10 @@ case class PeersApiRoute(peerManager: ActorRef,
         .map { peers =>
           peers.map { case (address, peerInfo) =>
             Seq(
-              Some("address" -> address.toString),
-              Some("lastSeen" -> peerInfo.lastSeen),
-              peerInfo.nodeName.map(name => "name" -> name),
-              peerInfo.nonce.map(nonce => "nonce" -> nonce)).flatten.toMap
+              Some("address" -> address.toString.asJson),
+              Some("lastSeen" -> peerInfo.lastSeen.asJson),
+              peerInfo.nodeName.map(name => "name" -> name.asJson),
+              peerInfo.nonce.map(nonce => "nonce" -> nonce.asJson)).flatten.toMap
           }.asJson
         }.map(s => SuccessApiResponse(s))
     }
@@ -63,10 +63,10 @@ case class PeersApiRoute(peerManager: ActorRef,
         .map { handshakes =>
           handshakes.map { handshake =>
             Map(
-              "address" -> handshake.declaredAddress.toString,
-              "name" -> handshake.nodeName,
-              "nonce" -> handshake.nodeNonce,
-              "lastSeen" -> now
+              "address" -> handshake.declaredAddress.toString.asJson,
+              "name" -> handshake.nodeName.asJson,
+              "nonce" -> handshake.nodeNonce.asJson,
+              "lastSeen" -> now.asJson
             ).asJson
           }.asJson
         }.map(s => SuccessApiResponse(s))
