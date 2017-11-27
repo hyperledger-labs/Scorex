@@ -2,7 +2,7 @@ package scorex.core.api.http
 
 import akka.actor.ActorRefFactory
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server.{Directive0, Directives, Route}
 import akka.util.Timeout
 import scorex.core.settings.RESTApiSettings
@@ -33,7 +33,23 @@ trait ApiRoute extends Directives {
   def deleteJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, timeout.duration), delete)
 
   protected def jsonRoute(fn: ScorexApiResponse, method: Directive0): Route = method {
-    val resp = complete(HttpEntity(ContentTypes.`application/json`, fn.toJson.spaces2))
+    val resp = fn match {
+      case SuccessApiResponse(js) =>
+        complete(HttpEntity(ContentTypes.`application/json`, js.spaces2))
+      case ApiException(e) =>
+        complete(StatusCodes.InternalServerError -> e.getMessage)
+      case err@ApiError(msg) =>
+        err match {
+          case ApiError.transactionNotExists | ApiError.blockNotExists =>
+            complete(StatusCodes.NotFound)
+          case ApiError.apiKeyNotValid =>
+            complete(StatusCodes.Forbidden -> ApiError.apiKeyNotValid.message)
+          case ApiError.wrongJson =>
+            complete(StatusCodes.BadRequest)
+          case _ =>
+            complete(StatusCodes.InternalServerError)
+        }
+    }
     withCors(resp)
   }
 
@@ -45,7 +61,7 @@ trait ApiRoute extends Directives {
   def withAuth(route: => Route): Route = {
     optionalHeaderValueByName("api_key") { keyOpt =>
       if (isValid(keyOpt)) route
-      else complete(HttpEntity(ContentTypes.`application/json`, ApiError.apiKeyNotValid.toString))
+      else withCors(complete(StatusCodes.Forbidden -> ApiError.apiKeyNotValid.message))
     }
   }
 
