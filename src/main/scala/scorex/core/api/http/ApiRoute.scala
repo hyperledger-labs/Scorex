@@ -38,17 +38,8 @@ trait ApiRoute extends Directives {
         complete(HttpEntity(ContentTypes.`application/json`, js.spaces2))
       case ApiException(e) =>
         complete(StatusCodes.InternalServerError -> e.getMessage)
-      case err@ApiError(msg) =>
-        err match {
-          case ApiError.transactionNotExists | ApiError.blockNotExists =>
-            complete(StatusCodes.NotFound)
-          case ApiError.apiKeyNotValid =>
-            complete(StatusCodes.Forbidden -> ApiError.apiKeyNotValid.message)
-          case ApiError.wrongJson =>
-            complete(StatusCodes.BadRequest)
-          case _ =>
-            complete(StatusCodes.InternalServerError)
-        }
+      case err@ApiError(msg, code) =>
+        complete(code -> msg)
     }
     withCors(resp)
   }

@@ -1,28 +1,23 @@
 package scorex.core.api.http
 
+import akka.http.scaladsl.model.{StatusCode, StatusCodes}
 import io.circe._
-import io.circe.generic.auto._
 import io.circe.syntax._
 
 import scala.language.implicitConversions
 
-case class ApiError(message: String) extends ScorexApiResponse {
-
-  override val success: Boolean = false
-
+case class ApiError(message: String, code: StatusCode) extends ScorexApiResponse {
   override val data: Json = message.asJson
 }
 
 case class ApiException(e: Throwable) extends ScorexApiResponse {
-  override val success: Boolean = false
+  override val code = StatusCodes.InternalServerError
   override val data: Json = e.getMessage.asJson
 }
 
 object ApiError {
-
-  val unknown: ApiError = ApiError("unknown")
-  val wrongJson: ApiError = ApiError("invalid.json")
-  val apiKeyNotValid: ApiError = ApiError("invalid.apikey")
-  val blockNotExists: ApiError = ApiError("Block does not exist")
-  val transactionNotExists: ApiError = ApiError("Transaction does not exist")
+  val unknown: ApiError = ApiError("unknown", StatusCodes.InternalServerError)
+  val wrongJson: ApiError = ApiError("invalid.json", StatusCodes.BadRequest)
+  val apiKeyNotValid: ApiError = ApiError("invalid.api-key", StatusCodes.Forbidden)
+  val notExists: ApiError = ApiError("not-found", StatusCodes.NotFound)
 }

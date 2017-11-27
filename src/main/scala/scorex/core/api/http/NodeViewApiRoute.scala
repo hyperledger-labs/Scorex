@@ -101,8 +101,8 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
           (nodeViewHolderRef ? GetLocalObjects(source, ModifierTypeId @@ 1.toByte, Seq(ModifierId @@ id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
             .map(_.localObjects.headOption.map(_.json).map(j => SuccessApiResponse(j))
-              .getOrElse(ApiError.blockNotExists))
-        case _ => Future(ApiError.blockNotExists)
+              .getOrElse(ApiError.notExists))
+        case _ => Future(ApiError.notExists)
       }
     }
   }
@@ -119,8 +119,8 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
           (nodeViewHolderRef ? GetLocalObjects(source, Transaction.ModifierTypeId, Seq(ModifierId @@ id)))
             .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
             .map(_.localObjects.headOption.map(_.json).map(r => SuccessApiResponse(r))
-              .getOrElse(ApiError.transactionNotExists))
-        case _ => Future(ApiError.transactionNotExists)
+              .getOrElse(ApiError.notExists))
+        case _ => Future(ApiError.notExists)
       }
     }
   }
