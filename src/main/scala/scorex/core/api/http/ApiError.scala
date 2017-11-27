@@ -11,7 +11,7 @@ case class ApiError(message: String, code: StatusCode) extends ScorexApiResponse
 }
 
 case class ApiException(e: Throwable) extends ScorexApiResponse {
-  override val code = StatusCodes.InternalServerError
+  override val code: StatusCode = StatusCodes.InternalServerError
   override val data: Json = e.getMessage.asJson
 }
 
