@@ -93,6 +93,11 @@ object History {
 
   type ModifierIds = Seq[(ModifierTypeId, ModifierId)]
 
+  def idsToString(ids: Seq[(ModifierTypeId, ModifierId)]): String = {
+    s"${ids.headOption.map(_._2).map(Base58.encode).getOrElse("None")}.." +
+      s"${ids.lastOption.map(_._2).map(Base58.encode).getOrElse("None")}"
+  }
+
   object HistoryComparisonResult extends Enumeration {
     val Equal = Value(1)
     val Younger = Value(2)
