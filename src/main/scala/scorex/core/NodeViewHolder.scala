@@ -362,19 +362,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   protected def compareSyncInfo: Receive = {
     case OtherNodeSyncingInfo(remote, syncInfo: SI@unchecked) =>
-      log.debug(s"Comparing remote info having starting points: ${
-        syncInfo.startingPoints.map(_._2).toList
-          .map(Base58.encode)
-      }")
-      syncInfo.startingPoints.map(_._2).headOption.foreach { head =>
-        log.debug(s"Local side contains head: ${Base58.encode(head)}")
-      }
 
       val extensionOpt = history().continuationIds(syncInfo, networkChunkSize)
       val ext = extensionOpt.getOrElse(Seq())
       val comparison = history().compare(syncInfo)
-      log.debug(s"Sending extension of length ${ext.length}: ${ext.map(_._2).map(Base58.encode).mkString(",")}")
-      log.debug("Comparison result is: " + comparison)
+      log.debug(s"Comparison with $remote having starting points ${History.idsToString(syncInfo.startingPoints)}. " +
+        s"Comparison result is $comparison. Sending extension of length ${ext.length}: ${History.idsToString(ext)}")
 
       if (!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
         log.warn("Extension is empty while comparison is younger")
