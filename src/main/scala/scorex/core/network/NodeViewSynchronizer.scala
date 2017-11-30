@@ -42,7 +42,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   protected val deliveryTimeout = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks = networkSettings.maxDeliveryChecks
-  protected val deliveryTracker = new DeliveryTracker
+  protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
 
   protected val seniors = mutable.Set[String]()
   protected val juniors = mutable.Set[String]()
@@ -209,24 +209,21 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         peer.handlerRef ! msg
       }
       deliveryTracker.expect(peer, modifierTypeId, modifierIds)
-      // TODO: move this to DeliveryTracker
-      context.system.scheduler.scheduleOnce(deliveryTimeout, self, CheckDelivery(peer, modifierTypeId, modifierIds, maxDeliveryChecks) )
   }
+
+  // todo: make DeliveryTracker an independent actor and move checkDelivery there?
 
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
   protected def checkDelivery: Receive = {
-    case CheckDelivery(peer, modifierTypeId, modifierIds, remainingAttempts) =>
-      val (alreadyDelivered, notYetDelivered) = modifierIds.partition(deliveryTracker.peerWhoDelivered(_).contains(peer))
-      deliveryTracker.delete(alreadyDelivered)
+    case CheckDelivery(peer, modifierTypeId, modifierId) =>
 
-      if (notYetDelivered.nonEmpty) {
-        if (remainingAttempts > 0) {
-          context.system.scheduler.scheduleOnce(deliveryTimeout,
-            self,
-            CheckDelivery(peer, modifierTypeId, notYetDelivered, remainingAttempts - 1) )
-        }
-        log.info(s"Peer $peer has not delivered asked modifiers ${notYetDelivered.map(Base58.encode)} on time")
+      if (deliveryTracker.peerWhoDelivered(modifierId).contains(peer)) {
+        deliveryTracker.delete(modifierId)
+      }
+      else {
+        log.info(s"Peer $peer has not delivered asked modifier ${Base58.encode(modifierId)} on time")
         penalizeNonDeliveringPeer(peer)
+        deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
       }
   }
 
@@ -291,7 +288,5 @@ object NodeViewSynchronizer {
 
   case class CheckDelivery(source: ConnectedPeer,
                            modifierTypeId: ModifierTypeId,
-                           modifierIds: Seq[ModifierId],
-                           remainingAttempts: Int)
-
+                           modifierId: ModifierId)
 }
