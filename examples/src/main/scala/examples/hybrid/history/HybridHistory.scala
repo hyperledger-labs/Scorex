@@ -8,13 +8,13 @@ import examples.hybrid.blocks._
 import examples.hybrid.mining.HybridMiningSettings
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.block.{Block, BlockValidator}
-import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}
+import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
@@ -70,6 +70,7 @@ class HybridHistory(val storage: HistoryStorage,
         case _ => b +: acc
       }
     }
+
     loop(startBlock)
   }
 
@@ -93,7 +94,7 @@ class HybridHistory(val storage: HistoryStorage,
   private def powBlockAppend(powBlock: PowBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
     val progress: ProgressInfo[HybridBlock] = if (isGenesis(powBlock)) {
       storage.update(powBlock, None, isBest = true)
-      ProgressInfo(None, Seq(), Seq(powBlock), Seq())
+      ProgressInfo(None, Seq(), Some(powBlock), Seq())
     } else {
       storage.heightOf(powBlock.parentId) match {
         case Some(parentHeight) =>
@@ -107,17 +108,17 @@ class HybridHistory(val storage: HistoryStorage,
               ((powBlock.parentId sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
               log.debug(s"New best PoW block ${Base58.encode(powBlock.id)}")
               //just apply one block to the end
-              ProgressInfo(None, Seq(), Seq(powBlock), Seq())
+              ProgressInfo(None, Seq(), Some(powBlock), Seq())
             } else if (isBestBrother) {
               log.debug(s"New best brother ${Base58.encode(powBlock.id)}")
               //new best brother
-              ProgressInfo(Some(powBlock.prevPosId), Seq(bestPowBlock), Seq(powBlock), Seq())
+              ProgressInfo(Some(powBlock.prevPosId), Seq(bestPowBlock), Some(powBlock), Seq())
             } else {
               bestForkChanges(powBlock)
             }
           } else {
             log.debug(s"New orphaned PoW block ${Base58.encode(powBlock.id)}")
-            ProgressInfo(None, Seq(), Seq(), Seq()) //todo: fix
+            ProgressInfo(None, Seq(), None, Seq()) //todo: fix
           }
           storage.update(powBlock, None, isBest)
           mod
@@ -138,14 +139,15 @@ class HybridHistory(val storage: HistoryStorage,
 
     val mod: ProgressInfo[HybridBlock] = if (!isBest) {
       log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
-      ProgressInfo(None, Seq(), Seq(), Seq())
+      ProgressInfo(None, Seq(), None, Seq())
     } else if (posBlock.parentId sameElements bestPowId) {
       log.debug(s"New best PoS block ${Base58.encode(posBlock.id)}")
-      ProgressInfo(None, Seq(), Seq(posBlock), Seq())
+      ProgressInfo(None, Seq(), Some(posBlock), Seq())
     } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
       log.debug(s"New best PoS block with link to non-best brother ${Base58.encode(posBlock.id)}")
       //rollback to prevoius PoS block and apply parent block one more time
-      ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq(parent, posBlock), Seq())
+      //TODO to Apply should be Seq(parent, posBlock)
+      ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Some(parent), Seq())
     } else {
       bestForkChanges(posBlock)
     }
@@ -154,7 +156,7 @@ class HybridHistory(val storage: HistoryStorage,
     (new HybridHistory(storage, settings, validators, statsLogger), mod)
   }
 
-    /**
+  /**
     * @param block - block to append
     * @return
     */
@@ -181,6 +183,7 @@ class HybridHistory(val storage: HistoryStorage,
     res
   }
 
+  //TODO fix for new NodeViewHolder
   def bestForkChanges(block: HybridBlock): ProgressInfo[HybridBlock] = {
     val parentId = storage.parentId(block)
     val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(parentId).get)
@@ -195,7 +198,8 @@ class HybridHistory(val storage: HistoryStorage,
     require(applyBlocks.nonEmpty)
     require(throwBlocks.nonEmpty)
 
-    ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks, Seq())
+    //TODO should be applyBlocks here
+    ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks.headOption, Seq())
   }
 
   private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, Long) = {
@@ -247,6 +251,7 @@ class HybridHistory(val storage: HistoryStorage,
 
   def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[ModifierIds] = {
     def inList(m: HybridBlock): Boolean = idInList(m.id) || isGenesis(m)
+
     def idInList(id: ModifierId): Boolean = from.exists(f => f._2 sameElements id)
 
     //Look without limit for case difference between nodes is bigger then size
@@ -334,6 +339,7 @@ class HybridHistory(val storage: HistoryStorage,
 
   def generatorDistribution(): Map[PublicKey25519Proposition, Int] = {
     val map = collection.mutable.Map[PublicKey25519Proposition, Int]().withDefaultValue(0)
+
     @tailrec
     def loop(m: HybridBlock): Unit = {
       val generator = blockGenerator(m)
@@ -343,6 +349,7 @@ class HybridHistory(val storage: HistoryStorage,
         case None =>
       }
     }
+
     loop(bestBlock)
     map.toMap
   }
@@ -355,6 +362,7 @@ class HybridHistory(val storage: HistoryStorage,
       case Some(parent) => if (f(m)) loop(parent, m.id +: acc) else loop(parent, acc)
       case None => if (f(m)) m.id +: acc else acc
     }
+
     loop(bestBlock, Seq())
   }
 
@@ -396,6 +404,7 @@ class HybridHistory(val storage: HistoryStorage,
     val loserChain = chainBack(bestBlock, isGenesis, limit).get.map(_._2)
 
     def in(m: HybridBlock): Boolean = loserChain.exists(s => s sameElements m.id)
+
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
     val i = loserChain.indexWhere(id => id sameElements winnerChain.head)
     (winnerChain, loserChain.takeRight(loserChain.length - i))
@@ -420,12 +429,12 @@ class HybridHistory(val storage: HistoryStorage,
   override def reportSemanticValidity(modifier: HybridBlock,
                                       valid: Boolean,
                                       lastApplied: ModifierId): (HybridHistory, ProgressInfo[HybridBlock]) = {
-    this -> ProgressInfo(None, Seq(), Seq(), Seq())
+    this -> ProgressInfo(None, Seq(), None, Seq())
   }
 
   //todo: real impl
   override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value = {
-    modifierById(modifierId).map{_ =>
+    modifierById(modifierId).map { _ =>
       ModifierSemanticValidity.Valid
     }.getOrElse(ModifierSemanticValidity.Absent)
   }
