@@ -45,8 +45,7 @@ MPool <: MemoryPool[TX, MPool]]
     val fixture = new HolderFixture
     try {
       testCode(fixture)
-    }
-    finally {
+    } finally {
       Await.result(fixture.system.terminate(), Duration.Inf)
     }
   }
