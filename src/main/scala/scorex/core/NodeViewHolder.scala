@@ -307,7 +307,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           modifierIds.flatMap(id => history().modifierById(id))
       }
 
-      log.debug(s"Requested modifiers ${modifierIds.map(Base58.encode)}, sending: " + objs.map(_.id).map(Base58.encode))
+      log.debug(s"Requested modifiers ${modifierIds.map(Base58.encode)} of type $modifierTypeId" +
+        s", sending: " + objs.map(_.id).map(Base58.encode))
+
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
 
