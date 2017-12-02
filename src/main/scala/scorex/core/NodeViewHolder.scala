@@ -49,7 +49,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     * state (result of log's modifiers application to pre-historical(genesis) state,
     * user-specific information stored in vault (it could be e.g. a wallet), and a memory pool.
     */
-  private var nodeView: NodeView = restoreState().getOrElse(genesisState)
+  protected var nodeView: NodeView = restoreState().getOrElse(genesisState)
 
   /**
     * Restore a local view during a node startup. If no any stored view found
@@ -307,7 +307,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           modifierIds.flatMap(id => history().modifierById(id))
       }
 
-      log.debug(s"Requested modifiers ${modifierIds.map(Base58.encode)}, sending: " + objs.map(_.id).map(Base58.encode))
+      log.debug(s"Requested modifiers ${modifierIds.map(Base58.encode)} of type $modifierTypeId" +
+        s", sending: " + objs.map(_.id).map(Base58.encode))
+
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
 
