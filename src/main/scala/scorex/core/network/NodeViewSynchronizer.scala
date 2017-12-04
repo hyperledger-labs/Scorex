@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core._
 import scorex.core.NodeViewHolder._
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.network.NetworkController.{Blacklist, DataFromPeer, SendToNetwork}
+import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
@@ -40,13 +40,13 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
 
-  protected val deliveryTimeout = networkSettings.deliveryTimeout
-  protected val maxDeliveryChecks = networkSettings.maxDeliveryChecks
+  protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
+  protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
 
-  protected val seniors = mutable.Set[String]()
-  protected val juniors = mutable.Set[String]()
-  protected val equals = mutable.Set[String]()
+  protected val seniors = mutable.Set[ConnectedPeer]()
+  protected val juniors = mutable.Set[ConnectedPeer]()
+  protected val equals = mutable.Set[ConnectedPeer]()
 
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
@@ -117,18 +117,16 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       val seniorsBefore = seniors.size
 
-      val remoteHost = remote.socketAddress.getAddress.getHostAddress
-
-      seniors.remove(remoteHost)
-      juniors.remove(remoteHost)
-      equals.remove(remoteHost)
+      seniors.remove(remote)
+      juniors.remove(remote)
+      equals.remove(remote)
 
       status match {
         case Nonsense => log.warn("Got nonsense")
-        case Equal => equals.add(remoteHost)
-        case Older => seniors.add(remoteHost)
+        case Equal => equals.add(remote)
+        case Older => seniors.add(remote)
         case Younger =>
-          juniors.add(remoteHost)
+          juniors.add(remote)
           if (extOpt.isEmpty) {
             log.warn("extOpt is empty for Younger brother")
           }
