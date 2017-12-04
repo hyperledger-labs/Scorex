@@ -8,8 +8,6 @@ import examples.hybrid.mining.{HybridSettings, PosForger, PowMiner}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
-import io.circe
-import scorex.core.NodeViewHolder
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
@@ -18,7 +16,7 @@ import scorex.crypto.signatures.PublicKey
 
 import scala.annotation.tailrec
 import scala.reflect.io.Path
-import scala.util.{Random, Try}
+import scala.util.Try
 import scala.concurrent.duration._
 
 /**
