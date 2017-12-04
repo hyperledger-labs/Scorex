@@ -47,6 +47,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   protected val seniors = mutable.Set[ConnectedPeer]()
   protected val juniors = mutable.Set[ConnectedPeer]()
   protected val equals = mutable.Set[ConnectedPeer]()
+  protected val unknowns = mutable.Set[ConnectedPeer]()
 
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
@@ -122,6 +123,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       equals.remove(remote)
 
       status match {
+          //todo: we should ban peer if his view is totally different from ours
         case Nonsense => log.warn("Got nonsense")
         case Equal => equals.add(remote)
         case Older => seniors.add(remote)
@@ -137,6 +139,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
                 networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
             }
           }
+        //todo: should we ban peer if its status is unknown after getting info from it?
+        case Unknown => log.warn("Peer status is still unknown")
       }
 
       val seniorsAfter = seniors.size
