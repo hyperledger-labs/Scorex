@@ -10,7 +10,6 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import scorex.core.LocalInterface.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
-import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
@@ -41,7 +40,7 @@ class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor
         log.debug(s"Trying to generate PoS block on top of ${powBlock.encodedId} with balance " +
           s"${boxKeys.map(_._1.value.toLong).sum}")
         val attachment = Random.randomBytes(settings.mining.posAttachmentSize)
-        posIteration(powBlock, boxKeys, pfi.txsToInclude, attachment, target.longValue()) match {
+        posIteration(powBlock, boxKeys, pfi.txsToInclude, attachment, target) match {
           case Some(posBlock) =>
             log.debug(s"Locally generated PoS block: $posBlock")
             forging = false
@@ -73,7 +72,7 @@ object PosForger extends ScorexLogging {
                    boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
                    txsToInclude: Seq[SimpleBoxTransaction],
                    attachment: Array[Byte],
-                   target: Long
+                   target: BigInt
                   ): Option[PosBlock] = {
     val successfulHits = boxKeys.map { boxKey =>
       val h = hit(powBlock)(boxKey._1)

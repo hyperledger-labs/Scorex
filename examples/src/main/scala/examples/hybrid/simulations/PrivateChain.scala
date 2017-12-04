@@ -1,6 +1,7 @@
 package examples.hybrid.simulations
 
 import examples.commons.SimpleBoxTransactionMemPool
+import examples.hybrid.HybridNodeViewHolder
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.mining.{HybridSettings, PosForger, PowMiner}
@@ -8,6 +9,7 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import io.circe
+import scorex.core.NodeViewHolder
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
@@ -27,8 +29,7 @@ object PrivateChain extends App with ScorexLogging {
   val proposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
 
   def genesisState(): (HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool)  = {
-    // May be taken from HybridNodeViewHolder.genesisState
-    ???
+    HybridNodeViewHolder.generateGenesisState(settings, miningSettings)
   }
 
   def generatePow(h: HybridHistory, brother: Boolean, hashesPerSecond: Int): PowBlock = {
@@ -57,6 +58,7 @@ object PrivateChain extends App with ScorexLogging {
 
   private val hybridSettings = HybridSettings.read(Some("settings.conf"))
   implicit lazy val settings = hybridSettings.scorexSettings
+  lazy val miningSettings = hybridSettings.mining
 
   def timeSpent(adversarialStakePercent: Int, hashesPerSecond: Int): Long = {
 
@@ -84,7 +86,7 @@ object PrivateChain extends App with ScorexLogging {
         @tailrec
         def posStep(): PosBlock = {
           val pb = history.bestPowBlock
-          PosForger.posIteration(pb, boxKeys, Seq(), Array(), target.longValue()) match {
+          PosForger.posIteration(pb, boxKeys, Seq(), Array(), target) match {
             case Some(pos) => pos
             case None =>
               val npb = generatePow(history, brother = true, hashesPerSecond)
@@ -106,7 +108,7 @@ object PrivateChain extends App with ScorexLogging {
   val honestHashesPerSecond = 50
 
   val honestAvg = (1 to experiments).map { _ =>
-    timeSpent(100, honestHashesPerSecond)
+    timeSpent(20, honestHashesPerSecond)
   }.sum / experiments.toDouble
 
   println("avg honest time = " + honestAvg)
