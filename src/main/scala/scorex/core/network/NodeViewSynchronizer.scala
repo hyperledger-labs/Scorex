@@ -24,11 +24,11 @@ import scala.language.postfixOps
   * A middle layer between a node view holder(NodeViewHolder) and the p2p network
   *
   * @param networkControllerRef reference to network controller actor
-  * @param viewHolderRef reference to node view holder actor
-  * @param localInterfaceRef reference to local interface actor
-  * @param syncInfoSpec SyncInfo specification
-  * @tparam P proposition
-  * @tparam TX transaction
+  * @param viewHolderRef        reference to node view holder actor
+  * @param localInterfaceRef    reference to local interface actor
+  * @param syncInfoSpec         SyncInfo specification
+  * @tparam P   proposition
+  * @tparam TX  transaction
   * @tparam SIS SyncInfoMessage specification
   */
 class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI]]
@@ -109,7 +109,15 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //sending out sync message to a random peer
   protected def syncSend: Receive = {
     case CurrentSyncInfo(syncInfo: SI@unchecked) =>
-      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToRandom)
+      val outdated = statusUpdated.filter(t => (System.currentTimeMillis() - t._2).millis > 1.minute).keys.toSeq
+      if (outdated.nonEmpty) {
+        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(outdated))
+      } else {
+        val candidates = statuses.filter(t => t._2 == HistoryComparisonResult.Older ||
+                                              t._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
+        val peer = candidates(scala.util.Random.nextInt(candidates.size))
+        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeer(peer))
+      }
   }
 
 
@@ -124,10 +132,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
     case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI@unchecked, extOpt) =>
-      if (!remoteSyncInfo.answer) {
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(localSyncInfo), None), SendToRandom)
-      }
-
       val seniorsBefore = statuses.count(_._2 == Older)
 
       updateStatus(remote, status)
@@ -154,13 +158,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       val seniorsAfter = statuses.count(_._2 == Older)
 
-      if (seniorsBefore > 0 && seniorsAfter == 0) {
-        localInterfaceRef ! LocalInterface.NoBetterNeighbour
-      }
-
-      if (seniorsBefore == 0 && seniorsAfter > 0) {
-        localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
-      }
+      if (seniorsBefore > 0 && seniorsAfter == 0) localInterfaceRef ! LocalInterface.NoBetterNeighbour
+      if (seniorsBefore == 0 && seniorsAfter > 0) localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
   }
 
   //object ids coming from other node
@@ -193,9 +192,11 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       for ((id, _) <- modifiers) deliveryTracker.receive(typeId, id, remote)
 
-      val (spam, fm) = modifiers partition {_ match {
-        case (id, _) => deliveryTracker.isSpam(id)
-      }}
+      val (spam, fm) = modifiers partition {
+        _ match {
+          case (id, _) => deliveryTracker.isSpam(id)
+        }
+      }
 
       if (spam.nonEmpty) {
         log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
@@ -300,4 +301,5 @@ object NodeViewSynchronizer {
   case class CheckDelivery(source: ConnectedPeer,
                            modifierTypeId: ModifierTypeId,
                            modifierId: ModifierId)
+
 }

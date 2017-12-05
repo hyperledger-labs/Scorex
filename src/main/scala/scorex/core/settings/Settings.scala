@@ -40,7 +40,10 @@ case class NetworkSettings(nodeName: String,
                            appVersion: String,
                            agentName: String,
                            maxPacketLen: Int,
-                           maxInvObjects: Int)
+                           maxInvObjects: Int,
+                           syncInterval: FiniteDuration,
+                           statusRefresh: FiniteDuration
+                          )
 
 case class MinerSettings(offlineGeneration: Boolean,
                          targetBlockDelay: FiniteDuration,
