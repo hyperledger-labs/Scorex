@@ -2,7 +2,7 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.ScorexLogging
@@ -20,6 +20,11 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
 
   private val connectedPeers = mutable.Map[ConnectedPeer, Option[Handshake]]()
   private var connectingPeer: Option[InetSocketAddress] = None
+
+  private val subscribers = mutable.Map[PeerManager.EventType.Value, Seq[ActorRef]]()
+
+  protected def notifySubscribers[O <: PeerManagerEvent](eventType: EventType.Value, event: O): Unit =
+    subscribers.getOrElse(eventType, Seq()).foreach(_ ! event)
 
   private lazy val peerDatabase = new PeerDatabaseImpl(settings.network, Some(settings.dataDir + "/peers.dat"))
 
@@ -63,6 +68,12 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
 
     case GetBlacklistedPeers =>
       sender() ! peerDatabase.blacklistedPeers()
+
+    case PeerManager.Subscribe(listener, events) =>
+      events.foreach { evt =>
+        val current = subscribers.getOrElse(evt, Seq())
+        subscribers.put(evt, current :+ listener)
+      }
   }
 
   private def peerCycle: Receive = {
@@ -79,7 +90,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
         }
       }
 
-    case Handshaked(address, handshake) =>
+    case h@Handshaked(address, handshake) =>
       if (peerDatabase.isBlacklisted(address)) {
         log.info(s"Got handshake from blacklisted $address")
       } else {
@@ -103,6 +114,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
           } else {
             handshake.declaredAddress.foreach(address => self ! PeerManager.AddOrUpdatePeer(address, None, None))
             connectedPeers += newCp -> Some(handshake)
+            notifySubscribers(PeerManager.EventType.Handshaked, HandshakedPeer(newCp))
           }
         }
       }
@@ -133,6 +145,15 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
 }
 
 object PeerManager {
+  object EventType extends Enumeration {
+    val Handshaked: EventType.Value = Value(1)
+  }
+
+  case class Subscribe(listener: ActorRef, events: Seq[EventType.Value])
+
+  trait PeerManagerEvent
+
+  case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
 
   case class AddOrUpdatePeer(address: InetSocketAddress, peerNonce: Option[Long], peerName: Option[String])
 

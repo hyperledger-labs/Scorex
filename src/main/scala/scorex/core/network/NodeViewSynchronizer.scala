@@ -14,8 +14,10 @@ import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
-
 import History.HistoryComparisonResult
+import scorex.core.network.peer.PeerManager
+import scorex.core.network.peer.PeerManager.{Handshaked, HandshakedPeer}
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -69,7 +71,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
 
-    val events = Seq(
+    networkControllerRef ! NetworkController.SubscribePeerManagerEvent(Seq(PeerManager.EventType.Handshaked))
+
+    val vhEvents = Seq(
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.SuccessfulTransaction,
       NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
@@ -77,7 +81,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
       NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
     )
-    viewHolderRef ! Subscribe(events)
+    viewHolderRef ! Subscribe(vhEvents)
 
     context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! GetLocalSyncInfo)
   }
@@ -101,6 +105,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     //todo: ban source peer?
   }
 
+  protected def peerManagerEvents: Receive = {
+    case HandshakedPeer(remote) => updateStatus(remote, HistoryComparisonResult.Unknown)
+  }
+
   protected def getLocalSyncInfo: Receive = {
     case GetLocalSyncInfo =>
       viewHolderRef ! NodeViewHolder.GetSyncInfo
@@ -118,8 +126,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       } else {
         val candidates = statuses.filter(t => t._2 == HistoryComparisonResult.Older ||
                                               t._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-        val peer = candidates(scala.util.Random.nextInt(candidates.size))
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeer(peer))
+        if(candidates.nonEmpty) {
+          val peer = candidates(scala.util.Random.nextInt(candidates.size))
+          networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeer(peer))
+        }
       }
   }
 
@@ -280,6 +290,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       responseFromLocal orElse
       modifiersFromRemote orElse
       viewHolderEvents orElse
+      peerManagerEvents orElse
       checkDelivery orElse {
       case a: Any => log.error("Strange input: " + a)
     }
