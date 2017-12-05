@@ -104,6 +104,7 @@ object History {
     val Younger = Value(2)
     val Older = Value(3)
     val Nonsense = Value(4)
+    val Unknown = Value(5)
   }
 
   /**

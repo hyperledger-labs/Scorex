@@ -14,7 +14,6 @@ import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.reflect.runtime.universe.Type
 
 trait Application extends ScorexLogging {
 

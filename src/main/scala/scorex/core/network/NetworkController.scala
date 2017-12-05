@@ -9,6 +9,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.core.network.peer.PeerManager
+import scorex.core.network.peer.PeerManager.EventType
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 
@@ -19,7 +20,6 @@ import scala.concurrent.duration._
 import scala.language.existentials
 import scala.reflect.runtime.universe.TypeTag
 import scala.util.{Failure, Success, Try}
-
 import scala.language.postfixOps
 
 /**
@@ -170,6 +170,9 @@ class NetworkController(settings: NetworkSettings,
         .foreach(_.foreach(_.handlerRef ! PeerConnectionHandler.CloseConnection))
       self ! Unbind
       context stop self
+
+    case SubscribePeerManagerEvent(events) =>
+      peerManagerRef ! PeerManager.Subscribe(sender(), events)
   }
 
   override def receive: Receive = bindingLogic orElse businessLogic orElse peerLogic orElse interfaceCalls orElse {
@@ -201,4 +204,5 @@ object NetworkController {
 
   case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
 
+  case class SubscribePeerManagerEvent(events: Seq[EventType.Value])
 }
