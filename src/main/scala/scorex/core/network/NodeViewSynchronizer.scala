@@ -79,7 +79,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     )
     viewHolderRef ! Subscribe(events)
 
-    context.system.scheduler.schedule(2.seconds, 15.seconds)(self ! GetLocalSyncInfo)
+    context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! GetLocalSyncInfo)
   }
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -109,7 +109,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   //sending out sync message to a random peer
   protected def syncSend: Receive = {
     case CurrentSyncInfo(syncInfo: SI@unchecked) =>
-      val outdated = statusUpdated.filter(t => (System.currentTimeMillis() - t._2).millis > 1.minute).keys.toSeq
+      val outdated = statusUpdated
+        .filter(t => (System.currentTimeMillis() - t._2).millis > networkSettings.syncStatusRefresh)
+        .keys
+        .toSeq
       if (outdated.nonEmpty) {
         networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(outdated))
       } else {
