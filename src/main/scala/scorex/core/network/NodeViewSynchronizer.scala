@@ -16,7 +16,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import History.HistoryComparisonResult
 import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.{Handshaked, HandshakedPeer}
+import scorex.core.network.peer.PeerManager.HandshakedPeer
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -60,6 +60,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
     statuses.update(peer, status)
+  }
+
+  private def updateTime(peer: ConnectedPeer): Unit = {
+    statusUpdated.update(peer, System.currentTimeMillis())
   }
 
 
@@ -109,12 +113,19 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case HandshakedPeer(remote) => updateStatus(remote, HistoryComparisonResult.Unknown)
   }
 
+  /**
+    * To send out regular sync signal, we first send a request to node view holder to get current syncing information
+    */
   protected def getLocalSyncInfo: Receive = {
     case GetLocalSyncInfo =>
       viewHolderRef ! NodeViewHolder.GetSyncInfo
   }
 
-  //sending out sync message to a random peer
+  /**
+    * Logic to send a sync signal to other peers: we whether send the signal to all the peers we haven't got status
+    * for more than "syncStatusRefresh" setting says, or the signal is to be sent to all the unknown nodes and a random
+    * peer which is older
+    */
   protected def syncSend: Receive = {
     case CurrentSyncInfo(syncInfo: SI@unchecked) =>
       val outdated = statusUpdated
@@ -122,14 +133,17 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         .keys
         .toSeq
       if (outdated.nonEmpty) {
+        outdated.foreach(updateTime)
         networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(outdated))
       } else {
-        val candidates = statuses.filter(t => t._2 == HistoryComparisonResult.Older ||
-                                              t._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-        if(candidates.nonEmpty) {
-          val peer = candidates(scala.util.Random.nextInt(candidates.size))
-          networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeer(peer))
-        }
+        val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
+        val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
+        val candidates = if (olders.nonEmpty) {
+          olders(scala.util.Random.nextInt(olders.size)) +: unknowns
+        } else unknowns
+
+        candidates.foreach(updateTime)
+        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(candidates))
       }
   }
 
