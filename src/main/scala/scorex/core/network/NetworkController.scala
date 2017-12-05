@@ -9,7 +9,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.{EventType, Handshaked}
+import scorex.core.network.peer.PeerManager.EventType
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 
@@ -139,8 +139,6 @@ class NetworkController(settings: NetworkSettings,
     case DisconnectFrom(peer) =>
       peer.handlerRef ! PeerConnectionHandler.CloseConnection
       peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
-
-    case Handshaked(remote, handshake) =>
 
     case Blacklist(peer) =>
       peer.handlerRef ! PeerConnectionHandler.Blacklist
