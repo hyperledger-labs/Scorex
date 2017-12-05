@@ -4,6 +4,10 @@ jdk:
   - oraclejdk8
 scala:
   - 2.12.3
+branches:
+  only:
+    - master
+    - /^\d\.\d+$/
 script:
   - sbt "project examples" clean coverage test && sbt test
 cache:
