@@ -15,6 +15,7 @@ import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
+import History.HistoryComparisonResult
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -40,14 +41,25 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
 
+  type Timestamp = Long
+
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
 
-  protected val seniors = mutable.Set[ConnectedPeer]()
-  protected val juniors = mutable.Set[ConnectedPeer]()
-  protected val equals = mutable.Set[ConnectedPeer]()
-  protected val unknowns = mutable.Set[ConnectedPeer]()
+  /*
+    We cache peers along with their statuses (whether another peer is ahead or behind of ours,
+    or comparison is not possible, or status is not yet known)
+   */
+  protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
+  protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
+
+
+  private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
+    statusUpdated.update(peer, System.currentTimeMillis())
+    statuses.update(peer, status)
+  }
+
 
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
@@ -116,23 +128,20 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(localSyncInfo), None), SendToRandom)
       }
 
-      val seniorsBefore = seniors.size
+      val seniorsBefore = statuses.count(_._2 == Older)
 
-      seniors.remove(remote)
-      juniors.remove(remote)
-      equals.remove(remote)
+      updateStatus(remote, status)
 
       status match {
-          //todo: we should ban peer if his view is totally different from ours
-        case Nonsense => log.warn("Got nonsense")
-        case Equal => equals.add(remote)
-        case Older => seniors.add(remote)
+        case Nonsense =>
+          //todo: we should ban peer if its view is totally different from ours
+          log.warn("Got nonsense")
+        case Equal =>
+        case Older =>
         case Younger =>
-          juniors.add(remote)
           if (extOpt.isEmpty) {
             log.warn("extOpt is empty for Younger brother")
-          }
-          else {
+          } else {
             val ext = extOpt.get
             ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
               case (mid, mods) =>
@@ -143,7 +152,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         case Unknown => log.warn("Peer status is still unknown")
       }
 
-      val seniorsAfter = seniors.size
+      val seniorsAfter = statuses.count(_._2 == Older)
 
       if (seniorsBefore > 0 && seniorsAfter == 0) {
         localInterfaceRef ! LocalInterface.NoBetterNeighbour
