@@ -49,10 +49,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
 
-  /*
+  /**
     We cache peers along with their statuses (whether another peer is ahead or behind of ours,
     or comparison is not possible, or status is not yet known)
-   */
+   **/
   protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
   protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
 
@@ -67,7 +67,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   private def updateTime(peer: ConnectedPeer): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
   }
-
 
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
@@ -189,6 +188,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       val seniorsAfter = statuses.count(_._2 == Older)
 
       if (seniorsBefore > 0 && seniorsAfter == 0) {
+        log.info("Syncing is done, switching to stable regime")
         stableSyncRegime = true
         scheduler.cancel()
         scheduler = context.system.scheduler.schedule(2 seconds, networkSettings.syncIntervalStable)(self ! GetLocalSyncInfo)
