@@ -130,22 +130,24 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   protected def syncSend: Receive = {
     case CurrentSyncInfo(syncInfo: SI@unchecked) =>
       val timeout = if(stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
+      val minInterval = if(stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
+
       val outdated = statusUpdated
         .filter(t => (System.currentTimeMillis() - t._2).millis > timeout)
         .keys
         .toSeq
-      if (outdated.nonEmpty) {
-        outdated.foreach(updateTime)
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(outdated))
+
+      val peersToSend = if (outdated.nonEmpty) {
+        outdated
       } else {
         val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
         val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
-        val candidates = if (olders.nonEmpty) {
-          olders(scala.util.Random.nextInt(olders.size)) +: unknowns
-        } else unknowns
+        if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
+      }.filter(peer => (System.currentTimeMillis() - statusUpdated(peer)).millis >= minInterval)
 
-        candidates.foreach(updateTime)
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(candidates))
+      if(peersToSend.nonEmpty) {
+        peersToSend.foreach(updateTime)
+        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peersToSend))
       }
   }
 
