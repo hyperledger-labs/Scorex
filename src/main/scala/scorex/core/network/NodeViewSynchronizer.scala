@@ -1,6 +1,6 @@
 package scorex.core.network
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import scorex.core._
 import scorex.core.NodeViewHolder._
 import scorex.core.consensus.{History, SyncInfo}
@@ -56,6 +56,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
   protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
 
+  protected var stableSyncRegime = false
+  protected var scheduler: Cancellable = _
 
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
@@ -87,7 +89,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     )
     viewHolderRef ! Subscribe(vhEvents)
 
-    context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! GetLocalSyncInfo)
+    scheduler = context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! GetLocalSyncInfo)
   }
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -128,8 +130,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     */
   protected def syncSend: Receive = {
     case CurrentSyncInfo(syncInfo: SI@unchecked) =>
+      val timeout = if(stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
       val outdated = statusUpdated
-        .filter(t => (System.currentTimeMillis() - t._2).millis > networkSettings.syncStatusRefresh)
+        .filter(t => (System.currentTimeMillis() - t._2).millis > timeout)
         .keys
         .toSeq
       if (outdated.nonEmpty) {
@@ -185,8 +188,15 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
       val seniorsAfter = statuses.count(_._2 == Older)
 
-      if (seniorsBefore > 0 && seniorsAfter == 0) localInterfaceRef ! LocalInterface.NoBetterNeighbour
-      if (seniorsBefore == 0 && seniorsAfter > 0) localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
+      if (seniorsBefore > 0 && seniorsAfter == 0) {
+        stableSyncRegime = true
+        scheduler.cancel()
+        scheduler = context.system.scheduler.schedule(2 seconds, networkSettings.syncIntervalStable)(self ! GetLocalSyncInfo)
+        localInterfaceRef ! LocalInterface.NoBetterNeighbour
+      }
+      if (seniorsBefore == 0 && seniorsAfter > 0) {
+        localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
+      }
   }
 
   //object ids coming from other node
