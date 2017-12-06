@@ -1,25 +1,24 @@
 package scorex.core.network
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core._
 import scorex.core.NodeViewHolder._
+import scorex.core._
+import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
-import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
-import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
-
-import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
-import scorex.core.settings.NetworkSettings
-import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
-import History.HistoryComparisonResult
+import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.HandshakedPeer
+import scorex.core.settings.NetworkSettings
+import scorex.core.transaction.Transaction
+import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.utils.{NetworkTime, ScorexLogging}
+import scorex.crypto.encode.Base58
 
-import scala.concurrent.duration._
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
@@ -40,8 +39,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
  syncInfoSpec: SIS,
  networkSettings: NetworkSettings) extends Actor with ScorexLogging {
 
-  import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
+  import NodeViewSynchronizer._
 
   type Timestamp = Long
 
@@ -55,7 +54,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
    */
   protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
   protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
-
+  private var lastSyncInfoSentTime = NetworkTime.time()
 
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
@@ -128,22 +127,28 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     */
   protected def syncSend: Receive = {
     case CurrentSyncInfo(syncInfo: SI@unchecked) =>
-      val outdated = statusUpdated
-        .filter(t => (System.currentTimeMillis() - t._2).millis > networkSettings.syncStatusRefresh)
-        .keys
-        .toSeq
-      if (outdated.nonEmpty) {
-        outdated.foreach(updateTime)
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(outdated))
+      val currentTime = NetworkTime.time()
+      if (currentTime - lastSyncInfoSentTime < networkSettings.syncInterval.toMillis) {
+        log.debug("Trying to send sync info too often")
       } else {
-        val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-        val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
-        val candidates = if (olders.nonEmpty) {
-          olders(scala.util.Random.nextInt(olders.size)) +: unknowns
-        } else unknowns
+        lastSyncInfoSentTime = currentTime
+        val outdated = statusUpdated
+          .filter(t => (System.currentTimeMillis() - t._2).millis > networkSettings.syncStatusRefresh)
+          .keys
+          .toSeq
+        if (outdated.nonEmpty) {
+          outdated.foreach(updateTime)
+          networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(outdated))
+        } else {
+          val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
+          val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
+          val candidates = if (olders.nonEmpty) {
+            olders(scala.util.Random.nextInt(olders.size)) +: unknowns
+          } else unknowns
 
-        candidates.foreach(updateTime)
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(candidates))
+          candidates.foreach(updateTime)
+          networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(candidates))
+        }
       }
   }
 
