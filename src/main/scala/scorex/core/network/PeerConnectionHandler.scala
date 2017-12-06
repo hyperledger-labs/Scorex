@@ -25,6 +25,8 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
   override def hashCode(): Int = socketAddress.hashCode()
   override def equals(obj: Any): Boolean =
     obj.cast[ConnectedPeer].exists(_.socketAddress.getAddress.getHostAddress == this.socketAddress.getAddress.getHostAddress)
+
+  override def toString = s"ConnectedPeer($socketAddress)"
 }
 
 
@@ -73,8 +75,10 @@ case class PeerConnectionHandler(settings: NetworkSettings,
       connection ! ResumeReading
   }
 
+  private var receivedHandshake: Option[Handshake] = None
+
   //todo: use `become` to handle handshake state instead?
-  private var handshakeGot = false
+  private def handshakeGot = receivedHandshake.isDefined
   private var handshakeSent = false
 
   private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
@@ -104,10 +108,9 @@ case class PeerConnectionHandler(settings: NetworkSettings,
     case Received(data) =>
       HandshakeSerializer.parseBytes(data.toArray) match {
         case Success(handshake) =>
-          peerManager ! Handshaked(remote, handshake)
+          receivedHandshake = Some(handshake)
           log.info(s"Got a Handshake from $remote")
           connection ! ResumeReading
-          handshakeGot = true
           if (handshakeGot && handshakeSent) self ! HandshakeDone
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
@@ -119,6 +122,8 @@ case class PeerConnectionHandler(settings: NetworkSettings,
       connection ! Close
 
     case HandshakeDone =>
+      assert(receivedHandshake.isDefined)
+      peerManager ! Handshaked(remote, receivedHandshake.get)
       handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading
       context become workingCycle

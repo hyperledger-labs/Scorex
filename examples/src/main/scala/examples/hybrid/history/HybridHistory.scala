@@ -215,7 +215,7 @@ class HybridHistory(val storage: HistoryStorage,
 
       val realTime = lastPow.timestamp - powBlocks.head.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
-      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.targetBlockDelay.toSeconds
+      val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.targetBlockDelay.toMillis
       val oldPowDifficulty = storage.getPoWDifficulty(Some(lastPow.prevPosId))
 
       val newPowDiffUnlimited = (oldPowDifficulty * expectedTime / realTime).max(BigInt(1L))

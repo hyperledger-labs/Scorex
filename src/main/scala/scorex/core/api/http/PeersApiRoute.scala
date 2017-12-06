@@ -41,7 +41,8 @@ case class PeersApiRoute(peerManager: ActorRef,
         .map { peers =>
           peers.map { case (address, peerInfo) =>
             Map(
-              "address" -> address.toString,
+              // todo get or empty
+              "declaredAddress" -> address.toString,
               "nodeName" -> (peerInfo.nodeName.getOrElse("N/A"): String),
               "nodeNonce" -> (peerInfo.nonce.map(_.toString).getOrElse("N/A"): String)
             )
@@ -62,9 +63,10 @@ case class PeersApiRoute(peerManager: ActorRef,
         .map { handshakes =>
           val peerData = handshakes.map { handshake =>
             Map(
+              // todo get or empty
               "declaredAddress" -> handshake.declaredAddress.toString,
-              "peerName" -> handshake.nodeName,
-              "peerNonce" -> handshake.nodeNonce.toString
+              "nodeName" -> handshake.nodeName,
+              "nodeNonce" -> handshake.nodeNonce.toString
             ).asJson
           }.asJson
           Map("peers" -> peerData).asJson
