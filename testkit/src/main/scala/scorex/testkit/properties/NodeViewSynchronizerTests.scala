@@ -100,17 +100,6 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     vhProbe.fishForMessage(3 seconds) { case m => m == GetSyncInfo }
   }}
 
-  property("NodeViewSynchronizer: CurrentSyncInfo") { withFixture { ctx =>
-    import ctx._
-    node ! CurrentSyncInfo(syncInfo)
-    ncProbe.fishForMessage(3 seconds) { case m =>
-      m match {
-        case SendToNetwork(Message (_, Right (info), None), SendToRandom) if info == syncInfo => true
-        case _ => false
-      }
-    }
-  }}
-
   property("NodeViewSynchronizer: DataFromPeer: SyncInfoSpec") { withFixture { ctx =>
     import ctx._
 
