@@ -9,7 +9,7 @@ import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.HandshakedPeer
+import scorex.core.network.peer.PeerManager.{HandshakedPeer, DisconnectedPeer}
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
@@ -74,7 +74,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
 
-    networkControllerRef ! NetworkController.SubscribePeerManagerEvent(Seq(PeerManager.EventType.Handshaked))
+    val pmEvents = Seq(
+      PeerManager.EventType.Handshaked,
+      PeerManager.EventType.Disconnected
+    )
+
+    networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
 
     val vhEvents = Seq(
       NodeViewHolder.EventType.FailedTransaction,
@@ -110,6 +115,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) => updateStatus(remote, HistoryComparisonResult.Unknown)
+    case DisconnectedPeer(remote) => // todo: does nothing for now
   }
 
   /**
