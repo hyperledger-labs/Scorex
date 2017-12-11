@@ -91,7 +91,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     )
     viewHolderRef ! Subscribe(vhEvents)
 
-    context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! GetLocalSyncInfo)
+    context.system.scheduler.scheduleOnce(networkSettings.syncInterval)(self ! GetLocalSyncInfo)
   }
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -133,6 +133,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     */
   protected def syncSend: Receive = {
     case CurrentSyncInfo(syncInfo: SI@unchecked) =>
+      context.system.scheduler.scheduleOnce(networkSettings.syncInterval)(self ! GetLocalSyncInfo)
       val currentTime = NetworkTime.time()
       if (currentTime - lastSyncInfoSentTime < networkSettings.syncInterval.toMillis) {
         log.debug("Trying to send sync info too often")
