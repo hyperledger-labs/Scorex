@@ -124,6 +124,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
       if (connectingPeer.contains(remote)) {
         connectingPeer = None
       }
+      notifySubscribers(PeerManager.EventType.Disconnected, PeerManager.DisconnectedPeer(remote))
   }
 
   override def receive: Receive = ({
@@ -147,6 +148,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
 object PeerManager {
   object EventType extends Enumeration {
     val Handshaked: EventType.Value = Value(1)
+    val Disconnected: EventType.Value = Value(2)
   }
 
   case class Subscribe(listener: ActorRef, events: Seq[EventType.Value])
@@ -154,6 +156,8 @@ object PeerManager {
   trait PeerManagerEvent
 
   case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
+
+  case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
 
   case class AddOrUpdatePeer(address: InetSocketAddress, peerNonce: Option[Long], peerName: Option[String])
 
