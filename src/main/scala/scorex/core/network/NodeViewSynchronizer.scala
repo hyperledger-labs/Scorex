@@ -217,14 +217,15 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       viewHolderRef ! GetLocalObjects(remote, invData._1, invData._2)
   }
 
-  //other node is sending objects
+  /**
+    * Logic to process modifiers got from another peer
+    */
   protected def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
       if spec.messageCode == ModifiersSpec.messageCode =>
 
       val typeId = data._1
       val modifiers = data._2
-
 
       log.info(s"Got modifiers of type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"From remote connected peer: $remote")
