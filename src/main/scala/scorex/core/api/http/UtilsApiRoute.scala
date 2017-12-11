@@ -13,14 +13,14 @@ import scorex.crypto.hash.Blake2b256
 
 
 @Path("/utils")
-@Api(value = "/utils", description = "Useful functions", position = 3, produces = "application/json")
+@Api(value = "/utils", description = "Useful functions", position = 3, produces = "plain/text")
 case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val context: ActorRefFactory) extends ApiRoute {
   val SeedSize = 32
 
-  private def seed(length: Int): SuccessApiResponse = {
+  private def seed(length: Int): String = {
     val seed = new Array[Byte](length)
     new SecureRandom().nextBytes(seed) //seed mutated here!
-    SuccessApiResponse(Map("seed" -> Base58.encode(seed)).asJson)
+    Base58.encode(seed)
   }
 
   override val route = pathPrefix("utils") {
@@ -30,11 +30,11 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
   @Path("/seed")
   @ApiOperation(value = "Seed", notes = "Generate random seed", httpMethod = "GET")
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with peer list or error")
+    new ApiResponse(code = 200, message = "Seed string")
   ))
   def seedRoute: Route = path("seed") {
-    getJsonRoute {
-      seed(SeedSize)
+    get {
+      complete(seed(SeedSize))
     }
   }
 
@@ -43,10 +43,10 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "length", value = "Seed length ", required = true, dataType = "long", paramType = "path")
   ))
-  @ApiResponse(code = 200, message = "Json with peer list or error")
+  @ApiResponse(code = 200, message = "Seed string")
   def length: Route = path("seed" / IntNumber) { case length =>
-    getJsonRoute {
-      seed(length)
+    get {
+      complete(seed(length))
     }
   }
 
@@ -56,15 +56,13 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
     new ApiImplicitParam(name = "message", value = "Message to hash", required = true, paramType = "body", dataType = "String")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with error or json like {\"message\": \"your message\",\"hash\": \"your message hash\"}")
+    new ApiResponse(code = 200, message = "hash value")
   ))
   def hashBlake2b: Route = {
     path("hash" / "blake2b") {
-      entity(as[String]) { message =>
-        withAuth {
-          postJsonRoute {
-            SuccessApiResponse(Map("message" -> message, "hash" -> Base58.encode(Blake2b256(message))).asJson)
-          }
+      post {
+        entity(as[String]) { message =>
+          complete(Base58.encode(Blake2b256(message)))
         }
       }
     }
