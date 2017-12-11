@@ -46,7 +46,7 @@ class DeliveryTracker(context: ActorContext,
     cancellables((midAsKey, cp)) = cancellable
   }
 
-  // stops expecting, and expects again if the number of checks exceeds the maximum
+  // stops expecting, and expects again if the number of checks does not exceed the maximum
   def reexpect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = {
     stopExpecting(cp, mtid, mid)
     val midAsKey = key(mid)

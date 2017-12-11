@@ -34,5 +34,7 @@ HT <: History[PM, SI, HT]]
     with MempoolTransactionsTest[P, TX, MPool]
     with MempoolFilterPerformanceTest[P, TX, MPool]
     with MempoolRemovalTest[P, TX, MPool, PM, CTM, HT, SI]
-    with AllModifierProducers[P, TX, MPool, PM, CTM, ST, SI, HT] {
+    with AllModifierProducers[P, TX, MPool, PM, CTM, ST, SI, HT]
+    with NodeViewHolderTests[P, TX, PM, ST, SI, HT, MPool]
+    with NodeViewSynchronizerTests[P, TX, PM, ST, SI, HT] {
 }
