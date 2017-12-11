@@ -14,7 +14,6 @@ import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.reflect.runtime.universe.Type
 
 trait Application extends ScorexLogging {
 
@@ -70,10 +69,10 @@ trait Application extends ScorexLogging {
 
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
-    log.debug(s"RPC is allowed at 0.0.0.0:${settings.restApi.port}")
+    log.debug(s"RPC is allowed at ${settings.restApi.bindAddress}:${settings.restApi.port}")
 
     implicit val materializer = ActorMaterializer()
-    Http().bindAndHandle(combinedRoute, "0.0.0.0", settings.restApi.port)
+    Http().bindAndHandle(combinedRoute, settings.restApi.bindAddress, settings.restApi.port)
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {

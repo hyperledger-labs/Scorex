@@ -9,6 +9,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.core.network.peer.PeerManager
+import scorex.core.network.peer.PeerManager.EventType
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 
@@ -19,7 +20,6 @@ import scala.concurrent.duration._
 import scala.language.existentials
 import scala.reflect.runtime.universe.TypeTag
 import scala.util.{Failure, Success, Try}
-
 import scala.language.postfixOps
 
 /**
@@ -73,11 +73,18 @@ class NetworkController(settings: NetworkSettings,
   lazy val localAddress = new InetSocketAddress(InetAddress.getByName(settings.bindAddress), settings.port)
 
   //an address to send to peers
-  lazy val externalSocketAddress = settings.declaredAddress
-    .flatMap(s => Try(InetAddress.getByName(s)).toOption)
-    .orElse {
-      if (settings.upnpEnabled) upnp.externalAddress else None
-    }.map(ia => new InetSocketAddress(ia, settings.port))
+  lazy val externalSocketAddress = {
+    settings.declaredAddress
+      .flatMap(s => {
+        val Array(address, port) = s.split(":")
+        Try(InetAddress.getByName(address)).map(address =>
+          new InetSocketAddress(address, port.toInt)).toOption
+      }).orElse {
+      if (settings.upnpEnabled) {
+        upnp.externalAddress.map(a => new InetSocketAddress(a, settings.port))
+      } else None
+    }
+  }
 
   log.info(s"Declared address: $externalSocketAddress")
 
@@ -163,6 +170,9 @@ class NetworkController(settings: NetworkSettings,
         .foreach(_.foreach(_.handlerRef ! PeerConnectionHandler.CloseConnection))
       self ! Unbind
       context stop self
+
+    case SubscribePeerManagerEvent(events) =>
+      peerManagerRef ! PeerManager.Subscribe(sender(), events)
   }
 
   override def receive: Receive = bindingLogic orElse businessLogic orElse peerLogic orElse interfaceCalls orElse {
@@ -194,4 +204,5 @@ object NetworkController {
 
   case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
 
+  case class SubscribePeerManagerEvent(events: Seq[EventType.Value])
 }
