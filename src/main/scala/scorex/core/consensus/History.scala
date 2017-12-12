@@ -20,9 +20,20 @@ import scala.util.Try
 
 trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends HistoryReader[PM, SI, HT] {
 
+  /**
+    * @return append modifier to history
+    */
   def append(modifier: PM): Try[(HT, ProgressInfo[PM])]
 
+  /**
+    * Report that modifier is valid from other nodeViewHolder components point of view
+    */
   def reportSemanticValidity(modifier: PM, valid: Boolean, lastApplied: ModifierId): (HT, ProgressInfo[PM])
+
+  /**
+    * @return read-only copy of this history
+    */
+  def getReader: HistoryReader[PM, SI, HT] = this
 
 }
 

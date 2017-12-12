@@ -60,7 +60,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       onNewSurface(surf.newSurface)
 
     case state: ChangedState =>
-      onChangedState(state.isRollback, state.newVersion)
+      onChangedState(state.newVersion)
 
     case RollbackFailed =>
       onRollbackFailed()
@@ -80,7 +80,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def onSemanticallyFailedModification(mod: PMOD): Unit
 
   protected def onNewSurface(newSurface: Seq[ModifierId]): Unit
-  protected def onChangedState(isRollback: Boolean, newVersion: VersionTag): Unit
+  protected def onChangedState(newVersion: VersionTag): Unit
   protected def onRollbackFailed(): Unit
 
 
