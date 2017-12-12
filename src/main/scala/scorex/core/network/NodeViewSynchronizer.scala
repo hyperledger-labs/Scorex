@@ -10,7 +10,7 @@ import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.settings.NetworkSettings
-import scorex.core.transaction.Transaction
+import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
@@ -37,7 +37,8 @@ TX <: Transaction[P],
 SI <: SyncInfo,
 SIS <: SyncInfoMessageSpec[SI],
 PMOD <: PersistentNodeViewModifier,
-HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
+HR <: HistoryReader[PMOD, SI],
+MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                                viewHolderRef: ActorRef,
                                localInterfaceRef: ActorRef,
                                syncInfoSpec: SIS,
@@ -60,6 +61,7 @@ HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
   protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
   private var lastSyncInfoSentTime = NetworkTime.time()
   protected var historyReaderOpt: Option[HR] = None
+  protected var mempoolReaderOpt: Option[MR] = None
 
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
@@ -88,6 +90,7 @@ HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
 
     val vhEvents = Seq(
       NodeViewHolder.EventType.HistoryChanged,
+      NodeViewHolder.EventType.MempoolChanged,
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.SuccessfulTransaction,
       NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
@@ -119,7 +122,13 @@ HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
     //todo: ban source peer?
     case ChangedHistory(reader) if reader.isInstanceOf[HR] =>
       //TODO isInstanceOf ?
+      //TODO type erasure
       historyReaderOpt = Some(reader.asInstanceOf[HR])
+
+    case ChangedMempool(reader) if reader.isInstanceOf[MR] =>
+      //TODO isInstanceOf ?
+      //TODO type erasure
+      mempoolReaderOpt = Some(reader.asInstanceOf[MR])
   }
 
   protected def peerManagerEvents: Receive = {
