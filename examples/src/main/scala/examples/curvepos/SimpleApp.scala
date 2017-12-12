@@ -37,7 +37,7 @@ class SimpleApp(val settingsFilename: String) extends Application {
     forger)))
 
   override val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoMessageSpec.type]
+    actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoMessageSpec.type, PMOD]
     (networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoMessageSpec, settings.network)))
 
   override val apiTypes: Set[Class[_]] = Set(classOf[UtilsApiRoute], classOf[NodeViewApiRoute[P, TX]])

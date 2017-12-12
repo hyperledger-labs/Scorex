@@ -2,18 +2,18 @@ package scorex.core.network
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.NodeViewHolder._
-import scorex.core._
 import scorex.core.consensus.History.HistoryComparisonResult
-import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.{HandshakedPeer, DisconnectedPeer}
+import scorex.core.network.peer.PeerManager.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.{NetworkTime, ScorexLogging}
+import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.crypto.encode.Base58
 
 import scala.collection.mutable
@@ -32,12 +32,14 @@ import scala.language.postfixOps
   * @tparam TX  transaction
   * @tparam SIS SyncInfoMessage specification
   */
-class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI]]
-(networkControllerRef: ActorRef,
- viewHolderRef: ActorRef,
- localInterfaceRef: ActorRef,
- syncInfoSpec: SIS,
- networkSettings: NetworkSettings) extends Actor with ScorexLogging {
+class NodeViewSynchronizer[P <: Proposition,
+TX <: Transaction[P],
+SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI],
+PMOD <: PersistentNodeViewModifier](networkControllerRef: ActorRef,
+                                  viewHolderRef: ActorRef,
+                                  localInterfaceRef: ActorRef,
+                                  syncInfoSpec: SIS,
+                                  networkSettings: NetworkSettings) extends Actor with ScorexLogging {
 
   import History.HistoryComparisonResult._
   import NodeViewSynchronizer._
@@ -55,6 +57,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
   protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
   private var lastSyncInfoSentTime = NetworkTime.time()
+  protected var historyReader: Option[HistoryReader[PMOD, SI]] = None
 
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
@@ -82,6 +85,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
 
     val vhEvents = Seq(
+      NodeViewHolder.EventType.HistoryChanged,
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.SuccessfulTransaction,
       NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
@@ -111,6 +115,12 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
+    case ChangedHistory(reader) =>
+//      reader match {
+//        case r: HistoryReader[PMOD, SI] => historyReader = Some(r)
+//        case _ => ???
+//      }
+    ???
   }
 
   protected def peerManagerEvents: Receive = {
@@ -123,7 +133,9 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     */
   protected def getLocalSyncInfo: Receive = {
     case GetLocalSyncInfo =>
-      viewHolderRef ! NodeViewHolder.GetSyncInfo
+      historyReader.foreach { r =>
+        self ! CurrentSyncInfo(r.syncInfo(false))
+      }
   }
 
   /**

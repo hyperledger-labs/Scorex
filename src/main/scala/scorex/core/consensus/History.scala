@@ -18,7 +18,7 @@ import scala.util.Try
   * function has been used instead.
   */
 
-trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends HistoryReader[PM, SI, HT] {
+trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends HistoryReader[PM, SI] {
 
   /**
     * @return append modifier to history
@@ -33,7 +33,7 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
   /**
     * @return read-only copy of this history
     */
-  def getReader: HistoryReader[PM, SI, HT] = this
+  def getReader: HistoryReader[PM, SI] = this
 
 }
 

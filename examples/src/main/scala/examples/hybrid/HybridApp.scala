@@ -52,7 +52,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val localInterface: ActorRef = actorSystem.actorOf(Props(new HLocalInterface(nodeViewHolderRef, miner, forger, hybridSettings.mining)))
 
   override val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type]
+    actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type, PMOD]
     (networkController, nodeViewHolderRef, localInterface, HybridSyncInfoMessageSpec, settings.network)))
 
   //touching lazy vals

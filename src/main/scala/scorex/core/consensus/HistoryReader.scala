@@ -3,7 +3,7 @@ package scorex.core.consensus
 import scorex.core._
 
 
-trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends NodeViewComponent {
+trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends NodeViewComponent {
 
   import History._
 

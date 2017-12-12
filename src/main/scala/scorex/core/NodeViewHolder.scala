@@ -146,7 +146,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       updatedVault.getOrElse(vault()),
       updatedMempool.getOrElse(memoryPool()))
     if (updatedHistory.nonEmpty) {
-      notifySubscribers[ChangedHistory[PMOD, SI, HIS]](EventType.HistoryChanged, ChangedHistory[PMOD, SI, HIS](newNodeView._1.getReader))
+      notifySubscribers[ChangedHistory[PMOD, SI]](EventType.HistoryChanged, ChangedHistory[PMOD, SI](newNodeView._1.getReader))
     }
     if (updatedState.nonEmpty) {
       notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(newNodeView._2.version))
@@ -292,7 +292,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
               case Failure(e) =>
                 log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to minimal state", e)
-                notifySubscribers[ChangedHistory[PMOD, SI, HIS]](EventType.HistoryChanged, ChangedHistory[PMOD, SI, HIS](newHistory))
                 updateNodeView(updatedHistory = Some(newHistory))
                 notifySubscribers(EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(pmod, e))
             }
@@ -474,8 +473,7 @@ object NodeViewHolder {
   //TODO: return state reader
   case class ChangedState(newVersion: VersionTag) extends NodeViewChange
 
-  case class ChangedHistory[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]]
-  (reader: HistoryReader[PM, SI, HT]) extends NodeViewChange
+  case class ChangedHistory[PM <: PersistentNodeViewModifier, SI <: SyncInfo](reader: HistoryReader[PM, SI]) extends NodeViewChange
 
   //TODO: return mempool reader
   case class ChangedMempool() extends NodeViewChange
