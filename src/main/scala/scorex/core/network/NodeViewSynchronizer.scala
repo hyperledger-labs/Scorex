@@ -10,8 +10,8 @@ import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.settings.NetworkSettings
-import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.{NetworkTime, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.crypto.encode.Base58
@@ -39,10 +39,10 @@ SIS <: SyncInfoMessageSpec[SI],
 PMOD <: PersistentNodeViewModifier,
 HR <: HistoryReader[PMOD, SI],
 MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
-                               viewHolderRef: ActorRef,
-                               localInterfaceRef: ActorRef,
-                               syncInfoSpec: SIS,
-                               networkSettings: NetworkSettings) extends Actor with ScorexLogging {
+                         viewHolderRef: ActorRef,
+                         localInterfaceRef: ActorRef,
+                         syncInfoSpec: SIS,
+                         networkSettings: NetworkSettings) extends Actor with ScorexLogging {
 
   import History.HistoryComparisonResult._
   import NodeViewSynchronizer._
@@ -62,6 +62,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   private var lastSyncInfoSentTime = NetworkTime.time()
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
+
+  def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
@@ -243,6 +245,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected def processInv: Receive = {
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == InvSpec.MessageCode =>
+      //TODO can't replace here because of modifiers cache
 
       viewHolderRef ! CompareViews(remote, invData._1, invData._2)
   }
@@ -252,7 +255,17 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == RequestModifierSpec.MessageCode =>
 
-      viewHolderRef ! GetLocalObjects(remote, invData._1, invData._2)
+      readers.foreach { readers =>
+        val objs: Seq[NodeViewModifier] = invData._1 match {
+          case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
+            readers._2.getAll(invData._2)
+          case typeId: ModifierTypeId =>
+            invData._2.flatMap(id => readers._1.modifierById(id))
+        }
+
+        log.debug(s"Requested modifiers ${invData._2.map(Base58.encode)}, sending: " + objs.map(_.id).map(Base58.encode))
+        self ! NodeViewSynchronizer.ResponseFromLocal(remote, invData._1, objs)
+      }
   }
 
   //other node is sending objects
@@ -366,6 +379,7 @@ object NodeViewSynchronizer {
 
   case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
+  //TODO remove, use history/mempool readers instead
   case class GetLocalObjects(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
   case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
