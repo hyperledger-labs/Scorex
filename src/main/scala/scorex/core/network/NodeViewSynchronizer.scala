@@ -101,6 +101,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
     )
     viewHolderRef ! Subscribe(vhEvents)
+    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! GetLocalSyncInfo)
   }

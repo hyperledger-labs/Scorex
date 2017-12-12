@@ -397,6 +397,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! CurrentSyncInfo(history().syncInfo(false))
   }
 
+  protected def getNodeViewChanges: Receive = {
+    case GetNodeViewChanges(history, state, vault, mempool) =>
+      if(history) sender() ! ChangedHistory(nodeView._1.getReader)
+      if(state) sender() ! ChangedState(nodeView._2.version)
+      if(vault) sender() ! ChangedVault()
+      if(mempool) sender() ! ChangedMempool(nodeView._4.getReader)
+  }
+
   override def receive: Receive =
     handleSubscribe orElse
       compareViews orElse
@@ -404,7 +412,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
       getCurrentInfo orElse
-      getSyncInfo orElse {
+      getSyncInfo orElse
+      getNodeViewChanges orElse {
       case a: Any => log.error("Strange input: " + a)
     }
 }
@@ -458,6 +467,8 @@ object NodeViewHolder {
   //TODO: return Vault reader
   case class ChangedVault() extends NodeViewChange
 
+  // Explicit request of NodeViewChange events of certain types.
+  case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
 
   //a command to subscribe for events
   case class Subscribe(events: Seq[EventType.Value])
