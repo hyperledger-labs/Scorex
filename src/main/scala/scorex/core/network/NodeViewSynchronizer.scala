@@ -198,7 +198,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
             log.warn("Extension is empty while comparison is younger")
           }
 
-          sender() ! OtherNodeSyncingStatus(
+          self ! OtherNodeSyncingStatus(
             remote,
             comparison,
             syncInfo,
