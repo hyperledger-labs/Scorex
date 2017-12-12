@@ -146,7 +146,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       updatedVault.getOrElse(vault()),
       updatedMempool.getOrElse(memoryPool()))
     if (updatedHistory.nonEmpty) {
-      notifySubscribers[ChangedHistory[PMOD, SI]](EventType.HistoryChanged, ChangedHistory[PMOD, SI](newNodeView._1.getReader))
+      notifySubscribers[ChangedHistory[HistoryReader[PMOD, SI]]](EventType.HistoryChanged, ChangedHistory(newNodeView._1.getReader))
     }
     if (updatedState.nonEmpty) {
       notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(newNodeView._2.version))
@@ -155,7 +155,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       notifySubscribers[ChangedVault](EventType.VaultChanged, ChangedVault())
     }
     if (updatedMempool.nonEmpty) {
-      notifySubscribers[ChangedMempool](EventType.MempoolChanged, ChangedMempool())
+      notifySubscribers[ChangedMempool[MempoolReader[TX]]](EventType.MempoolChanged, ChangedMempool(newNodeView._4.getReader))
     }
     nodeView = newNodeView
   }
@@ -450,10 +450,10 @@ object NodeViewHolder {
   //TODO: return state reader
   case class ChangedState(newVersion: VersionTag) extends NodeViewChange
 
-  case class ChangedHistory[PM <: PersistentNodeViewModifier, SI <: SyncInfo](reader: HistoryReader[PM, SI]) extends NodeViewChange
+  case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
 
   //TODO: return mempool reader
-  case class ChangedMempool() extends NodeViewChange
+  case class ChangedMempool[MR <: MempoolReader[_ <: Transaction[_]]](mempool: MR) extends NodeViewChange
 
   //TODO: return Vault reader
   case class ChangedVault() extends NodeViewChange
