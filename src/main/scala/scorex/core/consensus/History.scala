@@ -1,16 +1,10 @@
 package scorex.core.consensus
 
 import scorex.core._
+import scorex.core.consensus.History.ProgressInfo
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
-
-object ModifierSemanticValidity extends Enumeration {
-  val Absent = Value(0)
-  val Unknown = Value(1)
-  val Valid = Value(2)
-  val Invalid = Value(3)
-}
 
 /**
   * History of a blockchain system is some blocktree in fact
@@ -24,69 +18,12 @@ object ModifierSemanticValidity extends Enumeration {
   * function has been used instead.
   */
 
-trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends NodeViewComponent {
-
-  import History._
-
-  /**
-    * Is there's no history, even genesis block
-    */
-  def isEmpty: Boolean
-
-  /**
-    * Whether the history contains the given modifier
-    *
-    * @param persistentModifier - modifier
-    * @return
-    */
-  def contains(persistentModifier: PM): Boolean = contains(persistentModifier.id)
-
-  /**
-    * Whether the history contains a modifier with the given id
-    *
-    * @param id - modifier's id
-    * @return
-    */
-  def contains(id: ModifierId): Boolean = modifierById(id).isDefined
-
-  /**
-    * Whether a modifier could be applied to the history
-    *
-    * @param modifier - modifier to apply
-    * @return
-    */
-  def applicable(modifier: PM): Boolean = openSurfaceIds().exists(_ sameElements modifier.parentId)
-
-  def modifierById(modifierId: ModifierId): Option[PM]
-
-  //TODO never used?
-  def modifierById(modifierId: String): Option[PM] = Base58.decode(modifierId).toOption
-    .flatMap(id => modifierById(ModifierId @@ id))
+trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends HistoryReader[PM, SI, HT] {
 
   def append(modifier: PM): Try[(HT, ProgressInfo[PM])]
 
   def reportSemanticValidity(modifier: PM, valid: Boolean, lastApplied: ModifierId): (HT, ProgressInfo[PM])
 
-  def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value
-
-  //todo: output should be ID | Seq[ID]
-  def openSurfaceIds(): Seq[ModifierId]
-
-  /**
-    * Ids of modifiers, that node with info should download and apply to synchronize
-    * todo: argument should be ID | Seq[ID] ?
-    */
-  def continuationIds(info: SI, size: Int): Option[ModifierIds]
-
-  def syncInfo(answer: Boolean): SI
-
-  /**
-    * Whether another's node syncinfo shows that another node is ahead or behind ours
-    *
-    * @param other other's node sync info
-    * @return Equal if nodes have the same history, Younger if another node is behind, Older if a new node is ahead
-    */
-  def compare(other: SI): HistoryComparisonResult.Value
 }
 
 object History {
