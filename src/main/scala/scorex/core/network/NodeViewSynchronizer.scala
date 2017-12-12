@@ -34,8 +34,10 @@ import scala.language.postfixOps
   */
 class NodeViewSynchronizer[P <: Proposition,
 TX <: Transaction[P],
-SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI],
-PMOD <: PersistentNodeViewModifier](networkControllerRef: ActorRef,
+SI <: SyncInfo,
+SIS <: SyncInfoMessageSpec[SI],
+PMOD <: PersistentNodeViewModifier,
+HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
                                   viewHolderRef: ActorRef,
                                   localInterfaceRef: ActorRef,
                                   syncInfoSpec: SIS,
@@ -57,7 +59,7 @@ PMOD <: PersistentNodeViewModifier](networkControllerRef: ActorRef,
   protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
   protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
   private var lastSyncInfoSentTime = NetworkTime.time()
-  protected var historyReader: Option[HistoryReader[PMOD, SI]] = None
+  protected var historyReader: Option[HR] = None
 
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
@@ -115,12 +117,9 @@ PMOD <: PersistentNodeViewModifier](networkControllerRef: ActorRef,
     case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
-    case ChangedHistory(reader) =>
-//      reader match {
-//        case r: HistoryReader[PMOD, SI] => historyReader = Some(r)
-//        case _ => ???
-//      }
-    ???
+    case ChangedHistory(reader) if reader.isInstanceOf[HR] =>
+      //TODO isInstanceOf ?
+      historyReader = Some(reader.asInstanceOf[HR])
   }
 
   protected def peerManagerEvents: Receive = {

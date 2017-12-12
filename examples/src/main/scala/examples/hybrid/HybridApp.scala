@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, Props}
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.api.http.{DebugApiRoute, StatsApiRoute, WalletApiRoute}
 import examples.hybrid.blocks.HybridBlock
-import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoMessageSpec}
+import examples.hybrid.history.{HybridHistory, HybridSyncInfo, HybridSyncInfoMessageSpec}
 import examples.hybrid.mining.{HybridSettings, PosForger, PowMiner}
 import examples.hybrid.wallet.SimpleBoxTransactionGenerator
 import examples.hybrid.wallet.SimpleBoxTransactionGenerator.StartGeneration
@@ -52,7 +52,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val localInterface: ActorRef = actorSystem.actorOf(Props(new HLocalInterface(nodeViewHolderRef, miner, forger, hybridSettings.mining)))
 
   override val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type, PMOD]
+    actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type, PMOD, HybridHistory]
     (networkController, nodeViewHolderRef, localInterface, HybridSyncInfoMessageSpec, settings.network)))
 
   //touching lazy vals
