@@ -38,10 +38,10 @@ SI <: SyncInfo,
 SIS <: SyncInfoMessageSpec[SI],
 PMOD <: PersistentNodeViewModifier,
 HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
-                                  viewHolderRef: ActorRef,
-                                  localInterfaceRef: ActorRef,
-                                  syncInfoSpec: SIS,
-                                  networkSettings: NetworkSettings) extends Actor with ScorexLogging {
+                               viewHolderRef: ActorRef,
+                               localInterfaceRef: ActorRef,
+                               syncInfoSpec: SIS,
+                               networkSettings: NetworkSettings) extends Actor with ScorexLogging {
 
   import History.HistoryComparisonResult._
   import NodeViewSynchronizer._
@@ -59,7 +59,7 @@ HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
   protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
   protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
   private var lastSyncInfoSentTime = NetworkTime.time()
-  protected var historyReader: Option[HR] = None
+  protected var historyReaderOpt: Option[HR] = None
 
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
@@ -119,7 +119,7 @@ HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
     //todo: ban source peer?
     case ChangedHistory(reader) if reader.isInstanceOf[HR] =>
       //TODO isInstanceOf ?
-      historyReader = Some(reader.asInstanceOf[HR])
+      historyReaderOpt = Some(reader.asInstanceOf[HR])
   }
 
   protected def peerManagerEvents: Receive = {
@@ -132,7 +132,7 @@ HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
     */
   protected def getLocalSyncInfo: Receive = {
     case GetLocalSyncInfo =>
-      historyReader.foreach { r =>
+      historyReaderOpt.foreach { r =>
         self ! CurrentSyncInfo(r.syncInfo(false))
       }
   }
@@ -172,10 +172,29 @@ HR <: HistoryReader[PMOD, SI]](networkControllerRef: ActorRef,
 
   //sync info is coming from another node
   protected def processSync: Receive = {
-    case DataFromPeer(spec, syncData: SI@unchecked, remote)
+    case DataFromPeer(spec, syncInfo: SI@unchecked, remote)
       if spec.messageCode == syncInfoSpec.messageCode =>
+      historyReaderOpt match {
+        case Some(historyReader) =>
+          val extensionOpt = historyReader.continuationIds(syncInfo, networkSettings.networkChunkSize)
+          val ext = extensionOpt.getOrElse(Seq())
+          val comparison = historyReader.compare(syncInfo)
+          log.debug(s"Comparison with $remote having starting points ${History.idsToString(syncInfo.startingPoints)}. " +
+            s"Comparison result is $comparison. Sending extension of length ${ext.length}: ${History.idsToString(ext)}")
 
-      viewHolderRef ! OtherNodeSyncingInfo(remote, syncData)
+          if (!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
+            log.warn("Extension is empty while comparison is younger")
+          }
+
+          sender() ! OtherNodeSyncingStatus(
+            remote,
+            comparison,
+            syncInfo,
+            historyReader.syncInfo(true),
+            extensionOpt
+          )
+        case _ =>
+      }
   }
 
   //view holder is telling other node status
@@ -345,8 +364,6 @@ object NodeViewSynchronizer {
   case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
   case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
-
-  case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
 
   case class CheckDelivery(source: ConnectedPeer,
                            modifierTypeId: ModifierTypeId,

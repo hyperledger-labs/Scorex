@@ -392,28 +392,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! f(CurrentView(history(), minimalState(), vault(), memoryPool()))
   }
 
-  protected def compareSyncInfo: Receive = {
-    case OtherNodeSyncingInfo(remote, syncInfo: SI@unchecked) =>
-
-      val extensionOpt = history().continuationIds(syncInfo, networkChunkSize)
-      val ext = extensionOpt.getOrElse(Seq())
-      val comparison = history().compare(syncInfo)
-      log.debug(s"Comparison with $remote having starting points ${History.idsToString(syncInfo.startingPoints)}. " +
-        s"Comparison result is $comparison. Sending extension of length ${ext.length}: ${History.idsToString(ext)}")
-
-      if (!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
-        log.warn("Extension is empty while comparison is younger")
-      }
-
-      sender() ! OtherNodeSyncingStatus(
-        remote,
-        comparison,
-        syncInfo,
-        history().syncInfo(true),
-        extensionOpt
-      )
-  }
-
   protected def getSyncInfo: Receive = {
     case GetSyncInfo =>
       sender() ! CurrentSyncInfo(history().syncInfo(false))
@@ -426,8 +404,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
       getCurrentInfo orElse
-      getSyncInfo orElse
-      compareSyncInfo orElse {
+      getSyncInfo orElse {
       case a: Any => log.error("Strange input: " + a)
     }
 }
