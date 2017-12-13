@@ -261,7 +261,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
             invData._2.flatMap(id => readers._1.modifierById(id))
         }
 
-        log.debug(s"Requested modifiers ${invData._2.map(Base58.encode)}, sending: " + objs.map(_.id).map(Base58.encode))
+        log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
+          s"sending ${objs.length} modifiers ${idsToString(invData._1, objs.map(_.id))} ")
         self ! NodeViewSynchronizer.ResponseFromLocal(remote, invData._1, objs)
       }
   }

@@ -1,5 +1,6 @@
 package scorex
 
+import scorex.core.network.message.BasicMsgDataTypes.InvData
 import scorex.crypto.encode.Base58
 import supertagged.TaggedType
 
@@ -27,5 +28,7 @@ package object core {
   def idsToString(modifierType: ModifierTypeId, ids: Seq[ModifierId]): String = {
     idsToString(ids.map(id => (modifierType, id)))
   }
+
+  def idsToString(invData: InvData): String = idsToString(invData._1, invData._2)
 
 }
