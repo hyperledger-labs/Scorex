@@ -53,12 +53,15 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
 
-  /*
-    We cache peers along with their statuses (whether another peer is ahead or behind of ours,
-    or comparison is not possible, or status is not yet known)
-   */
+  /**
+    * We cache peers along with their statuses (whether another peer is ahead or behind of ours,
+    * or comparison is not possible, or status is not yet known)
+    */
   protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-  protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
+  /**
+    * Last time our node sent Sync messages to specified peer
+    */
+  protected val lastSyncSend = mutable.Map[ConnectedPeer, Timestamp]()
   protected var lastSyncInfoSentTime: Long = 0L
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
@@ -66,12 +69,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
-    updateTime(peer)
     statuses.update(peer, status)
   }
 
   protected def updateTime(peer: ConnectedPeer): Unit = {
-    statusUpdated.update(peer, NetworkTime.time())
+    lastSyncSend.update(peer, NetworkTime.time())
   }
 
 
@@ -135,7 +137,10 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   }
 
   protected def peerManagerEvents: Receive = {
-    case HandshakedPeer(remote) => updateStatus(remote, HistoryComparisonResult.Unknown)
+    case HandshakedPeer(remote) =>
+      updateStatus(remote, HistoryComparisonResult.Unknown)
+      updateTime(remote)
+
     case DisconnectedPeer(remote) => // todo: does nothing for now
   }
 
@@ -164,7 +169,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         val peersToSend = statuses.filter(s => s._2 == HistoryComparisonResult.Nonsense ||
           s._2 == HistoryComparisonResult.Unknown ||
           s._2 == HistoryComparisonResult.Older ||
-          statusUpdated.get(s._1).exists(t => (NetworkTime.time() - t).millis > networkSettings.syncStatusRefresh))
+          lastSyncSend.get(s._1).exists(t => (NetworkTime.time() - t).millis > networkSettings.syncStatusRefresh))
           .keys.toIndexedSeq
         peersToSend.foreach(updateTime)
         log.debug(s"Sending Sync messages to ${peersToSend.size} peers.")
