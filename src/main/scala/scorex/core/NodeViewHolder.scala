@@ -2,7 +2,7 @@ package scorex.core
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
-import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
+import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
@@ -117,7 +117,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           case Success(newPool) =>
             log.debug(s"Unconfirmed transaction $tx added to the memory pool")
             val newVault = vault().scanOffchain(tx)
-            updateNodeView(updatedVault = Some(newVault), updatedMempool = Some(newPool) )
+            updateNodeView(updatedVault = Some(newVault), updatedMempool = Some(newPool))
             notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
 
           case Failure(e) =>
@@ -287,7 +287,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 }
 
                 log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
-                updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool) )
+                updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool))
 
 
               case Failure(e) =>
@@ -339,7 +339,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           modifierIds.flatMap(id => history().modifierById(id))
       }
 
-      log.debug(s"Requested modifiers ${modifierIds.map(Base58.encode)}, sending: " + objs.map(_.id).map(Base58.encode))
+      log.debug(s"Requested ${modifierIds.length} modifiers ${idsToString(modifierTypeId, modifierIds)}, " +
+        s"sending ${objs.length} modifiers ${idsToString(modifierTypeId, objs.map(_.id))}")
       sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
   }
 
@@ -399,10 +400,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   protected def getNodeViewChanges: Receive = {
     case GetNodeViewChanges(history, state, vault, mempool) =>
-      if(history) sender() ! ChangedHistory(nodeView._1.getReader)
-      if(state) sender() ! ChangedState(nodeView._2.version)
-      if(vault) sender() ! ChangedVault()
-      if(mempool) sender() ! ChangedMempool(nodeView._4.getReader)
+      if (history) sender() ! ChangedHistory(nodeView._1.getReader)
+      if (state) sender() ! ChangedState(nodeView._2.version)
+      if (vault) sender() ! ChangedVault()
+      if (mempool) sender() ! ChangedMempool(nodeView._4.getReader)
   }
 
   override def receive: Receive =

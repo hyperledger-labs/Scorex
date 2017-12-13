@@ -191,8 +191,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
           val extensionOpt = historyReader.continuationIds(syncInfo, networkSettings.networkChunkSize)
           val ext = extensionOpt.getOrElse(Seq())
           val comparison = historyReader.compare(syncInfo)
-          log.debug(s"Comparison with $remote having starting points ${History.idsToString(syncInfo.startingPoints)}. " +
-            s"Comparison result is $comparison. Sending extension of length ${ext.length}: ${History.idsToString(ext)}")
+          log.debug(s"Comparison with $remote having starting points ${idsToString(syncInfo.startingPoints)}. " +
+            s"Comparison result is $comparison. Sending extension of length ${ext.length}: ${idsToString(ext)}")
 
           if (!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
             log.warn("Extension is empty while comparison is younger")
