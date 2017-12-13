@@ -9,7 +9,7 @@ import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.{MinimalState, TransactionValidation}
+import scorex.core.transaction.state.{MinimalState, StateReader, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -149,7 +149,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       notifySubscribers[ChangedHistory[HistoryReader[PMOD, SI]]](EventType.HistoryChanged, ChangedHistory(newNodeView._1.getReader))
     }
     if (updatedState.nonEmpty) {
-      notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(newNodeView._2.version))
+      notifySubscribers[ChangedState[StateReader]](EventType.StateChanged, ChangedState(newNodeView._2.getReader))
     }
     if (updatedVault.nonEmpty) {
       notifySubscribers[ChangedVault](EventType.VaultChanged, ChangedVault())
@@ -401,7 +401,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def getNodeViewChanges: Receive = {
     case GetNodeViewChanges(history, state, vault, mempool) =>
       if (history) sender() ! ChangedHistory(nodeView._1.getReader)
-      if (state) sender() ! ChangedState(nodeView._2.version)
+      if (state) sender() ! ChangedState(nodeView._2.getReader)
       if (vault) sender() ! ChangedVault()
       if (mempool) sender() ! ChangedMempool(nodeView._4.getReader)
   }
@@ -456,9 +456,7 @@ object NodeViewHolder {
 
   sealed trait NodeViewChange extends NodeViewHolderEvent
 
-  //todo: separate classes instead of boolean flag?
-  //TODO: return state reader
-  case class ChangedState(newVersion: VersionTag) extends NodeViewChange
+  case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
 
   case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
 
