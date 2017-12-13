@@ -161,28 +161,15 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         log.debug("Trying to send sync info too often")
       } else {
         lastSyncInfoSentTime = currentTime
-        val outdated = statusUpdated
-          .filter(t => (NetworkTime.time() - t._2).millis > networkSettings.syncStatusRefresh)
-          .keys
-          .toSeq
-        if (outdated.nonEmpty) {
-          log.debug(s"Sending Sync messages to ${outdated.size} outdated peers")
-          outdated.foreach(updateTime)
-          networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(outdated))
-        } else {
-          val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-          val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
-          val candidates = if (olders.nonEmpty) {
-            log.debug(s"Sending Sync messages to ${olders.size} older peers")
-            olders(scala.util.Random.nextInt(olders.size)) +: unknowns
-          } else {
-            log.debug(s"Sending Sync messages to ${unknowns.size} unknown peers")
-            unknowns
-          }
+        val peersToSend = statuses.filter(s => s._2 == HistoryComparisonResult.Nonsense ||
+          s._2 == HistoryComparisonResult.Unknown ||
+          s._2 == HistoryComparisonResult.Older ||
+          statusUpdated.get(s._1).exists(t => (NetworkTime.time() - t).millis > networkSettings.syncStatusRefresh))
+          .keys.toIndexedSeq
+        peersToSend.foreach(updateTime)
+        log.debug(s"Sending Sync messages to ${peersToSend.size} peers.")
 
-          candidates.foreach(updateTime)
-          networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(candidates))
-        }
+        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peersToSend))
       }
   }
 
