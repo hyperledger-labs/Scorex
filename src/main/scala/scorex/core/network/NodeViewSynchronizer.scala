@@ -59,7 +59,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
    */
   protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
   protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
-  private var lastSyncInfoSentTime = NetworkTime.time()
+  protected var lastSyncInfoSentTime: Long = 0L
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
 
@@ -70,7 +70,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     statuses.update(peer, status)
   }
 
-  private def updateTime(peer: ConnectedPeer): Unit = {
+  protected def updateTime(peer: ConnectedPeer): Unit = {
     statusUpdated.update(peer, System.currentTimeMillis())
   }
 
