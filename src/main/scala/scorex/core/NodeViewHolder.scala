@@ -329,21 +329,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! NodeViewSynchronizer.RequestFromLocal(peer, modifierTypeId, ids)
   }
 
-
-  protected def readLocalObjects: Receive = {
-    case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
-      val objs: Seq[NodeViewModifier] = modifierTypeId match {
-        case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-          memoryPool().getAll(modifierIds)
-        case typeId: ModifierTypeId =>
-          modifierIds.flatMap(id => history().modifierById(id))
-      }
-
-      log.debug(s"Requested ${modifierIds.length} modifiers ${idsToString(modifierTypeId, modifierIds)}, " +
-        s"sending ${objs.length} modifiers ${idsToString(modifierTypeId, objs.map(_.id))}")
-      sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
-  }
-
   protected def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
       modifierSerializers.get(modifierTypeId) foreach { companion =>
@@ -409,7 +394,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   override def receive: Receive =
     handleSubscribe orElse
       compareViews orElse
-      readLocalObjects orElse
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
       getCurrentInfo orElse
