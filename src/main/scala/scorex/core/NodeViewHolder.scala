@@ -378,11 +378,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! f(CurrentView(history(), minimalState(), vault(), memoryPool()))
   }
 
-  protected def getSyncInfo: Receive = {
-    case GetSyncInfo =>
-      sender() ! CurrentSyncInfo(history().syncInfo(false))
-  }
-
   protected def getNodeViewChanges: Receive = {
     case GetNodeViewChanges(history, state, vault, mempool) =>
       if (history) sender() ! ChangedHistory(nodeView._1.getReader)
@@ -397,7 +392,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
       getCurrentInfo orElse
-      getSyncInfo orElse
       getNodeViewChanges orElse {
       case a: Any => log.error("Strange input: " + a)
     }
@@ -405,8 +399,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 
 object NodeViewHolder {
-
-  case object GetSyncInfo
 
   case class CurrentSyncInfo[SI <: SyncInfo](syncInfo: SyncInfo)
 

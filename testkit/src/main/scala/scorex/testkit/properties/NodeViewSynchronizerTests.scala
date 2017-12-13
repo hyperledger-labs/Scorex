@@ -98,7 +98,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   ignore("NodeViewSynchronizer: GetLocalSyncInfo") { withFixture { ctx =>
     import ctx._
     node ! GetLocalSyncInfo
-    vhProbe.fishForMessage(3 seconds) { case m => m == GetSyncInfo }
+//    vhProbe.fishForMessage(3 seconds) { case m => m == GetSyncInfo }
   }}
 
   //TODO rewrite
