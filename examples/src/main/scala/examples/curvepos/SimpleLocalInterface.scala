@@ -26,8 +26,6 @@ class SimpleLocalInterface(override val viewHolderRef: ActorRef, forgerRef: Acto
 
   override protected def onNewSurface(newSurface: Seq[ModifierId]): Unit = {}
 
-  override protected def onChangedState(newVersion: VersionTag): Unit = {}
-
   override protected def onRollbackFailed(): Unit = {}
 
   override protected def onNoBetterNeighbour(): Unit = forgerRef ! Forger.StartMining
