@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef}
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{NetworkTime, ScorexLogging}
 
 import scala.collection.mutable
 import scala.util.Random
@@ -30,7 +30,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
 
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
-      val defaultPeerInfo = PeerInfo(System.currentTimeMillis(), None, None)
+      val defaultPeerInfo = PeerInfo(NetworkTime.time, None, None)
       peerDatabase.addOrUpdateKnownPeer(address, defaultPeerInfo)
     }
   }
@@ -43,7 +43,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
 
   private def peerListOperations: Receive = {
     case AddOrUpdatePeer(address, peerNonceOpt, peerNameOpt) =>
-      val peerInfo = PeerInfo(System.currentTimeMillis(), peerNonceOpt, peerNameOpt)
+      val peerInfo = PeerInfo(NetworkTime.time(), peerNonceOpt, peerNameOpt)
       peerDatabase.addOrUpdateKnownPeer(address, peerInfo)
 
     case KnownPeers =>

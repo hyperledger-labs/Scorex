@@ -66,12 +66,12 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
-    statusUpdated.update(peer, System.currentTimeMillis())
+    updateTime(peer)
     statuses.update(peer, status)
   }
 
   protected def updateTime(peer: ConnectedPeer): Unit = {
-    statusUpdated.update(peer, System.currentTimeMillis())
+    statusUpdated.update(peer, NetworkTime.time())
   }
 
 
@@ -162,7 +162,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       } else {
         lastSyncInfoSentTime = currentTime
         val outdated = statusUpdated
-          .filter(t => (System.currentTimeMillis() - t._2).millis > networkSettings.syncStatusRefresh)
+          .filter(t => (NetworkTime.time() - t._2).millis > networkSettings.syncStatusRefresh)
           .keys
           .toSeq
         if (outdated.nonEmpty) {
