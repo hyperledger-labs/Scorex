@@ -125,15 +125,15 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
-    case ChangedHistory(reader) if reader.isInstanceOf[HR] =>
+    case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
       //TODO isInstanceOf ?
       //TODO type erasure
-      historyReaderOpt = Some(reader.asInstanceOf[HR])
+      historyReaderOpt = Some(reader)
 
-    case ChangedMempool(reader) if reader.isInstanceOf[MR] =>
+    case ChangedMempool(reader: MR@unchecked) if reader.isInstanceOf[MR] =>
       //TODO isInstanceOf ?
       //TODO type erasure
-      mempoolReaderOpt = Some(reader.asInstanceOf[MR])
+      mempoolReaderOpt = Some(reader)
   }
 
   protected def peerManagerEvents: Receive = {
