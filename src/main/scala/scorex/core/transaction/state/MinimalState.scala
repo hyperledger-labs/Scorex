@@ -2,9 +2,27 @@ package scorex.core.transaction.state
 
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.{NodeViewComponent, PersistentNodeViewModifier, VersionTag}
+import scorex.core.{PersistentNodeViewModifier, VersionTag}
 
 import scala.util.Try
+
+/**
+  * Abstract functional interface of state which is a result of a sequential blocks applying
+  */
+trait MinimalState[M <: PersistentNodeViewModifier, MS <: MinimalState[M, MS]] extends StateReader {
+  self: MS =>
+
+  def applyModifier(mod: M): Try[MS]
+
+  def rollbackTo(version: VersionTag): Try[MS]
+
+  /**
+    * @return read-only copy of this state
+    */
+  def getReader: StateReader = this
+
+}
+
 
 trait StateFeature
 
@@ -26,22 +44,4 @@ trait BalanceSheet[P <: Proposition] extends StateFeature {
 
 trait AccountTransactionsHistory[P <: Proposition, TX <: Transaction[P]] extends StateFeature {
   def accountTransactions(id: P): Array[TX]
-}
-
-
-/**
-  * Abstract functional interface of state which is a result of a sequential blocks applying
-  */
-
-trait MinimalState[M <: PersistentNodeViewModifier, MS <: MinimalState[M, MS]] extends NodeViewComponent {
-  self: MS =>
-
-  def maxRollbackDepth: Int
-
-  //must be ID of last applied modifier
-  def version: VersionTag
-
-  def applyModifier(mod: M): Try[MS]
-
-  def rollbackTo(version: VersionTag): Try[MS]
 }
