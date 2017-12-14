@@ -8,17 +8,14 @@ import akka.pattern.ask
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
-import scorex.core.NodeViewModifier._
 import scorex.core.consensus.History
 import scorex.core.network.ConnectedPeer
-import scorex.core.network.NodeViewSynchronizer.{GetLocalObjects, ResponseFromLocal}
 import scorex.core.settings.RESTApiSettings
-import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier, PersistentNodeViewModifier}
+import scorex.core.{ModifierId, PersistentNodeViewModifier}
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -50,6 +47,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 
   def getOpenSurface(): Try[OpenSurface] = Try {
     def f(v: CurrentView[HIS, MS, VL, MP]): OpenSurface = OpenSurface(v.history.openSurfaceIds())
+
     Await.result(nodeViewHolderRef ? GetDataFromCurrentView(f), 5.seconds).asInstanceOf[OpenSurface]
   }
 
@@ -57,6 +55,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 
   def getMempool(): Try[MempoolData] = Try {
     def f(v: CurrentView[HIS, MS, VL, MP]): MempoolData = MempoolData(v.pool.size, v.pool.take(1000))
+
     Await.result(nodeViewHolderRef ? GetDataFromCurrentView(f), 5.seconds).asInstanceOf[MempoolData]
   }
 
@@ -96,12 +95,13 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   def persistentModifierById: Route = path("persistentModifier" / Segment) { encodedId =>
     getJsonRoute {
       Base58.decode(encodedId) match {
-        case Success(id) =>
-          //TODO 1: Byte
-          (nodeViewHolderRef ? GetLocalObjects(source, ModifierTypeId @@ 1.toByte, Seq(ModifierId @@ id)))
-            .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
-            .map(_.localObjects.headOption.map(_.json).map(j => SuccessApiResponse(j))
-              .getOrElse(ApiError.blockNotExists))
+        case Success(rawId) =>
+          val id = ModifierId @@ rawId
+
+          def f(v: CurrentView[HIS, MS, VL, MP]): Option[PM] = v.history.modifierById(id)
+
+          (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[PM]](f)).mapTo[Option[PM]]
+            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.blockNotExists))
         case _ => Future(ApiError.blockNotExists)
       }
     }
@@ -115,11 +115,18 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   def transactionById: Route = path("transaction" / Segment) { encodedId =>
     getJsonRoute {
       Base58.decode(encodedId) match {
-        case Success(id) =>
-          (nodeViewHolderRef ? GetLocalObjects(source, Transaction.ModifierTypeId, Seq(ModifierId @@ id)))
-            .mapTo[ResponseFromLocal[_ <: NodeViewModifier]]
-            .map(_.localObjects.headOption.map(_.json).map(r => SuccessApiResponse(r))
-              .getOrElse(ApiError.transactionNotExists))
+        case Success(rawId) =>
+          val id = ModifierId @@ rawId
+
+          def f(v: CurrentView[HIS, MS, VL, MP]): Option[TX] = {
+            v.history.modifierById(id) match {
+              case Some(tx: TX@unchecked) if tx.isInstanceOf[TX] => Some(tx)
+              case None => v.pool.getById(id)
+            }
+          }
+
+          (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[TX]](f)).mapTo[Option[TX]]
+            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.transactionNotExists))
         case _ => Future(ApiError.transactionNotExists)
       }
     }
