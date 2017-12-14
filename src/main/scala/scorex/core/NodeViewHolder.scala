@@ -2,14 +2,14 @@ package scorex.core
 
 import akka.actor.{Actor, ActorRef}
 import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
-import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
-import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.consensus.History.ProgressInfo
+import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
 import scorex.core.network.{ConnectedPeer, NodeViewSynchronizer}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.{MinimalState, TransactionValidation}
+import scorex.core.transaction.state.{MinimalState, StateReader, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -85,7 +85,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 
   protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
+
   protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
+
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
@@ -112,10 +114,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     errorOpt match {
       case None =>
         memoryPool().put(tx) match {
-          case Success(updPool) =>
+          case Success(newPool) =>
             log.debug(s"Unconfirmed transaction $tx added to the memory pool")
-            val updWallet = vault().scanOffchain(tx)
-            nodeView = (history(), minimalState(), updWallet, updPool)
+            val newVault = vault().scanOffchain(tx)
+            updateNodeView(updatedVault = Some(newVault), updatedMempool = Some(newPool))
             notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
 
           case Failure(e) =>
@@ -125,6 +127,37 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       case Some(e) =>
         notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
     }
+  }
+
+  /**
+    * Update NodeView with new components and notify subscribers of changed components
+    *
+    * @param updatedHistory
+    * @param updatedState
+    * @param updatedVault
+    * @param updatedMempool
+    */
+  protected def updateNodeView(updatedHistory: Option[HIS] = None,
+                               updatedState: Option[MS] = None,
+                               updatedVault: Option[VL] = None,
+                               updatedMempool: Option[MP] = None): Unit = {
+    val newNodeView = (updatedHistory.getOrElse(history()),
+      updatedState.getOrElse(minimalState()),
+      updatedVault.getOrElse(vault()),
+      updatedMempool.getOrElse(memoryPool()))
+    if (updatedHistory.nonEmpty) {
+      notifySubscribers[ChangedHistory[HistoryReader[PMOD, SI]]](EventType.HistoryChanged, ChangedHistory(newNodeView._1.getReader))
+    }
+    if (updatedState.nonEmpty) {
+      notifySubscribers[ChangedState[StateReader]](EventType.StateChanged, ChangedState(newNodeView._2.getReader))
+    }
+    if (updatedVault.nonEmpty) {
+      notifySubscribers[ChangedVault](EventType.VaultChanged, ChangedVault())
+    }
+    if (updatedMempool.nonEmpty) {
+      notifySubscribers[ChangedMempool[MempoolReader[TX]]](EventType.MempoolChanged, ChangedMempool(newNodeView._4.getReader))
+    }
+    nodeView = newNodeView
   }
 
   protected def extractTransactions(mod: PMOD): Seq[TX] = mod match {
@@ -195,7 +228,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
         if (!state.version.sameElements(branchingPoint)) {
           state.rollbackTo(branchingPoint).map { rs =>
-            notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(isRollback = true, rs.version))
             rs
           }
         } else Success(state)
@@ -210,7 +242,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               case Success(stateAfterApply) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
                 notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
-                notifySubscribers[ChangedState](EventType.StateChanged, ChangedState(isRollback = false, stateToApply.version))
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
@@ -256,16 +287,17 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 }
 
                 log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
-                nodeView = (newHistory, newMinState, newVault, newMemPool)
+                updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool))
+
 
               case Failure(e) =>
                 log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to minimal state", e)
-                nodeView = (newHistory, minimalState(), vault(), memoryPool())
+                updateNodeView(updatedHistory = Some(newHistory))
                 notifySubscribers(EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(pmod, e))
             }
           } else {
             requestDownloads(progressInfo)
-            nodeView = (historyBeforeStUpdate, minimalState(), vault(), memoryPool())
+            updateNodeView(updatedHistory = Some(historyBeforeStUpdate))
           }
         case Failure(e) =>
           log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to history", e)
@@ -297,20 +329,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! NodeViewSynchronizer.RequestFromLocal(peer, modifierTypeId, ids)
   }
 
-
-  protected def readLocalObjects: Receive = {
-    case GetLocalObjects(sid, modifierTypeId, modifierIds) =>
-      val objs: Seq[NodeViewModifier] = modifierTypeId match {
-        case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-          memoryPool().getAll(modifierIds)
-        case typeId: ModifierTypeId =>
-          modifierIds.flatMap(id => history().modifierById(id))
-      }
-
-      log.debug(s"Requested modifiers ${modifierIds.map(Base58.encode)}, sending: " + objs.map(_.id).map(Base58.encode))
-      sender() ! NodeViewSynchronizer.ResponseFromLocal(sid, modifierTypeId, objs)
-  }
-
   protected def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
       modifierSerializers.get(modifierTypeId) foreach { companion =>
@@ -319,7 +337,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             txModify(tx)
 
           case pmod: PMOD@unchecked =>
-            if(history().contains(pmod) || modifiersCache.contains(key(pmod.id))) {
+            if (history().contains(pmod) || modifiersCache.contains(key(pmod.id))) {
               log.warn(s"Received modifier ${pmod.encodedId} that is already in history")
             } else {
               modifiersCache.put(key(pmod.id), pmod)
@@ -360,50 +378,27 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       sender() ! f(CurrentView(history(), minimalState(), vault(), memoryPool()))
   }
 
-  protected def compareSyncInfo: Receive = {
-    case OtherNodeSyncingInfo(remote, syncInfo: SI@unchecked) =>
-
-      val extensionOpt = history().continuationIds(syncInfo, networkChunkSize)
-      val ext = extensionOpt.getOrElse(Seq())
-      val comparison = history().compare(syncInfo)
-      log.debug(s"Comparison with $remote having starting points ${History.idsToString(syncInfo.startingPoints)}. " +
-        s"Comparison result is $comparison. Sending extension of length ${ext.length}: ${History.idsToString(ext)}")
-
-      if (!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
-        log.warn("Extension is empty while comparison is younger")
-      }
-
-      sender() ! OtherNodeSyncingStatus(
-        remote,
-        comparison,
-        syncInfo,
-        history().syncInfo(true),
-        extensionOpt
-      )
-  }
-
-  protected def getSyncInfo: Receive = {
-    case GetSyncInfo =>
-      sender() ! CurrentSyncInfo(history().syncInfo(false))
+  protected def getNodeViewChanges: Receive = {
+    case GetNodeViewChanges(history, state, vault, mempool) =>
+      if (history) sender() ! ChangedHistory(nodeView._1.getReader)
+      if (state) sender() ! ChangedState(nodeView._2.getReader)
+      if (vault) sender() ! ChangedVault()
+      if (mempool) sender() ! ChangedMempool(nodeView._4.getReader)
   }
 
   override def receive: Receive =
     handleSubscribe orElse
       compareViews orElse
-      readLocalObjects orElse
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
       getCurrentInfo orElse
-      getSyncInfo orElse
-      compareSyncInfo orElse {
+      getNodeViewChanges orElse {
       case a: Any => log.error("Strange input: " + a)
     }
 }
 
 
 object NodeViewHolder {
-
-  case object GetSyncInfo
 
   case class CurrentSyncInfo[SI <: SyncInfo](syncInfo: SyncInfo)
 
@@ -423,13 +418,32 @@ object NodeViewHolder {
     val StartingPersistentModifierApplication: EventType.Value = Value(7)
 
     val OpenSurfaceChanged: EventType.Value = Value(8)
-    val StateChanged: EventType.Value = Value(9)
 
     //rollback failed, really wrong situation, probably
-    val FailedRollback: EventType.Value = Value(10)
+    val FailedRollback: EventType.Value = Value(9)
 
-    val DownloadNeeded: EventType.Value = Value(11)
+    val DownloadNeeded: EventType.Value = Value(10)
+
+    val StateChanged: EventType.Value = Value(11)
+    val HistoryChanged: EventType.Value = Value(12)
+    val MempoolChanged: EventType.Value = Value(13)
+    val VaultChanged: EventType.Value = Value(14)
   }
+
+  sealed trait NodeViewChange extends NodeViewHolderEvent
+
+  case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
+
+  case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
+
+  //TODO: return mempool reader
+  case class ChangedMempool[MR <: MempoolReader[_ <: Transaction[_]]](mempool: MR) extends NodeViewChange
+
+  //TODO: return Vault reader
+  case class ChangedVault() extends NodeViewChange
+
+  // Explicit request of NodeViewChange events of certain types.
+  case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
 
   //a command to subscribe for events
   case class Subscribe(events: Seq[EventType.Value])
@@ -461,9 +475,6 @@ object NodeViewHolder {
   case class SemanticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
 
   case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
-
-  //todo: separate classes instead of boolean flag?
-  case class ChangedState(isRollback: Boolean, newVersion: VersionTag) extends NodeViewHolderEvent
 
   case class ModificationApplicationStarted[PMOD <: PersistentNodeViewModifier](modifier: PMOD)
     extends NodeViewHolderEvent

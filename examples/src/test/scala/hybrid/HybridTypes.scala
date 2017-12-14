@@ -1,6 +1,6 @@
 package hybrid
 
-import examples.commons.SimpleBoxTransaction
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.hybrid.HybridNodeViewHolder
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo, HybridSyncInfoMessageSpec}
@@ -21,5 +21,6 @@ trait HybridTypes {
   type NODE = HybridNodeViewHolder
   type ST = HBoxStoredState
   type HT = HybridHistory
+  type MP = SimpleBoxTransactionMemPool
 
 }

@@ -9,17 +9,8 @@ import scala.util.Try
   *
   * @tparam TX -type of transaction the pool contains
   */
-trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewComponent {
+trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends MempoolReader[TX] {
 
-  //getters
-  def getById(id: ModifierId): Option[TX]
-
-  def contains(id: ModifierId): Boolean
-
-  //get ids from Seq, not presenting in mempool
-  def notIn(ids: Seq[ModifierId]): Seq[ModifierId] = ids.filter(id => !contains(id))
-
-  def getAll(ids: Seq[ModifierId]): Seq[TX]
 
   /**
     * Method to put a transaction into the memory pool. Validation of tha transactions against
@@ -41,5 +32,8 @@ trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends NodeViewC
 
   def filter(condition: TX => Boolean): M
 
-  def size: Int
+  /**
+    * @return read-only copy of this history
+    */
+  def getReader: MempoolReader[TX] = this
 }
