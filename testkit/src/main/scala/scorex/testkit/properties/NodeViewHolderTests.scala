@@ -142,14 +142,6 @@ MPool <: MemoryPool[TX, MPool]]
     (1 to mods.size).foreach(_ => expectMsgType[SyntacticallySuccessfulModifier[PM]])
   }}
 
-  //todo rewrite
-  ignore("NodeViewHolder: check sync info is synced") { withFixture { ctx =>
-    import ctx._
-//    node ! GetSyncInfo
-    val syncInfo = CurrentSyncInfo(h.syncInfo(false))
-    expectMsg(syncInfo)
-  }}
-
   property("NodeViewHolder: apply locally generated mod") { withFixture { ctx =>
     import ctx._
     node ! NodeViewHolder.Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))

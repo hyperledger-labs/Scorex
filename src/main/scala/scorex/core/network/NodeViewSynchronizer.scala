@@ -150,7 +150,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected def getLocalSyncInfo: Receive = {
     case GetLocalSyncInfo =>
       historyReaderOpt.foreach { r =>
-        self ! CurrentSyncInfo(r.syncInfo(false))
+        sender() ! CurrentSyncInfo(r.syncInfo(false))
       }
   }
 

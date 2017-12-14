@@ -94,11 +94,11 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     // todo: NVS currently does nothing in this case. Should check banning.
   }}
 
-  //TODO rewrite
+  //TODO should work if NodeViewSynchronizer received HistoryReader at least once
   ignore("NodeViewSynchronizer: GetLocalSyncInfo") { withFixture { ctx =>
     import ctx._
     node ! GetLocalSyncInfo
-//    vhProbe.fishForMessage(3 seconds) { case m => m == GetSyncInfo }
+    ncProbe.fishForMessage(3 seconds) { case m => m.isInstanceOf[CurrentSyncInfo[SI]] }
   }}
 
   //TODO rewrite
