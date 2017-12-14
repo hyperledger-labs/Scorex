@@ -12,7 +12,7 @@ import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{NetworkTime, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -93,7 +93,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
         settings.nodeName,
         settings.nodeNonce.get,
         ownSocketAddress,
-        System.currentTimeMillis()
+        NetworkTime.time()
       ).bytes
 
       connection ! Write(ByteString(hb))
