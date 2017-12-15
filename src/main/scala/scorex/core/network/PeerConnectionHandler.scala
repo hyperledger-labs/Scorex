@@ -87,14 +87,8 @@ case class PeerConnectionHandler(settings: NetworkSettings,
 
   private def handshake: Receive = ({
     case StartInteraction =>
-      val hb = Handshake(
-        settings.agentName,
-        Version(settings.appVersion),
-        settings.nodeName,
-        settings.nodeNonce.get,
-        ownSocketAddress,
-        NetworkTime.time()
-      ).bytes
+      val hb = Handshake(settings.agentName, Version(settings.appVersion), settings.nodeName,
+                         ownSocketAddress, NetworkTime.time()).bytes
 
       connection ! Write(ByteString(hb))
       log.info(s"Handshake sent to $remote")

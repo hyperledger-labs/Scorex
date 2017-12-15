@@ -21,7 +21,6 @@ case class RESTApiSettings(bindAddress: String,
                            swaggerInfo: Info)
 
 case class NetworkSettings(nodeName: String,
-                           nodeNonce: Option[Long] = Some(new Random().nextLong()),
                            addedMaxDelay: Option[FiniteDuration],
                            networkChunkSize: Int,
                            localOnly: Boolean,
