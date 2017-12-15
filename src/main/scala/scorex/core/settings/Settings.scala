@@ -13,8 +13,7 @@ import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 
 import scala.util.Random
 
-case class RESTApiSettings(bindAddress: String,
-                           port: Int,
+case class RESTApiSettings(bindAddress: InetSocketAddress,
                            apiKeyHash: Option[String],
                            corsAllowed: Boolean,
                            timeout: FiniteDuration,
