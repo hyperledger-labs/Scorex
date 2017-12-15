@@ -40,7 +40,9 @@ trait ModifierGenerators {
     assert(insPerTx >= 1 && insPerTx <= 10)
 
     def filterOutForgedBoxes(in: (ByteArrayWrapper, ByteArrayWrapper)): Boolean = {
-      PublicKey25519NoncedBoxSerializer.parseBytes(in._2.data).map(_.value).getOrElse(0L) > 0
+      //current problem with unstable nodeviewholder spec is caused by coinbase block which always has value 1
+      //so for now we just won't use it
+      PublicKey25519NoncedBoxSerializer.parseBytes(in._2.data).map(_.value).getOrElse(0L) > 1L
     }
 
     val stateBoxes = state.store.getAll()
