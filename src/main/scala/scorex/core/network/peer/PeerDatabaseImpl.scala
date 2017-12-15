@@ -36,25 +36,14 @@ class PeerDatabaseImpl(settings: NetworkSettings, filename: Option[String]) exte
 
   override def knownPeers(excludeSelf: Boolean): Map[InetSocketAddress, PeerInfo] = {
     if (excludeSelf) {
-      // todo: we should improve `NetworkSettings`, so that `bindAddress` is already parsed as
-      // todo: `InetSocketAddress` instead of `String`.
-      val bindInetSocketAddress = new InetSocketAddress(settings.bindAddress, settings.port)
-
-      val localAddresses = if (bindInetSocketAddress.getAddress.isAnyLocalAddress) {
+      val localAddresses = if (settings.bindAddress.getAddress.isAnyLocalAddress) {
         NetworkInterface.getNetworkInterfaces.asScala
           .flatMap(_.getInetAddresses.asScala
-            .map(a => new InetSocketAddress(a, bindInetSocketAddress.getPort)))
+            .map(a => new InetSocketAddress(a, settings.bindAddress.getPort)))
           .toSet
-      } else Set(bindInetSocketAddress)
+      } else Set(settings.bindAddress)
 
-
-      // todo: make `declaredAddress` be parsed as `InetSocketAddress`, as discussed above.
-      val declaredInetSocketAddress = settings.declaredAddress map { a =>
-        val uri = new URI(s"my://$a")
-        new InetSocketAddress(uri.getHost, uri.getPort)
-      }
-
-      val excludedAddresses = localAddresses ++ declaredInetSocketAddress.toSet
+      val excludedAddresses = localAddresses ++ settings.declaredAddress.toSet
       knownPeers(false).filterKeys(!excludedAddresses(_))
     } else {
       whitelistPersistence.keys.flatMap(k => whitelistPersistence.get(k).map(v => k -> v)).toMap

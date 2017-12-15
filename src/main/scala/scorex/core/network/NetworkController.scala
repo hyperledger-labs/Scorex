@@ -70,18 +70,13 @@ class NetworkController(settings: NetworkSettings,
     }.ensuring(b => b, "Declared address isn't valid")
   }
 
-  lazy val localAddress = new InetSocketAddress(InetAddress.getByName(settings.bindAddress), settings.port)
+  lazy val localAddress = settings.bindAddress
 
   //an address to send to peers
   lazy val externalSocketAddress = {
-    settings.declaredAddress
-      .flatMap(s => {
-        val Array(address, port) = s.split(":")
-        Try(InetAddress.getByName(address)).map(address =>
-          new InetSocketAddress(address, port.toInt)).toOption
-      }).orElse {
+    settings.declaredAddress orElse {
       if (settings.upnpEnabled) {
-        upnp.externalAddress.map(a => new InetSocketAddress(a, settings.port))
+        upnp.externalAddress.map(a => new InetSocketAddress(a, settings.bindAddress.getPort))
       } else None
     }
   }
@@ -96,11 +91,11 @@ class NetworkController(settings: NetworkSettings,
 
   private def bindingLogic: Receive = {
     case Bound(_) =>
-      log.info("Successfully bound to the port " + settings.port)
+      log.info("Successfully bound to the port " + settings.bindAddress.getPort)
       context.system.scheduler.schedule(600.millis, 5.seconds)(peerManagerRef ! PeerManager.CheckPeers)
 
     case CommandFailed(_: Bind) =>
-      log.error("Network port " + settings.port + " already in use!")
+      log.error("Network port " + settings.bindAddress.getPort + " already in use!")
       context stop self
     //TODO catch?
   }

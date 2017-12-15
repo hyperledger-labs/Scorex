@@ -85,7 +85,7 @@ trait Application extends ScorexLogging {
 
   def stopAll(): Unit = synchronized {
     log.info("Stopping network services")
-    if (settings.network.upnpEnabled) upnp.deletePort(settings.network.port)
+    if (settings.network.upnpEnabled) upnp.deletePort(settings.network.bindAddress.getPort)
     networkController ! NetworkController.ShutdownNetwork
 
     log.info("Stopping actors (incl. block generator)")
