@@ -2,18 +2,19 @@ package scorex.testkit.properties
 
 import akka.actor._
 import akka.testkit.TestProbe
+import org.scalacheck.Gen
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
 import scorex.core.LocalInterface.{BetterNeighbourAppeared, NoBetterNeighbour}
-import scorex.core.NodeViewHolder
+import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.consensus.History.HistoryComparisonResult.{Equal, Nonsense, Older, Younger}
 import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.network.message.BasicMsgDataTypes.ModifiersData
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
-import scorex.core.transaction.Transaction
+import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
-import scorex.core.PersistentNodeViewModifier
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.AkkaFixture
 import scorex.core.network.message._
@@ -29,13 +30,17 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   PM <: PersistentNodeViewModifier,
   ST <: MinimalState[PM, ST],
   SI <: SyncInfo,
-  HT <: History[PM, SI, HT]
+  HT <: History[PM, SI, HT],
+  MP <: MemoryPool[TX, MP]
 ] extends PropSpec
     with Matchers
     with PropertyChecks
     with ScorexLogging
     with SyntacticallyTargetedModifierProducer[PM, SI, HT]
     with TotallyValidModifierProducer[PM, ST, SI, HT] {
+
+  val historyGen: Gen[HT]
+  val memPool: MP
 
   def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
 
@@ -94,11 +99,15 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     // todo: NVS currently does nothing in this case. Should check banning.
   }}
 
-  //TODO should work if NodeViewSynchronizer received HistoryReader at least once
-  ignore("NodeViewSynchronizer: GetLocalSyncInfo") { withFixture { ctx =>
+  property("NodeViewSynchronizer: GetLocalSyncInfo") { withFixture { ctx =>
     import ctx._
+    val h = historyGen.sample.get
     node ! GetLocalSyncInfo
-    ncProbe.fishForMessage(3 seconds) { case m => m.isInstanceOf[CurrentSyncInfo[SI]] }
+    expectNoMsg()
+    node ! ChangedHistory(h)
+    expectNoMsg()
+    node ! GetLocalSyncInfo
+    expectMsgType[CurrentSyncInfo[SI]]
   }}
 
   //TODO rewrite
@@ -163,14 +172,28 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     vhProbe.fishForMessage(3 seconds) { case m => m == CompareViews(peer, mod.modifierTypeId, modifiers) }
   }}
 
-  //todo rewrite
-  ignore("NodeViewSynchronizer: DataFromPeer: RequestModifierSpec") { withFixture { ctx =>
-    import ctx._
-    val spec = new RequestModifierSpec(3)
-    val modifiers = Seq(mod.id)
-    node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
-//    vhProbe.fishForMessage(3 seconds) { case m => m == GetLocalObjects(peer, mod.modifierTypeId, modifiers) }
-  }}
+  property("NodeViewSynchronizer: DataFromPeer: RequestModifierSpec") {
+    withFixture { ctx =>
+      import ctx._
+      val h = historyGen.sample.get
+      val mod = syntacticallyValidModifier(h)
+      val (newH, _) = h.append(mod).get
+      val m = memPool
+      val spec = new RequestModifierSpec(3)
+      val modifiers = Seq(mod.id)
+      node ! ChangedHistory(newH)
+      node ! ChangedMempool(m)
+      node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
+
+
+
+
+      pchProbe.fishForMessage(5 seconds) {
+        case _: Message[ModifiersData] => true
+        case _ => false
+      }
+    }
+  }
 
   ignore("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") { withFixture { ctx =>
     import ctx._
