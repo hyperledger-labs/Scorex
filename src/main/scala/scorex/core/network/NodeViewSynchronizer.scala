@@ -253,12 +253,12 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == RequestModifierSpec.MessageCode =>
 
-      readers.foreach { readers =>
+      readers.foreach { reader =>
         val objs: Seq[NodeViewModifier] = invData._1 match {
           case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-            readers._2.getAll(invData._2)
-          case typeId: ModifierTypeId =>
-            invData._2.flatMap(id => readers._1.modifierById(id))
+            reader._2.getAll(invData._2)
+          case _: ModifierTypeId =>
+            invData._2.flatMap(id => reader._1.modifierById(id))
         }
 
         log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
