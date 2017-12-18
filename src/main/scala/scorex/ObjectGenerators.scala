@@ -11,6 +11,11 @@ import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.crypto.signatures.Curve25519
 
 trait ObjectGenerators {
+
+  val MaxVersion = 999
+  val MaxIp = 255
+  val MaxPort = 65535
+
   lazy val smallInt: Gen[Int] = Gen.choose(0, 20)
 
   lazy val nonEmptyBytesGen: Gen[Array[Byte]] = Gen.nonEmptyListOf(Arbitrary.arbitrary[Byte])
@@ -47,9 +52,7 @@ trait ObjectGenerators {
     modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
   } yield modifierTypeId -> modifiers
 
-  val MaxVersion = 999
-  val MaxIp = 255
-  val MaxPort = 65535
+
 
   lazy val appVersionGen = for {
     fd <- Gen.choose(0: Byte, Byte.MaxValue)
