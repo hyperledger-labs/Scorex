@@ -149,8 +149,15 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     */
   protected def getLocalSyncInfo: Receive = {
     case GetLocalSyncInfo =>
-      historyReaderOpt.foreach { r =>
-        sender() ! CurrentSyncInfo(r.syncInfo(false))
+      val currentTime = NetworkTime.time()
+      if (currentTime - lastSyncInfoSentTime < (networkSettings.syncInterval.toMillis / 2)) {
+        log.debug("Trying to send sync info too often")
+      } else {
+        lastSyncInfoSentTime = currentTime
+
+        historyReaderOpt.foreach { r =>
+          sender() ! CurrentSyncInfo(r.syncInfo(false))
+        }
       }
   }
 
@@ -161,21 +168,15 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     */
   protected def syncSend: Receive = {
     case CurrentSyncInfo(syncInfo: SI@unchecked) =>
-      val currentTime = NetworkTime.time()
-      if (currentTime - lastSyncInfoSentTime < networkSettings.syncInterval.toMillis) {
-        log.debug("Trying to send sync info too often")
-      } else {
-        lastSyncInfoSentTime = currentTime
-        val peersToSend = statuses.filter(s => s._2 == HistoryComparisonResult.Nonsense ||
-          s._2 == HistoryComparisonResult.Unknown ||
-          s._2 == HistoryComparisonResult.Older ||
-          lastSyncSend.get(s._1).exists(t => (NetworkTime.time() - t).millis > networkSettings.syncStatusRefresh))
-          .keys.toIndexedSeq
-        peersToSend.foreach(updateTime)
-        log.debug(s"Sending Sync messages to ${peersToSend.size} peers.")
+      val peersToSend = statuses.filter(s => s._2 == HistoryComparisonResult.Nonsense ||
+        s._2 == HistoryComparisonResult.Unknown ||
+        s._2 == HistoryComparisonResult.Older ||
+        lastSyncSend.get(s._1).exists(t => (NetworkTime.time() - t).millis > networkSettings.syncStatusRefresh))
+        .keys.toIndexedSeq
+      peersToSend.foreach(updateTime)
+      log.debug(s"Sending Sync messages to ${peersToSend.size} peers.")
 
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peersToSend))
-      }
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peersToSend))
   }
 
 
