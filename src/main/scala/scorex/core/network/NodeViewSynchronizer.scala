@@ -157,7 +157,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         lastSyncInfoSentTime = currentTime
 
         historyReaderOpt.foreach { r =>
-          syncSend(r.syncInfo(false))
+          syncSend(r.syncInfo)
         }
       }
   }
@@ -200,7 +200,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
             remote,
             comparison,
             syncInfo,
-            historyReader.syncInfo(true),
+            historyReader.syncInfo,
             extensionOpt
           )
         case _ =>

@@ -94,7 +94,7 @@ class HybridHistorySpecification extends PropSpec
   }
 
   def testHistory(history: HybridHistory): Unit = {
-    val equalsSyncInfo: HybridSyncInfo = history.syncInfo(false)
+    val equalsSyncInfo: HybridSyncInfo = history.syncInfo
     val lastIds = equalsSyncInfo.lastPowBlockIds
     lastIds.last shouldEqual history.bestPowId
     compareAndCheck(history, equalsSyncInfo) shouldBe HistoryComparisonResult.Equal
