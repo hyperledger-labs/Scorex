@@ -64,7 +64,7 @@ val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-testkit" % "2.5.3" % "test",
   "org.scalactic" %% "scalactic" % "3.0.3" % "test",
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.13.+" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.13.+",
   "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"
 )
 
