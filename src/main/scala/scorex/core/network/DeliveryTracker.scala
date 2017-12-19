@@ -35,7 +35,7 @@ class DeliveryTracker(context: ActorContext,
     for (mid <- mids) expect(cp, mtid, mid)
   }
 
-  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = {
+  protected def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = {
     val cancellable = context.system.scheduler.scheduleOnce(deliveryTimeout,
       nvsRef,
       CheckDelivery(cp, mtid, mid) )
@@ -54,14 +54,14 @@ class DeliveryTracker(context: ActorContext,
     else checksCounter -= ((midAsKey, cp))
   }
 
-  def stopExpecting(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId): Unit = {
+  protected def stopExpecting(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId): Unit = {
     val midAsKey = key(mid)
     expecting -= ((mtid, midAsKey, cp))
     cancellables((midAsKey, cp)).cancel()
     cancellables -= ((midAsKey, cp))
   }
 
-  def isExpecting(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
+  protected def isExpecting(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
     expecting.exists(e => (mtid == e._1) && (mid sameElements e._2.array) && cp == e._3)
 
   def receive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = {
