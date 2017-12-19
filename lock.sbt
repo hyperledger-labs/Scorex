@@ -19,11 +19,12 @@ dependencyOverrides in ThisBuild ++= Seq(
   "com.typesafe" % "config" % "1.3.1",
   "com.typesafe" % "ssl-config-core_2.12" % "0.2.1",
   "com.typesafe.akka" % "akka-actor_2.12" % "2.4.20",
-  "com.typesafe.akka" % "akka-http-core_2.12" % "10.0.10",
-  "com.typesafe.akka" % "akka-http_2.12" % "10.0.10",
-  "com.typesafe.akka" % "akka-parsing_2.12" % "10.0.10",
-  "com.typesafe.akka" % "akka-stream_2.12" % "2.4.19",
+  "com.typesafe.akka" % "akka-http-core_2.12" % "10.0.11",
+  "com.typesafe.akka" % "akka-http_2.12" % "10.0.11",
+  "com.typesafe.akka" % "akka-parsing_2.12" % "10.0.11",
+  "com.typesafe.akka" % "akka-stream_2.12" % "2.4.20",
   "commons-net" % "commons-net" % "3.6",
+  "de.heikoseeberger" % "akka-http-circe_2.12" % "1.18.0",
   "io.circe" % "circe-core_2.12" % "0.8.0",
   "io.circe" % "circe-generic_2.12" % "0.8.0",
   "io.circe" % "circe-jawn_2.12" % "0.8.0",
@@ -56,4 +57,4 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.whispersystems" % "curve25519-java" % "0.4.1",
   "org.yaml" % "snakeyaml" % "1.17"
 )
-// LIBRARY_DEPENDENCIES_HASH 5895ca7d7fe2237e06f13e5d7675bedfccbf031b
+// LIBRARY_DEPENDENCIES_HASH 6fa9a3b79637cc43934ecf9b12cdd549dd590862
