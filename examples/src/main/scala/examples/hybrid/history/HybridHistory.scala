@@ -269,9 +269,9 @@ class HybridHistory(val storage: HistoryStorage,
     continuationIds(info.startingPoints, size)
   }
 
-  override def syncInfo(answer: Boolean): HybridSyncInfo =
+  override def syncInfo: HybridSyncInfo =
     HybridSyncInfo(
-      answer,
+      false,
       lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks, bestPowBlock).map(_.id),
       bestPosId)
 

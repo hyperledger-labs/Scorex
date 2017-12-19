@@ -99,17 +99,6 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     // todo: NVS currently does nothing in this case. Should check banning.
   }}
 
-  property("NodeViewSynchronizer: GetLocalSyncInfo") { withFixture { ctx =>
-    import ctx._
-    val h = historyGen.sample.get
-    node ! GetLocalSyncInfo
-    expectNoMsg()
-    node ! ChangedHistory(h)
-    expectNoMsg()
-    node ! GetLocalSyncInfo
-    expectMsgType[CurrentSyncInfo[SI]]
-  }}
-
   //TODO rewrite
   ignore("NodeViewSynchronizer: DataFromPeer: SyncInfoSpec") { withFixture { ctx =>
     import ctx._
