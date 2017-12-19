@@ -86,16 +86,18 @@ case class PeersApiRoute(peerManager: ActorRef,
       defaultValue = "{\n\t\"host\":\"127.0.0.1\",\n\t\"port\":\"9084\"\n}"
     )
   )) def connect: Route = path("connect") {
-    entity(as[String]) { body =>
+    post {
       withAuth {
-        complete {
-          if (addressAndPortRegexp.findFirstMatchIn(body).isDefined) {
-            val Array(host, port) = body.split(":")
-            val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port.toInt)
-            networkController ! ConnectTo(add)
-            StatusCodes.OK
-          } else {
-            StatusCodes.BadRequest
+        entity(as[String]) { body =>
+          complete {
+            if (addressAndPortRegexp.findFirstMatchIn(body).isDefined) {
+              val Array(host, port) = body.split(":")
+              val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port.toInt)
+              networkController ! ConnectTo(add)
+              StatusCodes.OK
+            } else {
+              StatusCodes.BadRequest
+            }
           }
         }
       }
