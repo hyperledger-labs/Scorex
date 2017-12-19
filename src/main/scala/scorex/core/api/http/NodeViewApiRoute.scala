@@ -101,7 +101,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
           def f(v: CurrentView[HIS, MS, VL, MP]): Option[PM] = v.history.modifierById(id)
 
           (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[PM]](f)).mapTo[Option[PM]]
-            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.blockNotExists))
+            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.notExists))
         case _ => Future(ApiError.notExists)
       }
     }
@@ -126,7 +126,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
           }
 
           (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[TX]](f)).mapTo[Option[TX]]
-            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.transactionNotExists))
+            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.notExists))
         case _ => Future(ApiError.notExists)
       }
     }

@@ -46,6 +46,8 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.rudogma" % "supertagged_2.12" % "1.3",
   "org.scala-lang.modules" % "scala-java8-compat_2.12" % "0.8.0",
   "org.scala-lang.modules" % "scala-parser-combinators_2.12" % "1.0.4",
+  "org.scala-sbt" % "test-interface" % "1.0",
+  "org.scalacheck" % "scalacheck_2.12" % "1.13.5",
   "org.scorexfoundation" % "scrypto_2.12" % "2.0.3",
   "org.slf4j" % "slf4j-api" % "1.7.25",
   "org.spire-math" % "jawn-parser_2.12" % "0.10.4",
