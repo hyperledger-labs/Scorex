@@ -15,22 +15,22 @@ trait ApiRoute extends Directives {
   val context: ActorRefFactory
   val route: Route
 
-  implicit val timeout = Timeout(settings.timeout)
+  implicit lazy val timeout: Timeout = Timeout(settings.timeout)
 
   def actorRefFactory: ActorRefFactory = context
 
   def getJsonRoute(fn: Future[ScorexApiResponse]): Route =
-    jsonRoute(Await.result(fn, timeout.duration), get)
+    jsonRoute(Await.result(fn, settings.timeout), get)
 
   def getJsonRoute(fn: ScorexApiResponse): Route = jsonRoute(fn, get)
 
   def postJsonRoute(fn: ScorexApiResponse): Route = jsonRoute(fn, post)
 
-  def postJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, timeout.duration), post)
+  def postJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, settings.timeout), post)
 
   def deleteJsonRoute(fn: ScorexApiResponse): Route = jsonRoute(fn, delete)
 
-  def deleteJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, timeout.duration), delete)
+  def deleteJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, settings.timeout), delete)
 
   protected def jsonRoute(fn: ScorexApiResponse, method: Directive0): Route = method {
     val resp = fn match {
