@@ -101,7 +101,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
       case _ =>
     }
     mod match {
-      case b: TBlock => b.transactions.foreach(tx => validate(tx).ensuring(_.isSuccess))
+      case b: TBlock => b.transactions.foreach(tx => require(validate(tx).isSuccess))
       case _ =>
     }
   }
@@ -136,8 +136,9 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
     val newSt = PersistentAuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
     assert(boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
+    require(newSt.version sameElements newVersion)
     newSt
-  } ensuring { r => if (r.isSuccess) { r.get.version sameElements newVersion } else true }
+  }
 
   override def maxRollbackDepth: Int = store.keepVersions
 

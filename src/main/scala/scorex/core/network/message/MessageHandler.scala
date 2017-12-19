@@ -13,8 +13,11 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
 
   import Message._
 
-  private val specsMap = Map(specs.map(s => s.messageCode -> s): _*)
-    .ensuring(m => m.size == specs.size, "Duplicate message codes")
+  private val specsMap = {
+    val m = Map(specs.map(s => s.messageCode -> s): _*)
+    require(m.size == specs.size, "Duplicate message codes")
+    m
+  }
 
   //MAGIC ++ Array(spec.messageCode) ++ Ints.toByteArray(dataLength) ++ dataWithChecksum
   def parseBytes(bytes: ByteBuffer, sourceOpt: Option[ConnectedPeer]): Try[Message[_]] = Try {
@@ -46,7 +49,11 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
     }
     else Array()
 
-    val spec = specsMap.get(msgCode).ensuring(_.isDefined, s"No message handler found for $msgCode").get
+    val spec = {
+      val s = specsMap.get(msgCode)
+      require(s.isDefined, s"No message handler found for $msgCode")
+      s.get
+    }
 
     Message(spec, Left(msgData), sourceOpt)
   }

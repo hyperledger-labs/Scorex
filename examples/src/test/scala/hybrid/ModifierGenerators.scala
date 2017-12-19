@@ -171,7 +171,7 @@ trait ModifierGenerators {
       case _: PosBlock => posBlocks.remove(0)
     }
 
-    validMods.foldLeft((Seq[HybridBlock](), history.bestPowId, history.bestPosId)){case ((blocks, bestPw, bestPs), b) =>
+    val blocks = validMods.foldLeft((Seq[HybridBlock](), history.bestPowId, history.bestPosId)){case ((blocks, bestPw, bestPs), b) =>
       b match {
         case pwb: PowBlock =>
           val newPwb = pwb.copy(parentId = bestPw, prevPosId = bestPs)
@@ -181,7 +181,7 @@ trait ModifierGenerators {
           (blocks ++ Seq(newPsb), bestPw, newPsb.id)
       }
     }._1
-  }.ensuring{blocks =>
+
     lazy val head = blocks.head
     lazy val headLinksValid = head match {
       case psb: PosBlock =>
@@ -189,6 +189,9 @@ trait ModifierGenerators {
       case pwb: PowBlock =>
         history.bestPowId.sameElements(pwb.parentId) && history.bestPosId.sameElements(pwb.prevPosId)
     }
-    headLinksValid && history.applicable(head)
+
+    require(headLinksValid && history.applicable(head))
+
+    blocks
   }
 }
