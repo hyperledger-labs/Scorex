@@ -1,7 +1,5 @@
 package examples.hybrid.api.http
 
-import javax.ws.rs.Path
-
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
@@ -11,12 +9,10 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import io.circe.parser._
 import io.circe.syntax._
-import io.swagger.annotations._
 import scorex.core.LocalInterface.LocallyGeneratedTransaction
 import scorex.core.api.http.{ApiException, ApiRouteWithFullView, SuccessApiResponse}
-import scorex.core.settings.{RESTApiSettings, ScorexSettings}
+import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
@@ -24,8 +20,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 
-@Path("/wallet")
-@Api(value = "/wallet", produces = "application/json")
 case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                          (implicit val context: ActorRefFactory)
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
@@ -37,21 +31,6 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
     balances ~ transfer
   }
 
-  @Path("/transfer")
-  @ApiOperation(value = "Transfer",
-    notes = "Transfer coins from one output to another",
-    httpMethod = "POST",
-    produces = "application/json",
-    consumes = "application/json")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(
-      name = "body",
-      value = "Json with data",
-      required = true,
-      paramType = "body",
-      defaultValue = "{\"recipient\":\"3FAskwxrbqiX2KGEnFPuD3z89aubJvvdxZTKHCrMFjxQ\",\"amount\":1,\"fee\":100}"
-    )
-  ))
   def transfer: Route = path("transfer") {
     entity(as[String]) { body =>
       withAuth {
@@ -78,12 +57,6 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
     }
   }
 
-
-  @Path("/balances")
-  @ApiOperation(value = "Balances", notes = "Return info about local wallet", httpMethod = "GET")
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with peer list or error")
-  ))
   def balances: Route = path("balances") {
     getJsonRoute {
       viewAsync().map { view =>

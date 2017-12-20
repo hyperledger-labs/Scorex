@@ -3,7 +3,6 @@ package scorex.core.settings
 import java.io.File
 import java.net.InetSocketAddress
 
-import com.github.swagger.akka.model.Info
 import com.typesafe.config.{Config, ConfigFactory}
 import scorex.core.utils.{ByteStr, ScorexLogging}
 import net.ceedubs.ficus.Ficus._
@@ -17,8 +16,7 @@ case class RESTApiSettings(bindAddress: String,
                            port: Int,
                            apiKeyHash: Option[String],
                            corsAllowed: Boolean,
-                           timeout: FiniteDuration,
-                           swaggerInfo: Info)
+                           timeout: FiniteDuration)
 
 case class NetworkSettings(nodeName: String,
                            nodeNonce: Option[Long] = Some(new Random().nextLong()),
