@@ -9,11 +9,9 @@ import scorex.core.settings.RESTApiSettings
 
 class SwaggerYamlRoute(swaggerYaml: String, override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
   extends ApiRoute {
-  //  override val route = _
 
   override val route: Route = {
-    val base = "api-docs"
-    path(base / "swagger.yaml") {
+    path("api-docs" / "swagger.yaml") {
       get {
         complete(HttpEntity(CustomMediaTypes.`text/vnd.yaml`, swaggerYaml))
       }
