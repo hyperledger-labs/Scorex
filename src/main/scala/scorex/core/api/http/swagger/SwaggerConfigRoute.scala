@@ -7,13 +7,13 @@ import com.github.swagger.akka.CustomMediaTypes
 import scorex.core.api.http.ApiRoute
 import scorex.core.settings.RESTApiSettings
 
-class SwaggerYamlRoute(swaggerYaml: String, override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
+class SwaggerConfigRoute(swaggerConf: String, override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
   extends ApiRoute {
 
   override val route: Route = {
-    path("api-docs" / "swagger.yaml") {
+    path("api-docs" / "swagger.conf") {
       get {
-        complete(HttpEntity(CustomMediaTypes.`text/vnd.yaml`, swaggerYaml))
+        complete(HttpEntity(CustomMediaTypes.`text/vnd.yaml`, swaggerConf))
       }
     }
   }

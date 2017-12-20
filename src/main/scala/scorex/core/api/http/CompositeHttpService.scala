@@ -4,15 +4,15 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import scorex.core.api.http.swagger.{CorsSupport, SwaggerYamlRoute}
+import scorex.core.api.http.swagger.{CorsSupport, SwaggerConfigRoute}
 import scorex.core.settings.RESTApiSettings
 
-case class CompositeHttpService(system: ActorSystem, routes: Seq[ApiRoute], settings: RESTApiSettings, swaggerYaml: String)
+case class CompositeHttpService(system: ActorSystem, routes: Seq[ApiRoute], settings: RESTApiSettings, swaggerConf: String)
   extends CorsSupport {
 
   implicit val actorSystem = system
 
-  val swaggerService: SwaggerYamlRoute = new SwaggerYamlRoute(swaggerYaml: String, settings: RESTApiSettings)
+  val swaggerService: SwaggerConfigRoute = new SwaggerConfigRoute(swaggerConf: String, settings: RESTApiSettings)
 
   val redirectToSwagger: Route = {
     redirect("/swagger", StatusCodes.PermanentRedirect)

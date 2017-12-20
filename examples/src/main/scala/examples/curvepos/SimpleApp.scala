@@ -40,7 +40,7 @@ class SimpleApp(val settingsFilename: String) extends Application {
     actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoMessageSpec.type, PMOD, SimpleBlockchain, SimpleMemPool]
     (networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoMessageSpec, settings.network)))
 
-  override val swaggerYaml = ""
+  override val swaggerConfig = ""
 
   override val apiRoutes: Seq[ApiRoute] = Seq(UtilsApiRoute(settings.restApi),
     NodeViewApiRoute[P, TX](settings.restApi, nodeViewHolderRef))

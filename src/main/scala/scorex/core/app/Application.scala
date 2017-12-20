@@ -54,14 +54,17 @@ trait Application extends ScorexLogging {
   val nodeViewHolderRef: ActorRef
   val nodeViewSynchronizer: ActorRef
   val localInterface: ActorRef
-  val swaggerYaml: String
+  /**
+    * API description in openapi format in YAML or JSON
+    */
+  val swaggerConfig: String
 
   val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings)))
 
   val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef))
   val networkController = actorSystem.actorOf(nProps, "networkController")
 
-  lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerYaml).compositeRoute
+  lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 
   def run(): Unit = {
     require(settings.network.agentName.length <= ApplicationNameLimit)
