@@ -43,9 +43,7 @@ class HybridApp(val settingsFilename: String) extends Application {
     PeersApiRoute(peerManagerRef, networkController, settings.restApi)
   )
 
-  override val apiTypes: Set[Class[_]] = Set(classOf[UtilsApiRoute], classOf[DebugApiRoute], classOf[WalletApiRoute],
-    classOf[NodeViewApiRoute[P, TX]], classOf[PeersApiRoute], classOf[StatsApiRoute])
-
+  override val swaggerYaml: String = getClass.getClassLoader.getResourceAsStream("api/testApi.yaml").toString
   val miner = actorSystem.actorOf(Props(new PowMiner(nodeViewHolderRef, hybridSettings.mining)))
   val forger = actorSystem.actorOf(Props(new PosForger(hybridSettings, nodeViewHolderRef)))
 

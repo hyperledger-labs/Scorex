@@ -1,0 +1,198 @@
+openapi: "3.0.0"
+
+info:
+  version: "0.1"
+  title: Scorex Node API example
+  description: API docs for example Scorex project.
+  contact:
+    name: Scorex framework Team
+    email: kushi@protonmail.com
+    url: https://github.com/scorexfoundation/scorex
+  license:
+    name: CC0 1.0 Universal
+    url: https://raw.githubusercontent.com/ScorexFoundation/Scorex/master/COPYING
+
+servers:
+  # todo make it real
+  - url: https://nodes.ergoplatform.com/api/
+    description: Testnet1
+
+components:
+  schemas:
+    # Objects
+    ModifierId:
+      description: Base58-encoded 32 byte modifier id
+      type: object
+      required:
+        - modifierId
+      properties:
+        modifierId:
+          type: string
+          example: D2bXMwWN8P9nWJ9qqwZJLauAdcZHX9n6s91QQ9vK6Zu4
+
+    Digest32:
+      description: Base58-encoded 32 byte digest
+      type: object
+      required:
+        - digest
+      properties:
+        digest:
+          type: string
+          example: FjX5cPuwMc2ocDLPWzt6jq29BXjvU6d5w5XURDJ6dmoM
+    Peer:
+      type: object
+      required:
+        - address
+      properties:
+        address:
+          type: string
+          example: 127.0.0.1:5673
+        name:
+          type: string
+          example: mynode
+        nonce:
+          type: integer
+          # int32
+          format: int64
+          example: 123456
+        lastSeen:
+          type: integer
+          # int32
+          format: int64
+          example: 123456
+
+
+paths:
+
+  /peers/all:
+    get:
+      summary: Get all known peers
+      operationId: getAllPeers
+      tags:
+        - peers
+      responses:
+        200:
+          description: Array of peer objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Peer'
+
+  /peers/connected:
+    get:
+      summary: Get current connected peers
+      operationId: getConnectedPeers
+      tags:
+        - peers
+      responses:
+        200:
+          description: Array of peer objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Peer'
+
+  /peers/connect:
+    post:
+      summary: Get current size of the unconfirmed transactions pool
+      operationId: connectToPeer
+      tags:
+        - peers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              example: 127.0.0.1:5673
+      responses:
+        200:
+          description: Attempt to connect to the peer
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: string
+                enum:
+                  - invalid.peer.address
+                  - invalid.json
+
+  /peers/blacklisted:
+    get:
+      summary: Get blacklisted peers
+      operationId: getBlacklistedPeers
+      tags:
+        - peers
+      responses:
+        200:
+          description: Array of peer objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                    $ref: '#/components/schemas/Peer'
+
+  /utils/seed:
+    get:
+      summary: Get random seed with 32 bytes size
+      operationId: getRandomSeed
+      tags:
+        - utils
+      responses:
+        200:
+          description: Base58-encoded 32 byte seed
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 7yaASMijGEGTbttYHg1MrXnWB8EbzjJnFLSWvmNoHrXV
+
+  /utils/seed/{length}:
+    get:
+      summary: Generate random seed of specified length in bytes
+      operationId: getRandomSeedWithLength
+      tags:
+        - utils
+      parameters:
+        - in: path
+          name: length
+          required: true
+          description: seed length in bytes
+          schema:
+            type: string
+      responses:
+        200:
+          description: Base58-encoded N byte seed
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 7yaASMijGEGTbttYHg1MrXnWB8EbzjJnFLSWvmNoHrXV
+
+  /utils/hash/blake2b:
+    post:
+      summary: Return Blake2b hash of specified message
+      operationId: hashBlake2b
+      tags:
+        - utils
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: 7yaASMijGEGTbttYHg1MrXnWB8EbzjJnFLSWvmNoHrXV
+      responses:
+        200:
+          description: Base58-encoded 32 byte hash
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 6QLZkR1RdHvF7gUw7oms1XdQM6kc9kxpmyHRADN5x7uQ
