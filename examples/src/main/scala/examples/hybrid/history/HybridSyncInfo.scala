@@ -12,8 +12,9 @@ import scala.util.Try
 /**
   * Stores up to 50 last PoW & Pos blocks
   * Thus maximum message size is about 100 * 32 ~= 3.2 KB
+  * TODO answer is never used
   */
-case class HybridSyncInfo(override val answer: Boolean,
+case class HybridSyncInfo(answer: Boolean,
                           lastPowBlockIds: Seq[ModifierId],
                           lastPosBlockId: ModifierId
                          ) extends SyncInfo {

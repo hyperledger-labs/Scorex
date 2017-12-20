@@ -400,8 +400,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 object NodeViewHolder {
 
-  case class CurrentSyncInfo[SI <: SyncInfo](syncInfo: SyncInfo)
-
   case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
   object EventType extends Enumeration {
