@@ -61,7 +61,7 @@ case class ScorexSettings(dataDir: File,
                           wallet: WalletSettings)
 
 
-object ScorexSettings extends ScorexLogging {
+object ScorexSettings extends ScorexLogging with SettingsReaders {
 
   protected val configPath: String = "scorex"
 
