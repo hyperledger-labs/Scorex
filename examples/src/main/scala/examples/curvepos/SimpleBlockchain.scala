@@ -82,11 +82,11 @@ case class SimpleBlockchain(blockIds: Map[Height, ModifierId] = Map(), blocks: M
   override def children(blockId: ModifierId): Seq[SimpleBlock] =
     heightOf(blockId).map(_ + 1).flatMap(blockAt).toSeq
 
-  override def syncInfo(answer: Boolean = false): SimpleSyncInfo =
-    SimpleSyncInfo(answer, lastBlock.id, chainScore())
+  override def syncInfo: SimpleSyncInfo =
+    SimpleSyncInfo(false, lastBlock.id, chainScore())
 
   override def compare(other: SimpleSyncInfo): HistoryComparisonResult.Value = {
-    val local = syncInfo().score
+    val local = syncInfo.score
     val remote = other.score
     if (local < remote) HistoryComparisonResult.Older
     else if (local == remote) HistoryComparisonResult.Equal

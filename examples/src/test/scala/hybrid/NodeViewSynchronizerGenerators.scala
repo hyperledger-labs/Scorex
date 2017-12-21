@@ -40,6 +40,6 @@ trait NodeViewSynchronizerGenerators {
     val tx = simpleBoxTransactionGen.sample.get
     val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref)
 
-    (ref, h.syncInfo(false), m, tx, p, pchProbe, ncProbe, vhProbe, liProbe)
+    (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, liProbe)
   }
 }

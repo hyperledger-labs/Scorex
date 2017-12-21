@@ -105,7 +105,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     viewHolderRef ! Subscribe(vhEvents)
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
-    context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! GetLocalSyncInfo)
+    context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! SendLocalSyncInfo)
   }
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -148,9 +148,17 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     * To send out regular sync signal, we first send a request to node view holder to get current syncing information
     */
   protected def getLocalSyncInfo: Receive = {
-    case GetLocalSyncInfo =>
-      historyReaderOpt.foreach { r =>
-        sender() ! CurrentSyncInfo(r.syncInfo(false))
+    case SendLocalSyncInfo =>
+      val currentTime = NetworkTime.time()
+      if (currentTime - lastSyncInfoSentTime < (networkSettings.syncInterval.toMillis / 2)) {
+        //TODO should never reach this point
+        log.debug("Trying to send sync info too often")
+      } else {
+        lastSyncInfoSentTime = currentTime
+
+        historyReaderOpt.foreach { r =>
+          syncSend(r.syncInfo)
+        }
       }
   }
 
@@ -159,23 +167,16 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     * for more than "syncStatusRefresh" setting says, or the signal is to be sent to all the unknown nodes and a random
     * peer which is older
     */
-  protected def syncSend: Receive = {
-    case CurrentSyncInfo(syncInfo: SI@unchecked) =>
-      val currentTime = NetworkTime.time()
-      if (currentTime - lastSyncInfoSentTime < networkSettings.syncInterval.toMillis) {
-        log.debug("Trying to send sync info too often")
-      } else {
-        lastSyncInfoSentTime = currentTime
-        val peersToSend = statuses.filter(s => s._2 == HistoryComparisonResult.Nonsense ||
-          s._2 == HistoryComparisonResult.Unknown ||
-          s._2 == HistoryComparisonResult.Older ||
-          lastSyncSend.get(s._1).exists(t => (NetworkTime.time() - t).millis > networkSettings.syncStatusRefresh))
-          .keys.toIndexedSeq
-        peersToSend.foreach(updateTime)
-        log.debug(s"Sending Sync messages to ${peersToSend.size} peers.")
+  protected def syncSend(syncInfo: SI): Unit = {
+    val peersToSend = statuses.filter(s => s._2 == HistoryComparisonResult.Nonsense ||
+      s._2 == HistoryComparisonResult.Unknown ||
+      s._2 == HistoryComparisonResult.Older ||
+      lastSyncSend.get(s._1).exists(t => (NetworkTime.time() - t).millis > networkSettings.syncStatusRefresh))
+      .keys.toIndexedSeq
+    peersToSend.foreach(updateTime)
+    log.debug(s"Sending Sync messages to ${peersToSend.size} peers.")
 
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peersToSend))
-      }
+    networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peersToSend))
   }
 
 
@@ -199,7 +200,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
             remote,
             comparison,
             syncInfo,
-            historyReader.syncInfo(true),
+            historyReader.syncInfo,
             extensionOpt
           )
         case _ =>
@@ -253,12 +254,12 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == RequestModifierSpec.MessageCode =>
 
-      readers.foreach { readers =>
+      readers.foreach { reader =>
         val objs: Seq[NodeViewModifier] = invData._1 match {
           case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-            readers._2.getAll(invData._2)
-          case typeId: ModifierTypeId =>
-            invData._2.flatMap(id => readers._1.modifierById(id))
+            reader._2.getAll(invData._2)
+          case _: ModifierTypeId =>
+            invData._2.flatMap(id => reader._1.modifierById(id))
         }
 
         log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
@@ -357,7 +358,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   override def receive: Receive =
     getLocalSyncInfo orElse
-      syncSend orElse
       processSync orElse
       processSyncStatus orElse
       processInv orElse
@@ -374,7 +374,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
 object NodeViewSynchronizer {
 
-  case object GetLocalSyncInfo
+  case object SendLocalSyncInfo
 
   case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 

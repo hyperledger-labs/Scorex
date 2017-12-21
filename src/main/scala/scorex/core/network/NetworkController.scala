@@ -34,11 +34,11 @@ class NetworkController(settings: NetworkSettings,
 
   import NetworkController._
 
-  val peerSynchronizer = context.system.actorOf(Props(new PeerSynchronizer(self, peerManagerRef)), "PeerSynchronizer")
+  val peerSynchronizer = context.system.actorOf(Props(new PeerSynchronizer(self, peerManagerRef, settings)), "PeerSynchronizer")
 
   private implicit val system: ActorSystem = context.system
 
-  private implicit val timeout: Timeout = Timeout(5 seconds) //fixme: magic constant
+  private implicit val timeout: Timeout = Timeout(settings.controllerTimeout.getOrElse(5 seconds))
 
   private val messageHandlers = mutable.Map[Seq[Message.MessageCode], ActorRef]()
 
