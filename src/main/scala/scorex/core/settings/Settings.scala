@@ -40,7 +40,9 @@ case class NetworkSettings(nodeName: String,
                            maxPacketLen: Int,
                            maxInvObjects: Int,
                            syncInterval: FiniteDuration,
-                           syncStatusRefresh: FiniteDuration
+                           syncTimeout: Option[FiniteDuration],
+                           syncStatusRefresh: FiniteDuration,
+                           controllerTimeout: Option[FiniteDuration]
                           )
 
 case class MinerSettings(offlineGeneration: Boolean,

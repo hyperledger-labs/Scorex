@@ -64,10 +64,9 @@ trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends No
     * Information about our node synchronization status. Other node should be able to compare it's view with ours by
     * this syncInfo message and calculate modifiers missed by our node.
     *
-    * @param answer
     * @return
     */
-  def syncInfo(answer: Boolean): SI
+  def syncInfo: SI
 
   /**
     * Whether another's node syncinfo shows that another node is ahead or behind ours
