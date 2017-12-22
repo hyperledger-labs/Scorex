@@ -44,7 +44,9 @@ case class NetworkSettings(nodeName: String,
                            syncInterval: FiniteDuration,
                            syncStatusRefresh: FiniteDuration,
                            syncIntervalStable: FiniteDuration,
-                           syncStatusRefreshStable: FiniteDuration
+                           syncStatusRefreshStable: FiniteDuration,
+                           syncTimeout: Option[FiniteDuration],
+                           controllerTimeout: Option[FiniteDuration]
                           )
 
 case class MinerSettings(offlineGeneration: Boolean,

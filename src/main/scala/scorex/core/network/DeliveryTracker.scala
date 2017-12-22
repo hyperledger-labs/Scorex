@@ -2,11 +2,13 @@ package scorex.core.network
 
 import akka.actor.{ActorContext, ActorRef, Cancellable}
 import scorex.core.network.NodeViewSynchronizer.CheckDelivery
+import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, ModifierTypeId}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Try}
 
 
 /**
@@ -16,9 +18,10 @@ import scala.concurrent.duration.FiniteDuration
 class DeliveryTracker(context: ActorContext,
                       deliveryTimeout: FiniteDuration,
                       maxDeliveryChecks: Int,
-                      nvsRef: ActorRef) {
+                      nvsRef: ActorRef) extends ScorexLogging {
 
   protected type ModifierIdAsKey = scala.collection.mutable.WrappedArray.ofByte
+
   protected def key(id: ModifierId): ModifierIdAsKey = new mutable.WrappedArray.ofByte(id)
 
   // todo: Do we need to keep track of ModifierTypeIds? Maybe we could ignore them?
@@ -33,21 +36,21 @@ class DeliveryTracker(context: ActorContext,
   protected val cancellables = mutable.Map[(ModifierIdAsKey, ConnectedPeer), Cancellable]()
   protected val checksCounter = mutable.Map[(ModifierIdAsKey, ConnectedPeer), Int]()
 
-  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Unit = {
+  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Unit = tryWithLogging {
     for (mid <- mids) expect(cp, mtid, mid)
   }
 
-  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = {
+  protected def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = {
     val cancellable = context.system.scheduler.scheduleOnce(deliveryTimeout,
       nvsRef,
-      CheckDelivery(cp, mtid, mid) )
+      CheckDelivery(cp, mtid, mid))
     val midAsKey = key(mid)
     expecting += ((mtid, midAsKey, cp))
     cancellables((midAsKey, cp)) = cancellable
   }
 
   // stops expecting, and expects again if the number of checks does not exceed the maximum
-  def reexpect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = {
+  def reexpect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = tryWithLogging {
     stopExpecting(cp, mtid, mid)
     val midAsKey = key(mid)
     val checks = checksCounter.getOrElseUpdate((midAsKey, cp), 0) + 1
@@ -56,17 +59,17 @@ class DeliveryTracker(context: ActorContext,
     else checksCounter -= ((midAsKey, cp))
   }
 
-  def stopExpecting(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId): Unit = {
+  protected def stopExpecting(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId): Unit = {
     val midAsKey = key(mid)
     expecting -= ((mtid, midAsKey, cp))
     cancellables((midAsKey, cp)).cancel()
     cancellables -= ((midAsKey, cp))
   }
 
-  def isExpecting(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
+  protected def isExpecting(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
     expecting.exists(e => (mtid == e._1) && (mid sameElements e._2.array) && cp == e._3)
 
-  def receive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = {
+  def receive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = tryWithLogging {
     if (isExpecting(mtid, mid, cp)) {
       val eo = expecting.find(e => (mtid == e._1) && (mid sameElements e._2) && cp == e._3)
       for (e <- eo) expecting -= e
@@ -80,12 +83,20 @@ class DeliveryTracker(context: ActorContext,
     }
   }
 
-  def delete(mid: ModifierId): Unit = delivered -= key(mid)
+  def delete(mid: ModifierId): Unit = tryWithLogging(delivered -= key(mid))
 
-  def deleteSpam(mids: Seq[ModifierId]): Unit = for (id <- mids) deliveredSpam -= key(id)
+  def deleteSpam(mids: Seq[ModifierId]): Unit = for (id <- mids) tryWithLogging(deliveredSpam -= key(id))
 
   def isSpam(mid: ModifierId): Boolean = deliveredSpam contains key(mid)
 
   def peerWhoDelivered(mid: ModifierId): Option[ConnectedPeer] = delivered.get(key(mid))
+
+  protected def tryWithLogging(fn: => Unit): Unit = {
+    Try(fn).recoverWith {
+      case e =>
+        log.warn("Unexpected error", e)
+        Failure(e)
+    }
+  }
 
 }

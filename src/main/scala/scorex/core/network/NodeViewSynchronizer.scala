@@ -1,26 +1,24 @@
 package scorex.core.network
 
+
 import akka.actor.{Actor, ActorRef, Cancellable}
-import scorex.core._
 import scorex.core.NodeViewHolder._
-import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.consensus.{History, HistoryReader, SyncInfo}
+import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.{HandshakedPeer, DisconnectedPeer}
-import scorex.core.settings.NetworkSettings
-import scorex.core.transaction.Transaction
+import scorex.core.network.peer.PeerManager.HandshakedPeer
+import scorex.core.network.peer.PeerManager.DisconnectedPeer
 import scorex.core.transaction.box.proposition.Proposition
-
+import scorex.core.transaction.{MempoolReader, Transaction}
+import scorex.core.utils.{NetworkTime}
+import scorex.core._
 import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
-import History.HistoryComparisonResult
-import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.HandshakedPeer
-
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -36,12 +34,17 @@ import scala.language.postfixOps
   * @tparam TX  transaction
   * @tparam SIS SyncInfoMessage specification
   */
-class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI]]
-(networkControllerRef: ActorRef,
- viewHolderRef: ActorRef,
- localInterfaceRef: ActorRef,
- syncInfoSpec: SIS,
- networkSettings: NetworkSettings) extends Actor with ScorexLogging {
+class NodeViewSynchronizer[P <: Proposition,
+TX <: Transaction[P],
+SI <: SyncInfo,
+SIS <: SyncInfoMessageSpec[SI],
+PMOD <: PersistentNodeViewModifier,
+HR <: HistoryReader[PMOD, SI],
+MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
+                         viewHolderRef: ActorRef,
+                         localInterfaceRef: ActorRef,
+                         syncInfoSpec: SIS,
+                         networkSettings: NetworkSettings) extends Actor with ScorexLogging {
 
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
@@ -62,13 +65,18 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   protected var stableSyncRegime = false
   protected var scheduler: Cancellable = _
 
+  protected var lastSyncInfoSentTime: Long = 0L
+  protected var historyReaderOpt: Option[HR] = None
+  protected var mempoolReaderOpt: Option[MR] = None
+
+  def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
+
   private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
-    statusUpdated.update(peer, System.currentTimeMillis())
     statuses.update(peer, status)
   }
 
-  private def updateTime(peer: ConnectedPeer): Unit = {
-    statusUpdated.update(peer, System.currentTimeMillis())
+  protected def updateTime(peer: ConnectedPeer): Unit = {
+    statusUpdated.update(peer, NetworkTime.time())
   }
 
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
@@ -87,6 +95,8 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
 
     val vhEvents = Seq(
+      NodeViewHolder.EventType.HistoryChanged,
+      NodeViewHolder.EventType.MempoolChanged,
       NodeViewHolder.EventType.FailedTransaction,
       NodeViewHolder.EventType.SuccessfulTransaction,
       NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
@@ -95,8 +105,10 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
       NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
     )
     viewHolderRef ! Subscribe(vhEvents)
+    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
-    scheduler = context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! GetLocalSyncInfo)
+    scheduler = context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! SendLocalSyncInfo)
+
   }
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -116,10 +128,22 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
+    case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
+      //TODO isInstanceOf ?
+      //TODO type erasure
+      historyReaderOpt = Some(reader)
+
+    case ChangedMempool(reader: MR@unchecked) if reader.isInstanceOf[MR] =>
+      //TODO isInstanceOf ?
+      //TODO type erasure
+      mempoolReaderOpt = Some(reader)
   }
 
   protected def peerManagerEvents: Receive = {
-    case HandshakedPeer(remote) => updateStatus(remote, HistoryComparisonResult.Unknown)
+    case HandshakedPeer(remote) =>
+      updateStatus(remote, HistoryComparisonResult.Unknown)
+      updateTime(remote)
+
     case DisconnectedPeer(remote) => // todo: does nothing for now
   }
 
@@ -127,8 +151,18 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     * To send out regular sync signal, we first send a request to node view holder to get current syncing information
     */
   protected def getLocalSyncInfo: Receive = {
-    case GetLocalSyncInfo =>
-      viewHolderRef ! NodeViewHolder.GetSyncInfo
+    case SendLocalSyncInfo =>
+      val currentTime = NetworkTime.time()
+      if (currentTime - lastSyncInfoSentTime < (networkSettings.syncInterval.toMillis / 2)) {
+        //TODO should never reach this point
+        log.debug("Trying to send sync info too often")
+      } else {
+        lastSyncInfoSentTime = currentTime
+
+        historyReaderOpt.foreach { r =>
+          syncSend(r.syncInfo)
+        }
+      }
   }
 
   /**
@@ -136,8 +170,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     * for more than "syncStatusRefresh" setting says, or the signal is to be sent to all the unknown nodes and a random
     * peer which is older
     */
-  protected def syncSend: Receive = {
-    case CurrentSyncInfo(syncInfo: SI@unchecked) =>
+  protected def syncSend(syncInfo: SI): Unit = {
       val timeout = if(stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
       val minInterval = if(stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
 
@@ -163,10 +196,29 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   //sync info is coming from another node
   protected def processSync: Receive = {
-    case DataFromPeer(spec, syncData: SI@unchecked, remote)
+    case DataFromPeer(spec, syncInfo: SI@unchecked, remote)
       if spec.messageCode == syncInfoSpec.messageCode =>
+      historyReaderOpt match {
+        case Some(historyReader) =>
+          val extensionOpt = historyReader.continuationIds(syncInfo, networkSettings.networkChunkSize)
+          val ext = extensionOpt.getOrElse(Seq())
+          val comparison = historyReader.compare(syncInfo)
+          log.debug(s"Comparison with $remote having starting points ${idsToString(syncInfo.startingPoints)}. " +
+            s"Comparison result is $comparison. Sending extension of length ${ext.length}: ${idsToString(ext)}")
 
-      viewHolderRef ! OtherNodeSyncingInfo(remote, syncData)
+          if (!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
+            log.warn("Extension is empty while comparison is younger")
+          }
+
+          self ! OtherNodeSyncingStatus(
+            remote,
+            comparison,
+            syncInfo,
+            historyReader.syncInfo,
+            extensionOpt
+          )
+        case _ =>
+      }
   }
 
   //view holder is telling other node status
@@ -202,7 +254,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
         log.info("Syncing is done, switching to stable regime")
         stableSyncRegime = true
         scheduler.cancel()
-        scheduler = context.system.scheduler.schedule(2 seconds, networkSettings.syncIntervalStable)(self ! GetLocalSyncInfo)
+        scheduler = context.system.scheduler.schedule(2 seconds, networkSettings.syncIntervalStable)(self ! SendLocalSyncInfo)
         localInterfaceRef ! LocalInterface.NoBetterNeighbour
       }
       if (seniorsBefore == 0 && seniorsAfter > 0) {
@@ -214,6 +266,7 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
   protected def processInv: Receive = {
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == InvSpec.MessageCode =>
+      //TODO can't replace here because of modifiers cache
 
       viewHolderRef ! CompareViews(remote, invData._1, invData._2)
   }
@@ -223,7 +276,18 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == RequestModifierSpec.MessageCode =>
 
-      viewHolderRef ! GetLocalObjects(remote, invData._1, invData._2)
+      readers.foreach { reader =>
+        val objs: Seq[NodeViewModifier] = invData._1 match {
+          case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
+            reader._2.getAll(invData._2)
+          case _: ModifierTypeId =>
+            invData._2.flatMap(id => reader._1.modifierById(id))
+        }
+
+        log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
+          s"sending ${objs.length} modifiers ${idsToString(invData._1, objs.map(_.id))} ")
+        self ! NodeViewSynchronizer.ResponseFromLocal(remote, invData._1, objs)
+      }
   }
 
   /**
@@ -317,7 +381,6 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
   override def receive: Receive =
     getLocalSyncInfo orElse
-      syncSend orElse
       processSync orElse
       processSyncStatus orElse
       processInv orElse
@@ -334,19 +397,15 @@ class NodeViewSynchronizer[P <: Proposition, TX <: Transaction[P], SI <: SyncInf
 
 object NodeViewSynchronizer {
 
-  case object GetLocalSyncInfo
+  case object SendLocalSyncInfo
 
   case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
-
-  case class GetLocalObjects(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
   case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
   case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
   case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
-
-  case class OtherNodeSyncingInfo[SI <: SyncInfo](peer: ConnectedPeer, syncInfo: SI)
 
   case class CheckDelivery(source: ConnectedPeer,
                            modifierTypeId: ModifierTypeId,

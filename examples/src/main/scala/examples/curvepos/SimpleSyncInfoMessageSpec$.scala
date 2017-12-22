@@ -8,6 +8,7 @@ import scorex.core.network.message.SyncInfoMessageSpec
 
 import scala.util.Try
 
+// TODO answer is never used
 case class SimpleSyncInfo(answer: Boolean, lastBlockID: ModifierId, score: BlockChain.Score) extends SyncInfo {
   override def startingPoints: Seq[(ModifierTypeId, ModifierId)] = {
     Seq(SimpleBlock.ModifierTypeId -> lastBlockID)
