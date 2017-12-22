@@ -8,7 +8,7 @@ import scorex.core.settings.RESTApiSettings
 
 class SwaggerDocService(system: ActorSystem, val apiClasses: Set[Class[_]], settings: RESTApiSettings)
   extends SwaggerHttpService {
-  override val host: String = settings.bindAddress + ":" + settings.port
+  override val host: String = settings.bindAddress.toString
   override val apiDocsPath: String = "swagger"
 
   override val info: Info = settings.swaggerInfo

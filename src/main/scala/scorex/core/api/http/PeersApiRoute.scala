@@ -65,8 +65,7 @@ case class PeersApiRoute(peerManager: ActorRef,
             Map(
               // todo get or empty
               "declaredAddress" -> handshake.declaredAddress.toString,
-              "nodeName" -> handshake.nodeName,
-              "nodeNonce" -> handshake.nodeNonce.toString
+              "nodeName" -> handshake.nodeName
             ).asJson
           }.asJson
           Map("peers" -> peerData).asJson
