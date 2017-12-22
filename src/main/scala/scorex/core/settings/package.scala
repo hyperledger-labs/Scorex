@@ -12,10 +12,7 @@ package object settings {
   implicit val fileReader: ValueReader[File] = (cfg, path) => new File(cfg.getString(path))
   implicit val byteValueReader: ValueReader[Byte] = (cfg, path) => cfg.getInt(path).toByte
   implicit val inetSocketAddressReader: ValueReader[InetSocketAddress] = { (config: Config, path: String) =>
-    val splitted = config.getString(path).split(":")
-    new InetSocketAddress(
-      splitted(0),
-      splitted(1).toInt
-    )
+    val split = config.getString(path).split(":")
+    new InetSocketAddress(split(0), split(1).toInt)
   }
 }
