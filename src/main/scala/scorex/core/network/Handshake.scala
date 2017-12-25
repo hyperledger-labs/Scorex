@@ -12,7 +12,6 @@ import scala.util.Try
 case class Handshake(applicationName: String,
                      protocolVersion: Version,
                      nodeName: String,
-                     nodeNonce: Long,
                      declaredAddress: Option[InetSocketAddress],
                      time: Long) extends BytesSerializable {
 
@@ -38,7 +37,6 @@ object HandshakeSerializer extends Serializer[Handshake] {
     Array(anb.size.toByte) ++ anb ++
       obj.protocolVersion.bytes ++
       Array(nodeNameBytes.size.toByte) ++ nodeNameBytes ++
-      Longs.toByteArray(obj.nodeNonce) ++
       Ints.toByteArray(fab.length) ++ fab ++
       Longs.toByteArray(obj.time)
 
@@ -64,9 +62,6 @@ object HandshakeSerializer extends Serializer[Handshake] {
     val nodeName = new String(bytes.slice(position, position + nodeNameSize))
     position += nodeNameSize
 
-    val nonce = Longs.fromByteArray(bytes.slice(position, position + 8))
-    position += 8
-
     val fas = Ints.fromByteArray(bytes.slice(position, position + 4))
     position += 4
 
@@ -82,6 +77,6 @@ object HandshakeSerializer extends Serializer[Handshake] {
 
     val time = Longs.fromByteArray(bytes.slice(position, position + 8))
 
-    Handshake(an, av, nodeName, nonce, isaOpt, time)
+    Handshake(an, av, nodeName, isaOpt, time)
   }
 }

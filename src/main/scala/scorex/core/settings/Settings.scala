@@ -12,26 +12,23 @@ import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 
 import scala.util.Random
 
-case class RESTApiSettings(bindAddress: String,
-                           port: Int,
+case class RESTApiSettings(bindAddress: InetSocketAddress,
                            apiKeyHash: Option[String],
                            corsAllowed: Boolean,
                            timeout: FiniteDuration)
 
 case class NetworkSettings(nodeName: String,
-                           nodeNonce: Option[Long] = Some(new Random().nextLong()),
                            addedMaxDelay: Option[FiniteDuration],
                            networkChunkSize: Int,
                            localOnly: Boolean,
                            knownPeers: Seq[InetSocketAddress],
-                           bindAddress: String,
+                           bindAddress: InetSocketAddress,
                            maxConnections: Int,
                            connectionTimeout: FiniteDuration,
                            upnpEnabled: Boolean,
                            upnpGatewayTimeout: Option[FiniteDuration],
                            upnpDiscoverTimeout: Option[FiniteDuration],
-                           port: Int,
-                           declaredAddress: Option[String],
+                           declaredAddress: Option[InetSocketAddress],
                            handshakeTimeout: FiniteDuration,
                            deliveryTimeout: FiniteDuration,
                            maxDeliveryChecks: Int,

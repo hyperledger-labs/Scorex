@@ -76,6 +76,19 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
       }
   }
 
+
+  /**
+    * Given a peer's address and declared address, returns `true` iff the peer is the same is this node.
+    */
+  private def isSelf(address: InetSocketAddress, declaredAddress: Option[InetSocketAddress]): Boolean = {
+    // TODO: should the peer really be considered the same as self iff one of the following conditions hold?? Check carefully.
+    settings.network.bindAddress == address ||
+    settings.network.declaredAddress == declaredAddress ||
+    declaredAddress.contains(settings.network.bindAddress) ||
+    settings.network.declaredAddress.contains(address)
+  }
+
+
   private def peerCycle: Receive = {
     case Connected(newPeer@ConnectedPeer(remote, _)) =>
       if (peerDatabase.isBlacklisted(newPeer.socketAddress)) {
@@ -95,7 +108,8 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
         log.info(s"Got handshake from blacklisted $address")
       } else {
         val toUpdate = connectedPeers.filter { case (cp, h) =>
-          cp.socketAddress == address || h.forall(_.nodeNonce == handshake.nodeNonce)
+          // TODO: Replaced `nonce` by `declaredAddress`. Is this really what we want? Check carefully.
+          cp.socketAddress == address || h.forall(_.declaredAddress == handshake.declaredAddress)
         }
 
         if (toUpdate.isEmpty) {
@@ -109,7 +123,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
           toUpdate.keys.foreach(connectedPeers.remove)
 
           //drop connection to self if occurred
-          if (settings.network.nodeNonce.contains(handshake.nodeNonce)) {
+          if (isSelf(address, handshake.declaredAddress)) {
             newCp.handlerRef ! PeerConnectionHandler.CloseConnection
           } else {
             handshake.declaredAddress.foreach(address => self ! PeerManager.AddOrUpdatePeer(address, None, None))

@@ -71,10 +71,10 @@ trait Application extends ScorexLogging {
 
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
-    log.debug(s"RPC is allowed at ${settings.restApi.bindAddress}:${settings.restApi.port}")
+    log.debug(s"RPC is allowed at ${settings.restApi.bindAddress.toString}")
 
     implicit val materializer = ActorMaterializer()
-    Http().bindAndHandle(combinedRoute, settings.restApi.bindAddress, settings.restApi.port)
+    Http().bindAndHandle(combinedRoute, settings.restApi.bindAddress.getAddress.getHostAddress, settings.restApi.bindAddress.getPort)
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {
@@ -87,7 +87,7 @@ trait Application extends ScorexLogging {
 
   def stopAll(): Unit = synchronized {
     log.info("Stopping network services")
-    if (settings.network.upnpEnabled) upnp.deletePort(settings.network.port)
+    if (settings.network.upnpEnabled) upnp.deletePort(settings.network.bindAddress.getPort)
     networkController ! NetworkController.ShutdownNetwork
 
     log.info("Stopping actors (incl. block generator)")
