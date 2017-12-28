@@ -12,7 +12,7 @@ import scorex.core.network.peer.PeerManager.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
-import scorex.core.utils.{NetworkTime, ScorexLogging}
+import scorex.core.utils.{NetworkTime, NtpNetworkTime, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.crypto.encode.Base58
 
@@ -42,7 +42,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          viewHolderRef: ActorRef,
                          localInterfaceRef: ActorRef,
                          syncInfoSpec: SIS,
-                         networkSettings: NetworkSettings) extends Actor with ScorexLogging {
+                         networkSettings: NetworkSettings,
+                         timeProvider: NtpNetworkTime) extends Actor with ScorexLogging {
 
   import History.HistoryComparisonResult._
   import NodeViewSynchronizer._
@@ -73,7 +74,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   }
 
   protected def updateTime(peer: ConnectedPeer): Unit = {
-    lastSyncSend.update(peer, NetworkTime.time())
+    lastSyncSend.update(peer, timeProvider.time())
   }
 
 
@@ -149,7 +150,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     */
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      val currentTime = NetworkTime.time()
+      val currentTime = timeProvider.time()
       if (currentTime - lastSyncInfoSentTime < (networkSettings.syncInterval.toMillis / 2)) {
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")
@@ -171,7 +172,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     val peersToSend = statuses.filter(s => s._2 == HistoryComparisonResult.Nonsense ||
       s._2 == HistoryComparisonResult.Unknown ||
       s._2 == HistoryComparisonResult.Older ||
-      lastSyncSend.get(s._1).exists(t => (NetworkTime.time() - t).millis > networkSettings.syncStatusRefresh))
+      lastSyncSend.get(s._1).exists(t => (timeProvider.time() - t).millis > networkSettings.syncStatusRefresh))
       .keys.toIndexedSeq
     peersToSend.foreach(updateTime)
     log.debug(s"Sending Sync messages to ${peersToSend.size} peers.")

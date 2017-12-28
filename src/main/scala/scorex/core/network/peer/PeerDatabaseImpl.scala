@@ -3,14 +3,16 @@ package scorex.core.network.peer
 import java.net.{InetSocketAddress, NetworkInterface, URI}
 
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.NetworkTime
+import scorex.core.utils.{NetworkTime, NtpNetworkTime}
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
 
 
 //todo: persistence
-class PeerDatabaseImpl(settings: NetworkSettings, filename: Option[String]) extends PeerDatabase {
+class PeerDatabaseImpl(settings: NetworkSettings,
+                       filename: Option[String],
+                       timeProvider: NtpNetworkTime) extends PeerDatabase {
 
   private val whitelistPersistence = mutable.Map[InetSocketAddress, PeerInfo]()
 
@@ -27,7 +29,7 @@ class PeerDatabaseImpl(settings: NetworkSettings, filename: Option[String]) exte
 
   override def blacklistPeer(address: InetSocketAddress): Unit = {
     whitelistPersistence.remove(address)
-    if (!isBlacklisted(address)) blacklist += address.getHostName -> NetworkTime.time
+    if (!isBlacklisted(address)) blacklist += address.getHostName -> timeProvider.time()
   }
 
   override def isBlacklisted(address: InetSocketAddress): Boolean = {
