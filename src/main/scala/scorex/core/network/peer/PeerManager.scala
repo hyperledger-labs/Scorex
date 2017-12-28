@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef}
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
-import scorex.core.utils.{NetworkTime, NtpNetworkTime, ScorexLogging}
+import scorex.core.utils.{NetworkTime, NtpTimeProvider, ScorexLogging}
 
 import scala.collection.mutable
 import scala.util.Random
@@ -14,7 +14,7 @@ import scala.util.Random
   * Peer manager takes care of peers connected and in process, and also chooses a random peer to connect
   * Must be singleton
   */
-class PeerManager(settings: ScorexSettings, timeProvider: NtpNetworkTime) extends Actor with ScorexLogging {
+class PeerManager(settings: ScorexSettings, timeProvider: NtpTimeProvider) extends Actor with ScorexLogging {
 
   import PeerManager._
 

@@ -11,7 +11,7 @@ import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.EventType
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NtpNetworkTime, ScorexLogging}
+import scorex.core.utils.{NtpTimeProvider, ScorexLogging}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -30,7 +30,7 @@ class NetworkController(settings: NetworkSettings,
                         messageHandler: MessageHandler,
                         upnp: UPnP,
                         peerManagerRef: ActorRef,
-                        timeProvider: NtpNetworkTime
+                        timeProvider: NtpTimeProvider
                        ) extends Actor with ScorexLogging {
 
   import NetworkController._

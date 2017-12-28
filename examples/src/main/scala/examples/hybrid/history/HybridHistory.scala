@@ -13,7 +13,7 @@ import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, Prog
 import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.{NtpNetworkTime, ScorexLogging}
+import scorex.core.utils.{NtpTimeProvider, ScorexLogging}
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
@@ -29,7 +29,7 @@ class HybridHistory(val storage: HistoryStorage,
                     settings: HybridMiningSettings,
                     validators: Seq[BlockValidator[HybridBlock]],
                     statsLogger: Option[FileLogger],
-                    timePrivider: NtpNetworkTime)
+                    timePrivider: NtpTimeProvider)
   extends History[HybridBlock, HybridSyncInfo, HybridHistory] with ScorexLogging {
 
   import HybridHistory._
@@ -449,7 +449,7 @@ object HybridHistory extends ScorexLogging {
     readOrGenerate(settings.dataDir, settings.logDir, minerSettings)
   }
 
-  def readOrGenerate(dataDir: File, logDir: File, settings: HybridMiningSettings, timeProvider: NtpNetworkTime): HybridHistory = {
+  def readOrGenerate(dataDir: File, logDir: File, settings: HybridMiningSettings, timeProvider: NtpTimeProvider): HybridHistory = {
     val iFile = new File(s"${dataDir.getAbsolutePath}/blocks")
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)

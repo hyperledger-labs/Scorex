@@ -18,17 +18,19 @@ object NetworkTime {
 
 protected case class NetworkTime(offset: NetworkTime.Offset, lastUpdate: NetworkTime.Time)
 
-class NtpNetworkTime(ntpServer: String, timeTillUpdate: FiniteDuration) extends ScorexLogging {
+case class NtpTimeProviderSettings(server: String, updateEvery: FiniteDuration, timeout: FiniteDuration)
+
+class NtpTimeProvider(ntpSettings: NtpTimeProviderSettings) extends ScorexLogging {
 
   private type State = Either[(NetworkTime, Future[NetworkTime]), NetworkTime]
 
   private def updateOffSet(): Option[NetworkTime.Offset] = {
     val client = new NTPUDPClient()
-    client.setDefaultTimeout(10000)
+    client.setDefaultTimeout(ntpSettings.timeout.toMillis.toInt)
     try {
       client.open()
 
-      val info = client.getTime(InetAddress.getByName(ntpServer))
+      val info = client.getTime(InetAddress.getByName(ntpSettings.server))
       info.computeDetails()
       Option(info.getOffset)
     } catch {
@@ -44,7 +46,7 @@ class NtpNetworkTime(ntpServer: String, timeTillUpdate: FiniteDuration) extends 
     currentState match {
       case Right(nt) =>
         val time = NetworkTime.localWithOffset(nt.offset)
-        val state = if (time > nt.lastUpdate + timeTillUpdate.toMillis) {
+        val state = if (time > nt.lastUpdate + ntpSettings.updateEvery.toMillis) {
           Left(nt -> Future(updateOffSet()).map { mbOffset =>
             log.info("New offset adjusted: " + mbOffset)
             val offset = mbOffset.getOrElse(nt.offset)

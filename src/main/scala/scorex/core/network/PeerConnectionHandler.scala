@@ -12,7 +12,7 @@ import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTime, NtpNetworkTime, ScorexLogging}
+import scorex.core.utils.{NetworkTime, NtpTimeProvider, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -41,7 +41,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
                                  connection: ActorRef,
                                  ownSocketAddress: Option[InetSocketAddress],
                                  remote: InetSocketAddress,
-                                 timeProvider: NtpNetworkTime) extends Actor with Buffering with ScorexLogging {
+                                 timeProvider: NtpTimeProvider) extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler._
 
