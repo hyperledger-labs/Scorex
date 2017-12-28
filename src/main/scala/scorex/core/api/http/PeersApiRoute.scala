@@ -17,8 +17,6 @@ import scorex.core.settings.RESTApiSettings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-@Path("/peers")
-@Api(value = "/peers", description = "Get info about peers", position = 2)
 case class PeersApiRoute(peerManager: ActorRef,
                          networkController: ActorRef,
                          override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
@@ -29,11 +27,6 @@ case class PeersApiRoute(peerManager: ActorRef,
       allPeers ~ connectedPeers ~ blacklistedPeers ~ connect
     }
 
-  @Path("/all")
-  @ApiOperation(value = "Peer list", notes = "Peer list", httpMethod = "GET")
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with peer list or error")
-  ))
   def allPeers: Route = path("all") {
     getJsonRoute {
       (peerManager ? PeerManager.GetAllPeers)
@@ -51,11 +44,6 @@ case class PeersApiRoute(peerManager: ActorRef,
     }
   }
 
-  @Path("/connected")
-  @ApiOperation(value = "Connected peers list", notes = "Connected peers list", httpMethod = "GET")
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with connected peers or error")
-  ))
   def connectedPeers: Route = path("connected") {
     getJsonRoute {
       (peerManager ? PeerManager.GetConnectedPeers)
@@ -75,17 +63,7 @@ case class PeersApiRoute(peerManager: ActorRef,
 
   private case class ConnectCommandParams(host: String, port: Int)
 
-  @Path("/connect")
-  @ApiOperation(value = "Connect to peer", notes = "Connect to peer", httpMethod = "POST")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(
-      name = "body",
-      value = "Json with data",
-      required = true,
-      paramType = "body",
-      defaultValue = "{\n\t\"host\":\"127.0.0.1\",\n\t\"port\":\"9084\"\n}"
-    )
-  )) def connect: Route = path("connect") {
+  def connect: Route = path("connect") {
     entity(as[String]) { body =>
       withAuth {
         postJsonRoute {
@@ -102,11 +80,6 @@ case class PeersApiRoute(peerManager: ActorRef,
     }
   }
 
-  @Path("/blacklisted")
-  @ApiOperation(value = "Blacklisted peers list", notes = "Connected peers list", httpMethod = "GET")
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with connected peers or error")
-  ))
   def blacklistedPeers: Route = path("blacklisted") {
     getJsonRoute {
       (peerManager ? PeerManager.GetBlacklistedPeers)
