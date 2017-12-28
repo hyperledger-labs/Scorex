@@ -8,6 +8,7 @@ import scorex.core.VersionTag
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer
 import examples.hybrid.history.HybridSyncInfoMessageSpec
+import scorex.core.utils.NtpTimeProvider
 import scorex.testkit.generators.CoreGenerators
 
 
@@ -19,7 +20,7 @@ trait NodeViewSynchronizerGenerators {
               viewHolderRef: ActorRef,
               localInterfaceRef: ActorRef): Props =
       Props(new NodeViewSynchronizer[P, TX, HSI, SIS, PM, HT, MP](
-        networkControllerRef, viewHolderRef, localInterfaceRef, HybridSyncInfoMessageSpec, settings.scorexSettings.network))
+        networkControllerRef, viewHolderRef, localInterfaceRef, HybridSyncInfoMessageSpec, settings.scorexSettings.network, new NtpTimeProvider(settings.scorexSettings.ntp)))
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):

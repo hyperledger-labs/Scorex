@@ -130,7 +130,7 @@ class HybridHistory(val storage: HistoryStorage,
       }
     }
     // require(modifications.toApply.exists(_.id sameElements powBlock.id))
-    (new HybridHistory(storage, settings, validators, statsLogger), progress)
+    (new HybridHistory(storage, settings, validators, statsLogger, timePrivider), progress)
   }
 
   private def posBlockAppend(posBlock: PosBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
@@ -154,7 +154,7 @@ class HybridHistory(val storage: HistoryStorage,
     }
     storage.update(posBlock, Some(difficulties), isBest)
 
-    (new HybridHistory(storage, settings, validators, statsLogger), mod)
+    (new HybridHistory(storage, settings, validators, statsLogger, timePrivider), mod)
   }
 
   /**
@@ -445,8 +445,8 @@ class HybridHistory(val storage: HistoryStorage,
 object HybridHistory extends ScorexLogging {
   val DifficultyRecalcPeriod = 20
 
-  def readOrGenerate(settings: ScorexSettings, minerSettings: HybridMiningSettings): HybridHistory = {
-    readOrGenerate(settings.dataDir, settings.logDir, minerSettings)
+  def readOrGenerate(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NtpTimeProvider): HybridHistory = {
+    readOrGenerate(settings.dataDir, settings.logDir, minerSettings, timeProvider)
   }
 
   def readOrGenerate(dataDir: File, logDir: File, settings: HybridMiningSettings, timeProvider: NtpTimeProvider): HybridHistory = {
