@@ -12,8 +12,6 @@ import scorex.core.settings.RESTApiSettings
 import scorex.crypto.hash.Blake2b256
 
 
-@Path("/utils")
-@Api(value = "/utils", description = "Useful functions", position = 3, produces = "application/json")
 case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val context: ActorRefFactory) extends ApiRoute {
   val SeedSize = 32
 
@@ -27,22 +25,12 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
     seedRoute ~ length ~ hashBlake2b
   }
 
-  @Path("/seed")
-  @ApiOperation(value = "Seed", notes = "Generate random seed", httpMethod = "GET")
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with peer list or error")
-  ))
   def seedRoute: Route = path("seed") {
     getJsonRoute {
       seed(SeedSize)
     }
   }
 
-  @Path("/seed/{length}")
-  @ApiOperation(value = "Seed of specified length", notes = "Generate random seed of specified length", httpMethod = "GET")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "length", value = "Seed length ", required = true, dataType = "long", paramType = "path")
-  ))
   @ApiResponse(code = 200, message = "Json with peer list or error")
   def length: Route = path("seed" / IntNumber) { case length =>
     getJsonRoute {
@@ -50,14 +38,6 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
     }
   }
 
-  @Path("/hash/blake2b")
-  @ApiOperation(value = "Hash", notes = "Return Blake2b hash of specified message", httpMethod = "POST")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "message", value = "Message to hash", required = true, paramType = "body", dataType = "String")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Json with error or json like {\"message\": \"your message\",\"hash\": \"your message hash\"}")
-  ))
   def hashBlake2b: Route = {
     path("hash" / "blake2b") {
       entity(as[String]) { message =>
