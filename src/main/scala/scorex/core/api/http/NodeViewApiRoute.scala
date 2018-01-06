@@ -24,8 +24,6 @@ import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 
-@Path("/nodeView")
-@Api(value = "/nodeView", produces = "application/json")
 case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 (override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
 (implicit val context: ActorRefFactory) extends ApiRoute {
@@ -59,8 +57,6 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     Await.result(nodeViewHolderRef ? GetDataFromCurrentView(f), 5.seconds).asInstanceOf[MempoolData]
   }
 
-  @Path("/pool")
-  @ApiOperation(value = "Pool", notes = "Pool of unconfirmed transactions", httpMethod = "GET")
   def pool: Route = path("pool") {
     getJsonRoute {
       getMempool() match {
@@ -75,8 +71,6 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     }
   }
 
-  @Path("/openSurface")
-  @ApiOperation(value = "Ids of open surface", notes = "Ids of open surface in history", httpMethod = "GET")
   def openSurface: Route = path("openSurface") {
     getJsonRoute {
       getOpenSurface() match {
@@ -86,12 +80,6 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     }
   }
 
-
-  @Path("/persistentModifier/{id}")
-  @ApiOperation(value = "Persistent modifier by id", notes = "Persistent modifier by id", httpMethod = "GET")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "block id ", required = true, dataType = "string", paramType = "path")
-  ))
   def persistentModifierById: Route = path("persistentModifier" / Segment) { encodedId =>
     getJsonRoute {
       Base58.decode(encodedId) match {
@@ -107,11 +95,6 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     }
   }
 
-  @Path("/transaction/{id}")
-  @ApiOperation(value = "Transaction by id", notes = "Transaction by id", httpMethod = "GET")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "block id ", required = true, dataType = "string", paramType = "path")
-  ))
   def transactionById: Route = path("transaction" / Segment) { encodedId =>
     getJsonRoute {
       Base58.decode(encodedId) match {
