@@ -26,7 +26,7 @@ version in ThisBuild := {
   if (git.gitCurrentTags.value.nonEmpty) {
     git.gitDescribedVersion.value.get
   } else {
-    git.gitDescribedVersion.value.get + "-SNAPSHOT"
+    git.gitCurrentBranch.value + "-" + git.gitHeadCommit.value.get.take(8) + "-SNAPSHOT"
   }
 }
 
