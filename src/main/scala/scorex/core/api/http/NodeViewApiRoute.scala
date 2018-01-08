@@ -92,23 +92,4 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     }
   }
 
-  def transactionById: Route = path("transaction" / Segment) { encodedId =>
-    getJsonRoute {
-      Base58.decode(encodedId) match {
-        case Success(rawId) =>
-          val id = ModifierId @@ rawId
-
-          def f(v: CurrentView[HIS, MS, VL, MP]): Option[TX] = {
-            v.history.modifierById(id) match {
-              case Some(tx: TX@unchecked) if tx.isInstanceOf[TX] => Some(tx)
-              case None => v.pool.getById(id)
-            }
-          }
-
-          (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[TX]](f)).mapTo[Option[TX]]
-            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.notExists))
-        case _ => Future(ApiError.notExists)
-      }
-    }
-  }
 }

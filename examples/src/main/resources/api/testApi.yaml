@@ -59,6 +59,64 @@ components:
 
 paths:
 
+  /nodeView/openSurface:
+    get:
+      summary: Get history open surface
+      operationId: getOpenSurface
+      tags:
+        - nodeView
+      responses:
+        200:
+          description: Array of modifier ids
+          content:
+            application/json:
+              schema:
+                type: array
+                example: ["D2bXMwWN8P9nWJ9qqwZJLauAdcZHX9n6s91QQ9vK6Zu4"]
+                items:
+                  type: string
+                  example: D2bXMwWN8P9nWJ9qqwZJLauAdcZHX9n6s91QQ9vK6Zu4
+
+  /nodeView/persistentModifier/{modifierId}:
+    get:
+      summary: Get history open surface
+      operationId: getPersistentModifierById
+      tags:
+        - nodeView
+      parameters:
+        - in: path
+          name: modifierId
+          required: true
+          description: ID of a requested modifier
+          schema:
+            type: string
+      responses:
+        200:
+          description: Node view modifier
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+
+  /nodeView/pool:
+    get:
+      summary: Get memory pool
+      operationId: getPool
+      tags:
+        - nodeView
+      responses:
+        200:
+          description: Memory pool
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - size
+                  - transactions
+
   /peers/all:
     get:
       summary: Get all known peers
