@@ -93,7 +93,7 @@ paths:
 
   /peers/connect:
     post:
-      summary: Get current size of the unconfirmed transactions pool
+      summary: Add address to peers list
       operationId: connectToPeer
       tags:
         - peers
