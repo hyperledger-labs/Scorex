@@ -45,8 +45,7 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
     val rmap = change.toRemove.foldLeft(storage) { case (m, r) => m - ByteBuffer.wrap(r.boxId) }
 
     val amap = change.toAppend.foldLeft(rmap) { case (m, a) =>
-      val b = a.box
-      assert(b.value >= 0)
+      val b = a.box.ensuring(_.value >= 0)
       m + (ByteBuffer.wrap(b.id) -> b)
     }
     SimpleState(newVersion, amap)
@@ -104,15 +103,14 @@ case class SimpleState(override val version: VersionTag = EmptyVersion,
         PublicKey25519NoncedBox(gen, Nonce @@ 1L, Value @@ generatorReward)
     }
     val toAppend = (withoutGenerator ++ Seq(generatorBox)).map(b =>
-      Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b))
-    assert(toAppend.forall(_.box.value >= 0))
+      Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)).ensuring(_.forall(_.box.value >= 0))
 
     BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](toRemove ++ toAppend)
   }
 
   override def semanticValidity(tx: SimpleTransaction): Try[Unit] = Success()
 
-  override def validate(mod: SimpleBlock): Try[Unit] = mod.transactions.map(tx => validate(tx))
+  override def validate(mod: SimpleBlock): Try[Unit] = Try(mod.transactions.foreach(tx => validate(tx).get))
 }
 
 object SimpleState {

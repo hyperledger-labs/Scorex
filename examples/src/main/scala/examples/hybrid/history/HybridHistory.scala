@@ -229,7 +229,7 @@ class HybridHistory(val storage: HistoryStorage,
       (newPowDiff, newPosDiff)
     } else {
       //Same difficulty as in previous block
-      assert(modifierById(posBlock.parentId).isDefined)
+      assert(modifierById(posBlock.parentId).isDefined, "Parent should always be in history")
       val parentPoSId: ModifierId = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock].prevPosId
       (storage.getPoWDifficulty(Some(parentPoSId)), storage.getPoSDifficulty(parentPoSId))
     }

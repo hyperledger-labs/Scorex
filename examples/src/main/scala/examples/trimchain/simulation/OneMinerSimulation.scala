@@ -70,8 +70,7 @@ object OneMinerSimulation extends App with Simulators {
 
   var miningHeight = 0
   var miningUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
-
-  assert(currentUtxo.rootHash sameElements miningUtxo.rootHash)
+    .ensuring(_.rootHash sameElements currentUtxo.rootHash)
 
   var generatingBoxes: Seq[PublicKey25519NoncedBox] = genesisBoxes
 
