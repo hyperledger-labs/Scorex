@@ -64,7 +64,7 @@ class HybridHistorySpecification extends PropSpec
   }
 
   property("History comparison") {
-    history.height should be >= HybridHistory.DifficultyRecalcPeriod
+    (history.height >= HybridHistory.DifficultyRecalcPeriod) shouldBe true
     //TODO test for completed pairs
     history.pairCompleted shouldBe false
     testHistory(history)
