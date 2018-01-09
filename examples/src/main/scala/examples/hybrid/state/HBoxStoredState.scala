@@ -78,7 +78,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     val newSt = HBoxStoredState(store, newVersion)
     assert(boxIdsToRemove.forall(box => newSt.closedBox(box.data).isEmpty), s"Removed box is still in state")
     newSt
-  } ensuring { r => if (r.isSuccess) { r.get.version sameElements newVersion } else true }
+  } ensuring { r => r.toOption.forall(_.version sameElements newVersion )}
 
   override def maxRollbackDepth: Int = store.keepVersions
 

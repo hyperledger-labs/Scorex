@@ -46,7 +46,10 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
     }
     else Array()
 
-    val spec = specsMap.get(msgCode).ensuring(_.isDefined, s"No message handler found for $msgCode").get
+    val spec = specsMap.get(msgCode) match {
+      case Some(h) => h
+      case None => throw new Error(s"No message handler found for $msgCode")
+    }
 
     Message(spec, Left(msgData), sourceOpt)
   }

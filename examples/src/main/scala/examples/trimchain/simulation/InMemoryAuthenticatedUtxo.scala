@@ -65,7 +65,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
       case _ =>
     }
     mod match {
-      case block: TBlock => block.transactions.foreach (tx => validate (tx).ensuring (_.isSuccess) )
+      case block: TBlock => block.transactions.foreach (tx => validate(tx).get)
       case _ => ;
     }
   }
