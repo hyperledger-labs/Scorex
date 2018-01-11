@@ -10,7 +10,7 @@ import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.{NtpTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
@@ -27,7 +27,7 @@ object PrivateChain extends App with ScorexLogging {
   val proposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
 
   def genesisState(): (HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool)  = {
-    HybridNodeViewHolder.generateGenesisState(settings, miningSettings, new NtpTimeProvider(settings.ntp))
+    HybridNodeViewHolder.generateGenesisState(settings, miningSettings, new NetworkTimeProvider(settings.ntp))
   }
 
   def generatePow(h: HybridHistory, brother: Boolean, hashesPerSecond: Int): PowBlock = {

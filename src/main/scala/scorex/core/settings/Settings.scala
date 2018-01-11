@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 
 import com.github.swagger.akka.model.Info
 import com.typesafe.config.{Config, ConfigFactory}
-import scorex.core.utils.{ByteStr, NtpTimeProviderSettings, ScorexLogging}
+import scorex.core.utils.{ByteStr, NetworkTimeProviderSettings, ScorexLogging}
 import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.duration._
@@ -58,7 +58,7 @@ case class ScorexSettings(dataDir: File,
                           restApi: RESTApiSettings,
                           miner: MinerSettings,
                           wallet: WalletSettings,
-                          ntp: NtpTimeProviderSettings
+                          ntp: NetworkTimeProviderSettings
                          )
 
 

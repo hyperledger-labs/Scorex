@@ -13,13 +13,13 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519Companion
-import scorex.core.utils.{NtpTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.core.{ModifierTypeId, NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 
-class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NtpTimeProvider) extends NodeViewHolder[PublicKey25519Proposition,
+class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider) extends NodeViewHolder[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock] {
   override val networkChunkSize: Int = settings.network.networkChunkSize
@@ -64,7 +64,7 @@ class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMining
 }
 
 object HybridNodeViewHolder extends ScorexLogging {
-  def generateGenesisState(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NtpTimeProvider):
+  def generateGenesisState(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider):
                           (HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool) = {
     val GenesisAccountsNum = 50
     val GenesisBalance = Value @@ 100000000L

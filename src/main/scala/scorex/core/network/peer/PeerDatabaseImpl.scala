@@ -3,7 +3,7 @@ package scorex.core.network.peer
 import java.net.{InetSocketAddress, NetworkInterface, URI}
 
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTime, NtpTimeProvider}
+import scorex.core.utils.{NetworkTime, NetworkTimeProvider}
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
@@ -12,7 +12,7 @@ import scala.collection.JavaConverters._
 //todo: persistence
 class PeerDatabaseImpl(settings: NetworkSettings,
                        filename: Option[String],
-                       timeProvider: NtpTimeProvider) extends PeerDatabase {
+                       timeProvider: NetworkTimeProvider) extends PeerDatabase {
 
   private val whitelistPersistence = mutable.Map[InetSocketAddress, PeerInfo]()
 

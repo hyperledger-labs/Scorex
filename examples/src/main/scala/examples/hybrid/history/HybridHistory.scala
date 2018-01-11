@@ -13,7 +13,7 @@ import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, Prog
 import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.{NtpTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
@@ -29,7 +29,7 @@ class HybridHistory(val storage: HistoryStorage,
                     settings: HybridMiningSettings,
                     validators: Seq[BlockValidator[HybridBlock]],
                     statsLogger: Option[FileLogger],
-                    timePrivider: NtpTimeProvider)
+                    timeProvider: NetworkTimeProvider)
   extends History[HybridBlock, HybridSyncInfo, HybridHistory] with ScorexLogging {
 
   import HybridHistory._
@@ -130,7 +130,7 @@ class HybridHistory(val storage: HistoryStorage,
       }
     }
     // require(modifications.toApply.exists(_.id sameElements powBlock.id))
-    (new HybridHistory(storage, settings, validators, statsLogger, timePrivider), progress)
+    (new HybridHistory(storage, settings, validators, statsLogger, timeProvider), progress)
   }
 
   private def posBlockAppend(posBlock: PosBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
@@ -154,7 +154,7 @@ class HybridHistory(val storage: HistoryStorage,
     }
     storage.update(posBlock, Some(difficulties), isBest)
 
-    (new HybridHistory(storage, settings, validators, statsLogger, timePrivider), mod)
+    (new HybridHistory(storage, settings, validators, statsLogger, timeProvider), mod)
   }
 
   /**
@@ -179,7 +179,7 @@ class HybridHistory(val storage: HistoryStorage,
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
       s"Best score is ${storage.bestChainScore}. " +
       s"Pair: ${Base58.encode(storage.bestPowId)}|${Base58.encode(storage.bestPosId)}")
-    statsLogger.foreach(l => l.appendString(timePrivider.time() + ":" +
+    statsLogger.foreach(l => l.appendString(timeProvider.time() + ":" +
       lastBlockIds(bestBlock, 50).map(Base58.encode).mkString(",")))
     res
   }
@@ -445,11 +445,11 @@ class HybridHistory(val storage: HistoryStorage,
 object HybridHistory extends ScorexLogging {
   val DifficultyRecalcPeriod = 20
 
-  def readOrGenerate(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NtpTimeProvider): HybridHistory = {
+  def readOrGenerate(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider): HybridHistory = {
     readOrGenerate(settings.dataDir, settings.logDir, minerSettings, timeProvider)
   }
 
-  def readOrGenerate(dataDir: File, logDir: File, settings: HybridMiningSettings, timeProvider: NtpTimeProvider): HybridHistory = {
+  def readOrGenerate(dataDir: File, logDir: File, settings: HybridMiningSettings, timeProvider: NetworkTimeProvider): HybridHistory = {
     val iFile = new File(s"${dataDir.getAbsolutePath}/blocks")
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)

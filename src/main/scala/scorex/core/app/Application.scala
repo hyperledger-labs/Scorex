@@ -11,7 +11,7 @@ import scorex.core.network.peer.PeerManager
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
-import scorex.core.utils.{NtpTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -57,7 +57,7 @@ trait Application extends ScorexLogging {
   val nodeViewSynchronizer: ActorRef
   val localInterface: ActorRef
 
-  val timeProvider = new NtpTimeProvider(settings.ntp)
+  val timeProvider = new NetworkTimeProvider(settings.ntp)
 
   val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings, timeProvider)))
 

@@ -12,7 +12,7 @@ import scorex.core.network.peer.PeerManager.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
-import scorex.core.utils.{NetworkTime, NtpTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTime, NetworkTimeProvider, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.crypto.encode.Base58
 
@@ -43,7 +43,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          localInterfaceRef: ActorRef,
                          syncInfoSpec: SIS,
                          networkSettings: NetworkSettings,
-                         timeProvider: NtpTimeProvider) extends Actor with ScorexLogging {
+                         timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
   import History.HistoryComparisonResult._
   import NodeViewSynchronizer._

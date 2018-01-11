@@ -8,14 +8,14 @@ import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.settings.MinerSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.utils.{NtpTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.crypto.hash.Blake2b256
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Try
 
-class Forger(viewHolderRef: ActorRef, forgerSettings: MinerSettings, timeProvider: NtpTimeProvider) extends Actor with ScorexLogging {
+class Forger(viewHolderRef: ActorRef, forgerSettings: MinerSettings, timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
   import Forger._
 

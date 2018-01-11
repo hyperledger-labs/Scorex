@@ -18,9 +18,9 @@ object NetworkTime {
 
 protected case class NetworkTime(offset: NetworkTime.Offset, lastUpdate: NetworkTime.Time)
 
-case class NtpTimeProviderSettings(server: String, updateEvery: FiniteDuration, timeout: FiniteDuration)
+case class NetworkTimeProviderSettings(server: String, updateEvery: FiniteDuration, timeout: FiniteDuration)
 
-class NtpTimeProvider(ntpSettings: NtpTimeProviderSettings) extends ScorexLogging {
+class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings) extends ScorexLogging {
 
   private type State = Either[(NetworkTime, Future[NetworkTime]), NetworkTime]
 
