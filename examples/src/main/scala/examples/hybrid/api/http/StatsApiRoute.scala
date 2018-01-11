@@ -1,7 +1,5 @@
 package examples.hybrid.api.http
 
-import javax.ws.rs.Path
-
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import examples.commons.SimpleBoxTransactionMemPool
@@ -10,15 +8,13 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import io.circe.Json
 import io.circe.syntax._
-import io.swagger.annotations._
 import scorex.core.ModifierId
 import scorex.core.api.http.{ApiRouteWithFullView, ApiTry, SuccessApiResponse}
-import scorex.core.settings.{RESTApiSettings, ScorexSettings}
+import scorex.core.settings.RESTApiSettings
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
-
 
 case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                         (implicit val context: ActorRefFactory)

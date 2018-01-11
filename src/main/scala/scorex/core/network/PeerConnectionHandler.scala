@@ -117,7 +117,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
       connection ! Close
 
     case HandshakeDone =>
-      assert(receivedHandshake.isDefined)
+      require(receivedHandshake.isDefined)
       peerManager ! Handshaked(remote, receivedHandshake.get)
       handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading

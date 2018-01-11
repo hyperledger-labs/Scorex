@@ -1,15 +1,12 @@
 package scorex.core.api.http
 
 import java.net.{InetAddress, InetSocketAddress}
-import javax.ws.rs.Path
 
 import akka.actor.{ActorRef, ActorRefFactory}
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
-import io.circe.generic.auto._
-import io.circe.parser._
 import io.circe.syntax._
-import io.swagger.annotations._
 import scorex.core.network.Handshake
 import scorex.core.network.NetworkController.ConnectTo
 import scorex.core.network.peer.{PeerInfo, PeerManager}
@@ -33,12 +30,11 @@ case class PeersApiRoute(peerManager: ActorRef,
         .mapTo[Map[InetSocketAddress, PeerInfo]]
         .map { peers =>
           peers.map { case (address, peerInfo) =>
-            Map(
-              // todo get or empty
-              "declaredAddress" -> address.toString,
-              "nodeName" -> (peerInfo.nodeName.getOrElse("N/A"): String),
-              "nodeNonce" -> (peerInfo.nonce.map(_.toString).getOrElse("N/A"): String)
-            )
+            Seq(
+              Some("address" -> address.toString.asJson),
+              Some("lastSeen" -> peerInfo.lastSeen.asJson),
+              peerInfo.nodeName.map(name => "name" -> name.asJson),
+              peerInfo.nonce.map(nonce => "nonce" -> nonce.asJson)).flatten.toMap
           }.asJson
         }.map(s => SuccessApiResponse(s))
     }
@@ -46,34 +42,36 @@ case class PeersApiRoute(peerManager: ActorRef,
 
   def connectedPeers: Route = path("connected") {
     getJsonRoute {
+      val now = System.currentTimeMillis()
       (peerManager ? PeerManager.GetConnectedPeers)
         .mapTo[Seq[Handshake]]
         .map { handshakes =>
-          val peerData = handshakes.map { handshake =>
+          handshakes.map { handshake =>
             Map(
-              // todo get or empty
-              "declaredAddress" -> handshake.declaredAddress.toString,
-              "nodeName" -> handshake.nodeName
+              "address" -> handshake.declaredAddress.toString.asJson,
+              "name" -> handshake.nodeName.asJson,
+              "lastSeen" -> now.asJson
             ).asJson
           }.asJson
-          Map("peers" -> peerData).asJson
         }.map(s => SuccessApiResponse(s))
     }
   }
 
-  private case class ConnectCommandParams(host: String, port: Int)
+  private val addressAndPortRegexp = "\\w+:\\d{1,5}".r
 
   def connect: Route = path("connect") {
-    entity(as[String]) { body =>
+    post {
       withAuth {
-        postJsonRoute {
-          decode[ConnectCommandParams](body) match {
-            case Right(ConnectCommandParams(host, port)) =>
-              val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port)
+        entity(as[String]) { body =>
+          complete {
+            if (addressAndPortRegexp.findFirstMatchIn(body).isDefined) {
+              val Array(host, port) = body.split(":")
+              val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port.toInt)
               networkController ! ConnectTo(add)
-              SuccessApiResponse(Map("hostname" -> add.getHostName, "status" -> "Trying to connect").asJson)
-            case _ =>
-              ApiError.wrongJson
+              StatusCodes.OK
+            } else {
+              StatusCodes.BadRequest
+            }
           }
         }
       }
@@ -84,7 +82,7 @@ case class PeersApiRoute(peerManager: ActorRef,
     getJsonRoute {
       (peerManager ? PeerManager.GetBlacklistedPeers)
         .mapTo[Seq[String]]
-        .map(s => SuccessApiResponse(s.asJson))
+        .map(s => SuccessApiResponse(Map("address" -> s).asJson))
     }
   }
 }

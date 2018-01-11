@@ -83,7 +83,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   private def isSelf(address: InetSocketAddress, declaredAddress: Option[InetSocketAddress]): Boolean = {
     // TODO: should the peer really be considered the same as self iff one of the following conditions hold?? Check carefully.
     settings.network.bindAddress == address ||
-    settings.network.declaredAddress == declaredAddress ||
+    settings.network.declaredAddress.exists(da => declaredAddress.contains(da)) ||
     declaredAddress.contains(settings.network.bindAddress) ||
     settings.network.declaredAddress.contains(address)
   }
