@@ -9,31 +9,28 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Left
 
-protected trait NetworkTime extends ScorexLogging {
+object NetworkTime {
+  def localWithOffset(offset: Long): Long = System.currentTimeMillis() + offset
 
-  val offset: NetworkTime.Offset
-  val lastUpdate: NetworkTime.Time
-
-  protected def localWithOffset() = System.currentTimeMillis() + offset
-}
-
-object NetworkTime extends ScorexLogging {
   type Offset = Long
   type Time = Long
+}
+
+protected case class NetworkTime(offset: NetworkTime.Offset, lastUpdate: NetworkTime.Time)
+
+case class NetworkTimeProviderSettings(server: String, updateEvery: FiniteDuration, timeout: FiniteDuration)
+
+class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings) extends ScorexLogging {
 
   private type State = Either[(NetworkTime, Future[NetworkTime]), NetworkTime]
 
-  private val TimeTillUpdate = 1000 * 60 * 30L
-  // 30 minutes
-  private val NtpServer = "pool.ntp.org"
-
-  private def updateOffSet(): Option[Offset] = {
+  private def updateOffSet(): Option[NetworkTime.Offset] = {
     val client = new NTPUDPClient()
-    client.setDefaultTimeout(10000)
+    client.setDefaultTimeout(ntpSettings.timeout.toMillis.toInt)
     try {
       client.open()
 
-      val info = client.getTime(InetAddress.getByName(NtpServer))
+      val info = client.getTime(InetAddress.getByName(ntpSettings.server))
       info.computeDetails()
       Option(info.getOffset)
     } catch {
@@ -45,17 +42,15 @@ object NetworkTime extends ScorexLogging {
     }
   }
 
-  private def timeAndState(currentState: State): (Time, State) = {
+  private def timeAndState(currentState: State): (NetworkTime.Time, State) = {
     currentState match {
       case Right(nt) =>
-        val time = nt.localWithOffset()
-        val state = if (time > nt.lastUpdate + TimeTillUpdate) {
+        val time = NetworkTime.localWithOffset(nt.offset)
+        val state = if (time > nt.lastUpdate + ntpSettings.updateEvery.toMillis) {
           Left(nt -> Future(updateOffSet()).map { mbOffset =>
             log.info("New offset adjusted: " + mbOffset)
-            new NetworkTime {
-              override val offset: Offset = mbOffset.getOrElse(nt.offset)
-              override val lastUpdate: Time = this.localWithOffset()
-            }
+            val offset = mbOffset.getOrElse(nt.offset)
+            NetworkTime(offset, NetworkTime.localWithOffset(offset))
           })
         } else {
           Right(nt)
@@ -65,17 +60,14 @@ object NetworkTime extends ScorexLogging {
       case Left((nt, f)) =>
         if (f.isCompleted) {
           val nnt = Await.result(f, 10.seconds)
-          nnt.localWithOffset() -> Right(nnt)
-        } else nt.localWithOffset() -> Left(nt -> f)
+          NetworkTime.localWithOffset(nnt.offset) -> Right(nnt)
+        } else NetworkTime.localWithOffset(nt.offset) -> Left(nt -> f)
     }
   }
 
-  private var state: State = Right(new NetworkTime {
-    override val lastUpdate: Time = 0L
-    override val offset: Offset = 0L
-  })
+  private var state: State = Right(NetworkTime(0L, 0L))
 
-  def time(): Time = {
+  def time(): NetworkTime.Time = {
     val t = timeAndState(state)
     state = t._2
     t._1

@@ -31,14 +31,14 @@ class SimpleApp(val settingsFilename: String) extends Application {
 
   override lazy val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(new SimpleNodeViewHolder(settings)))
 
-  val forger = actorSystem.actorOf(Props(new Forger(nodeViewHolderRef, settings.miner)))
+  val forger = actorSystem.actorOf(Props(new Forger(nodeViewHolderRef, settings.miner, timeProvider)))
 
   override val localInterface: ActorRef = actorSystem.actorOf(Props(new SimpleLocalInterface(nodeViewHolderRef,
     forger)))
 
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, SimpleSyncInfo, SimpleSyncInfoMessageSpec.type, PMOD, SimpleBlockchain, SimpleMemPool]
-    (networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoMessageSpec, settings.network)))
+    (networkController, nodeViewHolderRef, localInterface, SimpleSyncInfoMessageSpec, settings.network, timeProvider)))
 
   override val swaggerConfig = ""
 

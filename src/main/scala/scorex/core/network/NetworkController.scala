@@ -11,7 +11,7 @@ import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.EventType
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -29,7 +29,8 @@ import scala.language.postfixOps
 class NetworkController(settings: NetworkSettings,
                         messageHandler: MessageHandler,
                         upnp: UPnP,
-                        peerManagerRef: ActorRef
+                        peerManagerRef: ActorRef,
+                        timeProvider: NetworkTimeProvider
                        ) extends Actor with ScorexLogging {
 
   import NetworkController._
@@ -143,7 +144,7 @@ class NetworkController(settings: NetworkSettings,
     case Connected(remote, _) =>
       val connection = sender()
       val props = Props(new PeerConnectionHandler(settings, self, peerManagerRef,
-        messageHandler, connection, externalSocketAddress, remote))
+        messageHandler, connection, externalSocketAddress, remote, timeProvider))
       val handler = context.actorOf(props)
       connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
       val newPeer = ConnectedPeer(remote, handler)

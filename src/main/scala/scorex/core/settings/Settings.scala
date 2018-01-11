@@ -4,7 +4,7 @@ import java.io.File
 import java.net.InetSocketAddress
 
 import com.typesafe.config.{Config, ConfigFactory}
-import scorex.core.utils.{ByteStr, ScorexLogging}
+import scorex.core.utils.{ByteStr, NetworkTimeProviderSettings, ScorexLogging}
 import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.duration._
@@ -55,7 +55,9 @@ case class ScorexSettings(dataDir: File,
                           network: NetworkSettings,
                           restApi: RESTApiSettings,
                           miner: MinerSettings,
-                          wallet: WalletSettings)
+                          wallet: WalletSettings,
+                          ntp: NetworkTimeProviderSettings
+                         )
 
 
 object ScorexSettings extends ScorexLogging with SettingsReaders {

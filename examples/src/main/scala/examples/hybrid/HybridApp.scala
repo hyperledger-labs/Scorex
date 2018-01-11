@@ -33,7 +33,7 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoMessageSpec)
 
-  override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(new HybridNodeViewHolder(settings, hybridSettings.mining)))
+  override val nodeViewHolderRef: ActorRef = actorSystem.actorOf(Props(new HybridNodeViewHolder(settings, hybridSettings.mining, timeProvider)))
 
   override val apiRoutes: Seq[ApiRoute] = Seq(
     DebugApiRoute(settings.restApi, nodeViewHolderRef),
@@ -53,7 +53,7 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type, PMOD, HybridHistory, SimpleBoxTransactionMemPool]
-    (networkController, nodeViewHolderRef, localInterface, HybridSyncInfoMessageSpec, settings.network)))
+    (networkController, nodeViewHolderRef, localInterface, HybridSyncInfoMessageSpec, settings.network, timeProvider)))
 
   //touching lazy vals
   miner

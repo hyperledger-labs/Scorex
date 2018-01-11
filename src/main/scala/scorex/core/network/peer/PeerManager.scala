@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef}
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
-import scorex.core.utils.{NetworkTime, ScorexLogging}
+import scorex.core.utils.{NetworkTime, NetworkTimeProvider, ScorexLogging}
 
 import scala.collection.mutable
 import scala.util.Random
@@ -14,7 +14,7 @@ import scala.util.Random
   * Peer manager takes care of peers connected and in process, and also chooses a random peer to connect
   * Must be singleton
   */
-class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
+class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
   import PeerManager._
 
@@ -26,11 +26,11 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
   protected def notifySubscribers[O <: PeerManagerEvent](eventType: EventType.Value, event: O): Unit =
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! event)
 
-  private lazy val peerDatabase = new PeerDatabaseImpl(settings.network, Some(settings.dataDir + "/peers.dat"))
+  private lazy val peerDatabase = new PeerDatabaseImpl(settings.network, Some(settings.dataDir + "/peers.dat"), timeProvider)
 
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
-      val defaultPeerInfo = PeerInfo(NetworkTime.time, None, None)
+      val defaultPeerInfo = PeerInfo(timeProvider.time(), None, None)
       peerDatabase.addOrUpdateKnownPeer(address, defaultPeerInfo)
     }
   }
@@ -43,7 +43,7 @@ class PeerManager(settings: ScorexSettings) extends Actor with ScorexLogging {
 
   private def peerListOperations: Receive = {
     case AddOrUpdatePeer(address, peerNonceOpt, peerNameOpt) =>
-      val peerInfo = PeerInfo(NetworkTime.time(), peerNonceOpt, peerNameOpt)
+      val peerInfo = PeerInfo(timeProvider.time(), peerNonceOpt, peerNameOpt)
       peerDatabase.addOrUpdateKnownPeer(address, peerInfo)
 
     case KnownPeers =>

@@ -12,7 +12,7 @@ import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTime, ScorexLogging}
+import scorex.core.utils.{NetworkTime, NetworkTimeProvider, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -40,7 +40,8 @@ case class PeerConnectionHandler(settings: NetworkSettings,
                                  messagesHandler: MessageHandler,
                                  connection: ActorRef,
                                  ownSocketAddress: Option[InetSocketAddress],
-                                 remote: InetSocketAddress) extends Actor with Buffering with ScorexLogging {
+                                 remote: InetSocketAddress,
+                                 timeProvider: NetworkTimeProvider) extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler._
 
@@ -88,7 +89,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
   private def handshake: Receive = ({
     case StartInteraction =>
       val hb = Handshake(settings.agentName, Version(settings.appVersion), settings.nodeName,
-                         ownSocketAddress, NetworkTime.time()).bytes
+                         ownSocketAddress, timeProvider.time()).bytes
 
       connection ! Write(ByteString(hb))
       log.info(s"Handshake sent to $remote")

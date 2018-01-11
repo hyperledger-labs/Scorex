@@ -13,13 +13,13 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519Companion
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.core.{ModifierTypeId, NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 
-class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMiningSettings) extends NodeViewHolder[PublicKey25519Proposition,
+class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider) extends NodeViewHolder[PublicKey25519Proposition,
   SimpleBoxTransaction,
   HybridBlock] {
   override val networkChunkSize: Int = settings.network.networkChunkSize
@@ -46,7 +46,7 @@ class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMining
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
   override protected def genesisState: (HIS, MS, VL, MP) =
-    HybridNodeViewHolder.generateGenesisState(settings, minerSettings)
+    HybridNodeViewHolder.generateGenesisState(settings, minerSettings, timeProvider)
 
   /**
     * Restore a local view during a node startup. If no any stored view found
@@ -55,7 +55,7 @@ class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMining
   override def restoreState(): Option[(HIS, MS, VL, MP)] = {
     if (HWallet.exists(settings)) {
       Some((
-        HybridHistory.readOrGenerate(settings, minerSettings),
+        HybridHistory.readOrGenerate(settings, minerSettings, timeProvider),
         HBoxStoredState.readOrGenerate(settings),
         HWallet.readOrGenerate(settings, 1),
         SimpleBoxTransactionMemPool.emptyPool))
@@ -64,7 +64,7 @@ class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMining
 }
 
 object HybridNodeViewHolder extends ScorexLogging {
-  def generateGenesisState(settings: ScorexSettings, minerSettings: HybridMiningSettings):
+  def generateGenesisState(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider):
                           (HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool) = {
     val GenesisAccountsNum = 50
     val GenesisBalance = Value @@ 100000000L
@@ -91,7 +91,7 @@ object HybridNodeViewHolder extends ScorexLogging {
     val attachment = "genesis attachment".getBytes
     val posGenesis = PosBlock.create(powGenesis.id, 0, genesisTxs, genesisBox, attachment, genesisAccountPriv)
 
-    var history = HybridHistory.readOrGenerate(settings, minerSettings)
+    var history = HybridHistory.readOrGenerate(settings, minerSettings, timeProvider)
     history = history.append(powGenesis).get._1
     history = history.append(posGenesis).get._1
 

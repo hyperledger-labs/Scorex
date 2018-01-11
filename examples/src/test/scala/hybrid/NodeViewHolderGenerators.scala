@@ -6,11 +6,11 @@ import examples.hybrid.HybridNodeViewHolder
 import examples.hybrid.wallet.HWallet
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
-import scorex.core.utils.ByteStr
+import scorex.core.utils.{ByteStr, NetworkTimeProvider}
 
 trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes =>
 
-  class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings.scorexSettings, settings.mining) {
+  class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings.scorexSettings, settings.mining, new NetworkTimeProvider(settings.scorexSettings.ntp)) {
 
     override protected def genesisState: (HIS, MS, VL, MP) = {
       val store = lsmStoreGen.sample.get

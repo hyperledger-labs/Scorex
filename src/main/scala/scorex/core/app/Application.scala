@@ -11,9 +11,10 @@ import scorex.core.network.peer.PeerManager
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 trait Application extends ScorexLogging {
 
@@ -59,9 +60,12 @@ trait Application extends ScorexLogging {
     */
   val swaggerConfig: String
 
-  val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings)))
+  val timeProvider = new NetworkTimeProvider(settings.ntp)
 
-  val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef))
+
+  val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings, timeProvider)))
+
+  val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef, timeProvider))
   val networkController = actorSystem.actorOf(nProps, "networkController")
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute

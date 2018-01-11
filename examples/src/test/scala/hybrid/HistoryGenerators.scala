@@ -5,6 +5,7 @@ import examples.hybrid.history.{HistoryStorage, HybridHistory}
 import examples.hybrid.mining.HybridSettings
 import org.scalacheck.Gen
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.utils.NetworkTimeProvider
 import scorex.crypto.signatures.PublicKey
 
 trait HistoryGenerators {
@@ -33,7 +34,7 @@ trait HistoryGenerators {
     val storage = new HistoryStorage(blockStorage, settings.mining)
     //we don't care about validation here
     val validators = Seq()
-    new HybridHistory(storage, settings.mining, validators, None)
+    new HybridHistory(storage, settings.mining, validators, None, new NetworkTimeProvider(settings.scorexSettings.ntp))
       .append(genesisBlock).get._1
       .ensuring(_.modifierById(genesisBlock.id).isDefined)
   }
