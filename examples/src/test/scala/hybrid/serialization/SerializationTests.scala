@@ -43,9 +43,9 @@ class SerializationTests extends PropSpec
   property("PowBlock serialization") {
     forAll(powBlockGen) { b: PowBlock =>
       val parsed = b.serializer.parseBytes(b.bytes).get
-      assert(parsed.brothersCount == b.brothersCount)
-      assert(parsed.brothersHash sameElements b.brothersHash)
-      assert(parsed.brothers.headOption.forall(ph => ph.brothersHash sameElements b.brothers.head.brothersHash))
+      parsed.brothersCount shouldBe b.brothersCount
+      parsed.brothersHash shouldEqual b.brothersHash
+      parsed.brothers.headOption.forall(ph => ph.brothersHash sameElements b.brothers.head.brothersHash) shouldBe true
       parsed.bytes shouldEqual b.bytes
     }
   }
