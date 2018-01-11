@@ -29,7 +29,6 @@ trait Application extends ScorexLogging {
 
   //api
   val apiRoutes: Seq[ApiRoute]
-  val apiTypes: Set[Class[_]]
 
   protected implicit lazy val actorSystem = ActorSystem(settings.network.agentName)
 
@@ -55,14 +54,17 @@ trait Application extends ScorexLogging {
   val nodeViewHolderRef: ActorRef
   val nodeViewSynchronizer: ActorRef
   val localInterface: ActorRef
-
+  /**
+    * API description in openapi format in YAML or JSON
+    */
+  val swaggerConfig: String
 
   val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings)))
 
   val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef))
   val networkController = actorSystem.actorOf(nProps, "networkController")
 
-  lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings.restApi).compositeRoute
+  lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 
   def run(): Unit = {
     require(settings.network.agentName.length <= ApplicationNameLimit)

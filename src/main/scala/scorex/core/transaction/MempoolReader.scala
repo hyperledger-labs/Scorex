@@ -22,4 +22,7 @@ trait MempoolReader[TX <: Transaction[_]] extends NodeViewComponent {
   def getAll(ids: Seq[ModifierId]): Seq[TX]
 
   def size: Int
+
+  def take(limit: Int): Iterable[TX]
+
 }

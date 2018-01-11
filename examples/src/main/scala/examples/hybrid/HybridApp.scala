@@ -16,6 +16,7 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 import scala.concurrent.duration._
+import scala.io.Source
 import scala.language.postfixOps
 
 class HybridApp(val settingsFilename: String) extends Application {
@@ -43,8 +44,7 @@ class HybridApp(val settingsFilename: String) extends Application {
     PeersApiRoute(peerManagerRef, networkController, settings.restApi)
   )
 
-  override val apiTypes: Set[Class[_]] = Set(classOf[UtilsApiRoute], classOf[DebugApiRoute], classOf[WalletApiRoute],
-    classOf[NodeViewApiRoute[P, TX]], classOf[PeersApiRoute], classOf[StatsApiRoute])
+  override val swaggerConfig: String = Source.fromResource("api/testApi.yaml").getLines.mkString("\n")
 
   val miner = actorSystem.actorOf(Props(new PowMiner(nodeViewHolderRef, hybridSettings.mining)))
   val forger = actorSystem.actorOf(Props(new PosForger(hybridSettings, nodeViewHolderRef)))

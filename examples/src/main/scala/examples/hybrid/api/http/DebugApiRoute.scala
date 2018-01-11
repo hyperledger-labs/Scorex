@@ -1,7 +1,5 @@
 package examples.hybrid.api.http
 
-import javax.ws.rs.Path
-
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import examples.commons.SimpleBoxTransactionMemPool
@@ -10,10 +8,9 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import io.circe.syntax._
-import io.swagger.annotations._
 import scorex.core.ModifierId
 import scorex.core.api.http.{ApiRouteWithFullView, SuccessApiResponse}
-import scorex.core.settings.{RESTApiSettings, ScorexSettings}
+import scorex.core.settings.RESTApiSettings
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -43,7 +40,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
   def infoRoute: Route = path("info") {
     getJsonRoute {
       viewAsync().map { view =>
-        SuccessApiResponse( Map(
+        SuccessApiResponse(Map(
           "height" -> view.history.height.toString.asJson,
           "bestPoS" -> Base58.encode(view.history.bestPosId).asJson,
           "bestPoW" -> Base58.encode(view.history.bestPowId).asJson,
@@ -58,14 +55,17 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
     getJsonRoute {
       viewAsync().map { view =>
         val pubkeys = view.vault.publicKeys
+
         def isMyPosBlock(b: HybridBlock): Boolean = b match {
           case pos: PosBlock => pubkeys.exists(_.pubKeyBytes sameElements pos.generatorBox.proposition.pubKeyBytes)
           case _ => false
         }
+
         def isMyPowBlock(b: HybridBlock): Boolean = b match {
           case pow: PowBlock => pubkeys.exists(_.pubKeyBytes sameElements pow.generatorProposition.pubKeyBytes)
           case _ => false
         }
+
         val posCount = view.history.count(isMyPosBlock)
         val powCount = view.history.count(isMyPowBlock)
 
