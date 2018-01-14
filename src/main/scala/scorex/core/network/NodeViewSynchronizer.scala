@@ -245,23 +245,17 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       SyncStatus.updateStatus(remote, status)
 
       status match {
-        case Nonsense =>
-          //todo: we should ban peer if its view is totally different from ours
-          log.warn("Got nonsense")
-        case Equal =>
-        case Older =>
-        case Younger =>
-          if (extOpt.isEmpty) {
-            log.warn("extOpt is empty for Younger brother")
-          } else {
-            val ext = extOpt.get
+        case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
+        case Nonsense => log.warn("Got nonsense") //todo: we should ban peer if its view is totally different from ours
+        case Younger => extOpt match {
+          case None => log.warn("extOpt is empty for Younger brother")
+          case Some(ext) =>
             ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
               case (mid, mods) =>
                 networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
             }
-          }
-        //todo: should we ban peer if its status is unknown after getting info from it?
-        case Unknown => log.warn("Peer status is still unknown")
+        }
+        case _ =>  // does nothing for `Equal` and `Older`
       }
 
       val seniorsAfter = SyncStatus.numOfSeniors()
