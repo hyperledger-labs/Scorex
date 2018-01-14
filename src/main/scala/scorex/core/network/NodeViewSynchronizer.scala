@@ -56,6 +56,50 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
 
+
+  /**
+    * SyncTracker caches the statuses of peers (whether they are ahead or behind this node)
+    */
+  object SyncTracker {
+    private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
+    private val lastSync = mutable.Map[ConnectedPeer, Timestamp]()
+
+    val outdatedTimeout = if (isStable()) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
+    val minInterval = if (isStable()) networkSettings.syncIntervalStable else networkSettings.syncInterval
+
+    private var stableSyncRegime = false
+    def isStable(): Boolean = stableSyncRegime
+    def initiateStableRegime(): Unit = stableSyncRegime = true
+
+    def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
+      this.status(peer) = status
+    }
+
+    def updateTime(peer: ConnectedPeer): Unit = {
+      lastSync(peer) = timeProvider.time()
+    }
+
+    def outdatedPeers(): Seq[ConnectedPeer] = lastSync
+      .filter(t => (System.currentTimeMillis() - t._2).millis > outdatedTimeout).keys.toSeq
+
+    def numOfSeniors(): Int = status.count(_._2 == Older)
+
+
+    /**
+      * Return the peers to which this node should send a sync signal, including:
+      * outdated peers, if any, or all peers with unknown status plus a random peer with `Older` status, otherwise.
+      */
+    def peersToSyncWith(): Seq[ConnectedPeer] = {
+      val outdated = outdatedPeers()
+      if (outdated.nonEmpty) outdated
+      else {
+        val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
+        val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
+        if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
+      }.filter(peer => (System.currentTimeMillis() - lastSync(peer)).millis >= minInterval)
+    }
+  }
+
   protected var scheduler: Cancellable = _
 
   protected var lastSyncInfoSentTime: Long = 0L
@@ -155,50 +199,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   }
 
 
-  /**
-    * SyncTracker caches the statuses of peers (whether they are ahead or behind this node)
-    */
-  object SyncTracker {
-    private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-    private val lastSync = mutable.Map[ConnectedPeer, Timestamp]()
-
-    val outdatedTimeout = if (isStable()) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
-    val minInterval = if (isStable()) networkSettings.syncIntervalStable else networkSettings.syncInterval
-
-    private var stableSyncRegime = false
-    def isStable(): Boolean = stableSyncRegime
-    def initiateStableRegime(): Unit = stableSyncRegime = true
-
-    def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
-      this.status(peer) = status
-    }
-
-    def updateTime(peer: ConnectedPeer): Unit = {
-      lastSync(peer) = timeProvider.time()
-    }
-
-    def outdatedPeers(): Seq[ConnectedPeer] = lastSync
-      .filter(t => (System.currentTimeMillis() - t._2).millis > outdatedTimeout).keys.toSeq
-
-    def numOfSeniors(): Int = status.count(_._2 == Older)
-
-
-    /**
-      * Return the peers to which this node should send a sync signal, including:
-      * outdated peers, if any, or all peers with unknown status plus a random peer with `Older` status, otherwise.
-      */
-    def peersToSyncWith(): Seq[ConnectedPeer] = {
-      val outdated = outdatedPeers()
-      if (outdated.nonEmpty) outdated
-      else {
-        val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-        val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
-        if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-      }.filter(peer => (System.currentTimeMillis() - lastSync(peer)).millis >= minInterval)
-    }
-  }
-
-  
   protected def syncSend(syncInfo: SI): Unit = {
       val peers = SyncTracker.peersToSyncWith()
 
