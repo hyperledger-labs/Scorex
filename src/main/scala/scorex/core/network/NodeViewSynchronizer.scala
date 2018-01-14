@@ -247,13 +247,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       status match {
         case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
         case Nonsense => log.warn("Got nonsense") //todo: we should ban peer if its view is totally different from ours
-        case Younger => processYoungerBrothersExtension()
+        case Younger => processExtension()
         case _ =>  // does nothing for `Equal` and `Older`
       }
 
       // todo: explain what this methdd is doing
-      def processYoungerBrothersExtension(): Unit = extOpt match {
-        case None => log.warn("extOpt is empty for Younger brother")
+      def processExtension(): Unit = extOpt match {
+        case None => log.warn(s"extOpt is empty for: $remote . Its status is: $status .")
         case Some(ext) =>
           ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
             case (mid, mods) =>
