@@ -56,29 +56,17 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
 
-  /**
-    We cache peers along with their statuses (whether another peer is ahead or behind of ours,
-    or comparison is not possible, or status is not yet known)
-   **/
-  protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-  protected val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
-
-  protected var stableSyncRegime = false
   protected var scheduler: Cancellable = _
 
   protected var lastSyncInfoSentTime: Long = 0L
+
+
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
 
   def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
-  private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
-    statuses.update(peer, status)
-  }
 
-  protected def updateTime(peer: ConnectedPeer): Unit = {
-    statusUpdated.update(peer, timeProvider.time())
-  }
 
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
@@ -142,8 +130,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>
-      updateStatus(remote, HistoryComparisonResult.Unknown)
-      updateTime(remote)
+      SyncStatus.updateStatus(remote, HistoryComparisonResult.Unknown)
+      SyncStatus.updateTime(remote)
 
     case DisconnectedPeer(remote) => // todo: does nothing for now
   }
@@ -166,31 +154,58 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       }
   }
 
+
+  /**
+    * We cache peers along with their statuses (whether another peer is ahead or behind of ours,
+    or comparison is not possible, or status is not yet known)
+    */
+  object SyncStatus {
+    private val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
+    private val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
+
+    val outdatedTimeout = if (isStable()) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
+    val minInterval = if (isStable()) networkSettings.syncIntervalStable else networkSettings.syncInterval
+
+    private var stableSyncRegime = false
+    def isStable(): Boolean = stableSyncRegime
+    def initiateStableRegime(): Unit = stableSyncRegime = true
+
+    def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
+      statuses.update(peer, status)
+    }
+
+    def updateTime(peer: ConnectedPeer): Unit = {
+      statusUpdated.update(peer, timeProvider.time())
+    }
+
+    def outdatedPeers(): Seq[ConnectedPeer] = statusUpdated
+      .filter(t => (System.currentTimeMillis() - t._2).millis > outdatedTimeout).keys.toSeq
+
+    def numOfSeniors(): Int = statuses.count(_._2 == Older)
+
+    def peersToSyncWith(): Seq[ConnectedPeer] = {
+      val outdated = outdatedPeers()
+      if (outdated.nonEmpty) outdated
+      else {
+        val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
+        val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
+        if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
+      }.filter(peer => (System.currentTimeMillis() - statusUpdated(peer)).millis >= minInterval)
+    }
+  }
+
+
   /**
     * Logic to send a sync signal to other peers: we whether send the signal to all the peers we haven't got status
     * for more than "syncStatusRefresh" setting says, or the signal is to be sent to all the unknown nodes and a random
     * peer which is older
     */
   protected def syncSend(syncInfo: SI): Unit = {
-      val timeout = if(stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
-      val minInterval = if(stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
+      val peers = SyncStatus.peersToSyncWith()
 
-      val outdated = statusUpdated
-        .filter(t => (System.currentTimeMillis() - t._2).millis > timeout)
-        .keys
-        .toSeq
-
-      val peersToSend = if (outdated.nonEmpty) {
-        outdated
-      } else {
-        val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-        val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
-        if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-      }.filter(peer => (System.currentTimeMillis() - statusUpdated(peer)).millis >= minInterval)
-
-      if(peersToSend.nonEmpty) {
-        peersToSend.foreach(updateTime)
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peersToSend))
+      if(peers.nonEmpty) {
+        peers.foreach(SyncStatus.updateTime)
+        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
       }
   }
 
@@ -225,9 +240,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
     case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI@unchecked, extOpt) =>
-      val seniorsBefore = statuses.count(_._2 == Older)
+      val seniorsBefore = SyncStatus.numOfSeniors()
 
-      updateStatus(remote, status)
+      SyncStatus.updateStatus(remote, status)
 
       status match {
         case Nonsense =>
@@ -249,11 +264,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         case Unknown => log.warn("Peer status is still unknown")
       }
 
-      val seniorsAfter = statuses.count(_._2 == Older)
+      val seniorsAfter = SyncStatus.numOfSeniors()
 
       if (seniorsBefore > 0 && seniorsAfter == 0) {
         log.info("Syncing is done, switching to stable regime")
-        stableSyncRegime = true
+        SyncStatus.initiateStableRegime()
         scheduler.cancel()
         scheduler = context.system.scheduler.schedule(2 seconds, networkSettings.syncIntervalStable)(self ! SendLocalSyncInfo)
         localInterfaceRef ! LocalInterface.NoBetterNeighbour
