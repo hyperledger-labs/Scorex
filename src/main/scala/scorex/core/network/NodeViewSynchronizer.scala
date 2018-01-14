@@ -130,10 +130,10 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>
-      SyncStatus.updateStatus(remote, HistoryComparisonResult.Unknown)
-      SyncStatus.updateTime(remote)
+      SyncTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
+      SyncTracker.updateTime(remote)
 
-    case DisconnectedPeer(remote) => // todo: does nothing for now
+    case DisconnectedPeer(_) => // todo: does nothing for now
   }
 
   /**
@@ -159,9 +159,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     * We cache peers along with their statuses (whether another peer is ahead or behind of ours,
     or comparison is not possible, or status is not yet known)
     */
-  object SyncStatus {
-    private val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-    private val statusUpdated = mutable.Map[ConnectedPeer, Timestamp]()
+  object SyncTracker {
+    private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
+    private val lastSync = mutable.Map[ConnectedPeer, Timestamp]()
 
     val outdatedTimeout = if (isStable()) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
     val minInterval = if (isStable()) networkSettings.syncIntervalStable else networkSettings.syncInterval
@@ -178,19 +178,19 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       statusUpdated.update(peer, timeProvider.time())
     }
 
-    def outdatedPeers(): Seq[ConnectedPeer] = statusUpdated
+    def outdatedPeers(): Seq[ConnectedPeer] = lastSync
       .filter(t => (System.currentTimeMillis() - t._2).millis > outdatedTimeout).keys.toSeq
 
-    def numOfSeniors(): Int = statuses.count(_._2 == Older)
+    def numOfSeniors(): Int = status.count(_._2 == Older)
 
     def peersToSyncWith(): Seq[ConnectedPeer] = {
       val outdated = outdatedPeers()
       if (outdated.nonEmpty) outdated
       else {
-        val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-        val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
+        val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
+        val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
         if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-      }.filter(peer => (System.currentTimeMillis() - statusUpdated(peer)).millis >= minInterval)
+      }.filter(peer => (System.currentTimeMillis() - lastSync(peer)).millis >= minInterval)
     }
   }
 
@@ -201,10 +201,10 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     * peer which is older
     */
   protected def syncSend(syncInfo: SI): Unit = {
-      val peers = SyncStatus.peersToSyncWith()
+      val peers = SyncTracker.peersToSyncWith()
 
       if(peers.nonEmpty) {
-        peers.foreach(SyncStatus.updateTime)
+        peers.foreach(SyncTracker.updateTime)
         networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
       }
   }
@@ -239,10 +239,10 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
-    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI@unchecked, extOpt) =>
-      val seniorsBefore = SyncStatus.numOfSeniors()
+    case OtherNodeSyncingStatus(remote, status, _, _, extOpt) =>
+      val seniorsBefore = SyncTracker.numOfSeniors()
 
-      SyncStatus.updateStatus(remote, status)
+      SyncTracker.updateStatus(remote, status)
 
       status match {
         case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
@@ -261,11 +261,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
           }
       }
 
-      val seniorsAfter = SyncStatus.numOfSeniors()
+      val seniorsAfter = SyncTracker.numOfSeniors()
 
       if (seniorsBefore > 0 && seniorsAfter == 0) {
         log.info("Syncing is done, switching to stable regime")
-        SyncStatus.initiateStableRegime()
+        SyncTracker.initiateStableRegime()
         scheduler.cancel()
         scheduler = context.system.scheduler.schedule(2 seconds, networkSettings.syncIntervalStable)(self ! SendLocalSyncInfo)
         localInterfaceRef ! LocalInterface.NoBetterNeighbour
