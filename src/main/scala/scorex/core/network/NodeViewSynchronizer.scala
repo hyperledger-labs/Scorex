@@ -102,6 +102,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected var scheduler: Cancellable = _
 
+  //todo: this should probably be part of `SyncTracker` too
   protected var lastSyncInfoSentTime: Long = 0L
 
 
@@ -109,8 +110,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected var mempoolReaderOpt: Option[MR] = None
 
   def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
-
-
 
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
@@ -374,8 +373,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     //todo: consider something less harsh than blacklisting, see comment for previous function
     // networkControllerRef ! Blacklist(peer)
   }
-
-
+  
   //local node sending out objects requested to remote
   protected def responseFromLocal: Receive = {
     case ResponseFromLocal(peer, _, modifiers: Seq[NodeViewModifier]) =>
