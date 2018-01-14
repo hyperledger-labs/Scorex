@@ -14,7 +14,6 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
-
 import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.settings.NetworkSettings
@@ -307,11 +306,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
       for ((id, _) <- modifiers) deliveryTracker.receive(typeId, id, remote)
 
-      val (spam, fm) = modifiers partition {
-        _ match {
-          case (id, _) => deliveryTracker.isSpam(id)
-        }
-      }
+      val (spam, fm) = modifiers partition { case (id, _) => deliveryTracker.isSpam(id) }
 
       if (spam.nonEmpty) {
         log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
