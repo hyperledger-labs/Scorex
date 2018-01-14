@@ -68,7 +68,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     }
 
     private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-    private val lastSync = mutable.Map[ConnectedPeer, Timestamp]()
+    private val lastSyncSentTime = mutable.Map[ConnectedPeer, Timestamp]() // fixme: should we generalize this to `lastInteractionTime`?
+    // fixme: should we add a `lastSyncReceivedTime`? 
 
     def maxInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
     def minInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
@@ -91,11 +92,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       }
     }
 
-    def updateTime(peer: ConnectedPeer): Unit = {
-      lastSync(peer) = timeProvider.time()
+    def updateLastSyncSentTime(peer: ConnectedPeer): Unit = {
+      lastSyncSentTime(peer) = timeProvider.time()
     }
 
-    private def outdatedPeers(): Seq[ConnectedPeer] = lastSync
+    private def outdatedPeers(): Seq[ConnectedPeer] = lastSyncSentTime
       .filter(t => (System.currentTimeMillis() - t._2).millis > maxInterval()).keys.toSeq
 
     private def numOfSeniors(): Int = status.count(_._2 == Older)
@@ -112,7 +113,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
         val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
         if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-      }.filter(peer => (System.currentTimeMillis() - lastSync(peer)).millis >= minInterval)
+      }.filter(peer => (System.currentTimeMillis() - lastSyncSentTime(peer)).millis >= minInterval)
     }
   }
 
@@ -187,7 +188,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>
       SyncTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
-      SyncTracker.updateTime(remote)
+      SyncTracker.updateLastSyncSentTime(remote) // fixme? Shouldn' we call `updateTime` only when a SyncInfo is sent to the peer?
 
     case DisconnectedPeer(_) => // todo: does nothing for now
   }
@@ -215,7 +216,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       val peers = SyncTracker.peersToSyncWith()
 
       if(peers.nonEmpty) {
-        peers.foreach(SyncTracker.updateTime)
+        peers.foreach(SyncTracker.updateLastSyncSentTime)
         networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
       }
   }
@@ -253,6 +254,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case OtherNodeSyncingStatus(remote, status, _, _, extOpt) =>
 
       SyncTracker.updateStatus(remote, status)
+      // fixme: should we call update time here too?
 
       status match {
         case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
