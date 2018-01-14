@@ -3,9 +3,8 @@ package scorex.core.settings
 import java.io.File
 import java.net.InetSocketAddress
 
-import com.github.swagger.akka.model.Info
 import com.typesafe.config.{Config, ConfigFactory}
-import scorex.core.utils.{ByteStr, ScorexLogging}
+import scorex.core.utils.{ByteStr, NetworkTimeProviderSettings, ScorexLogging}
 import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.duration._
@@ -16,8 +15,7 @@ import scala.util.Random
 case class RESTApiSettings(bindAddress: InetSocketAddress,
                            apiKeyHash: Option[String],
                            corsAllowed: Boolean,
-                           timeout: FiniteDuration,
-                           swaggerInfo: Info)
+                           timeout: FiniteDuration)
 
 case class NetworkSettings(nodeName: String,
                            addedMaxDelay: Option[FiniteDuration],
@@ -59,10 +57,12 @@ case class ScorexSettings(dataDir: File,
                           network: NetworkSettings,
                           restApi: RESTApiSettings,
                           miner: MinerSettings,
-                          wallet: WalletSettings)
+                          wallet: WalletSettings,
+                          ntp: NetworkTimeProviderSettings
+                         )
 
 
-object ScorexSettings extends ScorexLogging {
+object ScorexSettings extends ScorexLogging with SettingsReaders {
 
   protected val configPath: String = "scorex"
 

@@ -41,12 +41,15 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
       val digest = Blake2b256.hash(data).take(Message.ChecksumLength)
 
       //CHECK IF CHECKSUM MATCHES
-      assert(checksum.sameElements(digest), s"Invalid data checksum length = $length")
+      if(!checksum.sameElements(digest)) throw new Error(s"Invalid data checksum length = $length")
       data
     }
     else Array()
 
-    val spec = specsMap.get(msgCode).ensuring(_.isDefined, s"No message handler found for $msgCode").get
+    val spec = specsMap.get(msgCode) match {
+      case Some(h) => h
+      case None => throw new Error(s"No message handler found for $msgCode")
+    }
 
     Message(spec, Left(msgData), sourceOpt)
   }

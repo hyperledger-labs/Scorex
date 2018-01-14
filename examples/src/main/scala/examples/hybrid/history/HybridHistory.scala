@@ -13,7 +13,7 @@ import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, Prog
 import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.{NetworkTime, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
@@ -28,7 +28,8 @@ import scala.util.{Failure, Try}
 class HybridHistory(val storage: HistoryStorage,
                     settings: HybridMiningSettings,
                     validators: Seq[BlockValidator[HybridBlock]],
-                    statsLogger: Option[FileLogger])
+                    statsLogger: Option[FileLogger],
+                    timeProvider: NetworkTimeProvider)
   extends History[HybridBlock, HybridSyncInfo, HybridHistory] with ScorexLogging {
 
   import HybridHistory._
@@ -129,7 +130,7 @@ class HybridHistory(val storage: HistoryStorage,
       }
     }
     // require(modifications.toApply.exists(_.id sameElements powBlock.id))
-    (new HybridHistory(storage, settings, validators, statsLogger), progress)
+    (new HybridHistory(storage, settings, validators, statsLogger, timeProvider), progress)
   }
 
   private def posBlockAppend(posBlock: PosBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
@@ -153,7 +154,7 @@ class HybridHistory(val storage: HistoryStorage,
     }
     storage.update(posBlock, Some(difficulties), isBest)
 
-    (new HybridHistory(storage, settings, validators, statsLogger), mod)
+    (new HybridHistory(storage, settings, validators, statsLogger, timeProvider), mod)
   }
 
   /**
@@ -178,7 +179,7 @@ class HybridHistory(val storage: HistoryStorage,
     log.info(s"History: block ${Base58.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
       s"Best score is ${storage.bestChainScore}. " +
       s"Pair: ${Base58.encode(storage.bestPowId)}|${Base58.encode(storage.bestPosId)}")
-    statsLogger.foreach(l => l.appendString(NetworkTime.time() + ":" +
+    statsLogger.foreach(l => l.appendString(timeProvider.time() + ":" +
       lastBlockIds(bestBlock, 50).map(Base58.encode).mkString(",")))
     res
   }
@@ -229,7 +230,7 @@ class HybridHistory(val storage: HistoryStorage,
       (newPowDiff, newPosDiff)
     } else {
       //Same difficulty as in previous block
-      assert(modifierById(posBlock.parentId).isDefined)
+      assert(modifierById(posBlock.parentId).isDefined, "Parent should always be in history")
       val parentPoSId: ModifierId = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock].prevPosId
       (storage.getPoWDifficulty(Some(parentPoSId)), storage.getPoSDifficulty(parentPoSId))
     }
@@ -444,11 +445,11 @@ class HybridHistory(val storage: HistoryStorage,
 object HybridHistory extends ScorexLogging {
   val DifficultyRecalcPeriod = 20
 
-  def readOrGenerate(settings: ScorexSettings, minerSettings: HybridMiningSettings): HybridHistory = {
-    readOrGenerate(settings.dataDir, settings.logDir, minerSettings)
+  def readOrGenerate(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider): HybridHistory = {
+    readOrGenerate(settings.dataDir, settings.logDir, minerSettings, timeProvider)
   }
 
-  def readOrGenerate(dataDir: File, logDir: File, settings: HybridMiningSettings): HybridHistory = {
+  def readOrGenerate(dataDir: File, logDir: File, settings: HybridMiningSettings, timeProvider: NetworkTimeProvider): HybridHistory = {
     val iFile = new File(s"${dataDir.getAbsolutePath}/blocks")
     iFile.mkdirs()
     val blockStorage = new LSMStore(iFile, maxJournalEntryCount = 10000)
@@ -468,6 +469,6 @@ object HybridHistory extends ScorexLogging {
       new SemanticBlockValidator(Blake2b256)
     )
 
-    new HybridHistory(storage, settings, validators, Some(logger))
+    new HybridHistory(storage, settings, validators, Some(logger), timeProvider)
   }
 }

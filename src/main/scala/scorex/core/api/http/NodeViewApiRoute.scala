@@ -1,12 +1,9 @@
 package scorex.core.api.http
 
-import javax.ws.rs.Path
-
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import io.circe.syntax._
-import io.swagger.annotations._
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.consensus.History
 import scorex.core.network.ConnectedPeer
@@ -89,29 +86,10 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
           def f(v: CurrentView[HIS, MS, VL, MP]): Option[PM] = v.history.modifierById(id)
 
           (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[PM]](f)).mapTo[Option[PM]]
-            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.blockNotExists))
-        case _ => Future(ApiError.blockNotExists)
+            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.notExists))
+        case _ => Future(ApiError.notExists)
       }
     }
   }
 
-  def transactionById: Route = path("transaction" / Segment) { encodedId =>
-    getJsonRoute {
-      Base58.decode(encodedId) match {
-        case Success(rawId) =>
-          val id = ModifierId @@ rawId
-
-          def f(v: CurrentView[HIS, MS, VL, MP]): Option[TX] = {
-            v.history.modifierById(id) match {
-              case Some(tx: TX@unchecked) if tx.isInstanceOf[TX] => Some(tx)
-              case None => v.pool.getById(id)
-            }
-          }
-
-          (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[TX]](f)).mapTo[Option[TX]]
-            .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.transactionNotExists))
-        case _ => Future(ApiError.transactionNotExists)
-      }
-    }
-  }
 }

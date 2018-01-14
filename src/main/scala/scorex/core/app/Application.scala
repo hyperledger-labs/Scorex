@@ -11,9 +11,10 @@ import scorex.core.network.peer.PeerManager
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 trait Application extends ScorexLogging {
 
@@ -29,7 +30,6 @@ trait Application extends ScorexLogging {
 
   //api
   val apiRoutes: Seq[ApiRoute]
-  val apiTypes: Set[Class[_]]
 
   protected implicit lazy val actorSystem = ActorSystem(settings.network.agentName)
 
@@ -55,14 +55,20 @@ trait Application extends ScorexLogging {
   val nodeViewHolderRef: ActorRef
   val nodeViewSynchronizer: ActorRef
   val localInterface: ActorRef
+  /**
+    * API description in openapi format in YAML or JSON
+    */
+  val swaggerConfig: String
+
+  val timeProvider = new NetworkTimeProvider(settings.ntp)
 
 
-  val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings)))
+  val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings, timeProvider)))
 
-  val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef))
+  val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef, timeProvider))
   val networkController = actorSystem.actorOf(nProps, "networkController")
 
-  lazy val combinedRoute = CompositeHttpService(actorSystem, apiTypes, apiRoutes, settings.restApi).compositeRoute
+  lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 
   def run(): Unit = {
     require(settings.network.agentName.length <= ApplicationNameLimit)

@@ -24,7 +24,7 @@ case class HybridMiningSettings(offlineGeneration: Boolean,
   lazy val GenesisParentId = ModifierId @@ Array.fill(32)(1: Byte)
 }
 
-object HybridSettings extends ScorexLogging {
+object HybridSettings extends ScorexLogging with SettingsReaders {
   def read(userConfigPath: Option[String]): HybridSettings = {
     fromConfig(readConfigFromPath(userConfigPath, "scorex"))
   }

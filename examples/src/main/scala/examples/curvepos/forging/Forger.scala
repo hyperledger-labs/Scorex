@@ -8,14 +8,14 @@ import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.settings.MinerSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.utils.{NetworkTime, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.crypto.hash.Blake2b256
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Try
 
-class Forger(viewHolderRef: ActorRef, forgerSettings: MinerSettings) extends Actor with ScorexLogging {
+class Forger(viewHolderRef: ActorRef, forgerSettings: MinerSettings, timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
   import Forger._
 
@@ -41,7 +41,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: MinerSettings) extends Act
 
   protected def calcTarget(lastBlock: SimpleBlock,
                            boxOpt: Option[PublicKey25519NoncedBox]): BigInt = {
-    val eta = (NetworkTime.time() - lastBlock.timestamp) / 1000 //in seconds
+    val eta = (timeProvider.time() - lastBlock.timestamp) / 1000 //in seconds
     val balance = boxOpt.map(_.value).getOrElse(0L)
     BigInt(lastBlock.baseTarget) * eta * balance
   }
@@ -71,7 +71,7 @@ class Forger(viewHolderRef: ActorRef, forgerSettings: MinerSettings) extends Act
         val target = calcTarget(lastBlock, gb._2)
         if (hit < target) {
           Try {
-            val timestamp = NetworkTime.time()
+            val timestamp = timeProvider.time()
             val bt = BaseTarget @@ calcBaseTarget(lastBlock, timestamp)
             val secret = gb._3
             val gs = GenerationSignature @@ Array[Byte]()

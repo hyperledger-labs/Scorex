@@ -12,8 +12,9 @@ import scorex.core.network.peer.PeerManager.HandshakedPeer
 import scorex.core.network.peer.PeerManager.DisconnectedPeer
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
-import scorex.core.utils.{NetworkTime}
-import scorex.core._
+import scorex.core.utils.NetworkTimeProvider
+import scorex.core.{PersistentNodeViewModifier, _}
+
 import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.settings.NetworkSettings
@@ -44,7 +45,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          viewHolderRef: ActorRef,
                          localInterfaceRef: ActorRef,
                          syncInfoSpec: SIS,
-                         networkSettings: NetworkSettings) extends Actor with ScorexLogging {
+                         networkSettings: NetworkSettings,
+                         timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
@@ -76,7 +78,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   }
 
   protected def updateTime(peer: ConnectedPeer): Unit = {
-    statusUpdated.update(peer, NetworkTime.time())
+    statusUpdated.update(peer, timeProvider.time())
   }
 
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
@@ -152,7 +154,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     */
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      val currentTime = NetworkTime.time()
+      val currentTime = timeProvider.time()
       if (currentTime - lastSyncInfoSentTime < (networkSettings.syncInterval.toMillis / 2)) {
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")

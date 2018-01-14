@@ -20,7 +20,7 @@ class TransactionSuite extends PropSpec
       val inputs = boxesWithKeysIn.map { case (box, k) => k -> box.nonce }.toIndexedSeq
 
       boxesWithKeysIn.foreach { case (box, k) =>
-        assert(PrivateKey25519Companion.owns(k, box))
+        PrivateKey25519Companion.owns(k, box) shouldBe true
       }
 
       val boxIds = boxesWithKeysIn.map(_._1.id).map(ByteArrayWrapper.apply)
@@ -34,7 +34,7 @@ class TransactionSuite extends PropSpec
       val outKeys = boxesWithKeysOut.map(_._2).map(_.publicKeyBytes).map(ByteArrayWrapper.apply)
 
       tx.newBoxes.foreach { newBox =>
-        assert(outKeys.contains(ByteArrayWrapper(newBox.proposition.pubKeyBytes)))
+        outKeys.contains(ByteArrayWrapper(newBox.proposition.pubKeyBytes)) shouldBe true
       }
 
       tx.boxIdsToOpen.map(ByteArrayWrapper.apply).forall { bid =>

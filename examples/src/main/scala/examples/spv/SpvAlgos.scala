@@ -47,7 +47,7 @@ object SpvAlgos {
         acc
       } else {
         val inC: Seq[Header] = constructInnerChain(suffix.head, i, boundary, headerById)
-        assert(inC.forall(h => h.realDifficulty >= i * Constants.InitialDifficulty))
+          .ensuring(_.forall(h => h.realDifficulty >= i * Constants.InitialDifficulty))
         val (newIn, newB) = if (inC.length >= m) {
           (constructInnerChain(suffix.head, i, inC(inC.length - m), headerById), inC(inC.length - m))
         } else {
