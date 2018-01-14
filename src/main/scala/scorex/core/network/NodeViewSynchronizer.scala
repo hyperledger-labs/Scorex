@@ -58,31 +58,42 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
 
   /**
-    * SyncTracker caches the statuses of peers (whether they are ahead or behind this node)
+    * SyncTracker caches the peers' statuses (i.e. whether they are ahead or behind this node)
     */
   object SyncTracker {
     private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
     private val lastSync = mutable.Map[ConnectedPeer, Timestamp]()
 
-    val outdatedTimeout = if (isStable()) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
-    val minInterval = if (isStable()) networkSettings.syncIntervalStable else networkSettings.syncInterval
+    val outdatedTimeout = if (stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
+    val minInterval = if (stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
 
     private var stableSyncRegime = false
-    def isStable(): Boolean = stableSyncRegime
-    def initiateStableRegime(): Unit = stableSyncRegime = true
 
     def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
+      val seniorsBefore = SyncTracker.numOfSeniors()
       this.status(peer) = status
+      val seniorsAfter = SyncTracker.numOfSeniors()
+
+      if (seniorsBefore > 0 && seniorsAfter == 0) {
+        log.info("Syncing is done, switching to stable regime")
+        stableSyncRegime = true
+        scheduler.cancel()
+        scheduler = context.system.scheduler.schedule(2 seconds, networkSettings.syncIntervalStable)(self ! SendLocalSyncInfo)
+        localInterfaceRef ! LocalInterface.NoBetterNeighbour
+      }
+      if (seniorsBefore == 0 && seniorsAfter > 0) {
+        localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
+      }
     }
 
     def updateTime(peer: ConnectedPeer): Unit = {
       lastSync(peer) = timeProvider.time()
     }
 
-    def outdatedPeers(): Seq[ConnectedPeer] = lastSync
+    private def outdatedPeers(): Seq[ConnectedPeer] = lastSync
       .filter(t => (System.currentTimeMillis() - t._2).millis > outdatedTimeout).keys.toSeq
 
-    def numOfSeniors(): Int = status.count(_._2 == Older)
+    private def numOfSeniors(): Int = status.count(_._2 == Older)
 
 
     /**
@@ -238,7 +249,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
     case OtherNodeSyncingStatus(remote, status, _, _, extOpt) =>
-      val seniorsBefore = SyncTracker.numOfSeniors()
 
       SyncTracker.updateStatus(remote, status)
 
@@ -249,7 +259,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         case _ =>  // does nothing for `Equal` and `Older`
       }
 
-      // todo: explain what this methdd is doing
+      // todo: explain what this method does
       def processExtension(): Unit = extOpt match {
         case None => log.warn(s"extOpt is empty for: $remote . Its status is: $status .")
         case Some(ext) =>
@@ -257,19 +267,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
             case (mid, mods) =>
               networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
           }
-      }
-
-      val seniorsAfter = SyncTracker.numOfSeniors()
-
-      if (seniorsBefore > 0 && seniorsAfter == 0) {
-        log.info("Syncing is done, switching to stable regime")
-        SyncTracker.initiateStableRegime()
-        scheduler.cancel()
-        scheduler = context.system.scheduler.schedule(2 seconds, networkSettings.syncIntervalStable)(self ! SendLocalSyncInfo)
-        localInterfaceRef ! LocalInterface.NoBetterNeighbour
-      }
-      if (seniorsBefore == 0 && seniorsAfter > 0) {
-        localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
       }
   }
 
@@ -373,7 +370,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     //todo: consider something less harsh than blacklisting, see comment for previous function
     // networkControllerRef ! Blacklist(peer)
   }
-  
+
   //local node sending out objects requested to remote
   protected def responseFromLocal: Receive = {
     case ResponseFromLocal(peer, _, modifiers: Seq[NodeViewModifier]) =>
