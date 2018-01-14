@@ -171,11 +171,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     def initiateStableRegime(): Unit = stableSyncRegime = true
 
     def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
-      statuses.update(peer, status)
+      this.status(peer) = status
     }
 
     def updateTime(peer: ConnectedPeer): Unit = {
-      statusUpdated.update(peer, timeProvider.time())
+      lastSync(peer) = timeProvider.time()
     }
 
     def outdatedPeers(): Seq[ConnectedPeer] = lastSync
