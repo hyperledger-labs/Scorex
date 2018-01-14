@@ -156,8 +156,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
 
   /**
-    * We cache peers along with their statuses (whether another peer is ahead or behind of ours,
-    or comparison is not possible, or status is not yet known)
+    * SyncTracker caches the statuses of peers (whether they are ahead or behind this node)
     */
   object SyncTracker {
     private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
@@ -183,6 +182,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
     def numOfSeniors(): Int = status.count(_._2 == Older)
 
+
+    /**
+      * Return the peers to which this node should send a sync signal, including:
+      * outdated peers, if any, or all peers with unknown status plus a random peer with `Older` status, otherwise.
+      */
     def peersToSyncWith(): Seq[ConnectedPeer] = {
       val outdated = outdatedPeers()
       if (outdated.nonEmpty) outdated
@@ -194,12 +198,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     }
   }
 
-
-  /**
-    * Logic to send a sync signal to other peers: we whether send the signal to all the peers we haven't got status
-    * for more than "syncStatusRefresh" setting says, or the signal is to be sent to all the unknown nodes and a random
-    * peer which is older
-    */
+  
   protected def syncSend(syncInfo: SI): Unit = {
       val peers = SyncTracker.peersToSyncWith()
 
