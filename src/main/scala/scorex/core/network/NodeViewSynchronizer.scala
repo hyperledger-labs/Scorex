@@ -61,11 +61,17 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     * SyncTracker caches the peers' statuses (i.e. whether they are ahead or behind this node)
     */
   object SyncTracker {
+    private var schedule: Option[Cancellable] = None
+    def scheduleSendSyncInfo(): Unit = {
+      if (schedule.isDefined) schedule.get.cancel()
+      schedule = Some(context.system.scheduler.schedule(2.seconds, minInterval())(self ! SendLocalSyncInfo))
+    }
+
     private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
     private val lastSync = mutable.Map[ConnectedPeer, Timestamp]()
 
-    val outdatedTimeout = if (stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
-    val minInterval = if (stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
+    def maxInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
+    def minInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
 
     private var stableSyncRegime = false
 
@@ -77,8 +83,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       if (seniorsBefore > 0 && seniorsAfter == 0) {
         log.info("Syncing is done, switching to stable regime")
         stableSyncRegime = true
-        scheduler.cancel()
-        scheduler = context.system.scheduler.schedule(2 seconds, networkSettings.syncIntervalStable)(self ! SendLocalSyncInfo)
+        scheduleSendSyncInfo()
         localInterfaceRef ! LocalInterface.NoBetterNeighbour
       }
       if (seniorsBefore == 0 && seniorsAfter > 0) {
@@ -91,7 +96,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     }
 
     private def outdatedPeers(): Seq[ConnectedPeer] = lastSync
-      .filter(t => (System.currentTimeMillis() - t._2).millis > outdatedTimeout).keys.toSeq
+      .filter(t => (System.currentTimeMillis() - t._2).millis > maxInterval()).keys.toSeq
 
     private def numOfSeniors(): Int = status.count(_._2 == Older)
 
@@ -111,11 +116,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     }
   }
 
-  protected var scheduler: Cancellable = _
-
   //todo: this should probably be part of `SyncTracker` too
   protected var lastSyncInfoSentTime: Long = 0L
-
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
@@ -150,7 +152,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     viewHolderRef ! Subscribe(vhEvents)
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
-    scheduler = context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! SendLocalSyncInfo)
+    SyncTracker.scheduleSendSyncInfo()
 
   }
 
