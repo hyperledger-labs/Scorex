@@ -9,6 +9,7 @@ import akka.pattern.ask
 import io.circe.syntax._
 import scorex.core.network.Handshake
 import scorex.core.network.NetworkController.ConnectTo
+import scorex.core.network.peer.PeerManager.ConnectedPeers
 import scorex.core.network.peer.{PeerInfo, PeerManager}
 import scorex.core.settings.RESTApiSettings
 
@@ -42,15 +43,14 @@ case class PeersApiRoute(peerManager: ActorRef,
 
   def connectedPeers: Route = path("connected") {
     getJsonRoute {
-      val now = System.currentTimeMillis()
       (peerManager ? PeerManager.GetConnectedPeers)
-        .mapTo[Seq[Handshake]]
-        .map { handshakes =>
-          handshakes.map { handshake =>
+        .mapTo[ConnectedPeers]
+        .map { peers =>
+          peers.peers.map{ peer =>
             Map(
-              "address" -> handshake.declaredAddress.toString.asJson,
-              "name" -> handshake.nodeName.asJson,
-              "lastSeen" -> now.asJson
+              "address" -> peer._1.socketAddress.toString.asJson,
+              "name" -> peer._2.map(_.nodeName).asJson,
+              "connectTime" -> peer._2.map(_.time).asJson
             ).asJson
           }.asJson
         }.map(s => SuccessApiResponse(s))

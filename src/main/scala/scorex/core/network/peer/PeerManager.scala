@@ -61,7 +61,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
   private def apiInterface: Receive = {
     case GetConnectedPeers =>
-      sender() ! (connectedPeers.values.flatten.toSeq: Seq[Handshake])
+      sender() ! ConnectedPeers(connectedPeers.toSeq)
 
     case GetAllPeers =>
       sender() ! peerDatabase.knownPeers(true)
@@ -198,5 +198,7 @@ object PeerManager {
   case object GetBlacklistedPeers
 
   case object GetConnectedPeers
+
+  case class ConnectedPeers(peers: Seq[(ConnectedPeer, Option[Handshake])])
 
 }
