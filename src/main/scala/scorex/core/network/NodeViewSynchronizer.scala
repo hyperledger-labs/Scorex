@@ -68,8 +68,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     }
 
     private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-    private val lastSyncSentTime = mutable.Map[ConnectedPeer, Timestamp]() // fixme: should we generalize this to `lastInteractionTime`?
-    // fixme: should we add a `lastSyncReceivedTime`? 
+    private val lastSyncSentTime = mutable.Map[ConnectedPeer, Timestamp]()
+    // fixme: should we generalize this to `lastInteractionTime`?
+    // fixme: should we add a `lastSyncReceivedTime`?
+    // kushti: we store lastSyncSent time in order to remember when we sent sync info to a peer.
+    // kushti: it would be good to remember last received syncs also, in order to prevent spam
+    // kushti: (as processing syncs could be costly), but that should be a part of broader anti-spam strategy probably
+    // kushti: (the same could be said about lastInteractionTime)
 
     def maxInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
     def minInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
@@ -188,7 +193,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>
       SyncTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
-      SyncTracker.updateLastSyncSentTime(remote) // fixme? Shouldn' we call `updateTime` only when a SyncInfo is sent to the peer?
+      SyncTracker.updateLastSyncSentTime(remote)
+     // fixme? Shouldn' we call `updateTime` only when a SyncInfo is sent to the peer?
+      // kushti: yes, it should!
 
     case DisconnectedPeer(_) => // todo: does nothing for now
   }
@@ -255,6 +262,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
       SyncTracker.updateStatus(remote, status)
       // fixme: should we call update time here too?
+      //kushti: sync sent time? no
 
       status match {
         case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
