@@ -71,6 +71,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     private val lastSyncSentTime = mutable.Map[ConnectedPeer, Timestamp]()
     private val lastSyncReceivedTime = mutable.Map[ConnectedPeer, Timestamp]()
 
+    private var lastSyncInfoSentTime: Timestamp = 0L
+
     def maxInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
     def minInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
 
@@ -93,7 +95,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     }
 
     def updateLastSyncSentTime(peer: ConnectedPeer): Unit = {
-      lastSyncSentTime(peer) = timeProvider.time()
+      val currentTime = timeProvider.time()
+      lastSyncSentTime(peer) = currentTime
+      lastSyncInfoSentTime = currentTime
+    }
+
+    def elapsedTimeSinceLastSync(): Long = {
+      timeProvider.time() - lastSyncInfoSentTime
     }
 
     def updateLastSyncReceivedTime(peer: ConnectedPeer): Unit = {
@@ -121,8 +129,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     }
   }
 
-  //todo: this should probably be part of `SyncTracker` too
-  protected var lastSyncInfoSentTime: Long = 0L
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
@@ -199,15 +205,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   /**
     * To send out regular sync signal, we first send a request to node view holder to get current syncing information
     */
+  // fixme: I think the comment above is outdated, because we are not sending any request to NVH
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      val currentTime = timeProvider.time()
-      if (currentTime - lastSyncInfoSentTime < (networkSettings.syncInterval.toMillis / 2)) {
+      if (SyncTracker.elapsedTimeSinceLastSync() < (networkSettings.syncInterval.toMillis / 2)) {
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")
       } else {
-        lastSyncInfoSentTime = currentTime
-
         historyReaderOpt.foreach { r =>
           syncSend(r.syncInfo)
         }
