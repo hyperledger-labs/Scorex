@@ -125,7 +125,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
         val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
         if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-      }.filter(peer => (System.currentTimeMillis() - lastSyncSentTime(peer)).millis >= minInterval)
+      }.filter(peer => (System.currentTimeMillis() - lastSyncSentTime.getOrElse(peer, 0L)).millis >= minInterval)
     }
   }
 
