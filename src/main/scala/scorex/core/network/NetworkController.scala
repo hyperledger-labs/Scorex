@@ -35,7 +35,8 @@ class NetworkController(settings: NetworkSettings,
 
   import NetworkController._
 
-  val peerSynchronizer = context.system.actorOf(Props(new PeerSynchronizer(self, peerManagerRef, settings)), "PeerSynchronizer")
+  private val synchronizerProps = Props(new PeerSynchronizer(self, peerManagerRef, settings))
+  private val peerSynchronizer = context.system.actorOf(synchronizerProps, "PeerSynchronizer")
 
   private implicit val system: ActorSystem = context.system
 
