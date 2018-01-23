@@ -1,9 +1,9 @@
 package scorex.core.network.peer
 
-import java.net.{InetSocketAddress, NetworkInterface, URI}
+import java.net.{InetSocketAddress, NetworkInterface}
 
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTime, NetworkTimeProvider}
+import scorex.core.utils.NetworkTimeProvider
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._

@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef}
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
-import scorex.core.utils.{NetworkTime, NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
 import scala.collection.mutable
 import scala.util.Random
