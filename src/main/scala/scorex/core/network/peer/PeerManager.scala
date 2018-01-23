@@ -146,7 +146,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       if (connectedPeers.size < settings.network.maxConnections && connectingPeer.isEmpty) {
         randomPeer().foreach { address =>
           //todo: avoid picking too many peers from the same bucket, see Bitcoin ref. impl.
-          if (!connectedPeers.exists(_._1.socketAddress.getAddress == address.getAddress)) {
+          if (!connectedPeers.exists(_._1.socketAddress.getHostName == address.getHostName)) {
             connectingPeer = Some(address)
             sender() ! NetworkController.ConnectTo(address)
           }
