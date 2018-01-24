@@ -95,8 +95,6 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       if (peerDatabase.isBlacklisted(newPeer.socketAddress)) {
         log.info(s"Got incoming connection from blacklisted $remote")
       } else {
-        println("connected peers: " + connectedPeers)
-        println("remote: " + remote)
         if(!connectedPeers.exists(_._1.socketAddress.getHostName == remote.getHostName)) {
           connectedPeers += newPeer -> None
           if (connectingPeers.contains(remote)) {
