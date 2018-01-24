@@ -3,6 +3,7 @@ package scorex.core.network
 import java.net.{InetAddress, InetSocketAddress, NetworkInterface, URI}
 
 import akka.actor._
+import akka.io.Tcp.SO.KeepAlive
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.pattern.ask
@@ -88,7 +89,7 @@ class NetworkController(settings: NetworkSettings,
   lazy val connTimeout = Some(settings.connectionTimeout)
 
   //bind to listen incoming connections
-  IO(Tcp) ! Bind(self, localAddress)
+  IO(Tcp) ! Bind(self, localAddress, options = KeepAlive(true) :: Nil)
 
   private def bindingLogic: Receive = {
     case Bound(_) =>
@@ -130,7 +131,11 @@ class NetworkController(settings: NetworkSettings,
   def peerLogic: Receive = {
     case ConnectTo(remote) =>
       log.info(s"Connecting to: $remote")
-      IO(Tcp) ! Connect(remote, localAddress = None, timeout = connTimeout, pullMode = true)
+      IO(Tcp) ! Connect(remote,
+                        localAddress = None,
+                        options = KeepAlive(true) :: Nil,
+                        timeout = connTimeout,
+                        pullMode = true)
 
     case DisconnectFrom(peer) =>
       peer.handlerRef ! PeerConnectionHandler.CloseConnection

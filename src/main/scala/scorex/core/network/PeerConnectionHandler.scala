@@ -110,11 +110,11 @@ case class PeerConnectionHandler(settings: NetworkSettings,
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
           //todo: blacklist?
-          connection ! Close
+          self ! CloseConnection
       }
 
     case HandshakeTimeout =>
-      connection ! Close
+      self ! CloseConnection
 
     case HandshakeDone =>
       require(receivedHandshake.isDefined)
