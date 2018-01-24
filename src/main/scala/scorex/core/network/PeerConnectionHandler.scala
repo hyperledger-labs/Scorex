@@ -12,7 +12,7 @@ import scorex.core.network.message.MessageHandler
 import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTime, NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -49,7 +49,17 @@ case class PeerConnectionHandler(settings: NetworkSettings,
 
   context watch connection
 
-  override def preStart: Unit = connection ! ResumeReading
+  override def preStart: Unit = {
+    PeerConnectionHandler.counter = PeerConnectionHandler.counter + 1
+    println("number of connections: " + PeerConnectionHandler.counter)
+    connection ! ResumeReading
+
+  }
+
+  override def postStop: Unit = {
+    PeerConnectionHandler.counter = PeerConnectionHandler.counter - 1
+    println("number of connections: " + PeerConnectionHandler.counter)
+  }
 
   // there is no recovery for broken connections
   override val supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
@@ -91,7 +101,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
       val hb = Handshake(settings.agentName, Version(settings.appVersion), settings.nodeName,
                          ownSocketAddress, timeProvider.time()).bytes
 
-      connection ! Write(ByteString(hb))
+      connection ! Tcp.Write(ByteString(hb))
       log.info(s"Handshake sent to $remote")
       handshakeSent = true
       if (handshakeGot && handshakeSent){
@@ -184,6 +194,9 @@ case class PeerConnectionHandler(settings: NetworkSettings,
 }
 
 object PeerConnectionHandler {
+  //todo: fixme: remove
+  var counter = 0
+
   case object StartInteraction
 
   private object CommunicationState extends Enumeration {

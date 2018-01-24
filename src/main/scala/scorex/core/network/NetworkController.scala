@@ -45,6 +45,8 @@ class NetworkController(settings: NetworkSettings,
 
   private val messageHandlers = mutable.Map[Seq[Message.MessageCode], ActorRef]()
 
+  private val tcpManager = IO(Tcp)
+
   //check own declared address for validity
   if (!settings.localOnly) {
     settings.declaredAddress.foreach { myAddress =>
@@ -89,7 +91,7 @@ class NetworkController(settings: NetworkSettings,
   lazy val connTimeout = Some(settings.connectionTimeout)
 
   //bind to listen incoming connections
-  IO(Tcp) ! Bind(self, localAddress, options = KeepAlive(true) :: Nil)
+  tcpManager ! Bind(self, localAddress, options = KeepAlive(true) :: Nil, pullMode = false)
 
   private def bindingLogic: Receive = {
     case Bound(_) =>
@@ -131,13 +133,14 @@ class NetworkController(settings: NetworkSettings,
   def peerLogic: Receive = {
     case ConnectTo(remote) =>
       log.info(s"Connecting to: $remote")
-      IO(Tcp) ! Connect(remote,
-                        localAddress = None,
-                        options = KeepAlive(true) :: Nil,
-                        timeout = connTimeout,
-                        pullMode = true)
+      tcpManager ! Connect(remote,
+                          localAddress = externalSocketAddress,
+                          options = KeepAlive(true) :: Nil,
+                          timeout = connTimeout,
+                          pullMode = true)
 
     case DisconnectFrom(peer) =>
+      log.info(s"Disconnected from ${peer.socketAddress}")
       peer.handlerRef ! PeerConnectionHandler.CloseConnection
       peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
 
@@ -147,7 +150,8 @@ class NetworkController(settings: NetworkSettings,
       // todo: remove peer from `connectedPeers` on receiving `AddToBlackList` message.
       peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
 
-    case Connected(remote, _) =>
+    case Connected(remote, local) =>
+      log.info(s"New connection from $remote to $local")
       val connection = sender()
       val handlerProps = Props(new PeerConnectionHandler(settings, self, peerManagerRef,
         messageHandler, connection, externalSocketAddress, remote, timeProvider))
@@ -155,7 +159,6 @@ class NetworkController(settings: NetworkSettings,
       connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
       val newPeer = ConnectedPeer(remote, handler)
       peerManagerRef ! PeerManager.Connected(newPeer)
-      newPeer.handlerRef ! PeerConnectionHandler.StartInteraction
 
     case CommandFailed(c: Connect) =>
       log.info("Failed to connect to : " + c.remoteAddress)

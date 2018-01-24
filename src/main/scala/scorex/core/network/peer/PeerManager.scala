@@ -3,6 +3,7 @@ package scorex.core.network.peer
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.network.PeerConnectionHandler.CloseConnection
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -19,7 +20,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   import PeerManager._
 
   private val connectedPeers = mutable.Map[ConnectedPeer, Option[Handshake]]()
-  private var connectingPeer: Option[InetSocketAddress] = None
+  private val connectingPeers = mutable.Set[InetSocketAddress]()
 
   private val subscribers = mutable.Map[PeerManager.EventType.Value, Seq[ActorRef]]()
 
@@ -94,12 +95,20 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       if (peerDatabase.isBlacklisted(newPeer.socketAddress)) {
         log.info(s"Got incoming connection from blacklisted $remote")
       } else {
-        connectedPeers += newPeer -> None
-        if (connectingPeer.contains(remote)) {
-          log.info(s"Connected to $remote. ${connectedPeers.size} connections are open")
-          connectingPeer = None
+        println("connected peers: " + connectedPeers)
+        println("remote: " + remote)
+        if(!connectedPeers.exists(_._1.socketAddress.getHostName == remote.getHostName)) {
+          connectedPeers += newPeer -> None
+          if (connectingPeers.contains(remote)) {
+            log.info(s"Connected to $remote. ${connectedPeers.size} connections are open")
+            connectingPeers -= remote
+          } else {
+            log.info(s"Got incoming connection from $remote. ${connectedPeers.size} connections are open")
+          }
+          newPeer.handlerRef ! PeerConnectionHandler.StartInteraction
         } else {
-          log.info(s"Got incoming connection from $remote. ${connectedPeers.size} connections are open")
+          log.info(s"Already connected peer $remote trying to connect, going to disconnect it")
+          newPeer.handlerRef ! CloseConnection
         }
       }
 
@@ -135,19 +144,18 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
     case Disconnected(remote) =>
       connectedPeers.retain { case (p, _) => p.socketAddress != remote }
-      if (connectingPeer.contains(remote)) {
-        connectingPeer = None
-      }
+      if (connectingPeers.contains(remote)) connectingPeers -= remote
       notifySubscribers(PeerManager.EventType.Disconnected, PeerManager.DisconnectedPeer(remote))
   }
 
   override def receive: Receive = ({
     case CheckPeers =>
-      if (connectedPeers.size < settings.network.maxConnections && connectingPeer.isEmpty) {
+      if (connectedPeers.size + connectingPeers.size < settings.network.maxConnections) {
         randomPeer().foreach { address =>
           //todo: avoid picking too many peers from the same bucket, see Bitcoin ref. impl.
-          if (!connectedPeers.exists(_._1.socketAddress.getHostName == address.getHostName)) {
-            connectingPeer = Some(address)
+          if (!connectedPeers.exists(_._1.socketAddress.getHostName == address.getHostName) &&
+              !connectingPeers.exists(_.getHostName == address.getHostName)) {
+            connectingPeers += address
             sender() ! NetworkController.ConnectTo(address)
           }
         }
@@ -199,5 +207,4 @@ object PeerManager {
   case object GetBlacklistedPeers
 
   case object GetConnectedPeers
-
 }
