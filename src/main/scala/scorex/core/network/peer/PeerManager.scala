@@ -84,30 +84,34 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   private def isSelf(address: InetSocketAddress, declaredAddress: Option[InetSocketAddress]): Boolean = {
     // TODO: should the peer really be considered the same as self iff one of the following conditions hold?? Check carefully.
     settings.network.bindAddress == address ||
-    settings.network.declaredAddress.exists(da => declaredAddress.contains(da)) ||
-    declaredAddress.contains(settings.network.bindAddress) ||
-    settings.network.declaredAddress.contains(address)
+      settings.network.declaredAddress.exists(da => declaredAddress.contains(da)) ||
+      declaredAddress.contains(settings.network.bindAddress) ||
+      settings.network.declaredAddress.contains(address)
   }
 
 
   private def peerCycle: Receive = {
-    case Connected(newPeer@ConnectedPeer(remote, _)) =>
+    case Connected(newPeer@ConnectedPeer(remote, _, direction)) =>
       if (peerDatabase.isBlacklisted(newPeer.socketAddress)) {
         log.info(s"Got incoming connection from blacklisted $remote")
       } else {
-        if(!connectedPeers.exists(_._1.socketAddress.getHostName == remote.getHostName)) {
-          connectedPeers += newPeer -> None
-          if (connectingPeers.contains(remote)) {
-            log.info(s"Connected to $remote. ${connectedPeers.size} connections are open")
-            connectingPeers -= remote
+        val refuse =
+          if (direction == Incoming) false
+          else if (!connectedPeers.exists(_._1.socketAddress.getHostName == remote.getHostName)) {
+            connectedPeers += newPeer -> None
+            if (connectingPeers.contains(remote)) {
+              log.info(s"Connected to $remote. ${connectedPeers.size} connections are open")
+              connectingPeers -= remote
+            } else {
+              log.info(s"Got incoming connection from $remote. ${connectedPeers.size} connections are open")
+            }
+            false
           } else {
-            log.info(s"Got incoming connection from $remote. ${connectedPeers.size} connections are open")
+            log.info(s"Already connected peer $remote trying to connect, going to disconnect it")
+            true
           }
-          newPeer.handlerRef ! PeerConnectionHandler.StartInteraction
-        } else {
-          log.info(s"Already connected peer $remote trying to connect, going to disconnect it")
-          newPeer.handlerRef ! CloseConnection
-        }
+
+        if (refuse) newPeer.handlerRef ! CloseConnection else newPeer.handlerRef ! PeerConnectionHandler.StartInteraction
       }
 
     case h@Handshaked(address, handshake) =>
@@ -152,7 +156,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
         randomPeer().foreach { address =>
           //todo: avoid picking too many peers from the same bucket, see Bitcoin ref. impl.
           if (!connectedPeers.exists(_._1.socketAddress.getHostName == address.getHostName) &&
-              !connectingPeers.exists(_.getHostName == address.getHostName)) {
+            !connectingPeers.exists(_.getHostName == address.getHostName)) {
             connectingPeers += address
             sender() ! NetworkController.ConnectTo(address)
           }
@@ -162,11 +166,12 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
     case AddToBlacklist(peer) =>
       log.info(s"Blacklist peer $peer")
       peerDatabase.blacklistPeer(peer)
-      // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
+    // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
   }: Receive) orElse peerListOperations orElse apiInterface orElse peerCycle
 }
 
 object PeerManager {
+
   object EventType extends Enumeration {
     val Handshaked: EventType.Value = Value(1)
     val Disconnected: EventType.Value = Value(2)
@@ -205,4 +210,5 @@ object PeerManager {
   case object GetBlacklistedPeers
 
   case object GetConnectedPeers
+
 }

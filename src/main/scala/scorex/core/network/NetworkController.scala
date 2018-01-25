@@ -130,14 +130,17 @@ class NetworkController(settings: NetworkSettings,
         .foreach(_.foreach(_.handlerRef ! message))
   }
 
+  val outgoing = mutable.Set[InetSocketAddress]()
+
   def peerLogic: Receive = {
     case ConnectTo(remote) =>
       log.info(s"Connecting to: $remote")
+      outgoing += remote
       tcpManager ! Connect(remote,
                           localAddress = externalSocketAddress,
                           options = KeepAlive(true) :: Nil,
                           timeout = connTimeout,
-                          pullMode = true)
+                          pullMode = true) //todo: check pullMode flag
 
     case DisconnectFrom(peer) =>
       log.info(s"Disconnected from ${peer.socketAddress}")
@@ -151,13 +154,20 @@ class NetworkController(settings: NetworkSettings,
       peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
 
     case Connected(remote, local) =>
-      log.info(s"New connection from $remote to $local")
+      val direction = if(outgoing.contains(remote)) Outgoing else Incoming
+      val logMsg = direction match {
+        case Incoming => s"New incoming connection from $remote established (bound to local $local)"
+        case Outgoing => s"New outgoing connection to $remote established (bound to local $local)"
+      }
+      log.info(logMsg)
       val connection = sender()
       val handlerProps = Props(new PeerConnectionHandler(settings, self, peerManagerRef,
-        messageHandler, connection, externalSocketAddress, remote, timeProvider))
+        messageHandler, connection, direction, externalSocketAddress, remote, timeProvider))
       context.actorOf(handlerProps) // launch connection handler
+      outgoing -= remote
 
     case CommandFailed(c: Connect) =>
+      outgoing -= c.remoteAddress
       log.info("Failed to connect to : " + c.remoteAddress)
       peerManagerRef ! PeerManager.Disconnected(c.remoteAddress)
   }

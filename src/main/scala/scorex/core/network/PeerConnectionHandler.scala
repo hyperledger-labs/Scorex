@@ -19,7 +19,13 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
 
 
-case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef) {
+sealed trait ConnectionType
+case object Incoming extends ConnectionType
+case object Outgoing extends ConnectionType
+
+
+
+case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef, direction: ConnectionType) {
 
   import shapeless.syntax.typeable._
 
@@ -40,22 +46,23 @@ class PeerConnectionHandler(val settings: NetworkSettings,
                             peerManagerRef: ActorRef,
                             messagesHandler: MessageHandler,
                             connection: ActorRef,
+                            direction: ConnectionType,
                             ownSocketAddress: Option[InetSocketAddress],
                             remote: InetSocketAddress,
                             timeProvider: NetworkTimeProvider) extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler._
 
-  private val selfPeer = ConnectedPeer(remote, self)
+  private val selfPeer = ConnectedPeer(remote, self, direction)
 
   context watch connection
 
   override def preStart: Unit = {
-    connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
     peerManagerRef ! PeerManager.Connected(selfPeer)
-
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
                                           (self ! HandshakeTimeout))
+    connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
+    connection ! ResumeReading
 
     //todo: remove the code below?
     PeerConnectionHandler.counter = PeerConnectionHandler.counter + 1
@@ -204,7 +211,6 @@ object PeerConnectionHandler {
   case object StartInteraction
 
   private object CommunicationState extends Enumeration {
-
     val AwaitingHandshake = Value("AwaitingHandshake")
     val WorkingCycle = Value("WorkingCycle")
   }
@@ -214,5 +220,4 @@ object PeerConnectionHandler {
   case object CloseConnection
 
   case object Blacklist
-
 }
