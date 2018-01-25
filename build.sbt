@@ -44,8 +44,8 @@ resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositori
 val circeVersion = "0.8.0"
 
 val networkDependencies = Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.4.+",
-  "com.typesafe.akka" % "akka-stream_2.12" % "2.4.+",
+  "com.typesafe.akka" %% "akka-actor" % "2.5.+",
+  "com.typesafe.akka" %% "akka-stream" % "2.5.+",
   "org.bitlet" % "weupnp" % "0.1.+",
   "commons-net" % "commons-net" % "3.+"
 )
@@ -64,7 +64,7 @@ val loggingDependencies = Seq(
 )
 
 val testingDependencies = Seq(
-  "com.typesafe.akka" %% "akka-testkit" % "2.5.3" % "test",
+  "com.typesafe.akka" %% "akka-testkit" % "2.5.+" % "test",
   "com.typesafe.akka" %% "akka-http-testkit" % "10.+" % "test",
   "org.scalactic" %% "scalactic" % "3.0.3" % "test",
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",

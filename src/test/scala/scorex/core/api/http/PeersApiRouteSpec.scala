@@ -27,8 +27,7 @@ class PeersApiRouteSpec extends FlatSpec
     Seq(
       Some("address" -> address.toString.asJson),
       Some("lastSeen" -> peerInfo.lastSeen.asJson),
-      peerInfo.nodeName.map(name => "name" -> name.asJson),
-      peerInfo.nonce.map(nonce => "nonce" -> nonce.asJson)).flatten.toMap
+      peerInfo.nodeName.map(name => "name" -> name.asJson)).flatten.toMap
   }.asJson.toString
 
   val connectedPeersResp = connectedPeers.map { handshake =>

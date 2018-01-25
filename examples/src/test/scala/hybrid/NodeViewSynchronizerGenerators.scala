@@ -5,9 +5,9 @@ import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
-import scorex.core.network.ConnectedPeer
-import scorex.core.network.NodeViewSynchronizer
+import scorex.core.network.{ConnectedPeer, Handshake, NodeViewSynchronizer, Outgoing}
 import examples.hybrid.history.HybridSyncInfoMessageSpec
+import scorex.core.app.Version
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
 
@@ -39,7 +39,8 @@ trait NodeViewSynchronizerGenerators {
     val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref, liProbe.ref))
     val m = totallyValidModifier(h, s)
     val tx = simpleBoxTransactionGen.sample.get
-    val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref)
+    val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref, Outgoing,
+      Handshake("", Version(0,1,2), "", None, 0L))
 
     (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, liProbe)
   }

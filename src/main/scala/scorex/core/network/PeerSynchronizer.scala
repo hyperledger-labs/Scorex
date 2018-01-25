@@ -38,7 +38,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
     case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, _)
       if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[InetSocketAddress]].isDefined =>
 
-      peers.foreach(isa => peerManager ! PeerManager.AddOrUpdatePeer(isa, None, None))
+      peers.foreach(isa => peerManager ! PeerManager.AddOrUpdatePeer(isa, None))
 
     case DataFromPeer(spec, _, remote) if spec.messageCode == GetPeersSpec.messageCode =>
 

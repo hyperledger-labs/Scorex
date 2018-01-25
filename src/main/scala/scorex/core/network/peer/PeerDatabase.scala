@@ -2,7 +2,7 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-case class PeerInfo(lastSeen: Long, nonce: Option[Long] = None, nodeName: Option[String] = None)
+case class PeerInfo(lastSeen: Long, nodeName: Option[String] = None)
 
 trait PeerDatabase {
 
