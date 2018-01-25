@@ -57,7 +57,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     //todo: remove the code below?
     PeerConnectionHandler.counter = PeerConnectionHandler.counter + 1
     println("number of connections: " + PeerConnectionHandler.counter)
-    connection ! ResumeReading
   }
 
   override def postStop: Unit = {
