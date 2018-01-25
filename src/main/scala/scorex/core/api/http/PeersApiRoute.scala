@@ -33,8 +33,7 @@ case class PeersApiRoute(peerManager: ActorRef,
             Seq(
               Some("address" -> address.toString.asJson),
               Some("lastSeen" -> peerInfo.lastSeen.asJson),
-              peerInfo.nodeName.map(name => "name" -> name.asJson),
-              peerInfo.nonce.map(nonce => "nonce" -> nonce.asJson)).flatten.toMap
+              peerInfo.nodeName.map(name => "name" -> name.asJson)).flatten.toMap
           }.asJson
         }.map(s => SuccessApiResponse(s))
     }

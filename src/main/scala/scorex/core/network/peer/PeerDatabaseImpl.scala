@@ -20,9 +20,8 @@ class PeerDatabaseImpl(settings: NetworkSettings,
 
   override def addOrUpdateKnownPeer(address: InetSocketAddress, peerInfo: PeerInfo): Unit = {
     val updatedPeerInfo = whitelistPersistence.get(address).map { dbPeerInfo =>
-      val nonceOpt = peerInfo.nonce.orElse(dbPeerInfo.nonce)
       val nodeNameOpt = peerInfo.nodeName.orElse(dbPeerInfo.nodeName)
-      PeerInfo(peerInfo.lastSeen, nonceOpt, nodeNameOpt)
+      PeerInfo(peerInfo.lastSeen, nodeNameOpt)
     }.getOrElse(peerInfo)
     whitelistPersistence.put(address, updatedPeerInfo)
   }
