@@ -19,12 +19,12 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
 
 
-
 case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef) {
 
   import shapeless.syntax.typeable._
 
   override def hashCode(): Int = socketAddress.hashCode()
+
   override def equals(obj: Any): Boolean =
     obj.cast[ConnectedPeer].exists(_.socketAddress.getAddress.getHostAddress == this.socketAddress.getAddress.getHostAddress)
 
@@ -53,6 +53,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   override def preStart: Unit = {
     connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
     peerManagerRef ! PeerManager.Connected(selfPeer)
+
+    handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
+                                          (self ! HandshakeTimeout))
 
     //todo: remove the code below?
     PeerConnectionHandler.counter = PeerConnectionHandler.counter + 1
@@ -93,6 +96,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   //todo: use `become` to handle handshake state instead?
   private def handshakeGot = receivedHandshake.isDefined
+
   private var handshakeSent = false
 
   private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
@@ -101,17 +105,14 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private def handshake: Receive = ({
     case StartInteraction =>
-      val hb = Handshake(settings.agentName, Version(settings.appVersion), settings.nodeName,
-                         ownSocketAddress, timeProvider.time()).bytes
+      val hb = Handshake(settings.agentName,
+        Version(settings.appVersion), settings.nodeName,
+        ownSocketAddress, timeProvider.time()).bytes
 
       connection ! Tcp.Write(ByteString(hb))
       log.info(s"Handshake sent to $remote")
       handshakeSent = true
-      if (handshakeGot && handshakeSent){
-        self ! HandshakeDone
-      } else {
-        handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)(self ! HandshakeTimeout))
-      }
+      if (handshakeGot && handshakeSent) self ! HandshakeDone
 
     case Received(data) =>
       HandshakeSerializer.parseBytes(data.toArray) match {
@@ -213,4 +214,5 @@ object PeerConnectionHandler {
   case object CloseConnection
 
   case object Blacklist
+
 }
