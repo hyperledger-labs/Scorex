@@ -25,7 +25,10 @@ case object Outgoing extends ConnectionType
 
 
 
-case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef, direction: ConnectionType) {
+case class ConnectedPeer(socketAddress: InetSocketAddress,
+                         handlerRef: ActorRef,
+                         direction: ConnectionType,
+                         handshake: Handshake) {
 
   import shapeless.syntax.typeable._
 
@@ -53,12 +56,10 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   import PeerConnectionHandler._
 
-  private val selfPeer = ConnectedPeer(remote, self, direction)
-
   context watch connection
 
   override def preStart: Unit = {
-    peerManagerRef ! PeerManager.Connected(selfPeer)
+    peerManagerRef ! PeerManager.Connecting(remote, direction)
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
                                           (self ! HandshakeTimeout))
     connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
@@ -100,6 +101,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   private var receivedHandshake: Option[Handshake] = None
+  private var selfPeer: Option[ConnectedPeer] = None
+
 
   //todo: use `become` to handle handshake state instead?
   private def handshakeGot = receivedHandshake.isDefined
@@ -139,7 +142,11 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case HandshakeDone =>
       require(receivedHandshake.isDefined)
-      peerManagerRef ! Handshaked(selfPeer, receivedHandshake.get)
+
+      val peer = ConnectedPeer(remote, self, direction, receivedHandshake.get)
+      selfPeer = Some(peer)
+
+      peerManagerRef ! Handshaked(peer)
       handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading
       context become workingCycle
@@ -177,7 +184,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       chunksBuffer = t._2
 
       t._1.find { packet =>
-        messagesHandler.parseBytes(packet.toByteBuffer, Some(selfPeer)) match {
+        messagesHandler.parseBytes(packet.toByteBuffer, Some(selfPeer.get)) match {   //todo: .get
           case Success(message) =>
             log.info("Received message " + message.spec + " from " + remote)
             networkControllerRef ! message
