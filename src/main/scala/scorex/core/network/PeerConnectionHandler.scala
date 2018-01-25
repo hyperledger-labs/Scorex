@@ -18,6 +18,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
 
+
+
 case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef) {
 
   import shapeless.syntax.typeable._
@@ -33,15 +35,14 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef)
 case object Ack extends Event
 
 
-//fixme: is there a reason for this class to be a case class?
-case class PeerConnectionHandler(settings: NetworkSettings,
-                                 networkControllerRef: ActorRef,
-                                 peerManager: ActorRef,
-                                 messagesHandler: MessageHandler,
-                                 connection: ActorRef,
-                                 ownSocketAddress: Option[InetSocketAddress],
-                                 remote: InetSocketAddress,
-                                 timeProvider: NetworkTimeProvider) extends Actor with Buffering with ScorexLogging {
+class PeerConnectionHandler(val settings: NetworkSettings,
+                            networkControllerRef: ActorRef,
+                            peerManagerRef: ActorRef,
+                            messagesHandler: MessageHandler,
+                            connection: ActorRef,
+                            ownSocketAddress: Option[InetSocketAddress],
+                            remote: InetSocketAddress,
+                            timeProvider: NetworkTimeProvider) extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler._
 
@@ -50,10 +51,13 @@ case class PeerConnectionHandler(settings: NetworkSettings,
   context watch connection
 
   override def preStart: Unit = {
+    connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
+    peerManagerRef ! PeerManager.Connected(selfPeer)
+
+    //todo: remove the code below?
     PeerConnectionHandler.counter = PeerConnectionHandler.counter + 1
     println("number of connections: " + PeerConnectionHandler.counter)
     connection ! ResumeReading
-
   }
 
   override def postStop: Unit = {
@@ -73,7 +77,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
       connection ! ResumeWriting
 
     case cc: ConnectionClosed =>
-      peerManager ! PeerManager.Disconnected(remote)
+      peerManagerRef ! PeerManager.Disconnected(remote)
       log.info("Connection closed to : " + remote + ": " + cc.getErrorCause + s" in state $stateName")
       context stop self
 
@@ -128,7 +132,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
 
     case HandshakeDone =>
       require(receivedHandshake.isDefined)
-      peerManager ! Handshaked(remote, receivedHandshake.get)
+      peerManagerRef ! Handshaked(remote, receivedHandshake.get)
       handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading
       context become workingCycle
@@ -153,7 +157,7 @@ case class PeerConnectionHandler(settings: NetworkSettings,
 
     case Blacklist =>
       log.info(s"Going to blacklist " + remote)
-      peerManager ! AddToBlacklist(remote)
+      peerManagerRef ! AddToBlacklist(remote)
       connection ! Close
   }
 

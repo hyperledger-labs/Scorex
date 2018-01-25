@@ -155,10 +155,7 @@ class NetworkController(settings: NetworkSettings,
       val connection = sender()
       val handlerProps = Props(new PeerConnectionHandler(settings, self, peerManagerRef,
         messageHandler, connection, externalSocketAddress, remote, timeProvider))
-      val handler = context.actorOf(handlerProps)
-      connection ! Register(handler, keepOpenOnPeerClosed = false, useResumeWriting = true)
-      val newPeer = ConnectedPeer(remote, handler)
-      peerManagerRef ! PeerManager.Connected(newPeer)
+      context.actorOf(handlerProps) // launch connection handler
 
     case CommandFailed(c: Connect) =>
       log.info("Failed to connect to : " + c.remoteAddress)

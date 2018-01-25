@@ -142,7 +142,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
     case Disconnected(remote) =>
       connectedPeers.retain { case (p, _) => p.socketAddress != remote }
-      if (connectingPeers.contains(remote)) connectingPeers -= remote
+      connectingPeers -= remote
       notifySubscribers(PeerManager.EventType.Disconnected, PeerManager.DisconnectedPeer(remote))
   }
 
