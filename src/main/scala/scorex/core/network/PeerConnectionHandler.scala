@@ -64,15 +64,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
                                           (self ! HandshakeTimeout))
     connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
     connection ! ResumeReading
-
-    //todo: remove the code below?
-    PeerConnectionHandler.counter = PeerConnectionHandler.counter + 1
-    println("number of connections: " + PeerConnectionHandler.counter)
-  }
-
-  override def postStop: Unit = {
-    PeerConnectionHandler.counter = PeerConnectionHandler.counter - 1
-    println("number of connections: " + PeerConnectionHandler.counter)
   }
 
   // there is no recovery for broken connections
@@ -212,9 +203,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 }
 
 object PeerConnectionHandler {
-  //todo: fixme: remove
-  var counter = 0
-
   case object StartInteraction
 
   private object CommunicationState extends Enumeration {
