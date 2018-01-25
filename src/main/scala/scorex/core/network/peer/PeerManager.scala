@@ -97,7 +97,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       } else {
         val refuse =
           if (direction == Incoming) false
-          else if (!connectedPeers.exists(_._1.socketAddress.getHostName == remote.getHostName)) {
+          else if (!connectedPeers.exists(_._1.socketAddress == remote)) {
             connectedPeers += newPeer -> None
             if (connectingPeers.contains(remote)) {
               log.info(s"Connected to $remote. ${connectedPeers.size} connections are open")
@@ -114,13 +114,14 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
         if (refuse) newPeer.handlerRef ! CloseConnection else newPeer.handlerRef ! PeerConnectionHandler.StartInteraction
       }
 
-    case h@Handshaked(address, handshake) =>
-      if (peerDatabase.isBlacklisted(address)) {
-        log.info(s"Got handshake from blacklisted $address")
+    //todo: filter by an id introduced by the PeerManager
+    case h@Handshaked(peer, handshake) =>
+      if (peerDatabase.isBlacklisted(peer.socketAddress)) {
+        log.info(s"Got handshake from blacklisted ${peer.socketAddress}")
       } else {
-        val toUpdate = connectedPeers.filter { case (cp, h) =>
+        val toUpdate = connectedPeers.filter { case (cp, hn) =>
           // TODO: Replaced `nonce` by `declaredAddress`. Is this really what we want? Check carefully.
-          cp.socketAddress == address || h.forall(_.declaredAddress == handshake.declaredAddress)
+          cp.socketAddress == peer.socketAddress
         }
 
         if (toUpdate.isEmpty) {
@@ -134,10 +135,12 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           toUpdate.keys.foreach(connectedPeers.remove)
 
           //drop connection to self if occurred
-          if (isSelf(address, handshake.declaredAddress)) {
+          if (peer.direction == Outgoing && isSelf(peer.socketAddress, handshake.declaredAddress)) {
             newCp.handlerRef ! PeerConnectionHandler.CloseConnection
           } else {
-            handshake.declaredAddress.foreach(address => self ! PeerManager.AddOrUpdatePeer(address, None, None))
+            handshake.declaredAddress.foreach(address =>
+              if(address == peer.socketAddress) self ! PeerManager.AddOrUpdatePeer(address, None, None)
+            )
             connectedPeers += newCp -> Some(handshake)
             notifySubscribers(PeerManager.EventType.Handshaked, HandshakedPeer(newCp))
           }
@@ -158,6 +161,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           if (!connectedPeers.exists(_._1.socketAddress.getHostName == address.getHostName) &&
             !connectingPeers.exists(_.getHostName == address.getHostName)) {
             connectingPeers += address
+            println(connectedPeers)
             sender() ! NetworkController.ConnectTo(address)
           }
         }
@@ -197,7 +201,7 @@ object PeerManager {
 
   case class Connected(newPeer: ConnectedPeer)
 
-  case class Handshaked(address: InetSocketAddress, handshake: Handshake)
+  case class Handshaked(peer: ConnectedPeer, handshake: Handshake)
 
   case class Disconnected(remote: InetSocketAddress)
 

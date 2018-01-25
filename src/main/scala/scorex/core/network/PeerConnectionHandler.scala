@@ -32,7 +32,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress, handlerRef: ActorRef,
   override def hashCode(): Int = socketAddress.hashCode()
 
   override def equals(obj: Any): Boolean =
-    obj.cast[ConnectedPeer].exists(_.socketAddress.getAddress.getHostAddress == this.socketAddress.getAddress.getHostAddress)
+    obj.cast[ConnectedPeer].exists(p => p.socketAddress == this.socketAddress && p.direction == this.direction)
 
   override def toString = s"ConnectedPeer($socketAddress)"
 }
@@ -139,7 +139,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case HandshakeDone =>
       require(receivedHandshake.isDefined)
-      peerManagerRef ! Handshaked(remote, receivedHandshake.get)
+      peerManagerRef ! Handshaked(selfPeer, receivedHandshake.get)
       handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading
       context become workingCycle
