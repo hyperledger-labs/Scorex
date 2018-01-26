@@ -17,7 +17,7 @@ class PeerDatabaseImplSpec extends FlatSpec
     db.knownPeers(true).isEmpty shouldBe true
   }
 
-  "new DB" should "be non-empty after adding a peer" in {
+   it should "be non-empty after adding a peer" in {
     val db = new PeerDatabaseImpl(bindAddr, None, None)
     val peerAddress = new InetSocketAddress("1.1.1.1",27017)
     val lastSeen = System.currentTimeMillis()
@@ -28,13 +28,23 @@ class PeerDatabaseImplSpec extends FlatSpec
     db.knownPeers(true).isEmpty shouldBe false
   }
 
-  "new DB" should "return a peer after adding a peer" in {
+  it should "return a peer after adding a peer" in {
     val db = new PeerDatabaseImpl(bindAddr, None, None)
     val peerAddress = new InetSocketAddress("1.1.1.1",27017)
     val lastSeen = System.currentTimeMillis()
     val peerInfo = PeerInfo(lastSeen)
     db.addOrUpdateKnownPeer(peerAddress,  peerInfo)
     db.knownPeers(true) shouldBe Map(peerAddress -> peerInfo)
+  }
+
+  it should "return an updated peer after updating a peer" in {
+    val db = new PeerDatabaseImpl(bindAddr, None, None)
+    val peerAddress = new InetSocketAddress("1.1.1.1",27017)
+    val peerInfo = PeerInfo(System.currentTimeMillis())
+    db.addOrUpdateKnownPeer(peerAddress,  peerInfo)
+    val newPeerInfo = PeerInfo(System.currentTimeMillis())
+    db.addOrUpdateKnownPeer(peerAddress, newPeerInfo)
+    db.knownPeers(true) shouldBe Map(peerAddress -> newPeerInfo)
   }
 
 }
