@@ -22,18 +22,22 @@ case class PeerInfoResponse(address: String,
 
 object PeerInfoResponse {
 
-  def fromAddressAndInfo(a: InetSocketAddress, pi: PeerInfo): PeerInfoResponse = PeerInfoResponse(
-    a.toString,
-    pi.lastSeen,
-    pi.nodeName,
-    pi.connectionType
+  def fromAddressAndInfo(address: InetSocketAddress, peerInfo: PeerInfo): PeerInfoResponse = PeerInfoResponse(
+    address.toString,
+    peerInfo.lastSeen,
+    peerInfo.nodeName,
+    peerInfo.connectionType
   )
 
   implicit val encodeFoo: Encoder[PeerInfoResponse] = new Encoder[PeerInfoResponse] {
-    final def apply(p: PeerInfoResponse): Json = {
+    final def apply(peerInfoResponse: PeerInfoResponse): Json = {
       val e = Seq.empty[(String, Json)]
-      val fields =  Seq(("address", Json.fromString(p.address)), ("lastSeen", Json.fromLong(p.lastSeen))) ++
-        p.name.fold(e)(n => Seq(("name", Json.fromString(n)))) ++ p.connectionType.fold(e) { c =>
+      val fields =  Seq(
+        ("address", Json.fromString(peerInfoResponse.address)),
+        ("lastSeen", Json.fromLong(peerInfoResponse.lastSeen))
+      ) ++
+        peerInfoResponse.name.fold(e)(n => Seq(("name", Json.fromString(n))))++
+        peerInfoResponse.connectionType.fold(e) { c =>
         val v = c match {
           case Incoming => "incoming"
           case Outgoing => "outgoing"
