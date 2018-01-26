@@ -4,7 +4,7 @@ import java.net.InetSocketAddress
 
 import scorex.core.utils.NetworkTime
 
-case class PeerInfo(lastSeen: Long, nonce: Option[Long] = None, nodeName: Option[String] = None)
+case class PeerInfo(lastSeen: NetworkTime.Time, nonce: Option[Long] = None, nodeName: Option[String] = None)
 
 trait PeerDatabase {
 
