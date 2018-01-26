@@ -107,7 +107,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
             log.info(s"Connecting to $remote")
             false
           } else {
-            log.info(s"Already connected peer $remote trying to connect, going to disconnect it")
+            log.info(s"Already connected peer $remote trying to connect, going to drop the duplicate connection")
             true
           }
 
