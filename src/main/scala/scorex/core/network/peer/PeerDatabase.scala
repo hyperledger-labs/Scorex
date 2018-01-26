@@ -12,7 +12,7 @@ trait PeerDatabase {
 
   def addOrUpdateKnownPeer(peer: InetSocketAddress, peerInfo: PeerInfo): Unit
 
-  def knownPeers(forSelf: Boolean): Map[InetSocketAddress, PeerInfo]
+  def knownPeers(excludeSelf: Boolean): Map[InetSocketAddress, PeerInfo]
 
   def blacklistPeer(peer: InetSocketAddress, time: NetworkTime.Time): Unit
 
