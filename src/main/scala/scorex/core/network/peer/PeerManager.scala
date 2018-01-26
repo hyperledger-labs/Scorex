@@ -95,7 +95,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   private var lastIdUsed = 0
 
   private def peerCycle: Receive = {
-    case Connecting(remote, direction) =>
+    case DoConnecting(remote, direction) =>
       val peerHandlerRef = sender()
 
       if (peerDatabase.isBlacklisted(remote)) {
@@ -186,7 +186,7 @@ object PeerManager {
 
   case object CheckPeers
 
-  case class Connecting(remote: InetSocketAddress, direction: ConnectionType)
+  case class DoConnecting(remote: InetSocketAddress, direction: ConnectionType)
 
   case class Handshaked(peer: ConnectedPeer)
 

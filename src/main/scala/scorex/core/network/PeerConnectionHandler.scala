@@ -61,7 +61,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   context watch connection
 
   override def preStart: Unit = {
-    peerManagerRef ! PeerManager.Connecting(remote, direction)
+    peerManagerRef ! PeerManager.DoConnecting(remote, direction)
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
                                           (self ! HandshakeTimeout))
     connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
