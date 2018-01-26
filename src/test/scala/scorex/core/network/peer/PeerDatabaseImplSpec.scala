@@ -9,6 +9,8 @@ class PeerDatabaseImplSpec extends FlatSpec
 
   private val bindAddr = new InetSocketAddress("92.92.92.92",27017)
 
+  private val peerAddress1 = new InetSocketAddress("1.1.1.1",27017)
+
   "new DB" should "be empty" in {
     val db = new PeerDatabaseImpl(bindAddr, None, None)
     db.isEmpty() shouldBe true
@@ -19,9 +21,8 @@ class PeerDatabaseImplSpec extends FlatSpec
 
    it should "be non-empty after adding a peer" in {
     val db = new PeerDatabaseImpl(bindAddr, None, None)
-    val peerAddress = new InetSocketAddress("1.1.1.1",27017)
     val lastSeen = System.currentTimeMillis()
-    db.addOrUpdateKnownPeer(peerAddress, PeerInfo(lastSeen))
+    db.addOrUpdateKnownPeer(peerAddress1, PeerInfo(lastSeen))
     db.isEmpty() shouldBe false
     db.blacklistedPeers().isEmpty shouldBe true
     db.knownPeers(false).isEmpty shouldBe false
@@ -30,21 +31,19 @@ class PeerDatabaseImplSpec extends FlatSpec
 
   it should "return a peer after adding a peer" in {
     val db = new PeerDatabaseImpl(bindAddr, None, None)
-    val peerAddress = new InetSocketAddress("1.1.1.1",27017)
     val lastSeen = System.currentTimeMillis()
     val peerInfo = PeerInfo(lastSeen)
-    db.addOrUpdateKnownPeer(peerAddress,  peerInfo)
-    db.knownPeers(true) shouldBe Map(peerAddress -> peerInfo)
+    db.addOrUpdateKnownPeer(peerAddress1,  peerInfo)
+    db.knownPeers(true) shouldBe Map(peerAddress1 -> peerInfo)
   }
 
   it should "return an updated peer after updating a peer" in {
     val db = new PeerDatabaseImpl(bindAddr, None, None)
-    val peerAddress = new InetSocketAddress("1.1.1.1",27017)
     val peerInfo = PeerInfo(System.currentTimeMillis())
-    db.addOrUpdateKnownPeer(peerAddress,  peerInfo)
+    db.addOrUpdateKnownPeer(peerAddress1,  peerInfo)
     val newPeerInfo = PeerInfo(System.currentTimeMillis())
-    db.addOrUpdateKnownPeer(peerAddress, newPeerInfo)
-    db.knownPeers(true) shouldBe Map(peerAddress -> newPeerInfo)
+    db.addOrUpdateKnownPeer(peerAddress1, newPeerInfo)
+    db.knownPeers(true) shouldBe Map(peerAddress1 -> newPeerInfo)
   }
 
 }
