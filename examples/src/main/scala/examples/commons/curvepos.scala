@@ -2,7 +2,7 @@ package examples
 
 import supertagged.TaggedType
 
-package object curvepos {
+package object commons {
 
   object GenerationSignature extends TaggedType[Array[Byte]]
 

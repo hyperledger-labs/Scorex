@@ -1,7 +1,6 @@
 package examples.trimchain.simulation
 
-import examples.commons.SimpleBoxTransaction
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction}
 import examples.trimchain.core.{Algos, Constants, StateRoot, TransactionsRoot}
 import examples.trimchain.core.Constants._
 import examples.trimchain.modifiers.TBlock

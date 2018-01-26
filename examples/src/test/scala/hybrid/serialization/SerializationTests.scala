@@ -1,7 +1,7 @@
 package hybrid.serialization
 
-import examples.commons.SimpleBoxTransaction
-import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
+import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction}
+import examples.commons.PublicKey25519NoncedBoxSerializer
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSerializer}
 import hybrid.HybridGenerators

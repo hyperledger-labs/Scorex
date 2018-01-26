@@ -42,10 +42,6 @@ case class NetworkSettings(nodeName: String,
                            controllerTimeout: Option[FiniteDuration]
                           )
 
-case class MinerSettings(offlineGeneration: Boolean,
-                         targetBlockDelay: FiniteDuration,
-                         blockGenerationDelay: FiniteDuration)
-
 case class WalletSettings(seed: ByteStr,
                           password: String,
                           walletDir: File)
@@ -54,7 +50,6 @@ case class ScorexSettings(dataDir: File,
                           logDir: File,
                           network: NetworkSettings,
                           restApi: RESTApiSettings,
-                          miner: MinerSettings,
                           wallet: WalletSettings,
                           ntp: NetworkTimeProviderSettings
                          )
