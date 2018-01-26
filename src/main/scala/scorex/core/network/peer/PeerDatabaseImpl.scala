@@ -10,7 +10,8 @@ import scala.collection.JavaConverters._
 
 
 //todo: persistence
-class PeerDatabaseImpl(settings: NetworkSettings,
+class PeerDatabaseImpl(bindAddress: InetSocketAddress,
+                       declaredAddress: Option[InetSocketAddress],
                        filename: Option[String],
                        timeProvider: NetworkTimeProvider) extends PeerDatabase {
 
@@ -38,14 +39,14 @@ class PeerDatabaseImpl(settings: NetworkSettings,
 
   override def knownPeers(excludeSelf: Boolean): Map[InetSocketAddress, PeerInfo] = {
     if (excludeSelf) {
-      val localAddresses = if (settings.bindAddress.getAddress.isAnyLocalAddress) {
+      val localAddresses = if (bindAddress.getAddress.isAnyLocalAddress) {
         NetworkInterface.getNetworkInterfaces.asScala
           .flatMap(_.getInetAddresses.asScala
-            .map(a => new InetSocketAddress(a, settings.bindAddress.getPort)))
+            .map(a => new InetSocketAddress(a, bindAddress.getPort)))
           .toSet
-      } else Set(settings.bindAddress)
+      } else Set(bindAddress)
 
-      val excludedAddresses = localAddresses ++ settings.declaredAddress.toSet
+      val excludedAddresses = localAddresses ++ declaredAddress.toSet
       knownPeers(false).filterKeys(!excludedAddresses(_))
     } else {
       whitelistPersistence.keys.flatMap(k => whitelistPersistence.get(k).map(v => k -> v)).toMap
