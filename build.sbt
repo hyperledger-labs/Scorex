@@ -165,3 +165,8 @@ pomExtra in ThisBuild :=
         <url>https://github.com/catena2w</url>
       </developer>
     </developers>
+
+
+//FindBugs settings
+
+findbugsReportType := Some(FindbugsReport.PlainHtml)
