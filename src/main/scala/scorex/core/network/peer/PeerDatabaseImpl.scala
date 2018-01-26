@@ -16,7 +16,7 @@ class PeerDatabaseImpl(bindAddress: InetSocketAddress,
 
   private val whitelistPersistence = mutable.Map[InetSocketAddress, PeerInfo]()
 
-  private val blacklist = mutable.Map[String, Long]()
+  private val blacklist = mutable.Map[String, NetworkTime.Time]()
 
   override def addOrUpdateKnownPeer(address: InetSocketAddress, peerInfo: PeerInfo): Unit = {
     val updatedPeerInfo = whitelistPersistence.get(address).map { dbPeerInfo =>
