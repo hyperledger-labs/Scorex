@@ -27,4 +27,14 @@ class PeerDatabaseImplSpec extends FlatSpec
     db.knownPeers(false).isEmpty shouldBe false
     db.knownPeers(true).isEmpty shouldBe false
   }
+
+  "new DB" should "return a peer after adding a peer" in {
+    val db = new PeerDatabaseImpl(bindAddr, None, None)
+    val peerAddress = new InetSocketAddress("1.1.1.1",27017)
+    val lastSeen = System.currentTimeMillis()
+    val peerInfo = PeerInfo(lastSeen)
+    db.addOrUpdateKnownPeer(peerAddress,  peerInfo)
+    db.knownPeers(true) shouldBe Map(peerAddress -> peerInfo)
+  }
+
 }
