@@ -46,8 +46,8 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   }
 
   private def peerListOperations: Receive = {
-    case AddOrUpdatePeer(address, peerNameOpt) =>
-      val peerInfo = PeerInfo(timeProvider.time(), peerNameOpt)
+    case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt) =>
+      val peerInfo = PeerInfo(timeProvider.time(), peerNameOpt, connTypeOpt)
       peerDatabase.addOrUpdateKnownPeer(address, peerInfo)
 
     case KnownPeers =>
@@ -128,7 +128,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
             peer.handlerRef ! PeerConnectionHandler.CloseConnection
           } else {
-            if(peer.publicPeer) self ! PeerManager.AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName))
+            if(peer.publicPeer) self ! PeerManager.AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
             connectedPeers += peer.socketAddress -> peer
             notifySubscribers(PeerManager.EventType.Handshaked, HandshakedPeer(peer))
           }
@@ -176,7 +176,7 @@ object PeerManager {
 
   case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
 
-  case class AddOrUpdatePeer(address: InetSocketAddress, peerName: Option[String])
+  case class AddOrUpdatePeer(address: InetSocketAddress, peerName: Option[String], direction: Option[ConnectionType])
 
   case object KnownPeers
 
