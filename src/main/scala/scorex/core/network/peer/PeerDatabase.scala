@@ -2,6 +2,8 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
+import scorex.core.utils.NetworkTime
+
 case class PeerInfo(lastSeen: Long, nonce: Option[Long] = None, nodeName: Option[String] = None)
 
 trait PeerDatabase {
@@ -12,7 +14,7 @@ trait PeerDatabase {
 
   def knownPeers(forSelf: Boolean): Map[InetSocketAddress, PeerInfo]
 
-  def blacklistPeer(peer: InetSocketAddress): Unit
+  def blacklistPeer(peer: InetSocketAddress, time: NetworkTime.Time): Unit
 
   def blacklistedPeers(): Seq[String]
 

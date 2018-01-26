@@ -12,8 +12,7 @@ import scala.collection.JavaConverters._
 //todo: persistence
 class PeerDatabaseImpl(bindAddress: InetSocketAddress,
                        declaredAddress: Option[InetSocketAddress],
-                       filename: Option[String],
-                       timeProvider: NetworkTimeProvider) extends PeerDatabase {
+                       filename: Option[String]) extends PeerDatabase {
 
   private val whitelistPersistence = mutable.Map[InetSocketAddress, PeerInfo]()
 
@@ -28,9 +27,9 @@ class PeerDatabaseImpl(bindAddress: InetSocketAddress,
     whitelistPersistence.put(address, updatedPeerInfo)
   }
 
-  override def blacklistPeer(address: InetSocketAddress): Unit = {
+  override def blacklistPeer(address: InetSocketAddress, time: NetworkTime.Time): Unit = {
     whitelistPersistence.remove(address)
-    if (!isBlacklisted(address)) blacklist += address.getHostName -> timeProvider.time()
+    if (!isBlacklisted(address)) blacklist += address.getHostName -> time
   }
 
   override def isBlacklisted(address: InetSocketAddress): Boolean = {
