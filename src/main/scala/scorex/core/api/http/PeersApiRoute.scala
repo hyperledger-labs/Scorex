@@ -7,12 +7,43 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import io.circe.syntax._
-import scorex.core.network.Handshake
+import io.circe.{Encoder, Json}
 import scorex.core.network.NetworkController.ConnectTo
 import scorex.core.network.peer.{PeerInfo, PeerManager}
+import scorex.core.network.{ConnectionType, Handshake, Incoming, Outgoing}
 import scorex.core.settings.RESTApiSettings
 
 import scala.concurrent.ExecutionContext.Implicits.global
+
+case class PeerInfoResponse(address: String,
+                            lastSeen: Long,
+                            name: Option[String],
+                            connectionType: Option[ConnectionType])
+
+object PeerInfoResponse {
+
+  def fromAddressAndInfo(a: InetSocketAddress, pi: PeerInfo): PeerInfoResponse = PeerInfoResponse(
+    a.toString,
+    pi.lastSeen,
+    pi.nodeName,
+    pi.connectionType
+  )
+
+  implicit val encodeFoo: Encoder[PeerInfoResponse] = new Encoder[PeerInfoResponse] {
+    final def apply(p: PeerInfoResponse): Json = {
+      val e = Seq.empty[(String, Json)]
+      val fields =  Seq(("address", Json.fromString(p.address)), ("lastSeen", Json.fromLong(p.lastSeen))) ++
+        p.name.fold(e)(n => Seq(("name", Json.fromString(n)))) ++ p.connectionType.fold(e) { c =>
+        val v = c match {
+          case Incoming => "incoming"
+          case Outgoing => "outgoing"
+        }
+        Seq(("connectionType", Json.fromString(v)))
+      }
+      Json.obj(fields:_*)
+    }
+  }
+}
 
 case class PeersApiRoute(peerManager: ActorRef,
                          networkController: ActorRef,
@@ -28,12 +59,9 @@ case class PeersApiRoute(peerManager: ActorRef,
     getJsonRoute {
       (peerManager ? PeerManager.GetAllPeers)
         .mapTo[Map[InetSocketAddress, PeerInfo]]
-        .map { peers =>
-          peers.map { case (address, peerInfo) =>
-            Seq(
-              Some("address" -> address.toString.asJson),
-              Some("lastSeen" -> peerInfo.lastSeen.asJson),
-              peerInfo.nodeName.map(name => "name" -> name.asJson)).flatten.toMap
+        .map {
+          _.map { case (address, peerInfo) =>
+            PeerInfoResponse.fromAddressAndInfo(address, peerInfo).asJson
           }.asJson
         }.map(s => SuccessApiResponse(s))
     }

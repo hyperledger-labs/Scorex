@@ -4,7 +4,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorSystem, Props}
 import scorex.core.app.Version
-import scorex.core.network.Handshake
+import scorex.core.network.{Handshake, Incoming, Outgoing}
 import scorex.core.network.peer.{PeerInfo, PeerManager}
 
 trait Stubs {
@@ -17,8 +17,8 @@ trait Stubs {
   val ts2 = System.currentTimeMillis() + 100
 
   val peers = Map(
-    inetAddr1 -> PeerInfo(ts1, Some("first")),
-    inetAddr2 -> PeerInfo(ts2, Some("second"))
+    inetAddr1 -> PeerInfo(ts1, Some("first"), Some(Incoming)),
+    inetAddr2 -> PeerInfo(ts2, Some("second"), Some(Outgoing))
   )
 
   val protocolVersion = Version("1.1.1")
