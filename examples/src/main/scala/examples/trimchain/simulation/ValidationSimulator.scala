@@ -1,8 +1,8 @@
 package examples.trimchain.simulation
 
 import com.google.common.primitives.{Ints, Longs}
-import examples.curvepos.{Nonce, Value}
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.commons.PublicKey25519NoncedBox
+import examples.commons.{Nonce, Value}
 import examples.trimchain.core.Constants._
 import examples.trimchain.core.{Algos, Constants}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -41,6 +41,4 @@ object ValidationSimulator extends App with Simulators {
     validationTime += System.nanoTime() - start
   }
   println(s"One block validation takes ${validationTime / ValidationNum} nanos")
-
-
 }

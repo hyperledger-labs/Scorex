@@ -1,8 +1,7 @@
 package examples.hybrid
 
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion, SimpleBoxTransactionMemPool}
-import examples.curvepos.{Nonce, Value}
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction, SimpleBoxTransactionCompanion, SimpleBoxTransactionMemPool}
+import examples.commons.{Nonce, Value}
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mining.HybridMiningSettings

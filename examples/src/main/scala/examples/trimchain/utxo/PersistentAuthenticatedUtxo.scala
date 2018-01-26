@@ -2,8 +2,7 @@ package examples.trimchain.utxo
 
 import java.io.File
 
-import examples.commons.SimpleBoxTransaction
-import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
+import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction}
 import examples.trimchain.modifiers.{BlockHeader, TBlock, TModifier, UtxoSnapshot}
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
