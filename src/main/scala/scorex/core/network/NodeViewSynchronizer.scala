@@ -1,7 +1,7 @@
 package scorex.core.network
 
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, ActorRef}
 import scorex.core.NodeViewHolder._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.consensus.History.HistoryComparisonResult
@@ -14,7 +14,6 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
-import scala.collection.mutable
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
@@ -189,7 +188,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
       status match {
         case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
-        case Nonsense => log.warn("Got nonsense") //todo: we should ban peer if its view is totally different from ours
+        case Nonsense => log.warn("Got nonsense") //todo: fix, see https://github.com/ScorexFoundation/Scorex/issues/158
         case Younger => processExtension()
         case _ => // does nothing for `Equal` and `Older`
       }
