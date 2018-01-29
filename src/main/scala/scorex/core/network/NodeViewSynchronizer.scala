@@ -193,9 +193,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         case _ => // does nothing for `Equal` and `Older`
       }
 
-      // todo: explain what this method does
+      // Send history extension to the (less developed) peer 'remote' which does not have it.
       def processExtension(): Unit = extOpt match {
-        case None => log.warn(s"extOpt is empty for: $remote . Its status is: $status .")
+        case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
         case Some(ext) =>
           ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
             case (mid, mods) =>
