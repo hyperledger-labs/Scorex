@@ -55,80 +55,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
-
-
-  /**
-    * SyncTracker caches the peers' statuses (i.e. whether they are ahead or behind this node)
-    */
-  object SyncTracker {
-    private var schedule: Option[Cancellable] = None
-    def scheduleSendSyncInfo(): Unit = {
-      if (schedule.isDefined) schedule.get.cancel()
-      schedule = Some(context.system.scheduler.schedule(2.seconds, minInterval())(self ! SendLocalSyncInfo))
-    }
-
-    private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-    private val lastSyncSentTime = mutable.Map[ConnectedPeer, Timestamp]()
-    private val lastSyncReceivedTime = mutable.Map[ConnectedPeer, Timestamp]()
-
-    private var lastSyncInfoSentTime: Timestamp = 0L
-
-    def maxInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
-    def minInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
-
-    private var stableSyncRegime = false
-
-    def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
-      val seniorsBefore = SyncTracker.numOfSeniors()
-      this.status(peer) = status
-      val seniorsAfter = SyncTracker.numOfSeniors()
-
-      if (seniorsBefore > 0 && seniorsAfter == 0) {
-        log.info("Syncing is done, switching to stable regime")
-        stableSyncRegime = true
-        scheduleSendSyncInfo()
-        localInterfaceRef ! LocalInterface.NoBetterNeighbour
-      }
-      if (seniorsBefore == 0 && seniorsAfter > 0) {
-        localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
-      }
-    }
-
-    def updateLastSyncSentTime(peer: ConnectedPeer): Unit = {
-      val currentTime = timeProvider.time()
-      lastSyncSentTime(peer) = currentTime
-      lastSyncInfoSentTime = currentTime
-    }
-
-    def elapsedTimeSinceLastSync(): Long = {
-      timeProvider.time() - lastSyncInfoSentTime
-    }
-
-    def updateLastSyncReceivedTime(peer: ConnectedPeer): Unit = {
-      lastSyncReceivedTime(peer) = timeProvider.time()
-    }
-
-    private def outdatedPeers(): Seq[ConnectedPeer] = lastSyncSentTime
-      .filter(t => (System.currentTimeMillis() - t._2).millis > maxInterval()).keys.toSeq
-
-    private def numOfSeniors(): Int = status.count(_._2 == Older)
-
-
-    /**
-      * Return the peers to which this node should send a sync signal, including:
-      * outdated peers, if any, or all peers with unknown status plus a random peer with `Older` status, otherwise.
-      */
-    def peersToSyncWith(): Seq[ConnectedPeer] = {
-      val outdated = outdatedPeers()
-      if (outdated.nonEmpty) outdated
-      else {
-        val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-        val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
-        if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-      }.filter(peer => (System.currentTimeMillis() - lastSyncSentTime.getOrElse(peer, 0L)).millis >= minInterval)
-    }
-  }
-
+  protected val statusTracker = new SyncTracker(self, context, networkSettings, localInterfaceRef, timeProvider)
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
@@ -163,8 +90,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     viewHolderRef ! Subscribe(vhEvents)
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
-    SyncTracker.scheduleSendSyncInfo()
-
+    statusTracker.scheduleSendSyncInfo()
   }
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -197,7 +123,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>
-      SyncTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
+      statusTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
 
     case DisconnectedPeer(_) => // todo: does nothing for now
   }
@@ -208,7 +134,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   // fixme: I think the comment above is outdated, because we are not sending any request to NVH
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      if (SyncTracker.elapsedTimeSinceLastSync() < (networkSettings.syncInterval.toMillis / 2)) {
+      if (statusTracker.elapsedTimeSinceLastSync() < (networkSettings.syncInterval.toMillis / 2)) {
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")
       } else {
@@ -218,16 +144,14 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       }
   }
 
-
   protected def syncSend(syncInfo: SI): Unit = {
-      val peers = SyncTracker.peersToSyncWith()
+    val peers = statusTracker.peersToSyncWith()
 
-      if(peers.nonEmpty) {
-        peers.foreach(SyncTracker.updateLastSyncSentTime)
-        networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
-      }
+    if (peers.nonEmpty) {
+      peers.foreach(statusTracker.updateLastSyncSentTime)
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
+    }
   }
-
 
   //sync info is coming from another node
   protected def processSync: Receive = {
@@ -260,14 +184,14 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected def processSyncStatus: Receive = {
     case OtherNodeSyncingStatus(remote, status, _, _, extOpt) =>
 
-      SyncTracker.updateStatus(remote, status)
-      SyncTracker.updateLastSyncReceivedTime(remote)
+      statusTracker.updateStatus(remote, status)
+      statusTracker.updateLastSyncReceivedTime(remote)
 
       status match {
         case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
         case Nonsense => log.warn("Got nonsense") //todo: we should ban peer if its view is totally different from ours
         case Younger => processExtension()
-        case _ =>  // does nothing for `Equal` and `Older`
+        case _ => // does nothing for `Equal` and `Older`
       }
 
       // todo: explain what this method does
