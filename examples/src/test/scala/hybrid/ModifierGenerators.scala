@@ -1,8 +1,8 @@
 package hybrid
 
-import examples.commons.SimpleBoxTransaction
-import examples.curvepos.Nonce
-import examples.curvepos.transaction.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer}
+import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction}
+import examples.commons.Nonce
+import examples.commons.PublicKey25519NoncedBoxSerializer
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock, PowBlockCompanion}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState

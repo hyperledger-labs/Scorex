@@ -1,17 +1,16 @@
-package examples.curvepos.transaction
+package examples.commons
 
 import com.google.common.primitives.Longs
-import examples.curvepos.{Nonce, Value}
+import io.circe.Json
+import io.circe.syntax._
 import scorex.core.serialization.{JsonSerializable, Serializer}
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-
-import scala.util.Try
-import io.circe.Json
-import io.circe.syntax._
 import scorex.crypto.encode.{Base16, Base58}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey}
+
+import scala.util.Try
 
 case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Proposition,
                                    override val nonce: Nonce,

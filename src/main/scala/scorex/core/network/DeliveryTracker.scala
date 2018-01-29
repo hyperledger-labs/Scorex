@@ -11,8 +11,10 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Try}
 
 
-// This class tracks modifier ids that are expected from and delivered by other peers
-// in order to ban or de-prioritize peers that deliver what is not expected
+/**
+  * This class tracks modifier ids that are expected from and delivered by other peers
+  * in order to ban or de-prioritize peers that deliver what is not expected
+  */
 class DeliveryTracker(context: ActorContext,
                       deliveryTimeout: FiniteDuration,
                       maxDeliveryChecks: Int,

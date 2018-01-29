@@ -3,9 +3,9 @@ package examples.trimchain.core
 import java.io.File
 
 import com.google.common.primitives.{Ints, Longs}
-import examples.curvepos.{Nonce, Value}
-import examples.curvepos.transaction.PublicKey25519NoncedBox
-import examples.curvepos.transaction.PublicKey25519NoncedBox._
+import examples.commons.PublicKey25519NoncedBox
+import examples.commons.{Nonce, Value}
+import examples.commons.PublicKey25519NoncedBox._
 import examples.trimchain.modifiers.BlockHeader
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import io.iohk.iodb.LSMStore

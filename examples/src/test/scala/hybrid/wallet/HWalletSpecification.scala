@@ -1,6 +1,6 @@
 package hybrid.wallet
 
-import examples.curvepos.Value
+import examples.commons.Value
 import examples.hybrid.blocks.PosBlock
 import examples.hybrid.wallet.HWallet
 import hybrid.HybridGenerators

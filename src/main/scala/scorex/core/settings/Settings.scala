@@ -10,8 +10,6 @@ import net.ceedubs.ficus.Ficus._
 import scala.concurrent.duration._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 
-import scala.util.Random
-
 case class RESTApiSettings(bindAddress: InetSocketAddress,
                            apiKeyHash: Option[String],
                            corsAllowed: Boolean,
@@ -37,14 +35,12 @@ case class NetworkSettings(nodeName: String,
                            maxPacketLen: Int,
                            maxInvObjects: Int,
                            syncInterval: FiniteDuration,
-                           syncTimeout: Option[FiniteDuration],
                            syncStatusRefresh: FiniteDuration,
+                           syncIntervalStable: FiniteDuration,
+                           syncStatusRefreshStable: FiniteDuration,
+                           syncTimeout: Option[FiniteDuration],
                            controllerTimeout: Option[FiniteDuration]
                           )
-
-case class MinerSettings(offlineGeneration: Boolean,
-                         targetBlockDelay: FiniteDuration,
-                         blockGenerationDelay: FiniteDuration)
 
 case class WalletSettings(seed: ByteStr,
                           password: String,
@@ -54,7 +50,6 @@ case class ScorexSettings(dataDir: File,
                           logDir: File,
                           network: NetworkSettings,
                           restApi: RESTApiSettings,
-                          miner: MinerSettings,
                           wallet: WalletSettings,
                           ntp: NetworkTimeProviderSettings
                          )
@@ -65,11 +60,10 @@ object ScorexSettings extends ScorexLogging with SettingsReaders {
   protected val configPath: String = "scorex"
 
   def readConfigFromPath(userConfigPath: Option[String], configPath: String): Config = {
-    val maybeConfigFile = for {
-      maybeFilename <- userConfigPath
-      file = new File(maybeFilename)
-      if file.exists
-    } yield file
+
+    val maybeConfigFile: Option[File] = userConfigPath.map(filename => new File(filename)).filter(_.exists())
+      .orElse(userConfigPath.flatMap(filename => Option(getClass.getClassLoader.getResource(filename))).
+        map(r => new File(r.toURI)).filter(_.exists()))
 
     val config = maybeConfigFile match {
       // if no user config is supplied, the library will handle overrides/application/reference automatically
