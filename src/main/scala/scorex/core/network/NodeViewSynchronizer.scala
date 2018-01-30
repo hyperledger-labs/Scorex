@@ -140,11 +140,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def syncSend(syncInfo: SI): Unit = {
     val peers = statusTracker.peersToSyncWith()
-
-    if (peers.nonEmpty) {
-      peers.foreach(statusTracker.updateLastSyncSentTime)
+    if (peers.nonEmpty)
       networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
-    }
   }
 
   //sync info is coming from another node
@@ -344,5 +341,4 @@ object NodeViewSynchronizer {
   case class CheckDelivery(source: ConnectedPeer,
                            modifierTypeId: ModifierTypeId,
                            modifierId: ModifierId)
-
 }

@@ -82,15 +82,20 @@ class SyncTracker(nvsRef: ActorRef,
 
   /**
     * Return the peers to which this node should send a sync signal, including:
-    * outdated peers, if any, or all peers with unknown status plus a random peer with `Older` status, otherwise.
+    * outdated peers, if any, otherwise, all the peers with unknown status plus a random peer with
+    * `Older` status.
     */
   def peersToSyncWith(): Seq[ConnectedPeer] = {
     val outdated = outdatedPeers()
-    if (outdated.nonEmpty) outdated
-    else {
-      val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-      val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
-      if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-    }.filter(peer => (timeProvider.time() - lastSyncSentTime.getOrElse(peer, 0L)).millis >= minInterval)
+
+    lazy val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
+    lazy val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
+    lazy val nonOutdated = if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
+
+    val peers = if (outdated.nonEmpty) outdated
+      else nonOutdated.filter(p => (timeProvider.time() - lastSyncSentTime.getOrElse(p, 0L)).millis >= minInterval)
+
+    peers.foreach(updateLastSyncSentTime)
+    peers
   }
 }
