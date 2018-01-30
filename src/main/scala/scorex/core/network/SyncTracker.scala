@@ -24,8 +24,7 @@ class SyncTracker(nvsRef: ActorRef,
                   timeProvider: NetworkTimeProvider) extends ScorexLogging {
 
   import History.HistoryComparisonResult._
-
-  type Timestamp = Long
+  import NodeViewSynchronizer.Timestamp
 
   private var schedule: Option[Cancellable] = None
 
@@ -92,6 +91,6 @@ class SyncTracker(nvsRef: ActorRef,
       val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
       val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
       if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-    }.filter(peer => (System.currentTimeMillis() - lastSyncSentTime.getOrElse(peer, 0L)).millis >= minInterval)
+    }.filter(peer => (timeProvider.time() - lastSyncSentTime.getOrElse(peer, 0L)).millis >= minInterval)
   }
 }

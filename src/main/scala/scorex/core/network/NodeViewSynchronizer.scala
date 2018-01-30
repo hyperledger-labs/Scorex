@@ -49,8 +49,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
 
-  type Timestamp = Long
-
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
@@ -65,17 +63,19 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
 
   override def preStart(): Unit = {
-    //register as a handler for some types of messages
+    //register as a handler for synchronization-specific types of messages
     val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
 
+    //register as a listener for peers got connected or disconnected
     val pmEvents = Seq(
       PeerManager.EventType.Handshaked,
       PeerManager.EventType.Disconnected
     )
-
     networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
 
+
+    //we subscribe for all the node view holder events involving modifiers and transactions
     val vhEvents = Seq(
       NodeViewHolder.EventType.HistoryChanged,
       NodeViewHolder.EventType.MempoolChanged,
@@ -127,19 +127,14 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case DisconnectedPeer(_) => // todo: does nothing for now
   }
 
-  /**
-    * To send out regular sync signal, we first send a request to node view holder to get current syncing information
-    */
-  // fixme: I think the comment above is outdated, because we are not sending any request to NVH
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
+      //todo: why this condition?
       if (statusTracker.elapsedTimeSinceLastSync() < (networkSettings.syncInterval.toMillis / 2)) {
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")
       } else {
-        historyReaderOpt.foreach { r =>
-          syncSend(r.syncInfo)
-        }
+        historyReaderOpt.foreach(r => syncSend(r.syncInfo))
       }
   }
 
@@ -333,6 +328,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 }
 
 object NodeViewSynchronizer {
+
+  type Timestamp = Long
 
   case object SendLocalSyncInfo
 
