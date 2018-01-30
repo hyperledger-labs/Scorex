@@ -66,7 +66,7 @@ trait Application extends ScorexLogging {
   val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings, timeProvider)))
 
   val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef, timeProvider))
-  val networkController = actorSystem.actorOf(nProps, "networkController")
+  val networkControllerRef = actorSystem.actorOf(nProps, "networkController")
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 
@@ -92,7 +92,7 @@ trait Application extends ScorexLogging {
   def stopAll(): Unit = synchronized {
     log.info("Stopping network services")
     if (settings.network.upnpEnabled) upnp.deletePort(settings.network.bindAddress.getPort)
-    networkController ! NetworkController.ShutdownNetwork
+    networkControllerRef ! NetworkController.ShutdownNetwork
 
     log.info("Stopping actors (incl. block generator)")
     actorSystem.terminate().onComplete { _ =>
