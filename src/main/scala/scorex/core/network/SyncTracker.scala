@@ -24,15 +24,15 @@ class SyncTracker(nvsRef: ActorRef,
                   timeProvider: NetworkTimeProvider) extends ScorexLogging {
 
   import History.HistoryComparisonResult._
-  import NodeViewSynchronizer.Timestamp
+  import scorex.core.utils.NetworkTime.Time
 
   private var schedule: Option[Cancellable] = None
 
   private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-  private val lastSyncSentTime = mutable.Map[ConnectedPeer, Timestamp]()
-  private val lastSyncReceivedTime = mutable.Map[ConnectedPeer, Timestamp]()
+  private val lastSyncSentTime = mutable.Map[ConnectedPeer, Time]()
+  private val lastSyncReceivedTime = mutable.Map[ConnectedPeer, Time]()
 
-  private var lastSyncInfoSentTime: Timestamp = 0L
+  private var lastSyncInfoSentTime: Time = 0L
 
   private var stableSyncRegime = false
 

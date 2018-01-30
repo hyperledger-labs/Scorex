@@ -326,8 +326,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
 object NodeViewSynchronizer {
 
-  type Timestamp = Long
-
   case object SendLocalSyncInfo
 
   case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
