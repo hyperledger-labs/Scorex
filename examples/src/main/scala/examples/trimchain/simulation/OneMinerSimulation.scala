@@ -4,9 +4,8 @@ import java.io.{File, FileOutputStream, FileWriter}
 import java.nio.file.{Files, Paths}
 
 import com.google.common.primitives.{Ints, Longs}
-import examples.commons.SimpleBoxTransaction
-import examples.curvepos.{Nonce, Value}
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction}
+import examples.commons.{Nonce, Value}
 import examples.trimchain.core.{Algos, Constants, TicketSerializer}
 import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import io.iohk.iodb.ByteArrayWrapper

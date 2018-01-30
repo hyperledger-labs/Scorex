@@ -1,24 +1,25 @@
 package scorex.core.network
 
+
 import akka.actor.{Actor, ActorRef}
 import scorex.core.NodeViewHolder._
-import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
+import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
-import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.{DisconnectedPeer, HandshakedPeer}
-import scorex.core.settings.NetworkSettings
+import scorex.core.network.peer.PeerManager.HandshakedPeer
+import scorex.core.network.peer.PeerManager.DisconnectedPeer
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
-import scorex.core.utils.{NetworkTime, NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
+import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.settings.NetworkSettings
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
-
-import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 /**
@@ -45,38 +46,20 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          networkSettings: NetworkSettings,
                          timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
-  import History.HistoryComparisonResult._
   import NodeViewSynchronizer._
+  import History.HistoryComparisonResult._
 
   type Timestamp = Long
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
+  protected val statusTracker = new SyncTracker(self, context, networkSettings, localInterfaceRef, timeProvider)
 
-  /**
-    * We cache peers along with their statuses (whether another peer is ahead or behind of ours,
-    * or comparison is not possible, or status is not yet known)
-    */
-  protected val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-  /**
-    * Last time our node sent Sync messages to specified peer
-    */
-  protected val lastSyncSend = mutable.Map[ConnectedPeer, Timestamp]()
-  protected var lastSyncInfoSentTime: Long = 0L
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
 
   def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
-
-  private def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
-    statuses.update(peer, status)
-  }
-
-  protected def updateTime(peer: ConnectedPeer): Unit = {
-    lastSyncSend.update(peer, timeProvider.time())
-  }
-
 
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
@@ -106,7 +89,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     viewHolderRef ! Subscribe(vhEvents)
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
-    context.system.scheduler.schedule(2.seconds, networkSettings.syncInterval)(self ! SendLocalSyncInfo)
+    statusTracker.scheduleSendSyncInfo()
   }
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -139,47 +122,35 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>
-      updateStatus(remote, HistoryComparisonResult.Unknown)
-      updateTime(remote)
+      statusTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
 
-    case DisconnectedPeer(remote) => // todo: does nothing for now
+    case DisconnectedPeer(_) => // todo: does nothing for now
   }
 
   /**
     * To send out regular sync signal, we first send a request to node view holder to get current syncing information
     */
+  // fixme: I think the comment above is outdated, because we are not sending any request to NVH
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      val currentTime = timeProvider.time()
-      if (currentTime - lastSyncInfoSentTime < (networkSettings.syncInterval.toMillis / 2)) {
+      if (statusTracker.elapsedTimeSinceLastSync() < (networkSettings.syncInterval.toMillis / 2)) {
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")
       } else {
-        lastSyncInfoSentTime = currentTime
-
         historyReaderOpt.foreach { r =>
           syncSend(r.syncInfo)
         }
       }
   }
 
-  /**
-    * Logic to send a sync signal to other peers: we whether send the signal to all the peers we haven't got status
-    * for more than "syncStatusRefresh" setting says, or the signal is to be sent to all the unknown nodes and a random
-    * peer which is older
-    */
   protected def syncSend(syncInfo: SI): Unit = {
-    val peersToSend = statuses.filter(s => s._2 == HistoryComparisonResult.Nonsense ||
-      s._2 == HistoryComparisonResult.Unknown ||
-      s._2 == HistoryComparisonResult.Older ||
-      lastSyncSend.get(s._1).exists(t => (timeProvider.time() - t).millis > networkSettings.syncStatusRefresh))
-      .keys.toIndexedSeq
-    peersToSend.foreach(updateTime)
-    log.debug(s"Sending Sync messages to ${peersToSend.size} peers.")
+    val peers = statusTracker.peersToSyncWith()
 
-    networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peersToSend))
+    if (peers.nonEmpty) {
+      peers.foreach(statusTracker.updateLastSyncSentTime)
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
+    }
   }
-
 
   //sync info is coming from another node
   protected def processSync: Receive = {
@@ -210,35 +181,27 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
-    case OtherNodeSyncingStatus(remote, status, remoteSyncInfo, localSyncInfo: SI@unchecked, extOpt) =>
-      val seniorsBefore = statuses.count(_._2 == Older)
+    case OtherNodeSyncingStatus(remote, status, _, _, extOpt) =>
 
-      updateStatus(remote, status)
+      statusTracker.updateStatus(remote, status)
+      statusTracker.updateLastSyncReceivedTime(remote)
 
       status match {
-        case Nonsense =>
-          //todo: we should ban peer if its view is totally different from ours
-          log.warn("Got nonsense")
-        case Equal =>
-        case Older =>
-        case Younger =>
-          if (extOpt.isEmpty) {
-            log.warn("extOpt is empty for Younger brother")
-          } else {
-            val ext = extOpt.get
-            ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
-              case (mid, mods) =>
-                networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
-            }
-          }
-        //todo: should we ban peer if its status is unknown after getting info from it?
-        case Unknown => log.warn("Peer status is still unknown")
+        case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
+        case Nonsense => log.warn("Got nonsense") //todo: fix, see https://github.com/ScorexFoundation/Scorex/issues/158
+        case Younger => processExtension()
+        case _ => // does nothing for `Equal` and `Older`
       }
 
-      val seniorsAfter = statuses.count(_._2 == Older)
-
-      if (seniorsBefore > 0 && seniorsAfter == 0) localInterfaceRef ! LocalInterface.NoBetterNeighbour
-      if (seniorsBefore == 0 && seniorsAfter > 0) localInterfaceRef ! LocalInterface.BetterNeighbourAppeared
+      // Send history extension to the (less developed) peer 'remote' which does not have it.
+      def processExtension(): Unit = extOpt match {
+        case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
+        case Some(ext) =>
+          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
+            case (mid, mods) =>
+              networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
+          }
+      }
   }
 
   //object ids coming from other node
@@ -269,7 +232,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       }
   }
 
-  //other node is sending objects
+  /**
+    * Logic to process modifiers got from another peer
+    */
   protected def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
       if spec.messageCode == ModifiersSpec.messageCode =>
@@ -277,17 +242,12 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       val typeId = data._1
       val modifiers = data._2
 
-
       log.info(s"Got modifiers of type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
       log.info(s"From remote connected peer: $remote")
 
       for ((id, _) <- modifiers) deliveryTracker.receive(typeId, id, remote)
 
-      val (spam, fm) = modifiers partition {
-        _ match {
-          case (id, _) => deliveryTracker.isSpam(id)
-        }
-      }
+      val (spam, fm) = modifiers partition { case (id, _) => deliveryTracker.isSpam(id) }
 
       if (spam.nonEmpty) {
         log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
@@ -344,7 +304,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     //todo: consider something less harsh than blacklisting, see comment for previous function
     // networkControllerRef ! Blacklist(peer)
   }
-
 
   //local node sending out objects requested to remote
   protected def responseFromLocal: Receive = {

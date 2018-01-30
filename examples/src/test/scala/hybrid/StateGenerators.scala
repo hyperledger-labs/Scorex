@@ -1,7 +1,7 @@
 package hybrid
 
-import examples.curvepos.{Nonce, Value}
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.commons.PublicKey25519NoncedBox
+import examples.commons.{Nonce, Value}
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.LSMStore
 import org.scalacheck.Gen

@@ -1,8 +1,8 @@
 package examples.spv.simulation
 
 import com.google.common.primitives.{Ints, Longs}
-import examples.curvepos.{Nonce, Value}
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.commons.PublicKey25519NoncedBox
+import examples.commons.{Nonce, Value}
 import examples.spv.{Header, SpvAlgos}
 import examples.trimchain.core.Constants._
 import examples.trimchain.simulation.InMemoryAuthenticatedUtxo

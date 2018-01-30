@@ -2,7 +2,7 @@ package examples.trimchain.simulation
 
 import java.io.File
 
-import examples.curvepos.transaction.PublicKey25519NoncedBox
+import examples.commons.PublicKey25519NoncedBox
 
 object SpaceSavingsCalculator extends App {
 
