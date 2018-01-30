@@ -163,7 +163,7 @@ class NetworkController(settings: NetworkSettings,
       val connection = sender()
       val handlerProps = Props(new PeerConnectionHandler(settings, self, peerManagerRef,
         messageHandler, connection, direction, externalSocketAddress, remote, timeProvider))
-      context.actorOf(handlerProps, remote.toString) // launch connection handler
+      context.actorOf(handlerProps) // launch connection handler
       outgoing -= remote
 
     case CommandFailed(c: Connect) =>
