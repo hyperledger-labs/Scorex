@@ -2,11 +2,10 @@ package scorex.core.network.peer
 
 import java.net.{InetSocketAddress, NetworkInterface}
 
-import scorex.core.settings.NetworkSettings
-import scorex.core.utils.NetworkTimeProvider
+import scorex.core.utils.NetworkTime
 
-import scala.collection.mutable
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 
 //todo: persistence
