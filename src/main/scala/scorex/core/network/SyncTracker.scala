@@ -32,7 +32,6 @@ class SyncTracker(nvsRef: ActorRef,
 
   private val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
   private val lastSyncSentTime = mutable.Map[ConnectedPeer, Time]()
-  private val lastSyncReceivedTime = mutable.Map[ConnectedPeer, Time]()
 
   private var lastSyncInfoSentTime: Time = 0L
 
@@ -50,8 +49,6 @@ class SyncTracker(nvsRef: ActorRef,
   def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     val seniorsBefore = numOfSeniors()
     statuses += peer -> status
-    val statusUpdateTime = if(status == HistoryComparisonResult.Unknown) 0L else timeProvider.time()
-    lastSyncReceivedTime += peer -> statusUpdateTime
     val seniorsAfter = numOfSeniors()
 
     if (seniorsBefore > 0 && seniorsAfter == 0) {
@@ -65,11 +62,19 @@ class SyncTracker(nvsRef: ActorRef,
     }
   }
 
-  def clearStatus(remote: InetSocketAddress): Unit =
+
+  //todo: combine both?
+  def clearStatus(remote: InetSocketAddress): Unit = {
     statuses.find(_._1.socketAddress == remote) match {
       case Some((peer, _)) => statuses -= peer
-      case None => log.warn(s"Time to clear status for $remote, but it is not found")
+      case None => log.warn(s"Trying to clear status for $remote, but it is not found")
     }
+
+    lastSyncSentTime.find(_._1.socketAddress == remote) match {
+      case Some((peer, _)) => statuses -= peer
+      case None => log.warn(s"Trying to clear last sync time for $remote, but it is not found")
+    }
+  }
 
   def updateLastSyncSentTime(peer: ConnectedPeer): Unit = {
     val currentTime = timeProvider.time()
