@@ -49,8 +49,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
 
-  type Timestamp = Long
-
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
@@ -59,23 +57,26 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
 
-  def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
-
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
 
+
+  def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
+
   override def preStart(): Unit = {
-    //register as a handler for some types of messages
+    //register as a handler for synchronization-specific types of messages
     val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
 
+    //register as a listener for peers got connected (handshaked) or disconnected
     val pmEvents = Seq(
       PeerManager.EventType.Handshaked,
       PeerManager.EventType.Disconnected
     )
-
     networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
 
+
+    //subscribe for all the node view holder events involving modifiers and transactions
     val vhEvents = Seq(
       NodeViewHolder.EventType.HistoryChanged,
       NodeViewHolder.EventType.MempoolChanged,
@@ -109,6 +110,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
+
     case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
       //TODO isInstanceOf ?
       //TODO type erasure
@@ -124,32 +126,25 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case HandshakedPeer(remote) =>
       statusTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
 
-    case DisconnectedPeer(_) => // todo: does nothing for now
+    case DisconnectedPeer(remote) =>
+      statusTracker.clearStatus(remote)
   }
 
-  /**
-    * To send out regular sync signal, we first send a request to node view holder to get current syncing information
-    */
-  // fixme: I think the comment above is outdated, because we are not sending any request to NVH
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
+      //todo: why this condition?
       if (statusTracker.elapsedTimeSinceLastSync() < (networkSettings.syncInterval.toMillis / 2)) {
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")
       } else {
-        historyReaderOpt.foreach { r =>
-          syncSend(r.syncInfo)
-        }
+        historyReaderOpt.foreach(r => syncSend(r.syncInfo))
       }
   }
 
   protected def syncSend(syncInfo: SI): Unit = {
     val peers = statusTracker.peersToSyncWith()
-
-    if (peers.nonEmpty) {
-      peers.foreach(statusTracker.updateLastSyncSentTime)
+    if (peers.nonEmpty)
       networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
-    }
   }
 
   //sync info is coming from another node
@@ -182,9 +177,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
     case OtherNodeSyncingStatus(remote, status, _, _, extOpt) =>
-
       statusTracker.updateStatus(remote, status)
-      statusTracker.updateLastSyncReceivedTime(remote)
 
       status match {
         case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
@@ -347,5 +340,4 @@ object NodeViewSynchronizer {
   case class CheckDelivery(source: ConnectedPeer,
                            modifierTypeId: ModifierTypeId,
                            modifierId: ModifierId)
-
 }

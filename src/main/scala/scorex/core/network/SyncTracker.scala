@@ -1,5 +1,7 @@
 package scorex.core.network
 
+import java.net.InetSocketAddress
+
 import akka.actor.{ActorContext, ActorRef, Cancellable}
 import scorex.core.LocalInterface
 import scorex.core.consensus.History
@@ -24,16 +26,15 @@ class SyncTracker(nvsRef: ActorRef,
                   timeProvider: NetworkTimeProvider) extends ScorexLogging {
 
   import History.HistoryComparisonResult._
-
-  type Timestamp = Long
+  import scorex.core.utils.NetworkTime.Time
 
   private var schedule: Option[Cancellable] = None
 
-  private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
-  private val lastSyncSentTime = mutable.Map[ConnectedPeer, Timestamp]()
-  private val lastSyncReceivedTime = mutable.Map[ConnectedPeer, Timestamp]()
+  private val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
+  private val lastSyncSentTime = mutable.Map[ConnectedPeer, Time]()
+  private val lastSyncReceivedTime = mutable.Map[ConnectedPeer, Time]()
 
-  private var lastSyncInfoSentTime: Timestamp = 0L
+  private var lastSyncInfoSentTime: Time = 0L
 
   private var stableSyncRegime = false
 
@@ -48,7 +49,9 @@ class SyncTracker(nvsRef: ActorRef,
 
   def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     val seniorsBefore = numOfSeniors()
-    this.status(peer) = status
+    statuses += peer -> status
+    val statusUpdateTime = if(status == HistoryComparisonResult.Unknown) 0L else timeProvider.time()
+    lastSyncReceivedTime += peer -> statusUpdateTime
     val seniorsAfter = numOfSeniors()
 
     if (seniorsBefore > 0 && seniorsAfter == 0) {
@@ -62,6 +65,12 @@ class SyncTracker(nvsRef: ActorRef,
     }
   }
 
+  def clearStatus(remote: InetSocketAddress): Unit =
+    statuses.find(_._1.socketAddress == remote) match {
+      case Some((peer, _)) => statuses -= peer
+      case None => log.warn(s"Time to clear status for $remote, but it is not found")
+    }
+
   def updateLastSyncSentTime(peer: ConnectedPeer): Unit = {
     val currentTime = timeProvider.time()
     lastSyncSentTime(peer) = currentTime
@@ -72,26 +81,27 @@ class SyncTracker(nvsRef: ActorRef,
     timeProvider.time() - lastSyncInfoSentTime
   }
 
-  def updateLastSyncReceivedTime(peer: ConnectedPeer): Unit = {
-    lastSyncReceivedTime(peer) = timeProvider.time()
-  }
-
   private def outdatedPeers(): Seq[ConnectedPeer] = lastSyncSentTime
     .filter(t => (System.currentTimeMillis() - t._2).millis > maxInterval()).keys.toSeq
 
-  private def numOfSeniors(): Int = status.count(_._2 == Older)
+  private def numOfSeniors(): Int = statuses.count(_._2 == Older)
 
   /**
     * Return the peers to which this node should send a sync signal, including:
-    * outdated peers, if any, or all peers with unknown status plus a random peer with `Older` status, otherwise.
+    * outdated peers, if any, otherwise, all the peers with unknown status plus a random peer with
+    * `Older` status.
     */
   def peersToSyncWith(): Seq[ConnectedPeer] = {
     val outdated = outdatedPeers()
-    if (outdated.nonEmpty) outdated
-    else {
-      val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-      val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
-      if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-    }.filter(peer => (System.currentTimeMillis() - lastSyncSentTime.getOrElse(peer, 0L)).millis >= minInterval)
+
+    lazy val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
+    lazy val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
+    lazy val nonOutdated = if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
+
+    val peers = if (outdated.nonEmpty) outdated
+      else nonOutdated.filter(p => (timeProvider.time() - lastSyncSentTime.getOrElse(p, 0L)).millis >= minInterval)
+
+    peers.foreach(updateLastSyncSentTime)
+    peers
   }
 }

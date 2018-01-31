@@ -60,16 +60,24 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   context watch connection
 
-  override def preStart: Unit = {
-    peerManagerRef ! PeerManager.DoConnecting(remote, direction)
-    handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
-                                          (self ! HandshakeTimeout))
-    connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
-    connection ! ResumeReading
-  }
-
   // there is no recovery for broken connections
   override val supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
+
+
+  private var receivedHandshake: Option[Handshake] = None
+  private var selfPeer: Option[ConnectedPeer] = None
+
+  //todo: use `become` to handle handshake state instead?
+  private def handshakeGot = receivedHandshake.isDefined
+
+  private var handshakeSent = false
+
+  private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
+
+  private object HandshakeDone
+
+  private var chunksBuffer: ByteString = CompactByteString()
+
 
   private def processErrors(stateName: String): Receive = {
     case CommandFailed(w: Write) =>
@@ -92,19 +100,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       log.info("Failed to execute command : " + cmd + s" in state $stateName")
       connection ! ResumeReading
   }
-
-  private var receivedHandshake: Option[Handshake] = None
-  private var selfPeer: Option[ConnectedPeer] = None
-
-
-  //todo: use `become` to handle handshake state instead?
-  private def handshakeGot = receivedHandshake.isDefined
-
-  private var handshakeSent = false
-
-  private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
-
-  private object HandshakeDone
 
   private def handshake: Receive = ({
     case StartInteraction =>
@@ -168,8 +163,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! Close
   }
 
-  private var chunksBuffer: ByteString = CompactByteString()
-
   def workingCycleRemoteInterface: Receive = {
     case Received(data) =>
 
@@ -201,7 +194,18 @@ class PeerConnectionHandler(val settings: NetworkSettings,
         log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
     }: Receive)
 
+
+  override def preStart: Unit = {
+    peerManagerRef ! PeerManager.DoConnecting(remote, direction)
+    handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
+    (self ! HandshakeTimeout))
+    connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
+    connection ! ResumeReading
+  }
+
   override def receive: Receive = handshake
+
+  override def postStop(): Unit = log.info(s"Peer handler to $remote destroyed")
 }
 
 object PeerConnectionHandler {
