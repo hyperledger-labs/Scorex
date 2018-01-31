@@ -110,7 +110,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
-      
+
     case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
       //TODO isInstanceOf ?
       //TODO type erasure
@@ -126,7 +126,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case HandshakedPeer(remote) =>
       statusTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
 
-    case DisconnectedPeer(_) => // todo: does nothing for now
+    case DisconnectedPeer(remote) =>
+      statusTracker.clearStatus(remote)
   }
 
   protected def getLocalSyncInfo: Receive = {
@@ -176,9 +177,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
     case OtherNodeSyncingStatus(remote, status, _, _, extOpt) =>
-
       statusTracker.updateStatus(remote, status)
-      statusTracker.updateLastSyncReceivedTime(remote)
 
       status match {
         case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?

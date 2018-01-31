@@ -1,5 +1,7 @@
 package scorex.core.network
 
+import java.net.InetSocketAddress
+
 import akka.actor.{ActorContext, ActorRef, Cancellable}
 import scorex.core.LocalInterface
 import scorex.core.consensus.History
@@ -47,7 +49,8 @@ class SyncTracker(nvsRef: ActorRef,
 
   def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     val seniorsBefore = numOfSeniors()
-    this.statuses(peer) = status
+    statuses += peer -> status
+    lastSyncReceivedTime(peer) = timeProvider.time()
     val seniorsAfter = numOfSeniors()
 
     if (seniorsBefore > 0 && seniorsAfter == 0) {
@@ -61,6 +64,12 @@ class SyncTracker(nvsRef: ActorRef,
     }
   }
 
+  def clearStatus(remote: InetSocketAddress): Unit =
+    statuses.find(_._1.socketAddress == remote) match {
+      case Some((peer, _)) => statuses -= peer
+      case None => log.warn(s"Time to clear status for $remote, but it is not found")
+    }
+
   def updateLastSyncSentTime(peer: ConnectedPeer): Unit = {
     val currentTime = timeProvider.time()
     lastSyncSentTime(peer) = currentTime
@@ -69,10 +78,6 @@ class SyncTracker(nvsRef: ActorRef,
 
   def elapsedTimeSinceLastSync(): Long = {
     timeProvider.time() - lastSyncInfoSentTime
-  }
-
-  def updateLastSyncReceivedTime(peer: ConnectedPeer): Unit = {
-    lastSyncReceivedTime(peer) = timeProvider.time()
   }
 
   private def outdatedPeers(): Seq[ConnectedPeer] = lastSyncSentTime
