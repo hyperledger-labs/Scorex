@@ -48,8 +48,10 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
   private def peerListOperations: Receive = {
     case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt) =>
-      val peerInfo = PeerInfo(timeProvider.time(), peerNameOpt, connTypeOpt)
-      peerDatabase.addOrUpdateKnownPeer(address, peerInfo)
+      if (!isSelf(address, None)) {
+        val peerInfo = PeerInfo(timeProvider.time(), peerNameOpt, connTypeOpt)
+        peerDatabase.addOrUpdateKnownPeer(address, peerInfo)
+      }
 
     case KnownPeers =>
       sender() ! peerDatabase.knownPeers(false).keys.toSeq
