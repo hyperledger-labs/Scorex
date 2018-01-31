@@ -41,7 +41,7 @@ class HybridApp(val settingsFilename: String) extends Application {
     StatsApiRoute(settings.restApi, nodeViewHolderRef),
     UtilsApiRoute(settings.restApi),
     NodeViewApiRoute[P, TX](settings.restApi, nodeViewHolderRef),
-    PeersApiRoute(peerManagerRef, networkController, settings.restApi)
+    PeersApiRoute(peerManagerRef, networkControllerRef, settings.restApi)
   )
 
   override val swaggerConfig: String = Source.fromResource("api/testApi.yaml").getLines.mkString("\n")
@@ -53,7 +53,7 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type, PMOD, HybridHistory, SimpleBoxTransactionMemPool]
-    (networkController, nodeViewHolderRef, localInterface, HybridSyncInfoMessageSpec, settings.network, timeProvider)))
+    (networkControllerRef, nodeViewHolderRef, localInterface, HybridSyncInfoMessageSpec, settings.network, timeProvider)))
 
   //touching lazy vals
   miner
