@@ -28,7 +28,7 @@ class SyncTracker(nvsRef: ActorRef,
 
   private var schedule: Option[Cancellable] = None
 
-  private val status = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
+  private val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
   private val lastSyncSentTime = mutable.Map[ConnectedPeer, Time]()
   private val lastSyncReceivedTime = mutable.Map[ConnectedPeer, Time]()
 
@@ -47,7 +47,7 @@ class SyncTracker(nvsRef: ActorRef,
 
   def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     val seniorsBefore = numOfSeniors()
-    this.status(peer) = status
+    this.statuses(peer) = status
     val seniorsAfter = numOfSeniors()
 
     if (seniorsBefore > 0 && seniorsAfter == 0) {
@@ -78,7 +78,7 @@ class SyncTracker(nvsRef: ActorRef,
   private def outdatedPeers(): Seq[ConnectedPeer] = lastSyncSentTime
     .filter(t => (System.currentTimeMillis() - t._2).millis > maxInterval()).keys.toSeq
 
-  private def numOfSeniors(): Int = status.count(_._2 == Older)
+  private def numOfSeniors(): Int = statuses.count(_._2 == Older)
 
   /**
     * Return the peers to which this node should send a sync signal, including:
@@ -88,8 +88,8 @@ class SyncTracker(nvsRef: ActorRef,
   def peersToSyncWith(): Seq[ConnectedPeer] = {
     val outdated = outdatedPeers()
 
-    lazy val unknowns = status.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-    lazy val olders = status.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
+    lazy val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
+    lazy val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
     lazy val nonOutdated = if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
 
     val peers = if (outdated.nonEmpty) outdated

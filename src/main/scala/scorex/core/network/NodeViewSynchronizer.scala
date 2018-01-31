@@ -57,17 +57,18 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
 
-  def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
-
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
+
+
+  def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
     val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
 
-    //register as a listener for peers got connected or disconnected
+    //register as a listener for peers got connected (handshaked) or disconnected
     val pmEvents = Seq(
       PeerManager.EventType.Handshaked,
       PeerManager.EventType.Disconnected
@@ -75,7 +76,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
 
 
-    //we subscribe for all the node view holder events involving modifiers and transactions
+    //subscribe for all the node view holder events involving modifiers and transactions
     val vhEvents = Seq(
       NodeViewHolder.EventType.HistoryChanged,
       NodeViewHolder.EventType.MempoolChanged,
@@ -109,6 +110,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
+      
     case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
       //TODO isInstanceOf ?
       //TODO type erasure

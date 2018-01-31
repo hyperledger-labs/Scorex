@@ -63,6 +63,22 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   // there is no recovery for broken connections
   override val supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
 
+
+  private var receivedHandshake: Option[Handshake] = None
+  private var selfPeer: Option[ConnectedPeer] = None
+
+  //todo: use `become` to handle handshake state instead?
+  private def handshakeGot = receivedHandshake.isDefined
+
+  private var handshakeSent = false
+
+  private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
+
+  private object HandshakeDone
+
+  private var chunksBuffer: ByteString = CompactByteString()
+
+
   private def processErrors(stateName: String): Receive = {
     case CommandFailed(w: Write) =>
       log.warn(s"Write failed :$w " + remote + s" in state $stateName")
@@ -84,19 +100,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       log.info("Failed to execute command : " + cmd + s" in state $stateName")
       connection ! ResumeReading
   }
-
-  private var receivedHandshake: Option[Handshake] = None
-  private var selfPeer: Option[ConnectedPeer] = None
-
-
-  //todo: use `become` to handle handshake state instead?
-  private def handshakeGot = receivedHandshake.isDefined
-
-  private var handshakeSent = false
-
-  private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
-
-  private object HandshakeDone
 
   private def handshake: Receive = ({
     case StartInteraction =>
@@ -159,8 +162,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       peerManagerRef ! AddToBlacklist(remote)
       connection ! Close
   }
-
-  private var chunksBuffer: ByteString = CompactByteString()
 
   def workingCycleRemoteInterface: Receive = {
     case Received(data) =>
