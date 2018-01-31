@@ -50,7 +50,8 @@ class SyncTracker(nvsRef: ActorRef,
   def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
     val seniorsBefore = numOfSeniors()
     statuses += peer -> status
-    lastSyncReceivedTime(peer) = timeProvider.time()
+    val statusUpdateTime = if(status == HistoryComparisonResult.Unknown) 0L else timeProvider.time()
+    lastSyncReceivedTime += peer -> statusUpdateTime
     val seniorsAfter = numOfSeniors()
 
     if (seniorsBefore > 0 && seniorsAfter == 0) {
