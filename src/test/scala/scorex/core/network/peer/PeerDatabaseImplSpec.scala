@@ -60,4 +60,13 @@ class PeerDatabaseImplSpec extends FlatSpec
     db.blacklistedPeers() shouldBe Seq(peerAddress1.getHostName)
   }
 
+  it should "a blacklisted peer be absent in knownPeers" in {
+    val db = new PeerDatabaseImpl(None)
+    val peerInfo1 = PeerInfo(currentTime())
+    db.addOrUpdateKnownPeer(peerAddress1, peerInfo1)
+    db.addOrUpdateKnownPeer(peerAddress2, PeerInfo(currentTime()))
+    db.blacklistPeer(peerAddress2, currentTime())
+
+    db.knownPeers() shouldBe Map(peerAddress1 -> peerInfo1)
+  }
 }
