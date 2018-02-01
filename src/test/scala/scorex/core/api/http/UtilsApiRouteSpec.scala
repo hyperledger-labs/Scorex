@@ -7,6 +7,7 @@ import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.testkit.TestDuration
 import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.settings.RESTApiSettings
+import scala.language.postfixOps
 
 import scala.concurrent.duration._
 

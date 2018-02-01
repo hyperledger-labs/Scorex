@@ -9,6 +9,7 @@ import io.circe.syntax._
 import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.api.http.PeersApiRoute.PeerInfoResponse
 import scorex.core.settings.RESTApiSettings
+import scala.language.postfixOps
 
 import scala.concurrent.duration._
 
