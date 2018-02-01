@@ -20,8 +20,8 @@ class PeerDatabaseImplSpec extends FlatSpec
 
     db.isEmpty() shouldBe true
     db.blacklistedPeers().isEmpty shouldBe true
-    db.knownPeers(false).isEmpty shouldBe true
-    db.knownPeers(true).isEmpty shouldBe true
+    db.knownPeers().isEmpty shouldBe true
+    db.knownPeers().isEmpty shouldBe true
   }
 
    it should "be non-empty after adding a peer" in {
@@ -30,8 +30,8 @@ class PeerDatabaseImplSpec extends FlatSpec
 
     db.isEmpty() shouldBe false
     db.blacklistedPeers().isEmpty shouldBe true
-    db.knownPeers(false).isEmpty shouldBe false
-    db.knownPeers(true).isEmpty shouldBe false
+    db.knownPeers().isEmpty shouldBe false
+    db.knownPeers().isEmpty shouldBe false
   }
 
   it should "return a peer after adding a peer" in {
@@ -39,7 +39,7 @@ class PeerDatabaseImplSpec extends FlatSpec
     val peerInfo = PeerInfo(currentTime())
     db.addOrUpdateKnownPeer(peerAddress1,  peerInfo)
 
-    db.knownPeers(true) shouldBe Map(peerAddress1 -> peerInfo)
+    db.knownPeers() shouldBe Map(peerAddress1 -> peerInfo)
   }
 
   it should "return an updated peer after updating a peer" in {
@@ -49,7 +49,7 @@ class PeerDatabaseImplSpec extends FlatSpec
     val newPeerInfo = PeerInfo(currentTime())
     db.addOrUpdateKnownPeer(peerAddress1, newPeerInfo)
 
-    db.knownPeers(true) shouldBe Map(peerAddress1 -> newPeerInfo)
+    db.knownPeers() shouldBe Map(peerAddress1 -> newPeerInfo)
   }
 
   it should "return a blacklisted peer after blacklisting" in {

@@ -41,7 +41,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   }
 
   private def randomPeer(): Option[InetSocketAddress] = {
-    val peers = peerDatabase.knownPeers(true).keys.toSeq
+    val peers = peerDatabase.knownPeers().keys.toSeq
     if (peers.nonEmpty) Some(peers(Random.nextInt(peers.size)))
     else None
   }
@@ -54,13 +54,13 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       }
 
     case KnownPeers =>
-      sender() ! peerDatabase.knownPeers(false).keys.toSeq
+      sender() ! peerDatabase.knownPeers().keys.toSeq
 
     case RandomPeer =>
       sender() ! randomPeer()
 
     case RandomPeers(howMany: Int) =>
-      sender() ! Random.shuffle(peerDatabase.knownPeers(false).keys.toSeq).take(howMany)
+      sender() ! Random.shuffle(peerDatabase.knownPeers().keys.toSeq).take(howMany)
 
     case FilterPeers(sendingStrategy: SendingStrategy) =>
       sender() ! sendingStrategy.choose(connectedPeers.values.toSeq)
@@ -71,7 +71,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       sender() ! (connectedPeers.values.map(_.handshake).toSeq: Seq[Handshake])
 
     case GetAllPeers =>
-      sender() ! peerDatabase.knownPeers(true)
+      sender() ! peerDatabase.knownPeers()
 
     case GetBlacklistedPeers =>
       sender() ! peerDatabase.blacklistedPeers()
