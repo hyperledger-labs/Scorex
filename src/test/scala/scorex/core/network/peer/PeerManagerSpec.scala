@@ -30,7 +30,7 @@ class PeerManagerSpec extends TestKit(ActorSystem("PeerManager"))
     receiveOne(1.second).asInstanceOf[Map[InetSocketAddress, PeerInfo]].contains(selfAddress) shouldBe false
   }
 
-  it should "add a peer" in {
+  it should "added peer be returned in GetAllPeers" in {
     val settings = ScorexSettings.read(None)
     val timeProvider = new NetworkTimeProvider(settings.ntp)
     val peerManager = system.actorOf(Props(new PeerManager(settings, timeProvider)))
