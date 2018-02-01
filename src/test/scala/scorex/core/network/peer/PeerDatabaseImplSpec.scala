@@ -8,15 +8,13 @@ import scorex.core.utils.NetworkTime
 class PeerDatabaseImplSpec extends FlatSpec
   with Matchers {
 
-  private val bindAddr = new InetSocketAddress("92.92.92.92",27017)
-
   private val peerAddress1 = new InetSocketAddress("1.1.1.1",27017)
   private val peerAddress2 = new InetSocketAddress("2.2.2.2",27017)
 
   private def currentTime(): NetworkTime.Time = System.currentTimeMillis()
 
   "new DB" should "be empty" in {
-    val db = new PeerDatabaseImpl(bindAddr, None, None)
+    val db = new PeerDatabaseImpl(None)
 
     db.isEmpty() shouldBe true
     db.blacklistedPeers().isEmpty shouldBe true
@@ -25,17 +23,16 @@ class PeerDatabaseImplSpec extends FlatSpec
   }
 
    it should "be non-empty after adding a peer" in {
-    val db = new PeerDatabaseImpl(bindAddr, None, None)
+    val db = new PeerDatabaseImpl(None)
     db.addOrUpdateKnownPeer(peerAddress1, PeerInfo(currentTime()))
 
     db.isEmpty() shouldBe false
     db.blacklistedPeers().isEmpty shouldBe true
     db.knownPeers().isEmpty shouldBe false
-    db.knownPeers().isEmpty shouldBe false
   }
 
   it should "return a peer after adding a peer" in {
-    val db = new PeerDatabaseImpl(bindAddr, None, None)
+    val db = new PeerDatabaseImpl(None)
     val peerInfo = PeerInfo(currentTime())
     db.addOrUpdateKnownPeer(peerAddress1,  peerInfo)
 
@@ -43,7 +40,7 @@ class PeerDatabaseImplSpec extends FlatSpec
   }
 
   it should "return an updated peer after updating a peer" in {
-    val db = new PeerDatabaseImpl(bindAddr, None, None)
+    val db = new PeerDatabaseImpl(None)
     val peerInfo = PeerInfo(currentTime())
     db.addOrUpdateKnownPeer(peerAddress1,  peerInfo)
     val newPeerInfo = PeerInfo(currentTime())
@@ -53,7 +50,7 @@ class PeerDatabaseImplSpec extends FlatSpec
   }
 
   it should "return a blacklisted peer after blacklisting" in {
-    val db = new PeerDatabaseImpl(bindAddr, None, None)
+    val db = new PeerDatabaseImpl(None)
     db.addOrUpdateKnownPeer(peerAddress1, PeerInfo(currentTime()))
     db.addOrUpdateKnownPeer(peerAddress2, PeerInfo(currentTime()))
     db.blacklistPeer(peerAddress1, currentTime())
@@ -62,4 +59,5 @@ class PeerDatabaseImplSpec extends FlatSpec
     db.isBlacklisted(peerAddress2) shouldBe false
     db.blacklistedPeers() shouldBe Seq(peerAddress1.getHostName)
   }
+
 }

@@ -1,17 +1,14 @@
 package scorex.core.network.peer
 
-import java.net.{InetSocketAddress, NetworkInterface}
+import java.net.InetSocketAddress
 
 import scorex.core.utils.NetworkTime
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 
 //todo: persistence
-class PeerDatabaseImpl(bindAddress: InetSocketAddress,
-                       declaredAddress: Option[InetSocketAddress],
-                       filename: Option[String]) extends PeerDatabase {
+class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase {
 
   private val whitelistPersistence = mutable.Map[InetSocketAddress, PeerInfo]()
 

@@ -30,8 +30,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   protected def notifySubscribers[O <: PeerManagerEvent](eventType: EventType.Value, event: O): Unit =
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! event)
 
-  private lazy val peerDatabase = new PeerDatabaseImpl(settings.network.bindAddress,
-    settings.network.declaredAddress, Some(settings.dataDir + "/peers.dat"))
+  private lazy val peerDatabase = new PeerDatabaseImpl(Some(settings.dataDir + "/peers.dat"))
 
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
