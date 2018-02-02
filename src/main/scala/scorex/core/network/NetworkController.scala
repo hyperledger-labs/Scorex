@@ -36,8 +36,8 @@ class NetworkController(settings: NetworkSettings,
 
   import NetworkController._
 
-  private val synchronizerProps = Props(new PeerSynchronizer(self, peerManagerRef, settings))
-  private val peerSynchronizer = context.system.actorOf(synchronizerProps, "PeerSynchronizer")
+  private val synchronizerProps: Props = PeerSynchronizerRef.props(self, peerManagerRef, settings)
+  private val peerSynchronizer: ActorRef = context.system.actorOf(synchronizerProps, "PeerSynchronizer")
 
   private implicit val system: ActorSystem = context.system
 
@@ -161,8 +161,8 @@ class NetworkController(settings: NetworkSettings,
       }
       log.info(logMsg)
       val connection = sender()
-      val handlerProps = Props(new PeerConnectionHandler(settings, self, peerManagerRef,
-        messageHandler, connection, direction, externalSocketAddress, remote, timeProvider))
+      val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
+        messageHandler, connection, direction, externalSocketAddress, remote, timeProvider)
       context.actorOf(handlerProps) // launch connection handler
       outgoing -= remote
 
@@ -216,4 +216,25 @@ object NetworkController {
   case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
 
   case class SubscribePeerManagerEvent(events: Seq[EventType.Value])
+}
+
+object NetworkControllerRef {
+  def props(settings: NetworkSettings,
+            messageHandler: MessageHandler,
+            upnp: UPnP,
+            peerManagerRef: ActorRef,
+            timeProvider: NetworkTimeProvider): Props = Props(new NetworkController(settings, messageHandler, upnp, peerManagerRef, timeProvider))
+  def apply(settings: NetworkSettings,
+            messageHandler: MessageHandler,
+            upnp: UPnP,
+            peerManagerRef: ActorRef,
+            timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider))
+  def apply(name: String,
+            settings: NetworkSettings,
+            messageHandler: MessageHandler,
+            upnp: UPnP,
+            peerManagerRef: ActorRef,
+            timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider), name)
 }

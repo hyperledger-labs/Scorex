@@ -2,7 +2,7 @@ package scorex.core.api.http
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.app.Version
 import scorex.core.network.{Handshake, Incoming, Outgoing}
 import scorex.core.network.peer.{PeerInfo, PeerManager}
@@ -38,19 +38,23 @@ trait Stubs {
     }
   }
 
-  object PeersManagerStub {
-    def props() = Props(new PeersManagerStub)
+  object PeersManagerStubRef {
+    def props(): Props = Props(new PeersManagerStub)
+    def apply()(implicit system: ActorSystem): ActorRef = system.actorOf(props())
+    def apply(name: String)(implicit system: ActorSystem): ActorRef = system.actorOf(props(), name)
   }
 
   class NetworkControllerStub extends Actor {
     def receive = { case _ => () }
   }
 
-  object NetworkControllerStub {
-    def props() = Props(new NetworkControllerStub)
+  object NetworkControllerStubRef {
+    def props(): Props = Props(new NetworkControllerStub)
+    def apply()(implicit system: ActorSystem): ActorRef = system.actorOf(props())
+    def apply(name: String)(implicit system: ActorSystem): ActorRef = system.actorOf(props(), name)
   }
 
-  lazy val pmRef = system.actorOf(PeersManagerStub.props())
-  lazy val networkControllerRef = system.actorOf(NetworkControllerStub.props())
+  lazy val pmRef: ActorRef = PeersManagerStubRef()
+  lazy val networkControllerRef: ActorRef = NetworkControllerStubRef()
 
 }

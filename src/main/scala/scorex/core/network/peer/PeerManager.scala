@@ -2,7 +2,7 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.network.PeerConnectionHandler.CloseConnection
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
@@ -204,4 +204,10 @@ object PeerManager {
 
   case object GetConnectedPeers
 
+}
+
+object PeerManagerRef {
+  def props(settings: ScorexSettings, timeProvider: NetworkTimeProvider): Props = Props(new PeerManager(settings, timeProvider))
+  def apply(settings: ScorexSettings, timeProvider: NetworkTimeProvider)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider))
+  def apply(name: String, settings: ScorexSettings, timeProvider: NetworkTimeProvider)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider), name)
 }
