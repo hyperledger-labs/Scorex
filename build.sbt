@@ -55,7 +55,7 @@ val apiDependencies = Seq(
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
   "com.typesafe.akka" %% "akka-http" % "10.+",
-  "de.heikoseeberger" %% "akka-http-circe" % "1.18.0"
+  "de.heikoseeberger" %% "akka-http-circe" % "1.19.0"
 )
 
 val loggingDependencies = Seq(

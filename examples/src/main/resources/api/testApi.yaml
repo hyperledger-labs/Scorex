@@ -55,6 +55,16 @@ components:
           # int32
           format: int64
           example: 123456
+    BlacklistedPeers:
+      type: object
+      required:
+        - addresses
+      properties:
+        addresses:
+          type: array
+          items:
+            type: string
+            example: 127.0.0.1:27272
 
 
 paths:
@@ -187,9 +197,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                    $ref: '#/components/schemas/Peer'
+                $ref: '#/components/schemas/BlacklistedPeers'
 
   /utils/seed:
     get:
