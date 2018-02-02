@@ -30,7 +30,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   protected def notifySubscribers[O <: PeerManagerEvent](eventType: EventType.Value, event: O): Unit =
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! event)
 
-  private lazy val peerDatabase = new PeerDatabaseImpl(settings.network, Some(settings.dataDir + "/peers.dat"), timeProvider)
+  private lazy val peerDatabase = new PeerDatabaseImpl(Some(settings.dataDir + "/peers.dat"))
 
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
@@ -40,24 +40,26 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   }
 
   private def randomPeer(): Option[InetSocketAddress] = {
-    val peers = peerDatabase.knownPeers(true).keys.toSeq
+    val peers = peerDatabase.knownPeers().keys.toSeq
     if (peers.nonEmpty) Some(peers(Random.nextInt(peers.size)))
     else None
   }
 
   private def peerListOperations: Receive = {
     case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt) =>
-      val peerInfo = PeerInfo(timeProvider.time(), peerNameOpt, connTypeOpt)
-      peerDatabase.addOrUpdateKnownPeer(address, peerInfo)
+      if (!isSelf(address, None)) {
+        val peerInfo = PeerInfo(timeProvider.time(), peerNameOpt, connTypeOpt)
+        peerDatabase.addOrUpdateKnownPeer(address, peerInfo)
+      }
 
     case KnownPeers =>
-      sender() ! peerDatabase.knownPeers(false).keys.toSeq
+      sender() ! peerDatabase.knownPeers().keys.toSeq
 
     case RandomPeer =>
       sender() ! randomPeer()
 
     case RandomPeers(howMany: Int) =>
-      sender() ! Random.shuffle(peerDatabase.knownPeers(false).keys.toSeq).take(howMany)
+      sender() ! Random.shuffle(peerDatabase.knownPeers().keys.toSeq).take(howMany)
 
     case FilterPeers(sendingStrategy: SendingStrategy) =>
       sender() ! sendingStrategy.choose(connectedPeers.values.toSeq)
@@ -68,7 +70,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       sender() ! (connectedPeers.values.map(_.handshake).toSeq: Seq[Handshake])
 
     case GetAllPeers =>
-      sender() ! peerDatabase.knownPeers(true)
+      sender() ! peerDatabase.knownPeers()
 
     case GetBlacklistedPeers =>
       sender() ! peerDatabase.blacklistedPeers()
@@ -156,8 +158,8 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
     case AddToBlacklist(peer) =>
       log.info(s"Blacklist peer $peer")
-      peerDatabase.blacklistPeer(peer)
-    // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
+      peerDatabase.blacklistPeer(peer, timeProvider.time())
+      // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
   }: Receive) orElse peerListOperations orElse apiInterface orElse peerCycle
 }
 

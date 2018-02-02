@@ -1,22 +1,18 @@
 package scorex.core.network.peer
 
-import java.net.{InetSocketAddress, NetworkInterface}
+import java.net.InetSocketAddress
 
-import scorex.core.settings.NetworkSettings
-import scorex.core.utils.NetworkTimeProvider
+import scorex.core.utils.NetworkTime
 
 import scala.collection.mutable
-import scala.collection.JavaConverters._
 
 
 //todo: persistence
-class PeerDatabaseImpl(settings: NetworkSettings,
-                       filename: Option[String],
-                       timeProvider: NetworkTimeProvider) extends PeerDatabase {
+class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase {
 
   private val whitelistPersistence = mutable.Map[InetSocketAddress, PeerInfo]()
 
-  private val blacklist = mutable.Map[String, Long]()
+  private val blacklist = mutable.Map[String, NetworkTime.Time]()
 
   override def addOrUpdateKnownPeer(address: InetSocketAddress, peerInfo: PeerInfo): Unit = {
     val updatedPeerInfo = whitelistPersistence.get(address).fold(peerInfo) { dbPeerInfo =>
@@ -27,30 +23,17 @@ class PeerDatabaseImpl(settings: NetworkSettings,
     whitelistPersistence.put(address, updatedPeerInfo)
   }
 
-  override def blacklistPeer(address: InetSocketAddress): Unit = {
+  override def blacklistPeer(address: InetSocketAddress, time: NetworkTime.Time): Unit = {
     whitelistPersistence.remove(address)
-    if (!isBlacklisted(address)) blacklist += address.getHostName -> timeProvider.time()
+    if (!isBlacklisted(address)) blacklist += address.getHostName -> time
   }
 
   override def isBlacklisted(address: InetSocketAddress): Boolean = {
     blacklist.synchronized(blacklist.contains(address.getHostName))
   }
 
-  override def knownPeers(excludeSelf: Boolean): Map[InetSocketAddress, PeerInfo] = {
-    if (excludeSelf) {
-      val localAddresses = if (settings.bindAddress.getAddress.isAnyLocalAddress) {
-        NetworkInterface.getNetworkInterfaces.asScala
-          .flatMap(_.getInetAddresses.asScala
-            .map(a => new InetSocketAddress(a, settings.bindAddress.getPort)))
-          .toSet
-      } else Set(settings.bindAddress)
-
-      val excludedAddresses = localAddresses ++ settings.declaredAddress.toSet
-      knownPeers(false).filterKeys(!excludedAddresses(_))
-    } else {
-      whitelistPersistence.keys.flatMap(k => whitelistPersistence.get(k).map(v => k -> v)).toMap
-    }
-
+  override def knownPeers(): Map[InetSocketAddress, PeerInfo] = {
+    whitelistPersistence.keys.flatMap(k => whitelistPersistence.get(k).map(v => k -> v)).toMap
   }
 
   override def blacklistedPeers(): Seq[String] = blacklist.keys.toSeq

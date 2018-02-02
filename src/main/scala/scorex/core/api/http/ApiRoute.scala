@@ -1,35 +1,44 @@
 package scorex.core.api.http
 
 import akka.actor.ActorRefFactory
-import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
-import akka.http.scaladsl.server.{Directive0, Directives, Route}
+import akka.http.scaladsl.server.{Directive0, Route}
+import akka.http.scaladsl.unmarshalling.PredefinedFromEntityUnmarshallers
 import akka.util.Timeout
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
+import io.circe.Printer
 import scorex.core.settings.RESTApiSettings
-import scorex.crypto.hash.{Blake2b256, Digest}
 
 import scala.concurrent.{Await, Future}
 
-trait ApiRoute extends Directives {
+trait ApiRoute extends ApiDirectives with ActorHelper with FailFastCirceSupport with PredefinedFromEntityUnmarshallers {
+
   val settings: RESTApiSettings
   val context: ActorRefFactory
   val route: Route
+  //TODO: should we move it to the settings?
+  override lazy val apiKeyHeaderName = "api_key"
 
+  implicit val printer: Printer = Printer.spaces2.copy(dropNullValues = true)
   implicit lazy val timeout: Timeout = Timeout(settings.timeout)
 
-  def actorRefFactory: ActorRefFactory = context
-
+  @deprecated("Use circe json support for answering with json", "31 January 2018")
   def getJsonRoute(fn: Future[ScorexApiResponse]): Route =
     jsonRoute(Await.result(fn, settings.timeout), get)
 
+  @deprecated("Use circe json support for answering with json", "31 January 2018")
   def getJsonRoute(fn: ScorexApiResponse): Route = jsonRoute(fn, get)
 
+  @deprecated("Use circe json support for answering with json", "31 January 2018")
   def postJsonRoute(fn: ScorexApiResponse): Route = jsonRoute(fn, post)
 
+  @deprecated("Use circe json support for answering with json", "31 January 2018")
   def postJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, settings.timeout), post)
 
+  @deprecated("Use circe json support for answering with json", "31 January 2018")
   def deleteJsonRoute(fn: ScorexApiResponse): Route = jsonRoute(fn, delete)
 
+  @deprecated("Use circe json support for answering with json", "31 January 2018")
   def deleteJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, settings.timeout), delete)
 
   protected def jsonRoute(fn: ScorexApiResponse, method: Directive0): Route = method {
@@ -44,24 +53,5 @@ trait ApiRoute extends Directives {
     withCors(resp)
   }
 
-  def withCors(fn: => Route): Route = {
-    if (settings.corsAllowed) respondWithHeaders(RawHeader("Access-Control-Allow-Origin", "*"))(fn)
-    else fn
-  }
 
-  def withAuth(route: => Route): Route = {
-    optionalHeaderValueByName("api_key") { keyOpt =>
-      if (isValid(keyOpt)) route
-      else withCors(complete(StatusCodes.Forbidden -> ApiError.apiKeyNotValid.message))
-    }
-  }
-
-  private def isValid(keyOpt: Option[String]): Boolean = {
-    lazy val keyHash: Option[Digest] = keyOpt.map(Blake2b256(_))
-    (settings.apiKeyHash, keyHash) match {
-      case (None, _) => true
-      case (Some(expected), Some(passed)) => expected.toCharArray sameElements passed
-      case _ => false
-    }
-  }
 }
