@@ -51,6 +51,9 @@ class SyncTracker(nvsRef: ActorRef,
     statuses += peer -> status
     val seniorsAfter = numOfSeniors()
 
+    /**
+      * Todo: we should also send NoBetterNeighbour signal when all the peers around are not seniors initially
+      */
     if (seniorsBefore > 0 && seniorsAfter == 0) {
       log.info("Syncing is done, switching to stable regime")
       stableSyncRegime = true
