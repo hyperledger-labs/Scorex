@@ -1,6 +1,6 @@
 package examples.hybrid.mining
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.google.common.primitives.Longs
 import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
@@ -131,3 +131,9 @@ case class PosForgingInfo(pairCompleted: Boolean,
                           diff: Long,
                           boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
                           txsToInclude: Seq[SimpleBoxTransaction])
+
+object PosForgerRef {
+  def props(settings: HybridSettings, viewHolderRef: ActorRef): Props = Props(new PosForger(settings, viewHolderRef))
+  def apply(settings: HybridSettings, viewHolderRef: ActorRef)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, viewHolderRef))
+  def apply(name: String, settings: HybridSettings, viewHolderRef: ActorRef)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, viewHolderRef), name)
+}

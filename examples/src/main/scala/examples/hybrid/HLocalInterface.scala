@@ -1,6 +1,6 @@
 package examples.hybrid
 
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, ActorSystem, Props}
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.mining.HybridMiningSettings
@@ -64,4 +64,19 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
     posForgerRef ! StopForging
     block = true
   }
+}
+
+object HLocalInterfaceRef {
+  def props(viewHolderRef: ActorRef,
+            powMinerRef: ActorRef,
+            posForgerRef: ActorRef,
+            minerSettings: HybridMiningSettings): Props = Props(new HLocalInterface(viewHolderRef, powMinerRef, posForgerRef, minerSettings))
+  def apply(viewHolderRef: ActorRef,
+            powMinerRef: ActorRef,
+            posForgerRef: ActorRef,
+            minerSettings: HybridMiningSettings)(implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef, powMinerRef, posForgerRef, minerSettings))
+  def apply(name: String, viewHolderRef: ActorRef,
+            powMinerRef: ActorRef,
+            posForgerRef: ActorRef,
+            minerSettings: HybridMiningSettings)(implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef, powMinerRef, posForgerRef, minerSettings), name)
 }

@@ -1,6 +1,6 @@
 package examples.hybrid.wallet
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.commons.Value
 import examples.hybrid.history.HybridHistory
@@ -75,4 +75,10 @@ object SimpleBoxTransactionGenerator {
 
   case class GeneratorInfo(tx: Try[SimpleBoxTransaction])
 
+}
+
+object SimpleBoxTransactionGeneratorRef {
+  def props(viewHolderRef: ActorRef): Props = Props(new SimpleBoxTransactionGenerator(viewHolderRef))
+  def apply(viewHolderRef: ActorRef)(implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef))
+  def apply(name: String, viewHolderRef: ActorRef)(implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef), name)
 }
