@@ -79,6 +79,8 @@ object SimpleBoxTransactionGenerator {
 
 object SimpleBoxTransactionGeneratorRef {
   def props(viewHolderRef: ActorRef): Props = Props(new SimpleBoxTransactionGenerator(viewHolderRef))
-  def apply(viewHolderRef: ActorRef)(implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef))
-  def apply(name: String, viewHolderRef: ActorRef)(implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef), name)
+  def apply(viewHolderRef: ActorRef)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef))
+  def apply(name: String, viewHolderRef: ActorRef)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef), name)
 }

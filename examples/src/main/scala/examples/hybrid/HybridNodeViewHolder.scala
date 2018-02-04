@@ -107,14 +107,19 @@ object HybridNodeViewHolder extends ScorexLogging {
 object HybridNodeViewHolderRef {
   def props(settings: ScorexSettings,
             minerSettings: HybridMiningSettings,
-            timeProvider: NetworkTimeProvider): Props = Props(new HybridNodeViewHolder(settings, minerSettings, timeProvider))
+            timeProvider: NetworkTimeProvider): Props =
+    Props(new HybridNodeViewHolder(settings, minerSettings, timeProvider))
+
   def apply(settings: ScorexSettings,
             minerSettings: HybridMiningSettings,
             timeProvider: NetworkTimeProvider)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, minerSettings, timeProvider))
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, minerSettings, timeProvider))
+
   def apply(name: String,
             settings: ScorexSettings,
             minerSettings: HybridMiningSettings,
             timeProvider: NetworkTimeProvider)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, minerSettings, timeProvider), name)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, minerSettings, timeProvider), name)
 }

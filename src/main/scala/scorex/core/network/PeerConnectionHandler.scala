@@ -235,7 +235,10 @@ object PeerConnectionHandlerRef {
             direction: ConnectionType,
             ownSocketAddress: Option[InetSocketAddress],
             remote: InetSocketAddress,
-            timeProvider: NetworkTimeProvider): Props = Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, messagesHandler, connection, direction, ownSocketAddress, remote, timeProvider))
+            timeProvider: NetworkTimeProvider): Props =
+    Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, messagesHandler,
+                                    connection, direction, ownSocketAddress, remote, timeProvider))
+
   def apply(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
@@ -244,7 +247,11 @@ object PeerConnectionHandlerRef {
             direction: ConnectionType,
             ownSocketAddress: Option[InetSocketAddress],
             remote: InetSocketAddress,
-            timeProvider: NetworkTimeProvider)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, connection, direction, ownSocketAddress, remote, timeProvider))
+            timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
+                         connection, direction, ownSocketAddress, remote, timeProvider))
+
   def apply(name: String,
             settings: NetworkSettings,
             networkControllerRef: ActorRef,
@@ -254,5 +261,8 @@ object PeerConnectionHandlerRef {
             direction: ConnectionType,
             ownSocketAddress: Option[InetSocketAddress],
             remote: InetSocketAddress,
-            timeProvider: NetworkTimeProvider)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, connection, direction, ownSocketAddress, remote, timeProvider), name)
+            timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
+                         connection, direction, ownSocketAddress, remote, timeProvider), name)
 }

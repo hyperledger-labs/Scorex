@@ -36,10 +36,9 @@ class NetworkController(settings: NetworkSettings,
 
   import NetworkController._
 
-  private val synchronizerProps: Props = PeerSynchronizerRef.props(self, peerManagerRef, settings)
-  private val peerSynchronizer: ActorRef = context.system.actorOf(synchronizerProps, "PeerSynchronizer")
-
   private implicit val system: ActorSystem = context.system
+
+  private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
 
   private implicit val timeout: Timeout = Timeout(settings.controllerTimeout.getOrElse(5 seconds))
 
@@ -223,18 +222,23 @@ object NetworkControllerRef {
             messageHandler: MessageHandler,
             upnp: UPnP,
             peerManagerRef: ActorRef,
-            timeProvider: NetworkTimeProvider): Props = Props(new NetworkController(settings, messageHandler, upnp, peerManagerRef, timeProvider))
+            timeProvider: NetworkTimeProvider): Props =
+    Props(new NetworkController(settings, messageHandler, upnp, peerManagerRef, timeProvider))
+
   def apply(settings: NetworkSettings,
             messageHandler: MessageHandler,
             upnp: UPnP,
             peerManagerRef: ActorRef,
             timeProvider: NetworkTimeProvider)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider))
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider))
+
   def apply(name: String,
             settings: NetworkSettings,
             messageHandler: MessageHandler,
             upnp: UPnP,
             peerManagerRef: ActorRef,
             timeProvider: NetworkTimeProvider)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider), name)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider), name)
 }

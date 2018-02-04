@@ -70,13 +70,20 @@ object HLocalInterfaceRef {
   def props(viewHolderRef: ActorRef,
             powMinerRef: ActorRef,
             posForgerRef: ActorRef,
-            minerSettings: HybridMiningSettings): Props = Props(new HLocalInterface(viewHolderRef, powMinerRef, posForgerRef, minerSettings))
+            minerSettings: HybridMiningSettings): Props =
+    Props(new HLocalInterface(viewHolderRef, powMinerRef, posForgerRef, minerSettings))
+
   def apply(viewHolderRef: ActorRef,
             powMinerRef: ActorRef,
             posForgerRef: ActorRef,
-            minerSettings: HybridMiningSettings)(implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef, powMinerRef, posForgerRef, minerSettings))
+            minerSettings: HybridMiningSettings)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(viewHolderRef, powMinerRef, posForgerRef, minerSettings))
+
   def apply(name: String, viewHolderRef: ActorRef,
             powMinerRef: ActorRef,
             posForgerRef: ActorRef,
-            minerSettings: HybridMiningSettings)(implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef, powMinerRef, posForgerRef, minerSettings), name)
+            minerSettings: HybridMiningSettings)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(viewHolderRef, powMinerRef, posForgerRef, minerSettings), name)
 }

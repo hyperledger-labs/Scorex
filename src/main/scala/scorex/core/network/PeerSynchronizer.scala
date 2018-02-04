@@ -55,7 +55,14 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 }
 
 object PeerSynchronizerRef {
-  def props(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings): Props = Props(new PeerSynchronizer(networkControllerRef, peerManager, settings))
-  def apply(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)(implicit system: ActorSystem): ActorRef = system.actorOf(props(networkControllerRef, peerManager, settings))
-  def apply(name: String, networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)(implicit system: ActorSystem): ActorRef = system.actorOf(props(networkControllerRef, peerManager, settings), name)
+  def props(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings): Props =
+    Props(new PeerSynchronizer(networkControllerRef, peerManager, settings))
+
+  def apply(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(networkControllerRef, peerManager, settings))
+
+  def apply(name: String, networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(networkControllerRef, peerManager, settings), name)
 }

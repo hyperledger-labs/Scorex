@@ -207,7 +207,12 @@ object PeerManager {
 }
 
 object PeerManagerRef {
-  def props(settings: ScorexSettings, timeProvider: NetworkTimeProvider): Props = Props(new PeerManager(settings, timeProvider))
-  def apply(settings: ScorexSettings, timeProvider: NetworkTimeProvider)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider))
-  def apply(name: String, settings: ScorexSettings, timeProvider: NetworkTimeProvider)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider), name)
+  def props(settings: ScorexSettings, timeProvider: NetworkTimeProvider): Props =
+    Props(new PeerManager(settings, timeProvider))
+
+  def apply(settings: ScorexSettings, timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider))
+
+  def apply(name: String, settings: ScorexSettings, timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider), name)
 }

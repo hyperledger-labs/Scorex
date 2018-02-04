@@ -354,8 +354,11 @@ object NodeViewSynchronizerRef {
                              localInterfaceRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
-                             timeProvider: NetworkTimeProvider) = Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR]
-      (networkControllerRef, viewHolderRef, localInterfaceRef, syncInfoSpec, networkSettings, timeProvider))
+                             timeProvider: NetworkTimeProvider) =
+    Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
+                                                                 localInterfaceRef, syncInfoSpec,
+                                                                 networkSettings, timeProvider))
+
   def apply[P <: Proposition,
     TX <: Transaction[P],
     SI <: SyncInfo,
@@ -368,7 +371,10 @@ object NodeViewSynchronizerRef {
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
-                            (implicit system: ActorSystem): ActorRef = system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef, syncInfoSpec, networkSettings, timeProvider))
+                            (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef,
+                                                       syncInfoSpec, networkSettings, timeProvider))
+
   def apply[P <: Proposition,
     TX <: Transaction[P],
     SI <: SyncInfo,
@@ -382,5 +388,7 @@ object NodeViewSynchronizerRef {
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
-                            (implicit system: ActorSystem): ActorRef = system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef, syncInfoSpec, networkSettings, timeProvider), name)
+                            (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef,
+                                                       syncInfoSpec, networkSettings, timeProvider), name)
 }

@@ -134,6 +134,8 @@ case class PosForgingInfo(pairCompleted: Boolean,
 
 object PosForgerRef {
   def props(settings: HybridSettings, viewHolderRef: ActorRef): Props = Props(new PosForger(settings, viewHolderRef))
-  def apply(settings: HybridSettings, viewHolderRef: ActorRef)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, viewHolderRef))
-  def apply(name: String, settings: HybridSettings, viewHolderRef: ActorRef)(implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, viewHolderRef), name)
+  def apply(settings: HybridSettings, viewHolderRef: ActorRef)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, viewHolderRef))
+  def apply(name: String, settings: HybridSettings, viewHolderRef: ActorRef)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, viewHolderRef), name)
 }
