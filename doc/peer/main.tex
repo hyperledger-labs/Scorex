@@ -1,0 +1,456 @@
+\documentclass[]{llncs}
+
+\usepackage{xspace}
+
+\usepackage{color} 
+\usepackage{graphicx} 
+\usepackage{amssymb}
+%\usepackage{amsthm} 
+\usepackage{amsmath}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\usepackage{listings} 
+\usepackage{hyperref} 
+\usepackage{systeme}
+
+\usepackage[dvipsnames]{xcolor} 
+\usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
+\newcommand{\bruno}[1]{\todo[linecolor=OliveGreen,backgroundcolor=OliveGreen!25,bordercolor=OliveGreen]{#1}\xspace}
+\newcommand{\alex}[1]{\todo[linecolor=Red,backgroundcolor=Red!25,bordercolor=Red]{#1}\xspace}
+
+\usepackage[T1]{fontenc}
+\usepackage{dsfont}
+\usepackage{textcomp}
+
+\usepackage{xcolor}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+
+% Formatting for Configurable Parameters: 
+% Argument 1: parameter's name 
+% Argument 2: parameter's type
+\newcommand{\conf}[2]{{\color{dkgreen}\texttt{#1:#2}}}
+\newcommand{\param}[1]{{\color{dkgreen}\texttt{#1}}}
+
+\begin{document}
+
+\title{A Flexible Peer Management Architecture \\ for Blockchain Systems}
+
+\author{Alexander Chepurnoy and Bruno Woltzenlogel Paleo} 
+
+\maketitle
+
+\begin{abstract}
+For a blockchain network to be secure and efficient, 
+it is essential that nodes follow a disciplined peer management strategy, 
+trying to avoid malicious peers and seeking to discover 
+and retain reliable honest peers.
+This paper defines an abstract peer management architecture, 
+relying on flexible ranking and clustering of peers. 
+A concrete implementation of this architecture in the 
+Scorex framework is also described.
+\end{abstract}
+
+
+\section{Introduction}
+
+Blockchain systems have been increasingly adopted in recent years. 
+For instance, the total market cap of Bitcoin \cite{TODO}, the most popular cryptocurrency 
+and blockchain application, has grown to more than 130 billion US 
+dollars\footnote{Data obtained from \url{http://www.worldcoinindex.com} in 2017 
+on the 24th of November 2017.} since its inception in 2009. 
+And Bitcoin is not an isolated phenomenon. Fifteen other cryptocurrencies 
+have market caps larger than 1 billion US dollars. With so much at stake, 
+the security of these systems is critical. Consensus 
+protocols, such as Bitcoin's Proof of Work (PoW) \cite{TODO} 
+and variants of Proof of Stake (PoS) \cite{TODO} 
+(e.g. Cardano's Ouroboros \cite{TODO} and Ethereum's TODO \cite{TODO}), 
+ensure that the communicating peers agree on a single blockchain and 
+that the blockchain remains valid as long as honest nodes detain the majority 
+of computation power or stake. However, the network itself is vulnerable to attacks
+that may prevent the peers from communicating effectively. A recent study \cite{TODO}
+found, for example, that Bitcoin's peer management is significantly vulnerable
+to eclipse attacks, where an attacker running several nodes attempts to monopolize 
+all incoming and outgoing connections of an honest node. If the attacker succeeds,
+the mining power or stake of that honest node, is effectively removed from the network.
+Furthermore, the attacker may fork the chain and lead the honest node 
+to waste mining power (and profits) on the forked chain. The possibility of such 
+network layer attacks highlights the importance of resilient peer management strategies 
+and motivates the work presented here.
+
+Bitcoin's rigid and hard-coded peer management strategy \cite{TODO} 
+distributes known peers in two tables, one for new peers and 
+the other for tried peers, and groups them in buckets so 
+that peers belonging to the same subnet 
+(and hence more likely to be controlled by an attacker) 
+are more likely to belong to the same bucket. 
+A bitcoin node then tries to connect to peers from different buckets
+and from different tables.
+
+The goal of the peer management architecture proposed here is 
+to generalize Bitcoin's approach and make it more flexible, 
+because there may be many other characteristics, 
+besides IP address and being new or tried, that may be 
+relevant for a node to consider 
+when deciding whether to connect to a peer. 
+The proposed architecture, described abstractly in 
+Section \ref{TODO}, depends on a peer ranking algorithm 
+(cf. Section \ref{TODO})
+and a peer clustering algorithm (cf. Section \ref{TODO}); 
+and procedures and protocols for manipulating peers 
+(cf. Section \ref{TODO}), from peer banning to selection of 
+peers for connection, may use the ranking and the clusters.
+Finally, an implementation of the proposed architecture in the Scala-based 
+Scorex framework for blockchains is presented in Section \ref{TODO}.
+
+
+
+
+\section{Abstract Peer Management Systems}
+
+\newcommand{\peers}{\mathcal{P}}
+
+% Feature function
+% Argument 1: peer
+% Argument 2: feature name
+\newcommand{\feature}[2]{\phi(#1, #2)}
+\newcommand{\featureFunction}{\phi}
+\newcommand{\features}{\mathcal{F}}
+
+\newcommand{\rank}{\rho_{\featureFunction}}
+\newcommand{\clusters}{\xi_{\featureFunction}}
+
+\newcommand{\nat}{\mathds{N}\xspace}
+
+A \emph{peer} is a pair $(\mathrm{addr}, \mathrm{port})$, 
+where $\mathrm{addr}$ is its IP address and $\mathrm{port}$ is its port. 
+The set of all peers is denoted $\peers$. Any characteristic of a peer 
+(e.g. number of past connections, date of last connection, reputation, delivery delays) 
+is a \emph{feature} and the finite set of all relevant features is denoted $\features$.
+\alex{TODO: do you think we need to separate ingoing / outgoing connections?}
+
+
+A \emph{peer management structure} is a tuple $(G, B, C)$, 
+where $G$ is the set of \emph{good peers}, $B$ is the set of \emph{banned peers}, and 
+$C$ is the set of \emph{connected peers}, satisfying the following conditions: 
+$G \cap B = \emptyset$, 
+$C \subseteq G$,
+$G \subseteq \peers$, 
+$B \subseteq \peers$.
+%
+A \emph{peer management system} is a tuple $(M, \featureFunction, \rank, \clusters, \Pi)$ where:
+\begin{itemize}
+\item $M$ is a peer management structure; 
+%
+\item $\featureFunction$ is the \emph{feature map} such that $\feature{p}{f}$ 
+is the value of feature $f$ for peer $p$;
+%
+\item $\rank: \forall S: 2^{\peers}. S \rightarrow \nat$ \bruno{I'm using a dependent type notation here, in a sloppy way. This could be improved.} 
+ is a \emph{peer ranking} such that $\rank(S, p)$ is the \emph{rank} of peer $p$ in the set of peers $S$ using the feature map $\featureFunction$;
+%
+\item $\clusters: 2^{\peers} \rightarrow 2^{2^{\peers}}$ is a \emph{peer clusterizer} using the feature map $\featureFunction$ that takes a set of peers $S$ 
+and returns a set of \emph{clusters} $\clusters(S) \equiv \{ S_1, \ldots, S_m \}$ such that 
+$S_i \cap S_j = \emptyset$ when $i \neq j$ and $\bigcup_{1 \leq i \leq m} S_i = S$;
+%
+\item $\Pi$ is a set of \emph{protocols} and \emph{procedures} that take the current $M$ and the current feature map $\featureFunction$ and, possibly using $\rank$ and $\clusters$, 
+return a modified peer management structure $M'$ or a modified feature map $\featureFunction'$.
+\end{itemize} 
+
+\begin{example}
+Examples of peer rankings include: a function that sorts the set of peers $S$ according to any combination of features in $\phi$ 
+and returns the index of $p$ in the sorted ordered set; or a function that 
+returns the number of days since the last connection with $p$.
+\end{example}
+
+\begin{example}
+Bitcoin's usage of separate tables for \emph{new} peers, with whom there has never been a connection, and already \emph{tried} peers, 
+can be seen as a simple and rigid example of clusterizer. Bitcoin's bucket system, which partition peers according to their subnets, 
+can also be seen as a clusterizer.\bruno{TODO: More examples, not related to bitcoin, here.}
+\end{example}
+
+
+\section{A Concrete Peer Ranking}
+\label{sec:PeerRanking}
+
+
+\newcommand{\indexOf}{\mathrm{indexOf}}
+\newcommand{\sortBy}{\mathrm{sort}}
+\newcommand{\isIncreasing}{\mathrm{isIncreasing}}
+
+The peer ranking function $\rank$ is defined by:
+\[
+\rank(S, p) \equiv \sum_{f \in F_r} (\indexOf(p, \sortBy(S, f, \isIncreasing(f)))) * \conf{\$\{f\}Weight}{Int}
+\]
+where:
+\begin{itemize}
+\item $F_r$ is the set of features relevant for ranking, which has 
+      \texttt{averageDeliveryDelay}, 
+      \texttt{numberOfPastConnections} and 
+      \texttt{elapsedTimeSinceLastConnection} as elements.
+\item $\indexOf(p, L)$ is the index of $p$ in a list $L$.
+\item $\sortBy(S, f, b)$ is the list of elements in $S$ sorted by their values on feature $f$. 
+      Sorting is increasing if $b = \texttt{true}$, and decreasing otherwise.
+\item $\isIncreasing(f)$ is $\texttt{true}$ iff the sorting of peers according to feature $f$ 
+      should be increasing. $\isIncreasing$ is $\texttt{true}$ for 
+      \texttt{numberOfPastConnections} and \texttt{elapsedTimeSinceLastConnection} and 
+      $\texttt{false}$ for \texttt{averageDeliveryDelay}.
+\item For each feature $f$, $\conf{\$\{f\}Weight}{Int}$ is a configurable parameter 
+      indicating the importance of feature $f$ for the ranking.
+\end{itemize}
+
+Peers having a higher rank are considered to be better than peers having a lower rank. 
+By sorting peers decreasingly with respect to their average delivery delay, 
+faster peers are prioritized.
+By sorting peers increasingly with respect to their number of past connections, 
+reliable peers that have already been tried and used many times are preferred.
+By sorting peers increasingly with respected to their elapsed time since last connection,
+rotation of peers is encouraged.
+
+
+\section{A Concrete Clusterizer}
+\label{sec:Clusterizer}
+
+
+\newcommand{\kmeans}{\texttt{k-means\textbardbl}}
+
+The peer clusterizer $\clusters$ is defined by:
+\[
+\clusters(S) 
+\equiv 
+\kmeans_{\param{numberOfClusters}}(\mathrm{map}(\lambda p. \mathrm{toVector}^{\featureFunction}_{F_c}(p)*\param{weightVector}, S))
+\]
+\bruno{TODO: There is a minor typing issue here that I need to fix. 
+       kmeans is returning clusters of vectors, 
+       but it should be returning clusters of peers corresponding to those vectors.}
+where:
+\begin{itemize}
+\item $\kmeans$ is the parallel scalable k-means++ 
+      clustering algorithm~\cite{parallelKMeans}%http://vldb.org/pvldb/vol5/p622_bahmanbahmani_vldb2012.pdf
+\item \param{numberOfClusters} is the configurable parameter specifying 
+      how many clusters should be generated.
+      It defaults to \param{maxConnections}.
+\item $\mathrm{toVector}^{\featureFunction}_{F_c}(p)$ transforms a peer $p$ 
+      into its vector of feature values $\mathrm{map}(\lambda f. \feature{p}{f}, F_c)$.
+\item $F_c$ is the vector of features relevant for clustering, which has
+      \texttt{ipOctetOne}, \texttt{ipOctetTwo}, \texttt{ipOctetThree}, \texttt{ipOctetFour},
+      \bruno{dividing an IP address into 4 dimensions in these 4 octets takes care of clustering in the same cluster/bucket 
+      peers that belong to the same subnet when IP allocation follows the old \emph{classfull network} scheme. 
+      It probably works well for \emph{variable-length subnet masking} as well. 
+      But, in this case, maybe something better could be done if we knew the routing prefix. 
+      But I think we don't. Or do we? More info: \url{https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing}}
+      \texttt{numberOfPastConnections}.
+\item \param{weightVector} is the vector of weights $\mathrm{map}(\lambda f. \param{\$\{f\}Weight}, F_c)$.
+\end{itemize}
+
+By having IP octets as features relevant for clustering, peers that belong to the same subnet
+will tend to be in the same cluster. Since the subnet masking convention considers the leftmost
+bits of an IP address to be more significant (i.e. the more leftmost bits are shared 
+by two IP addresses, the more likely they are to belong to the same subnet), 
+it should be ensured that 
+$\texttt{ipOctetOneWeight} >> \texttt{ipOctetTwoWeight} >> \texttt{ipOctetThreeWeight} >> \texttt{ipOctetFourWeight}$,
+where $>>$ means ``significantly greater than''.
+
+By taking \texttt{numberOfPastConnections} into account, peers that differ in
+how known or new they are will tend to belong to different clusters. 
+
+
+
+\section{Peer Management Protocols and Procedures} 
+\label{sec:PeerManagementProtocols}
+
+Peers are inserted and removed from the sets of good peers, banned peers and connected peers
+through protocols and procedures. The following subsections describe the concrete protocols 
+and procedures that are\bruno{will be} implemented in Scorex.
+
+
+\subsection{Peer Discovery}
+
+A peer discovery protocol requests new peers from a source and inserts them into
+the set of good peers $G$. Generally, a source may be another peer, a
+trusted central server or an untrusted communication channel (e.g. IRC, Twitter, \ldots).
+
+In Scorex, when the size of $G$ is
+below \conf{minGoodPeers}{Int}, the peer requests new peers from $p^* = \argmin_p \rank(G, p)$. 
+$p^*$ replies by sending a set of new peers $N$. 
+$G$ is then updated to $G' \equiv G \cup (N \setminus B)$. 
+
+\alex{TODO: have "referencedBy" column in the peers table}
+\bruno{monitor and record “number of incoming connections” and 
+“number of outgoing connections” in the feature table. 
+Then it is up to the ranking and clustering functions to use this information as they wish. }
+
+\bruno{TODO: request from a central server? download from an untrusted communication channel?}
+
+
+\subsection{Peer Selection}
+
+
+The peer selection protocol is executed whenever the size of $C$ is smaller 
+than \conf{minConnections}{Int}. Its goal is to select a subset $N$ of 
+$n \equiv \conf{maxConnections}{Int} - |C|$ 
+peers from $G \setminus C$ and then update $C$ to $C' \equiv C \cup N$.
+
+
+This is achieved through the following steps:
+\begin{enumerate}
+\item Partition $G$ into the clusters $\{ G_1, \ldots, G_m \} \equiv \clusters(G)$. 
+\item Initialize $C'$ with $C$. 
+\item For each cluster $G_k$, let $h(G_k) \equiv |C' \cup G_k|$.
+\item Then, for $i$ from $1$ to $n$:
+   \begin{enumerate}
+   \item Let $H = \{ G_k \in \clusters(G) | h(G_k) = \min_{g \in \clusters(G)} h(g) \}$
+   \item Randomly choose a cluster $G^*$ from $H$ with uniform probability.
+   \item Randomly choose an integer $r$ in the $[0, 99]$ integer interval and then choose $p^*$ from $G^*$ with one of the following probability distributions (for all $p \in G^*$):
+      \begin{itemize}
+      	 \item $P(p) \equiv 1/|G^*|$, if $r < \conf{peerExplorationProbability}{Int}$.
+         \item $P(p) \equiv (\rank(G^*, p))/(\sum_{q \in G^*} \rank(G^*, q)) G^*$, otherwise.
+      \end{itemize}
+   \item Let $C' \equiv C' \cup \{ p^* \}$.      
+   \end{enumerate}
+\end{enumerate}
+
+
+
+Finally, the occasional selection of peers with uniform probability, irrespectively of their rank,
+gives a chance of connection even to new peers that might have a low rank.
+
+
+As the peer selection procedure chooses to connect to a set of peers that belong to different clusters,
+it will tend to choose a mix of old and new peers that belong to different subnets.
+
+
+
+\subsection{Feeler Connections}
+
+Bitcoin does the following:
+        //  * Choose a random address from new and attempt to connect to it if we can connect
+        //    successfully it is added to tried.
+        //  * Start attempting feeler connections only after node finishes making outbound
+        //    connections.
+
+
+\subsection{Handshake}
+
+During a handshake protocol a peer tries to get information 
+on the availability of another peer and its capabilities. 
+For example, if another peer is working in SPV mode, 
+so does not have full blocks, they should not being asked from it. 
+Or if the peer is interested in encrypted traffic exchange only, 
+it would like to refuse. Encryption key is also to be formed during the handshaking. 
+
+\alex{key to be agreed on during handshaking 
+(via elliptic curve Diffie-Hellman key exchange); 
+then symmetric encryption}
+
+\alex{there are couple of standards how to use symmetric crypto with the key agreed on; ECIES-KEM / PSEC-KEM}
+
+
+
+\subsection{Good Peer Eviction}
+
+Removes peers from \textbf{GoodPeers} when its number of peers exceeds
+\conf{maxGoodPeers}{Int}.
+
+TODO: use ranking and cluster
+
+\subsection{Banned Peer Eviction}
+
+Removes peers from \textbf{BannedPeers} when its number of peers
+exceeds \conf{maxBannedPeers}{Int}.
+
+TODO: use ranking and cluster
+
+
+\subsection{Peer Banning}
+
+Moves a peer from \textbf{GoodPeers} to \textbf{BannedPeers}.
+
+
+
+
+
+
+
+\subsection{Peer Rotation}
+
+Replaces a peer in \textbf{ConnectedPeers} by another peer from
+\textbf{GoodPeers}.
+
+Speeds up recovery from eclipse attacks.
+
+
+
+
+\section{Information Exchange Protocols}
+
+\section{Encryption and Authentication}
+
+\alex{ECIES, AES, MAC}
+
+
+\section{Configuration Advice}
+
+
+In order to increase the peer-to-peer protocol's resilience against
+eclipse attacks by a group of malicious peers that pretend to be good
+until the moment when they decide to attack, \conf{maxGoodPeers}{Int}
+should be set sufficiently high, in order to keep the proportion of
+malicious peers in \textbf{GoodPeers} low compared to the proportion
+of honest peers. Then the probability that \emph{all} connections are
+made with malicious peers, as required for an eclipse attack to
+succeed, is low as well.
+
+As long as we do not want to ever forgive banned peers\bruno{Would we
+ever want to forgive banned peers?}, \conf{maxBannedPeers}{Int} should
+be set as high as possible without exceeding the available
+memory\bruno{I'm assuming that we want to load \textbf{BannedPeers}
+entirely into memory to be able to check quickly whether an incoming
+connection request is from a banned peer. Is this assumption
+correct?}.
+
+
+
+
+
+\section{Implementation in Scorex}
+
+In order to allow a high degree of flexibility, the proposed peer
+management architecture has many configurable parameters. Throughout
+the paper, configurable parameters and their types are formatted as
+``\conf{anExampleParameter}{ItsType}''.
+
+TODO: Parallel implementation of clustering % (see reference 13 here: http://vldb.org/pvldb/vol5/p622_bahmanbahmani_vldb2012.pdf)
+
+
+The peer management system maintains persistent and mutually disjoint
+tables of \textbf{GoodPeers}\footnote{In Bitcoin, presumably good
+peers are split in two tables: \textbf{New} and \textbf{Tried}. Here a
+new peer is simply a good peer with zero past connections.} and
+\textbf{BannedPeers}. There are at most \conf{maxGoodPeers}{Int} peers
+in \textbf{GoodPeers} and at most \conf{maxBannedPeers}{Int} in
+\textbf{BannedPeers}.
+
+\begin{example}
+TODO: Show an example table
+\end{example}
+
+The peer management system maintains a non-persistent table of
+\textbf{ConnectedPeers} to which the peer is currently connected.
+There are at most \conf{maxConnections}{Int} peers in
+\textbf{ConnectedPeers}.
+
+\section{Conclusion}
+
+
+Future work: reputation system
+
+Future work: Anomaly detection: Consider a peer anomalous if it is the only element of a
+cluster?
+
+
+\bibliographystyle{alpha} 
+\bibliography{bibliography}
+
+
+\end{document}
