@@ -54,12 +54,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, localInterfaceRef, timeProvider)
 
-  protected var historyReaderOpt: Option[HR] = None
-  protected var mempoolReaderOpt: Option[MR] = None
-
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
 
+  protected var historyReaderOpt: Option[HR] = None
+  protected var mempoolReaderOpt: Option[MR] = None
 
   def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
@@ -137,11 +136,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")
       } else {
-        historyReaderOpt.foreach(r => syncSend(r.syncInfo))
+        historyReaderOpt.foreach(r => sendSync(r.syncInfo))
       }
   }
 
-  protected def syncSend(syncInfo: SI): Unit = {
+  protected def sendSync(syncInfo: SI): Unit = {
     val peers = statusTracker.peersToSyncWith()
     if (peers.nonEmpty)
       networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
