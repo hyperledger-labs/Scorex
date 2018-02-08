@@ -18,10 +18,12 @@ sealed trait NodeViewModifier extends BytesSerializable with JsonSerializable {
 
   def encodedId: String = Base58.encode(id)
 
-  override def equals(obj: scala.Any): Boolean = obj match {
+  override def equals(obj: Any): Boolean = obj match {
     case that: NodeViewModifier => (that.id sameElements id) && (that.modifierTypeId == modifierTypeId)
     case _ => false
   }
+
+  override def hashCode(): Int = super.hashCode()
 }
 
 trait EphemerealNodeViewModifier extends NodeViewModifier

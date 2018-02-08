@@ -36,7 +36,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   type VL <: Vault[P, TX, PM, _ <: Vault[P, TX, PM, _]]
 
   //TODO null?
-  private val source: ConnectedPeer = null
+  //private val source: ConnectedPeer = null
 
   case class OpenSurface(ids: Seq[ModifierId])
 
@@ -48,8 +48,8 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 
   case class MempoolData(size: Int, transactions: Iterable[TX])
 
-  def getMempool(): Try[MempoolData] = Try {
-    def f(v: CurrentView[HIS, MS, VL, MP]): MempoolData = MempoolData(v.pool.size, v.pool.take(1000))
+  def getMempool(limit: Int = 1000): Try[MempoolData] = Try { //scalastyle:ignore magic.number
+    def f(v: CurrentView[HIS, MS, VL, MP]): MempoolData = MempoolData(v.pool.size, v.pool.take(limit))
 
     Await.result(nodeViewHolderRef ? GetDataFromCurrentView(f), 5.seconds).asInstanceOf[MempoolData]
   }

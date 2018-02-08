@@ -42,7 +42,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
 
   override def parseBytes(bytes: Array[Byte]): Try[InvData] = Try {
     val typeId = ModifierTypeId @@ bytes.head
-    val count = Ints.fromByteArray(bytes.slice(1, 5))
+    val count = Ints.fromByteArray(bytes.slice(1, 5)) // scalastyle:ignore magic.number
 
     require(count > 0, "empty inv list")
     require(count <= maxInvObjects, s"more invs than $maxInvObjects in a message")
@@ -91,8 +91,8 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
 
   override def parseBytes(bytes: Array[Byte]): Try[ModifiersData] = Try {
     val typeId = ModifierTypeId @@ bytes.head
-    val count = Ints.fromByteArray(bytes.slice(1, 5))
-    val objBytes = bytes.slice(5, bytes.length)
+    val count = Ints.fromByteArray(bytes.slice(1, 5)) // scalastyle:ignore magic.number
+    val objBytes = bytes.slice(5, bytes.length)       // scalastyle:ignore magic.number
     val (_, seq) = (0 until count).foldLeft(0 -> Seq[(ModifierId, Array[Byte])]()) {
       case ((pos, collected), _) =>
 

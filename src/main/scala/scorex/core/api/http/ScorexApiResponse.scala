@@ -9,5 +9,4 @@ trait ScorexApiResponse {
   def data: Json
 
   def toJson: Json = data.asJson
-
 }

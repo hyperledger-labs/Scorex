@@ -56,8 +56,8 @@ object ApiClient extends App {
   val settings = ScorexSettings.read(Some(settingsFilename))
   val apiClient = new ApiClient(settings.restApi)
 
-  println("Welcome to the Scorex command-line client...")
+  println("Welcome to the Scorex command-line client...") //scalastyle:ignore
   Iterator.continually(StdIn.readLine()).takeWhile(!_.equals("quit")).foreach { command =>
-    println(s"[$command RESULT] " + apiClient.executeCommand(command))
+    println(s"[$command RESULT] " + apiClient.executeCommand(command)) //scalastyle:ignore
   }
 }

@@ -16,7 +16,7 @@ trait ObjectGenerators {
   val MaxIp = 255
   val MaxPort = 65535
 
-  lazy val smallInt: Gen[Int] = Gen.choose(0, 20)
+  lazy val smallInt: Gen[Int] = Gen.choose(0, 20) //scalastyle:ignore magic.number
 
   lazy val nonEmptyBytesGen: Gen[Array[Byte]] = Gen.nonEmptyListOf(Arbitrary.arbitrary[Byte])
     .map(_.toArray).suchThat(_.length > 0)

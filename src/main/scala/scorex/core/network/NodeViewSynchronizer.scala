@@ -97,11 +97,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
-  protected def viewHolderEvents: Receive = {
+  private def transactionEvents: Receive = {
     case SuccessfulTransaction(tx) => broadcastModifierInv(tx)
     case FailedTransaction(tx, throwable) =>
     //todo: ban source peer?
+  }
 
+  private def modifierEvents: Receive = {
     case SyntacticallySuccessfulModifier(mod) =>
     case SyntacticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
@@ -109,7 +111,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
+  }
 
+  private def historyMemPoolChanges: Receive = {
     case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
       //TODO isInstanceOf ?
       //TODO type erasure
@@ -120,6 +124,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       //TODO type erasure
       mempoolReaderOpt = Some(reader)
   }
+
+  protected def viewHolderEvents: Receive = transactionEvents orElse modifierEvents orElse historyMemPoolChanges
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>

@@ -241,11 +241,16 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
-                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
+                val eventType = EventType.SuccessfulSemanticallyValidModifier
+                val event = SemanticallySuccessfulModifier(modToApply)
+                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](eventType, event)
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
-                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
+                val modifierId: ModifierId = ModifierId @@ state.version
+                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, modifierId)
+                val eventType = EventType.SemanticallyFailedPersistentModifier
+                val event = SemanticallyFailedModification(modToApply, e)
+                notifySubscribers[SemanticallyFailedModification[PMOD]](eventType, event)
                 updateState(newHis, stateToApply, newProgressInfo)
             }
 
@@ -407,25 +412,25 @@ object NodeViewHolder {
     val FailedTransaction: EventType.Value = Value(1)
     val SyntacticallyFailedPersistentModifier: EventType.Value = Value(2)
     val SemanticallyFailedPersistentModifier: EventType.Value = Value(3)
-    val SuccessfulTransaction: EventType.Value = Value(4)
-    val SuccessfulSyntacticallyValidModifier: EventType.Value = Value(5)
-    val SuccessfulSemanticallyValidModifier: EventType.Value = Value(6)
+    val SuccessfulTransaction: EventType.Value = Value(4)                  // scalastyle:ignore magic.number
+    val SuccessfulSyntacticallyValidModifier: EventType.Value = Value(5)   // scalastyle:ignore magic.number
+    val SuccessfulSemanticallyValidModifier: EventType.Value = Value(6)    // scalastyle:ignore magic.number
 
 
     //starting persistent modifier application. The application could be slow
-    val StartingPersistentModifierApplication: EventType.Value = Value(7)
+    val StartingPersistentModifierApplication: EventType.Value = Value(7)  // scalastyle:ignore magic.number
 
-    val OpenSurfaceChanged: EventType.Value = Value(8)
+    val OpenSurfaceChanged: EventType.Value = Value(8)                     // scalastyle:ignore magic.number
 
     //rollback failed, really wrong situation, probably
-    val FailedRollback: EventType.Value = Value(9)
+    val FailedRollback: EventType.Value = Value(9)                         // scalastyle:ignore magic.number
 
-    val DownloadNeeded: EventType.Value = Value(10)
+    val DownloadNeeded: EventType.Value = Value(10)                        // scalastyle:ignore magic.number
 
-    val StateChanged: EventType.Value = Value(11)
-    val HistoryChanged: EventType.Value = Value(12)
-    val MempoolChanged: EventType.Value = Value(13)
-    val VaultChanged: EventType.Value = Value(14)
+    val StateChanged: EventType.Value = Value(11)                          // scalastyle:ignore magic.number
+    val HistoryChanged: EventType.Value = Value(12)                        // scalastyle:ignore magic.number
+    val MempoolChanged: EventType.Value = Value(13)                        // scalastyle:ignore magic.number
+    val VaultChanged: EventType.Value = Value(14)                          // scalastyle:ignore magic.number
   }
 
   sealed trait NodeViewChange extends NodeViewHolderEvent
