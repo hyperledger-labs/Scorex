@@ -8,6 +8,7 @@ import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Printer
 import scorex.core.settings.RESTApiSettings
+import scorex.core.utils.ActorHelper
 
 import scala.concurrent.{Await, Future}
 
