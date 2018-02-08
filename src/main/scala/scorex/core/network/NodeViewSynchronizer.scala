@@ -161,9 +161,14 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       statusTracker.updateStatus(remote, status)
 
       status match {
-        case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
-        case Nonsense => log.warn("Got nonsense") //todo: fix, see https://github.com/ScorexFoundation/Scorex/issues/158
-        case Younger => sendExtension(remote, status, extOpt)
+        case Unknown =>
+          //todo: should we ban peer if its status is unknown after getting info from it?
+          log.warn("Peer status is still unknown")
+        case Nonsense =>
+          //todo: fix, see https://github.com/ScorexFoundation/Scorex/issues/158
+          log.warn("Got nonsense")
+        case Younger =>
+          sendExtension(remote, status, extOpt)
         case _ => // does nothing for `Equal` and `Older`
       }
   }
