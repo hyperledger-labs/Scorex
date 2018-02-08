@@ -142,6 +142,19 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       }
   }
 
+
+  // Send history extension to the (less developed) peer 'remote' which does not have it.
+  def processExtension(remote: ConnectedPeer,
+                       status: HistoryComparisonResult.Value,
+                       extOpt: Option[Seq[(ModifierTypeId, ModifierId)]]): Unit = extOpt match {
+    case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
+    case Some(ext) =>
+      ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
+        case (mid, mods) =>
+          networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
+      }
+  }
+
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
     case OtherNodeSyncingStatus(remote, status, extOpt) =>
@@ -150,18 +163,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       status match {
         case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
         case Nonsense => log.warn("Got nonsense") //todo: fix, see https://github.com/ScorexFoundation/Scorex/issues/158
-        case Younger => processExtension()
+        case Younger => processExtension(remote, status, extOpt)
         case _ => // does nothing for `Equal` and `Older`
-      }
-
-      // Send history extension to the (less developed) peer 'remote' which does not have it.
-      def processExtension(): Unit = extOpt match {
-        case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
-        case Some(ext) =>
-          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
-            case (mid, mods) =>
-              networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
-          }
       }
   }
 
