@@ -1,13 +1,13 @@
 package scorex.core.app
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.api.http.{ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
-import scorex.core.network.peer.PeerManager
+import scorex.core.network.peer.{PeerManager, PeerManagerRef}
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
@@ -63,10 +63,10 @@ trait Application extends ScorexLogging {
   val timeProvider = new NetworkTimeProvider(settings.ntp)
 
 
-  val peerManagerRef = actorSystem.actorOf(Props(new PeerManager(settings, timeProvider)))
+  val peerManagerRef = PeerManagerRef(settings, timeProvider)
 
-  val nProps = Props(new NetworkController(settings.network, messagesHandler, upnp, peerManagerRef, timeProvider))
-  val networkControllerRef = actorSystem.actorOf(nProps, "networkController")
+  val networkControllerRef: ActorRef = NetworkControllerRef("networkController",settings.network,
+                                                            messagesHandler, upnp, peerManagerRef, timeProvider)
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 
