@@ -62,35 +62,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
-  override def preStart(): Unit = {
-    //register as a handler for synchronization-specific types of messages
-    val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
-    networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
-
-    //register as a listener for peers got connected (handshaked) or disconnected
-    val pmEvents = Seq(
-      PeerManager.EventType.Handshaked,
-      PeerManager.EventType.Disconnected
-    )
-    networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
-
-
-    //subscribe for all the node view holder events involving modifiers and transactions
-    val vhEvents = Seq(
-      NodeViewHolder.EventType.HistoryChanged,
-      NodeViewHolder.EventType.MempoolChanged,
-      NodeViewHolder.EventType.FailedTransaction,
-      NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SemanticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
-      NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
-    )
-    viewHolderRef ! Subscribe(vhEvents)
-    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
-
-    statusTracker.scheduleSendSyncInfo()
-  }
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
     val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
@@ -306,6 +277,36 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         val msg = Message(ModifiersSpec, Right(m), None)
         peer.handlerRef ! msg
       }
+  }
+
+  override def preStart(): Unit = {
+    //register as a handler for synchronization-specific types of messages
+    val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
+
+    //register as a listener for peers got connected (handshaked) or disconnected
+    val pmEvents = Seq(
+      PeerManager.EventType.Handshaked,
+      PeerManager.EventType.Disconnected
+    )
+    networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
+
+
+    //subscribe for all the node view holder events involving modifiers and transactions
+    val vhEvents = Seq(
+      NodeViewHolder.EventType.HistoryChanged,
+      NodeViewHolder.EventType.MempoolChanged,
+      NodeViewHolder.EventType.FailedTransaction,
+      NodeViewHolder.EventType.SuccessfulTransaction,
+      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
+      NodeViewHolder.EventType.SemanticallyFailedPersistentModifier,
+      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
+      NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
+    )
+    viewHolderRef ! Subscribe(vhEvents)
+    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
+
+    statusTracker.scheduleSendSyncInfo()
   }
 
   override def receive: Receive =
