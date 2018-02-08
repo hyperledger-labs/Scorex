@@ -23,7 +23,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 /**
-  * A middle layer between a node view holder(NodeViewHolder) and the p2p network
+  * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
   *
   * @param networkControllerRef reference to network controller actor
   * @param viewHolderRef        reference to node view holder actor
@@ -69,26 +69,28 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   }
 
   protected def viewHolderEvents: Receive = {
-    case SuccessfulTransaction(tx) => broadcastModifierInv(tx)
+    case SuccessfulTransaction(tx) =>
+      broadcastModifierInv(tx)
+
     case FailedTransaction(tx, throwable) =>
-    //todo: ban source peer?
+    //todo: penalize source peer?
 
     case SyntacticallySuccessfulModifier(mod) =>
     case SyntacticallyFailedModification(mod, throwable) =>
-    //todo: ban source peer?
+    //todo: penalize source peer?
 
-    case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
+    case SemanticallySuccessfulModifier(mod) =>
+      broadcastModifierInv(mod)
+
     case SemanticallyFailedModification(mod, throwable) =>
-    //todo: ban source peer?
+    //todo: penalize source peer?
 
     case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
-      //TODO isInstanceOf ?
-      //TODO type erasure
+      //TODO isInstanceOf, type erasure
       historyReaderOpt = Some(reader)
 
     case ChangedMempool(reader: MR@unchecked) if reader.isInstanceOf[MR] =>
-      //TODO isInstanceOf ?
-      //TODO type erasure
+      //TODO isInstanceOf, type erasure
       mempoolReaderOpt = Some(reader)
   }
 
