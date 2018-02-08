@@ -12,7 +12,6 @@ import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 
 case class RESTApiSettings(bindAddress: InetSocketAddress,
                            apiKeyHash: Option[String],
-                           corsAllowed: Boolean,
                            corsAllowedOrigin: Option[String],
                            timeout: FiniteDuration)
 
