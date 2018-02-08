@@ -55,11 +55,6 @@ class HybridApp(val settingsFilename: String) extends Application {
     actorSystem.actorOf(Props(new NodeViewSynchronizer[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type, PMOD, HybridHistory, SimpleBoxTransactionMemPool]
     (networkControllerRef, nodeViewHolderRef, localInterface, HybridSyncInfoMessageSpec, settings.network, timeProvider)))
 
-  //touching lazy vals
-  miner
-  localInterface
-  nodeViewSynchronizer
-
   if (settings.network.nodeName.startsWith("generatorNode")) {
     log.info("Starting transactions generation")
     val generator: ActorRef = actorSystem.actorOf(Props(new SimpleBoxTransactionGenerator(nodeViewHolderRef)))
