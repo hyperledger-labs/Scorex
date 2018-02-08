@@ -60,7 +60,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
 
-  private def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
+  private def readersOpt: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -187,12 +187,12 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == RequestModifierSpec.MessageCode =>
 
-      readers.foreach { reader =>
+      readersOpt.foreach { readers =>
         val objs: Seq[NodeViewModifier] = invData._1 match {
           case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-            reader._2.getAll(invData._2)
+            readers._2.getAll(invData._2)
           case _: ModifierTypeId =>
-            invData._2.flatMap(id => reader._1.modifierById(id))
+            invData._2.flatMap(id => readers._1.modifierById(id))
         }
 
         log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
@@ -211,8 +211,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       val typeId = data._1
       val modifiers = data._2
 
-      log.info(s"Got modifiers of type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
-      log.info(s"From remote connected peer: $remote")
+      log.info(s"Got modifiers of type $typeId from remote connected peer: $remote")
+      log.trace(s"Received modifier ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
       for ((id, _) <- modifiers) deliveryTracker.receive(typeId, id, remote)
 
