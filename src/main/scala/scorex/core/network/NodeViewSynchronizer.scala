@@ -60,7 +60,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
 
-  private @inline def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
+  private def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -137,20 +137,14 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
             log.warn("Extension is empty while comparison is younger")
           }
 
-          self ! OtherNodeSyncingStatus(
-            remote,
-            comparison,
-            syncInfo,
-            historyReader.syncInfo,
-            extensionOpt
-          )
+          self ! OtherNodeSyncingStatus(remote, comparison, extensionOpt)
         case _ =>
       }
   }
 
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
-    case OtherNodeSyncingStatus(remote, status, _, _, extOpt) =>
+    case OtherNodeSyncingStatus(remote, status, extOpt) =>
       statusTracker.updateStatus(remote, status)
 
       status match {

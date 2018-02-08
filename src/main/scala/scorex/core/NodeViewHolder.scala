@@ -450,8 +450,6 @@ object NodeViewHolder {
 
   case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
                                                     status: History.HistoryComparisonResult.Value,
-                                                    remoteSyncInfo: SI,
-                                                    localSyncInfo: SI,
                                                     extension: Option[Seq[(ModifierTypeId, ModifierId)]])
 
   //node view holder starting persistent modifier application
