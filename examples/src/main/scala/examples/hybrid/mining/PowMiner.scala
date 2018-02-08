@@ -1,6 +1,6 @@
 package examples.hybrid.mining
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.blocks.{HybridBlock, PowBlock, PowBlockCompanion, PowBlockHeader}
 import examples.hybrid.history.HybridHistory
@@ -183,4 +183,15 @@ object PowMiner extends App {
     foundBlock
   }
 
+}
+
+object PowMinerRef {
+  def props(viewHolderRef: ActorRef, settings: HybridMiningSettings): Props =
+    Props(new PowMiner(viewHolderRef, settings))
+
+  def apply(viewHolderRef: ActorRef, settings: HybridMiningSettings)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef, settings))
+
+  def apply(name: String, viewHolderRef: ActorRef, settings: HybridMiningSettings)
+           (implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef, settings), name)
 }
