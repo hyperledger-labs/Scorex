@@ -11,12 +11,8 @@ trait ApiDirectives extends Directives {
 
   val defaultCorsValue = "*"
 
-  val withCors: Directive0 = if (settings.corsAllowed) {
-    respondWithHeaders(
-      RawHeader("Access-Control-Allow-Origin", settings.corsAllowedOrigin.getOrElse(defaultCorsValue))
-    )
-  } else {
-    pass
+  val withCors: Directive0 = settings.corsAllowedOrigin.fold(pass) { origin =>
+    respondWithHeaders(RawHeader("Access-Control-Allow-Origin", origin))
   }
 
   val withAuth: Directive0 = optionalHeaderValueByName(apiKeyHeaderName).flatMap {

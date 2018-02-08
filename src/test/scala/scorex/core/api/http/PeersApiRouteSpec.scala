@@ -21,7 +21,7 @@ class PeersApiRouteSpec extends FlatSpec
   implicit val timeout = RouteTestTimeout(15.seconds dilated)
 
   val addr = new InetSocketAddress("localhost", 8080)
-  val restApiSettings = RESTApiSettings(addr, None, false, None, 10 seconds)
+  val restApiSettings = RESTApiSettings(addr, None, None, 10 seconds)
   val prefix = "/peers"
   val routes = PeersApiRoute(pmRef, networkControllerRef, restApiSettings).route
 
