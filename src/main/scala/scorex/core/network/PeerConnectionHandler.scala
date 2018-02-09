@@ -231,10 +231,8 @@ object PeerConnectionHandler {
   case object Blacklist
 }
 
-/*
-
-* */
 object PeerConnectionHandlerRef {
+  // scalastyle:off parameter.number
   def props(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
@@ -273,4 +271,5 @@ object PeerConnectionHandlerRef {
            (implicit system: ActorSystem): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
                          connection, direction, ownSocketAddress, remote, timeProvider), name)
+  // scalastyle:on parameter.number
 }
