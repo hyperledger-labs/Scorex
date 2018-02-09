@@ -35,9 +35,6 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   type MS <: MinimalState[PM, _ <: MinimalState[_, _]]
   type VL <: Vault[P, TX, PM, _ <: Vault[P, TX, PM, _]]
 
-  //TODO null?
-  //private val source: ConnectedPeer = null
-
   case class OpenSurface(ids: Seq[ModifierId])
 
   def getOpenSurface(): Try[OpenSurface] = Try {

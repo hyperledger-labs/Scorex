@@ -39,7 +39,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress,
   override def equals(obj: Any): Boolean =
     obj.cast[ConnectedPeer].exists(p => p.socketAddress == this.socketAddress && p.direction == this.direction)
 
-  override def toString: String = s"ConnectedPeer($socketAddress)"
+  override def toString: String = s"ConnectedPeer(address: $socketAddress, direction: $direction)"
 }
 
 

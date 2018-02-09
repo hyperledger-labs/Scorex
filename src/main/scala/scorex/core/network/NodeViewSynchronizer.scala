@@ -97,13 +97,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
-  private def transactionEvents: Receive = {
+  protected def transactionEvents: Receive = {
     case SuccessfulTransaction(tx) => broadcastModifierInv(tx)
     case FailedTransaction(tx, throwable) =>
     //todo: ban source peer?
   }
 
-  private def modifierEvents: Receive = {
+  protected def modifierEvents: Receive = {
     case SyntacticallySuccessfulModifier(mod) =>
     case SyntacticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
@@ -113,7 +113,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     //todo: ban source peer?
   }
 
-  private def historyMemPoolChanges: Receive = {
+  protected def historyMemPoolChanges: Receive = {
     case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
       //TODO isInstanceOf ?
       //TODO type erasure
