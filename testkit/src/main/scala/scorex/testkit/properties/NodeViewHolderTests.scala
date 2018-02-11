@@ -3,7 +3,7 @@ package scorex.testkit.properties
 import akka.actor._
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
-import scorex.core.LocalInterface.LocallyGeneratedModifier
+import scorex.core.LocalInterface.ReceivableMessages.LocallyGeneratedModifier
 import scorex.core.NodeViewHolder.EventType._
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.proposition.Proposition

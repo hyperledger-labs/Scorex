@@ -5,7 +5,7 @@ import akka.testkit.TestProbe
 import org.scalacheck.Gen
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
-import scorex.core.LocalInterface.{BetterNeighbourAppeared, NoBetterNeighbour}
+import scorex.core.LocalInterface.ReceivableMessages.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.consensus.History.HistoryComparisonResult.{Equal, Nonsense, Older, Younger}
 import scorex.core.network._

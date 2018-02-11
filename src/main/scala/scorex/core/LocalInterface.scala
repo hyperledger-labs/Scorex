@@ -1,7 +1,7 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.LocalInterface.{BetterNeighbourAppeared, LocallyGeneratedModifier, LocallyGeneratedTransaction, NoBetterNeighbour}
+import scorex.core.LocalInterface.ReceivableMessages.{BetterNeighbourAppeared, LocallyGeneratedModifier, LocallyGeneratedTransaction, NoBetterNeighbour}
 import scorex.core.NodeViewHolder._
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
@@ -101,12 +101,10 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 }
 
 object LocalInterface {
-
-  case object NoBetterNeighbour
-
-  case object BetterNeighbourAppeared
-
-  case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
-
-  case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
+  object ReceivableMessages {
+    case object NoBetterNeighbour
+    case object BetterNeighbourAppeared
+    case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
+    case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
+  }
 }

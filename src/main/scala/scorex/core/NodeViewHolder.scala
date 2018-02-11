@@ -1,7 +1,7 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.LocalInterface.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
+import scorex.core.LocalInterface.ReceivableMessages.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._

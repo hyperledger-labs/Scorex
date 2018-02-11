@@ -5,7 +5,7 @@ import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.commons.Value
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
-import scorex.core.LocalInterface.LocallyGeneratedTransaction
+import scorex.core.LocalInterface.ReceivableMessages.LocallyGeneratedTransaction
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging

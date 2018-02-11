@@ -7,7 +7,7 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.Cancellable
 import examples.hybrid.wallet.HWallet
-import scorex.core.LocalInterface.LocallyGeneratedModifier
+import scorex.core.LocalInterface.ReceivableMessages.LocallyGeneratedModifier
 import scorex.core.ModifierId
 import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
 import scorex.core.block.Block.BlockId
