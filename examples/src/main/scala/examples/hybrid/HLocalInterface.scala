@@ -3,10 +3,9 @@ package examples.hybrid
 import akka.actor.{ActorRef, ActorSystem, Props}
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
-import examples.hybrid.mining.HybridMiningSettings
-import examples.hybrid.mining.PosForger.{StartForging, StopForging}
+import examples.hybrid.mining.{HybridMiningSettings, PosForger}
 import examples.hybrid.mining.PowMiner.{MineBlock, StartMining, StopMining}
-import scorex.core.{LocalInterface, ModifierId, VersionTag}
+import scorex.core.{LocalInterface, ModifierId}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 class HLocalInterface(override val viewHolderRef: ActorRef,
@@ -41,12 +40,12 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
     if (!block) {
       mod match {
         case wb: PowBlock =>
-          posForgerRef ! StartForging
+          posForgerRef ! PosForger.ReceivableMessages.StartForging
           powMinerRef ! MineBlock
 
         case sb: PosBlock =>
           if (!(sb.parentId sameElements minerSettings.GenesisParentId)) {
-            posForgerRef ! StopForging
+            posForgerRef ! PosForger.ReceivableMessages.StopForging
             powMinerRef ! StartMining
           }
       }
@@ -55,13 +54,13 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
 
   override protected def onNoBetterNeighbour(): Unit = {
     powMinerRef ! StartMining
-    posForgerRef ! StartForging
+    posForgerRef ! PosForger.ReceivableMessages.StartForging
     block = false
   }
 
   override protected def onBetterNeighbourAppeared(): Unit = {
     powMinerRef ! StopMining
-    posForgerRef ! StopForging
+    posForgerRef ! PosForger.ReceivableMessages.StopForging
     block = true
   }
 }

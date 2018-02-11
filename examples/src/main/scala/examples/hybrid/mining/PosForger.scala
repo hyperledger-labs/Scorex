@@ -18,6 +18,8 @@ import scorex.utils.Random
 class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
   import PosForger._
+  import PosForger.ReceivableMessages.{StartForging, StopForging}
+
 
   var forging = false
 
@@ -58,9 +60,10 @@ class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor
 object PosForger extends ScorexLogging {
   val InitialDifficuly = 15000000000L
 
-  case object StartForging
-
-  case object StopForging
+  object ReceivableMessages {
+    case object StartForging
+    case object StopForging
+  }
 
   def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
     val h = Blake2b256(pwb.bytes ++ box.bytes)
