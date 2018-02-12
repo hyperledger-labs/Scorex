@@ -9,13 +9,11 @@ trait ApiDirectives extends Directives {
   val settings: RESTApiSettings
   val apiKeyHeaderName: String
 
-  val defaultCorsValue = "*"
-
-  val withCors: Directive0 = settings.corsAllowedOrigin.fold(pass) { origin =>
+  lazy val withCors: Directive0 = settings.corsAllowedOrigin.fold(pass) { origin =>
     respondWithHeaders(RawHeader("Access-Control-Allow-Origin", origin))
   }
 
-  val withAuth: Directive0 = optionalHeaderValueByName(apiKeyHeaderName).flatMap {
+  lazy val withAuth: Directive0 = optionalHeaderValueByName(apiKeyHeaderName).flatMap {
     case _ if settings.apiKeyHash.isEmpty => pass
     case None => reject(AuthorizationFailedRejection)
     case Some(key) =>
