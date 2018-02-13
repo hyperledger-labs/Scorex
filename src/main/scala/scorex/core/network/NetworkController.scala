@@ -34,6 +34,7 @@ class NetworkController(settings: NetworkSettings,
 
   import NetworkController.ReceivableMessages._
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{CheckPeers, FilterPeers, Disconnected, Subscribe}
+  import PeerConnectionHandler.ReceivableMessages.CloseConnection
 
   private implicit val system: ActorSystem = context.system
 
@@ -142,11 +143,11 @@ class NetworkController(settings: NetworkSettings,
 
     case DisconnectFrom(peer) =>
       log.info(s"Disconnected from ${peer.socketAddress}")
-      peer.handlerRef ! PeerConnectionHandler.CloseConnection
+      peer.handlerRef ! CloseConnection
       peerManagerRef ! Disconnected(peer.socketAddress)
 
     case Blacklist(peer) =>
-      peer.handlerRef ! PeerConnectionHandler.Blacklist
+      peer.handlerRef ! PeerConnectionHandler.ReceivableMessages.Blacklist
       // todo: the following message might become unnecessary if we refactor PeerManager to automatically
       // todo: remove peer from `connectedPeers` on receiving `AddToBlackList` message.
       peerManagerRef ! Disconnected(peer.socketAddress)
@@ -176,7 +177,7 @@ class NetworkController(settings: NetworkSettings,
       log.info("Going to shutdown all connections & unbind port")
       (peerManagerRef ? FilterPeers(Broadcast))
         .map(_.asInstanceOf[Seq[ConnectedPeer]])
-        .foreach(_.foreach(_.handlerRef ! PeerConnectionHandler.CloseConnection))
+        .foreach(_.foreach(_.handlerRef ! CloseConnection))
       self ! Unbind
       context stop self
 

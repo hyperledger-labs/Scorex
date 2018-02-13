@@ -3,7 +3,6 @@ package scorex.core.network.peer
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import scorex.core.network.PeerConnectionHandler.CloseConnection
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -21,6 +20,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   import PeerManager.ReceivableMessages._
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
   import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
+  import scorex.core.network.PeerConnectionHandler.ReceivableMessages.{StartInteraction, CloseConnection}
 
   //peers after successful handshake
   private val connectedPeers = mutable.Map[InetSocketAddress, ConnectedPeer]()
@@ -119,7 +119,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
         if (refuse) {
           peerHandlerRef ! CloseConnection
         } else {
-          peerHandlerRef ! PeerConnectionHandler.StartInteraction
+          peerHandlerRef ! StartInteraction
           lastIdUsed += 1
         }
       }
@@ -131,7 +131,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       } else {
           //drop connection to self if occurred
           if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
-            peer.handlerRef ! PeerConnectionHandler.CloseConnection
+            peer.handlerRef ! CloseConnection
           } else {
             if(peer.publicPeer) self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
             connectedPeers += peer.socketAddress -> peer

@@ -54,7 +54,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
                             remote: InetSocketAddress,
                             timeProvider: NetworkTimeProvider) extends Actor with Buffering with ScorexLogging {
 
-  import PeerConnectionHandler._
+  import PeerConnectionHandler.CommunicationState
+  import PeerConnectionHandler.ReceivableMessages._
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Handshaked, Disconnected, DoConnecting}
 
   context watch connection
@@ -72,8 +73,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   private var handshakeSent = false
 
   private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
-
-  private object HandshakeDone
 
   private var chunksBuffer: ByteString = CompactByteString()
 
@@ -208,18 +207,19 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 }
 
 object PeerConnectionHandler {
-  case object StartInteraction
 
   private object CommunicationState extends Enumeration {
     val AwaitingHandshake = Value("AwaitingHandshake")
     val WorkingCycle = Value("WorkingCycle")
   }
 
-  case object HandshakeTimeout
-
-  case object CloseConnection
-
-  case object Blacklist
+  object ReceivableMessages {
+    private[PeerConnectionHandler] object HandshakeDone
+    case object StartInteraction
+    case object HandshakeTimeout
+    case object CloseConnection
+    case object Blacklist
+  }
 }
 
 /*
