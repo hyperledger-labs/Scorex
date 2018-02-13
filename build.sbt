@@ -92,14 +92,6 @@ publishMavenStyle := true
 
 publishArtifact in Test := false
 
-publishTo in ThisBuild := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases" at nexus + "service/local/staging/deploy/maven2")
-}
-
 fork := true
 
 pomIncludeRepository := { _ => false }

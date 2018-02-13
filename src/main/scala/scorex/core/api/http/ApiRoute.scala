@@ -7,18 +7,17 @@ import akka.http.scaladsl.unmarshalling.PredefinedFromEntityUnmarshallers
 import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Printer
-import scorex.core.settings.RESTApiSettings
 import scorex.core.utils.ActorHelper
 
 import scala.concurrent.{Await, Future}
 
 trait ApiRoute extends ApiDirectives with ActorHelper with FailFastCirceSupport with PredefinedFromEntityUnmarshallers {
 
-  val settings: RESTApiSettings
-  val context: ActorRefFactory
-  val route: Route
+  def context: ActorRefFactory
+  def route: Route
+
   //TODO: should we move it to the settings?
-  override lazy val apiKeyHeaderName = "api_key"
+  override val apiKeyHeaderName: String = "api_key"
 
   implicit val printer: Printer = Printer.spaces2.copy(dropNullValues = true)
   implicit lazy val timeout: Timeout = Timeout(settings.timeout)
