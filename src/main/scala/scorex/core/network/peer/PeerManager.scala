@@ -18,6 +18,9 @@ import scala.util.Random
 class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
   import PeerManager._
+  import PeerManager.ReceivableMessages._
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
+
 
   //peers after successful handshake
   private val connectedPeers = mutable.Map[InetSocketAddress, ConnectedPeer]()
@@ -75,7 +78,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
     case GetBlacklistedPeers =>
       sender() ! peerDatabase.blacklistedPeers()
 
-    case PeerManager.Subscribe(listener, events) =>
+    case Subscribe(listener, events) =>
       events.foreach { evt =>
         val current = subscribers.getOrElse(evt, Seq())
         subscribers.put(evt, current :+ listener)
@@ -130,7 +133,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
             peer.handlerRef ! PeerConnectionHandler.CloseConnection
           } else {
-            if(peer.publicPeer) self ! PeerManager.AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
+            if(peer.publicPeer) self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
             connectedPeers += peer.socketAddress -> peer
             notifySubscribers(PeerManager.EventType.Handshaked, HandshakedPeer(peer))
           }
@@ -140,7 +143,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
     case Disconnected(remote) =>
       connectedPeers -= remote
       connectingPeers -= remote
-      notifySubscribers(PeerManager.EventType.Disconnected, PeerManager.DisconnectedPeer(remote))
+      notifySubscribers(PeerManager.EventType.Disconnected, DisconnectedPeer(remote))
   }
 
   override def receive: Receive = ({
@@ -165,45 +168,35 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
 object PeerManager {
 
+  trait PeerManagerEvent
+
   object EventType extends Enumeration {
     val Handshaked: EventType.Value = Value(1)
     val Disconnected: EventType.Value = Value(2)
   }
 
-  case class Subscribe(listener: ActorRef, events: Seq[EventType.Value])
+  object ReceivableMessages {
+    case object CheckPeers
+    case class AddToBlacklist(remote: InetSocketAddress)
 
-  trait PeerManagerEvent
+    // peerListOperations messages
+    case class AddOrUpdatePeer(address: InetSocketAddress, peerName: Option[String], direction: Option[ConnectionType])
+    case object KnownPeers
+    case object RandomPeer
+    case class RandomPeers(hawMany: Int)
+    case class FilterPeers(sendingStrategy: SendingStrategy)
 
-  case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
+    // apiInterface messages
+    case object GetConnectedPeers
+    case object GetAllPeers
+    case object GetBlacklistedPeers
+    case class Subscribe(listener: ActorRef, events: Seq[EventType.Value])
 
-  case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
-
-  case class AddOrUpdatePeer(address: InetSocketAddress, peerName: Option[String], direction: Option[ConnectionType])
-
-  case object KnownPeers
-
-  case object RandomPeer
-
-  case class RandomPeers(hawMany: Int)
-
-  case object CheckPeers
-
-  case class DoConnecting(remote: InetSocketAddress, direction: ConnectionType)
-
-  case class Handshaked(peer: ConnectedPeer)
-
-  case class Disconnected(remote: InetSocketAddress)
-
-  case class AddToBlacklist(remote: InetSocketAddress)
-
-  case class FilterPeers(sendingStrategy: SendingStrategy)
-
-  case object GetAllPeers
-
-  case object GetBlacklistedPeers
-
-  case object GetConnectedPeers
-
+    // peerCycle messages
+    case class DoConnecting(remote: InetSocketAddress, direction: ConnectionType)
+    case class Handshaked(peer: ConnectedPeer)
+    case class Disconnected(remote: InetSocketAddress)
+  }
 }
 
 object PeerManagerRef {

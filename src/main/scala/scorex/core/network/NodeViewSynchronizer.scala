@@ -1,20 +1,20 @@
 package scorex.core.network
 
 
+import java.net.InetSocketAddress
+
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import scorex.core.NodeViewHolder._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.HandshakedPeer
-import scorex.core.network.peer.PeerManager.DisconnectedPeer
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.network.peer.PeerManager.PeerManagerEvent
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -329,6 +329,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
 object NodeViewSynchronizer {
   object ReceivableMessages extends NodeViewHolderSharedMessages {
+    // getLocalSyncInfo messages
     case object SendLocalSyncInfo
     case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
     case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
@@ -341,6 +342,9 @@ object NodeViewSynchronizer {
                                                       remoteSyncInfo: SI,
                                                       localSyncInfo: SI,
                                                       extension: Option[Seq[(ModifierTypeId, ModifierId)]])
+    // Relocated from PeerManager as this events are only received here
+    case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
+    case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
   }
 }
 

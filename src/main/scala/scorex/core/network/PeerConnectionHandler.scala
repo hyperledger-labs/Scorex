@@ -9,8 +9,6 @@ import akka.util.{ByteString, CompactByteString}
 import com.google.common.primitives.Ints
 import scorex.core.app.Version
 import scorex.core.network.message.MessageHandler
-import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
@@ -57,6 +55,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
                             timeProvider: NetworkTimeProvider) extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler._
+  import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Handshaked, Disconnected, DoConnecting}
 
   context watch connection
 
@@ -88,7 +87,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeWriting
 
     case cc: ConnectionClosed =>
-      peerManagerRef ! PeerManager.Disconnected(remote)
+      peerManagerRef ! Disconnected(remote)
       log.info("Connection closed to : " + remote + ": " + cc.getErrorCause + s" in state $stateName")
       context stop self
 
@@ -196,7 +195,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
 
   override def preStart: Unit = {
-    peerManagerRef ! PeerManager.DoConnecting(remote, direction)
+    peerManagerRef ! DoConnecting(remote, direction)
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
     (self ! HandshakeTimeout))
     connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
