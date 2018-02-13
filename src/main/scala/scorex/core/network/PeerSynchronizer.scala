@@ -17,8 +17,9 @@ import scala.language.postfixOps
 
 class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings) extends Actor with ScorexLogging {
 
+  import PeerSynchronizer.ReceivableMessages._
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{RandomPeers, AddOrUpdatePeer}
-  import scorex.core.network.NetworkController.ReceivableMessages.{DataFromPeer, SendToNetwork, RegisterMessagesHandler}
+  import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler}
 
 
   private implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
@@ -53,6 +54,10 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 
     case nonsense: Any => log.warn(s"PeerSynchronizer: got something strange $nonsense")
   }
+}
+
+object PeerSynchronizer {
+  object ReceivableMessages extends NetworkControllerSharedMessages {}
 }
 
 object PeerSynchronizerRef {

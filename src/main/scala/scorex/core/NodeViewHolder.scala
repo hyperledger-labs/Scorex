@@ -441,8 +441,8 @@ object NodeViewHolder {
 
   trait NodeViewHolderEvent
 
-
-
+  // No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
+  // Even more, ModificationApplicationStarted seems not to be sent at all
   case class ModificationApplicationStarted[PMOD <: PersistentNodeViewModifier](modifier: PMOD)
     extends NodeViewHolderEvent
 
