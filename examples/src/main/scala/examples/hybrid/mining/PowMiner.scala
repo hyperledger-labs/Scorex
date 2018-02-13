@@ -28,6 +28,7 @@ import scala.util.Random
 class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends Actor with ScorexLogging {
 
   import PowMiner._
+  import PowMiner.ReceivableMessages._
   import scorex.core.NodeViewHolder.ReceivableMessages.{LocallyGeneratedModifier, GetDataFromCurrentView}
 
 
@@ -146,18 +147,17 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
 }
 
 object PowMiner extends App {
+  object ReceivableMessages {
+    case object StartMining
+    case object StopMining
+    case object MineBlock
+    case class PowMiningInfo(pairCompleted: Boolean,
+                             powDifficulty: BigInt,
+                             bestPowBlock: PowBlock,
+                             bestPosId: ModifierId,
+                             pubkey: PublicKey25519Proposition)
 
-  case object StartMining
-
-  case object StopMining
-
-  case object MineBlock
-
-  case class PowMiningInfo(pairCompleted: Boolean,
-                           powDifficulty: BigInt,
-                           bestPowBlock: PowBlock,
-                           bestPosId: ModifierId,
-                           pubkey: PublicKey25519Proposition)
+  }
 
   def powIteration(parentId: BlockId,
                    prevPosId: BlockId,

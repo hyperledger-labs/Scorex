@@ -1,7 +1,6 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.NodeViewHolder._
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.StateReader

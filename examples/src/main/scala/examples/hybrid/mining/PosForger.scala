@@ -66,6 +66,11 @@ object PosForger extends ScorexLogging {
   object ReceivableMessages {
     case object StartForging
     case object StopForging
+    case class PosForgingInfo(pairCompleted: Boolean,
+                              bestPowBlock: PowBlock,
+                              diff: Long,
+                              boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
+                              txsToInclude: Seq[SimpleBoxTransaction])
   }
 
   def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
@@ -101,8 +106,8 @@ object PosForger extends ScorexLogging {
     HBoxStoredState,
     HWallet,
     SimpleBoxTransactionMemPool,
-    PosForgingInfo] = {
-    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => PosForgingInfo = {
+    ReceivableMessages.PosForgingInfo] = {
+    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => ReceivableMessages.PosForgingInfo = {
       view: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] =>
 
         val diff = view.history.posDifficulty
@@ -118,25 +123,19 @@ object PosForger extends ScorexLogging {
           else collected
         }
 
-        PosForgingInfo(pairCompleted, bestPowBlock, diff, boxKeys, txs)
+        ReceivableMessages.PosForgingInfo(pairCompleted, bestPowBlock, diff, boxKeys, txs)
     }
     GetDataFromCurrentView[HybridHistory,
       HBoxStoredState,
       HWallet,
       SimpleBoxTransactionMemPool,
-      PosForgingInfo](f)
+      ReceivableMessages.PosForgingInfo](f)
 
   }
 
   val TransactionsPerBlock = 50
 
 }
-
-case class PosForgingInfo(pairCompleted: Boolean,
-                          bestPowBlock: PowBlock,
-                          diff: Long,
-                          boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
-                          txsToInclude: Seq[SimpleBoxTransaction])
 
 object PosForgerRef {
   def props(settings: HybridSettings, viewHolderRef: ActorRef): Props = Props(new PosForger(settings, viewHolderRef))

@@ -3,8 +3,7 @@ package examples.hybrid
 import akka.actor.{ActorRef, ActorSystem, Props}
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
-import examples.hybrid.mining.{HybridMiningSettings, PosForger}
-import examples.hybrid.mining.PowMiner.{MineBlock, StartMining, StopMining}
+import examples.hybrid.mining.HybridMiningSettings
 import scorex.core.{LocalInterface, ModifierId}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
@@ -13,6 +12,9 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
                       posForgerRef: ActorRef,
                       minerSettings: HybridMiningSettings)
   extends LocalInterface[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock] {
+
+  import examples.hybrid.mining.PosForger.ReceivableMessages.{StartForging, StopForging}
+  import examples.hybrid.mining.PowMiner.ReceivableMessages.{MineBlock, StartMining, StopMining}
 
   private var block = false
 
@@ -40,12 +42,12 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
     if (!block) {
       mod match {
         case wb: PowBlock =>
-          posForgerRef ! PosForger.ReceivableMessages.StartForging
+          posForgerRef ! StartForging
           powMinerRef ! MineBlock
 
         case sb: PosBlock =>
           if (!(sb.parentId sameElements minerSettings.GenesisParentId)) {
-            posForgerRef ! PosForger.ReceivableMessages.StopForging
+            posForgerRef ! StopForging
             powMinerRef ! StartMining
           }
       }
@@ -54,13 +56,13 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
 
   override protected def onNoBetterNeighbour(): Unit = {
     powMinerRef ! StartMining
-    posForgerRef ! PosForger.ReceivableMessages.StartForging
+    posForgerRef ! StartForging
     block = false
   }
 
   override protected def onBetterNeighbourAppeared(): Unit = {
     powMinerRef ! StopMining
-    posForgerRef ! PosForger.ReceivableMessages.StopForging
+    posForgerRef ! StopForging
     block = true
   }
 }
