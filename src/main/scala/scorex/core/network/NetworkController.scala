@@ -18,7 +18,6 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.existentials
-import scala.reflect.runtime.universe.TypeTag
 import scala.util.{Failure, Success, Try}
 import scala.language.postfixOps
 
@@ -33,9 +32,8 @@ class NetworkController(settings: NetworkSettings,
                         timeProvider: NetworkTimeProvider
                        ) extends Actor with ScorexLogging {
 
-  import NetworkController._
+  import NetworkController.ReceivableMessages._
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{CheckPeers, FilterPeers, Disconnected, Subscribe}
-
 
   private implicit val system: ActorSystem = context.system
 
@@ -200,22 +198,15 @@ class NetworkController(settings: NetworkSettings,
 }
 
 object NetworkController {
-
-  case class RegisterMessagesHandler(specs: Seq[MessageSpec[_]], handler: ActorRef)
-
-  case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
-
-  case object ShutdownNetwork
-
-  case class ConnectTo(address: InetSocketAddress)
-
-  case class DisconnectFrom(peer: ConnectedPeer)
-
-  case class Blacklist(peer: ConnectedPeer)
-
-  case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
-
-  case class SubscribePeerManagerEvent(events: Seq[EventType.Value])
+  object ReceivableMessages extends NetworkControllerSharedMessages {
+    case class RegisterMessagesHandler(specs: Seq[MessageSpec[_]], handler: ActorRef)
+    case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
+    case object ShutdownNetwork
+    case class ConnectTo(address: InetSocketAddress)
+    case class DisconnectFrom(peer: ConnectedPeer)
+    case class Blacklist(peer: ConnectedPeer)
+    case class SubscribePeerManagerEvent(events: Seq[EventType.Value])
+  }
 }
 
 object NetworkControllerRef {

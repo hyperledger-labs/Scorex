@@ -5,9 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{GetPeersSpec, Message, PeersSpec}
-import scorex.core.network.peer.PeerManager
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import shapeless.syntax.typeable._
@@ -20,6 +18,7 @@ import scala.language.postfixOps
 class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings) extends Actor with ScorexLogging {
 
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{RandomPeers, AddOrUpdatePeer}
+  import scorex.core.network.NetworkController.ReceivableMessages.{DataFromPeer, SendToNetwork, RegisterMessagesHandler}
 
 
   private implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
@@ -29,10 +28,10 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
   override def preStart: Unit = {
     super.preStart()
 
-    networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
+    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
-    val stn = NetworkController.SendToNetwork(msg, SendToRandom)
+    val stn = SendToNetwork(msg, SendToRandom)
     context.system.scheduler.schedule(2.seconds, 10.seconds)(networkControllerRef ! stn)
   }
 

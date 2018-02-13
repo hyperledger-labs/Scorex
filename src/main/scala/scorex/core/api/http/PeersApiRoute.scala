@@ -10,7 +10,6 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse}
 import scorex.core.network.Handshake
-import scorex.core.network.NetworkController.ConnectTo
 import scorex.core.network.peer.PeerInfo
 import scorex.core.settings.RESTApiSettings
 
@@ -22,6 +21,7 @@ case class PeersApiRoute(peerManager: ActorRef,
   extends ApiRoute {
 
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetConnectedPeers, GetBlacklistedPeers}
+  import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
 
   override lazy val route = pathPrefix("peers") { allPeers ~ connectedPeers ~ blacklistedPeers ~ connect }
 

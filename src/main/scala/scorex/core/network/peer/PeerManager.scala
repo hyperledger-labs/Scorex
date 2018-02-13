@@ -20,7 +20,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   import PeerManager._
   import PeerManager.ReceivableMessages._
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
-
+  import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
 
   //peers after successful handshake
   private val connectedPeers = mutable.Map[InetSocketAddress, ConnectedPeer]()
@@ -154,7 +154,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           if (!connectedPeers.exists(_._1 == address) &&
             !connectingPeers.exists(_.getHostName == address.getHostName)) {
             connectingPeers += address
-            sender() ! NetworkController.ConnectTo(address)
+            sender() ! ConnectTo(address)
           }
         }
       }

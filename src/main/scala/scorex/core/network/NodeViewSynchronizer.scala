@@ -6,7 +6,6 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.consensus.History.HistoryComparisonResult
-import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
 import scorex.core.transaction.box.proposition.Proposition
@@ -51,6 +50,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   import NodeViewSynchronizer.ReceivableMessages._
   import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
+  import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler, SubscribePeerManagerEvent}
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
@@ -68,14 +68,14 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
     val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
-    networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
+    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
     val pmEvents = Seq(
       PeerManager.EventType.Handshaked,
       PeerManager.EventType.Disconnected
     )
-    networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
+    networkControllerRef ! SubscribePeerManagerEvent(pmEvents)
 
 
     //subscribe for all the node view holder events involving modifiers and transactions
@@ -328,7 +328,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 }
 
 object NodeViewSynchronizer {
-  object ReceivableMessages extends NodeViewHolderSharedMessages {
+  object ReceivableMessages extends NodeViewHolderSharedMessages with NetworkControllerSharedMessages {
     // getLocalSyncInfo messages
     case object SendLocalSyncInfo
     case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])

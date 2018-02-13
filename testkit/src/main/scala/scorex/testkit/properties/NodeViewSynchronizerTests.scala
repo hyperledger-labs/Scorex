@@ -5,7 +5,6 @@ import akka.testkit.TestProbe
 import org.scalacheck.Gen
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
-import scorex.core.LocalInterface.ReceivableMessages.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.consensus.History.HistoryComparisonResult.{Equal, Nonsense, Older, Younger}
 import scorex.core.network._
@@ -59,9 +58,10 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     }
   }
 
+  import scorex.core.LocalInterface.ReceivableMessages.{BetterNeighbourAppeared, NoBetterNeighbour}
   import NodeViewHolder.ReceivableMessages.{ModifiersFromRemote, CompareViews}  // NodeViewHolder's messages
   import NodeViewSynchronizer.ReceivableMessages._   // NodeViewSynchronizer's messages
-  import NetworkController._      // NetworkController's messages
+  import NetworkController.ReceivableMessages.{SendToNetwork, DataFromPeer, Blacklist}     // NetworkController's messages
 
   property("NodeViewSynchronizer: SuccessfulTransaction") { withFixture { ctx =>
     import ctx._
