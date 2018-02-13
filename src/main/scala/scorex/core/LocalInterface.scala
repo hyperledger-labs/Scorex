@@ -1,7 +1,6 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.LocalInterface.ReceivableMessages.{BetterNeighbourAppeared, LocallyGeneratedModifier, LocallyGeneratedTransaction, NoBetterNeighbour}
 import scorex.core.NodeViewHolder._
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
@@ -13,6 +12,9 @@ import scorex.core.utils.ScorexLogging
   */
 trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
+
+  import scorex.core.LocalInterface.ReceivableMessages._
+  import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   val viewHolderRef: ActorRef
 
@@ -40,7 +42,6 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
     case ft: FailedTransaction[P, TX] =>
       onFailedTransaction(ft.transaction)
-
 
     case stm: StartingPersistentModifierApplication[PMOD] =>
       onStartingPersistentModifierApplication(stm.modifier)
@@ -101,10 +102,8 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 }
 
 object LocalInterface {
-  object ReceivableMessages {
+  object ReceivableMessages extends LocallyGeneratedModifiersMessages with NodeViewHolderSharedMessages {
     case object NoBetterNeighbour
     case object BetterNeighbourAppeared
-    case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
-    case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
   }
 }

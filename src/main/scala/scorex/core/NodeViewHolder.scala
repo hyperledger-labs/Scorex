@@ -1,7 +1,6 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.LocalInterface.ReceivableMessages.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer._
@@ -34,6 +33,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   extends Actor with ScorexLogging {
 
   import NodeViewHolder._
+  import NodeViewHolder.ReceivableMessages._
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.RequestFromLocal
 
   type SI <: SyncInfo
   type HIS <: History[PMOD, SI, HIS]
@@ -309,7 +310,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 
   protected def handleSubscribe: Receive = {
-    case NodeViewHolder.Subscribe(events) =>
+    case Subscribe(events) =>
       events.foreach { evt =>
         val current = subscribers.getOrElse(evt, Seq())
         subscribers.put(evt, current :+ sender())
@@ -326,7 +327,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(key(mid)))
       }
 
-      sender() ! NodeViewSynchronizer.RequestFromLocal(peer, modifierTypeId, ids)
+      sender() ! RequestFromLocal(peer, modifierTypeId, ids)
   }
 
   protected def processRemoteModifiers: Receive = {
@@ -400,7 +401,18 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 object NodeViewHolder {
 
-  case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
+  object ReceivableMessages extends LocallyGeneratedModifiersMessages with NodeViewHolderSharedMessages {
+    // Explicit request of NodeViewChange events of certain types.
+    case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
+    //a command to subscribe for events
+    case class Subscribe(events: Seq[EventType.Value])
+    case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
+
+    // Moved fro NodeViewSynchronizer as this was only received here
+    case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
+    case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
+
+  }
 
   object EventType extends Enumeration {
     //finished modifier application, successful of failed
@@ -428,57 +440,12 @@ object NodeViewHolder {
     val VaultChanged: EventType.Value = Value(14)
   }
 
-  sealed trait NodeViewChange extends NodeViewHolderEvent
-
-  case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
-
-  case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
-
-  //TODO: return mempool reader
-  case class ChangedMempool[MR <: MempoolReader[_ <: Transaction[_]]](mempool: MR) extends NodeViewChange
-
-  //TODO: return Vault reader
-  case class ChangedVault() extends NodeViewChange
-
-  // Explicit request of NodeViewChange events of certain types.
-  case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
-
-  //a command to subscribe for events
-  case class Subscribe(events: Seq[EventType.Value])
-
   trait NodeViewHolderEvent
 
-  case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
-                                                    status: History.HistoryComparisonResult.Value,
-                                                    remoteSyncInfo: SI,
-                                                    localSyncInfo: SI,
-                                                    extension: Option[Seq[(ModifierTypeId, ModifierId)]])
 
-  //node view holder starting persistent modifier application
-  case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
-
-  //hierarchy of events regarding modifiers application outcome
-  trait ModificationOutcome extends NodeViewHolderEvent
-
-  case class FailedTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX, error: Throwable) extends ModificationOutcome
-
-  case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX) extends ModificationOutcome
-
-  case class SyntacticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
-
-  case class SemanticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
-
-  case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
-
-  case class SemanticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
-
-  case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
 
   case class ModificationApplicationStarted[PMOD <: PersistentNodeViewModifier](modifier: PMOD)
     extends NodeViewHolderEvent
-
-  //todo: consider sending info on the rollback
-  case object RollbackFailed extends NodeViewHolderEvent
 
   case class DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) extends NodeViewHolderEvent
 

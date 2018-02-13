@@ -59,8 +59,8 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     }
   }
 
-  import NodeViewHolder._   // NodeViewHolder's messages
-  import NodeViewSynchronizer._   // NodeViewSynchronizer's messages
+  import NodeViewHolder.ReceivableMessages.{ModifiersFromRemote, CompareViews}  // NodeViewHolder's messages
+  import NodeViewSynchronizer.ReceivableMessages._   // NodeViewSynchronizer's messages
   import NetworkController._      // NetworkController's messages
 
   property("NodeViewSynchronizer: SuccessfulTransaction") { withFixture { ctx =>

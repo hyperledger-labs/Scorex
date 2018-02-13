@@ -47,8 +47,10 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          networkSettings: NetworkSettings,
                          timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
-  import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
+
+  import NodeViewSynchronizer.ReceivableMessages._
+  import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
@@ -221,7 +223,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
         log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
           s"sending ${objs.length} modifiers ${idsToString(invData._1, objs.map(_.id))} ")
-        self ! NodeViewSynchronizer.ResponseFromLocal(remote, invData._1, objs)
+        self ! ResponseFromLocal(remote, invData._1, objs)
       }
   }
 
@@ -326,20 +328,20 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 }
 
 object NodeViewSynchronizer {
-
-  case object SendLocalSyncInfo
-
-  case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
-
-  case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
-
-  case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
-
-  case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
-
-  case class CheckDelivery(source: ConnectedPeer,
-                           modifierTypeId: ModifierTypeId,
-                           modifierId: ModifierId)
+  object ReceivableMessages extends NodeViewHolderSharedMessages {
+    case object SendLocalSyncInfo
+    case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
+    case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
+    case class CheckDelivery(source: ConnectedPeer,
+                             modifierTypeId: ModifierTypeId,
+                             modifierId: ModifierId)
+    // Moves from NodeViewHolder as this is only received here
+    case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
+                                                      status: History.HistoryComparisonResult.Value,
+                                                      remoteSyncInfo: SI,
+                                                      localSyncInfo: SI,
+                                                      extension: Option[Seq[(ModifierTypeId, ModifierId)]])
+  }
 }
 
 object NodeViewSynchronizerRef {

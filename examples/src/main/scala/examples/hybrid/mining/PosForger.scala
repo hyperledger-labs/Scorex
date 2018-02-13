@@ -7,8 +7,7 @@ import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
-import scorex.core.LocalInterface.ReceivableMessages.LocallyGeneratedModifier
-import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
+import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
@@ -18,7 +17,8 @@ import scorex.utils.Random
 class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
   import PosForger._
-  import PosForger.ReceivableMessages.{StartForging, StopForging}
+  import PosForger.ReceivableMessages._
+  import scorex.core.NodeViewHolder.ReceivableMessages.{LocallyGeneratedModifier, GetDataFromCurrentView}
 
 
   var forging = false
@@ -58,6 +58,9 @@ class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor
 }
 
 object PosForger extends ScorexLogging {
+
+  import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
+
   val InitialDifficuly = 15000000000L
 
   object ReceivableMessages {

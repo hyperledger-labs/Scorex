@@ -6,7 +6,7 @@ import akka.actor.{ActorContext, ActorRef, Cancellable}
 import scorex.core.LocalInterface.ReceivableMessages.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.consensus.History
 import scorex.core.consensus.History.HistoryComparisonResult
-import scorex.core.network.NodeViewSynchronizer.SendLocalSyncInfo
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.SendLocalSyncInfo
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
