@@ -34,41 +34,45 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
   def transfer: Route = path("transfer") {
     entity(as[String]) { body =>
       withAuth {
-        postJsonRoute {
-          viewAsync().map { view =>
-            parse(body) match {
-              case Left(failure) => ApiException(failure.getCause)
-              case Right(json) => Try {
-                val wallet = view.vault
-                val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
-                val recipient: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ Base58.decode((json \\ "recipient").head.asString.get).get)
-                val fee: Long = (json \\ "fee").head.asNumber.flatMap(_.toLong).getOrElse(DefaultFee)
-                val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, Value @@ amount)), fee).get
-                nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
-                tx.json
-              } match {
-                case Success(resp) => SuccessApiResponse(resp)
-                case Failure(e) => ApiException(e)
-              }
+        val transfer = viewAsync().map { view =>
+          parse(body) match {
+            case Left(failure) => ApiException(failure.getCause)
+            case Right(json) => Try {
+              val wallet = view.vault
+              val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
+              val recipient: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ Base58.decode((json \\ "recipient").head.asString.get).get)
+              val fee: Long = (json \\ "fee").head.asNumber.flatMap(_.toLong).getOrElse(DefaultFee)
+              val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, Value @@ amount)), fee).get
+              nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
+              tx.json
+            } match {
+              case Success(resp) => SuccessApiResponse(resp)
+              case Failure(e) => ApiException(e)
             }
           }
+        }
+        onComplete(transfer) {
+          case Success(r) => jsonRoute(r, get)
+          case Failure(ex) => jsonRoute(ApiException(ex), get)
         }
       }
     }
   }
 
   def balances: Route = path("balances") {
-    getJsonRoute {
-      viewAsync().map { view =>
-        val wallet = view.vault
-        val boxes = wallet.boxes()
+    val balances = viewAsync().map { view =>
+      val wallet = view.vault
+      val boxes = wallet.boxes()
 
-        SuccessApiResponse(Map(
-          "totalBalance" -> boxes.map(_.box.value.toLong).sum.toString.asJson,
-          "publicKeys" -> wallet.publicKeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
-          "boxes" -> boxes.map(_.box.json).asJson
-        ).asJson)
-      }
+      SuccessApiResponse(Map(
+        "totalBalance" -> boxes.map(_.box.value.toLong).sum.toString.asJson,
+        "publicKeys" -> wallet.publicKeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
+        "boxes" -> boxes.map(_.box.json).asJson
+      ).asJson)
+    }
+    onComplete(balances) {
+      case Success(r) => jsonRoute(r, get)
+      case Failure(ex) => jsonRoute(ApiException(ex), get)
     }
   }
 
