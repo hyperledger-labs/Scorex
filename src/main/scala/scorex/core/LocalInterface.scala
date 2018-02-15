@@ -13,7 +13,13 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   extends Actor with ScorexLogging {
 
   import scorex.core.LocalInterface.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, LocallyGeneratedTransaction, LocallyGeneratedModifier}
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
+                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
+                                                                              ChangedState, NewOpenSurface, RollbackFailed,
+                                                                              StartingPersistentModifierApplication}
+  import scorex.core.NodeViewHolder.ReceivableMessages.Subscribe
+  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   val viewHolderRef: ActorRef
 
@@ -101,7 +107,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 }
 
 object LocalInterface {
-  object ReceivableMessages extends LocallyGeneratedModifiersMessages with NodeViewHolderSharedMessages {
+  object ReceivableMessages {
     case object NoBetterNeighbour
     case object BetterNeighbourAppeared
   }

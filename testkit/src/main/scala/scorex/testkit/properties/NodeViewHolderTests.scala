@@ -53,9 +53,12 @@ MPool <: MemoryPool[TX, MPool]]
   val syntactic = Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier)
   val allEvents = semantic ++ syntactic
 
-  import NodeViewHolder.ReceivableMessages._
-  import NodeViewHolder.ReceivableMessages.{Subscribe, GetDataFromCurrentView, LocallyGeneratedModifier}
-
+  import NodeViewHolder.ReceivableMessages.{Subscribe, GetDataFromCurrentView}
+  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.LocallyGeneratedModifier
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SyntacticallySuccessfulModifier,
+                                                                              SyntacticallyFailedModification,
+                                                                              SemanticallySuccessfulModifier,
+                                                                              SemanticallyFailedModification}
 
   property("NodeViewHolder syntactically valid modifier subscription") { withFixture { ctx =>
     import ctx._

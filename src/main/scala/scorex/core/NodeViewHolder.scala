@@ -33,7 +33,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   import NodeViewHolder._
   import NodeViewHolder.ReceivableMessages._
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
+                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
+                                                                              ChangedHistory, ChangedMempool, ChangedState,
+                                                                              ChangedVault, NewOpenSurface, RollbackFailed,
+                                                                              StartingPersistentModifierApplication}
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.RequestFromLocal
+  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
   type HIS <: History[PMOD, SI, HIS]
@@ -400,14 +407,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
 object NodeViewHolder {
 
-  object ReceivableMessages extends LocallyGeneratedModifiersMessages with NodeViewHolderSharedMessages {
+  object ReceivableMessages {
     // Explicit request of NodeViewChange events of certain types.
     case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
     //a command to subscribe for events
     case class Subscribe(events: Seq[EventType.Value])
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
-    // Moved fro NodeViewSynchronizer as this was only received here
+    // Moved from NodeViewSynchronizer as this was only received here
     case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
     case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 

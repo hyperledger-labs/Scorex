@@ -18,7 +18,8 @@ class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor
 
   import PosForger._
   import PosForger.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.{LocallyGeneratedModifier, GetDataFromCurrentView}
+  import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
+  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.LocallyGeneratedModifier
 
 
   var forging = false
@@ -73,6 +74,8 @@ object PosForger extends ScorexLogging {
                               txsToInclude: Seq[SimpleBoxTransaction])
   }
 
+  import ReceivableMessages.PosForgingInfo
+
   def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
     val h = Blake2b256(pwb.bytes ++ box.bytes)
     Longs.fromByteArray((0: Byte) +: h.take(7))
@@ -106,8 +109,8 @@ object PosForger extends ScorexLogging {
     HBoxStoredState,
     HWallet,
     SimpleBoxTransactionMemPool,
-    ReceivableMessages.PosForgingInfo] = {
-    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => ReceivableMessages.PosForgingInfo = {
+    PosForgingInfo] = {
+    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => PosForgingInfo = {
       view: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] =>
 
         val diff = view.history.posDifficulty
@@ -123,13 +126,13 @@ object PosForger extends ScorexLogging {
           else collected
         }
 
-        ReceivableMessages.PosForgingInfo(pairCompleted, bestPowBlock, diff, boxKeys, txs)
+        PosForgingInfo(pairCompleted, bestPowBlock, diff, boxKeys, txs)
     }
     GetDataFromCurrentView[HybridHistory,
       HBoxStoredState,
       HWallet,
       SimpleBoxTransactionMemPool,
-      ReceivableMessages.PosForgingInfo](f)
+      PosForgingInfo](f)
 
   }
 

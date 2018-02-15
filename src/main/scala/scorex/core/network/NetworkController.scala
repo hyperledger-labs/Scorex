@@ -33,6 +33,7 @@ class NetworkController(settings: NetworkSettings,
                        ) extends Actor with ScorexLogging {
 
   import NetworkController.ReceivableMessages._
+  import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{CheckPeers, FilterPeers, Disconnected, Subscribe}
   import PeerConnectionHandler.ReceivableMessages.CloseConnection
 
@@ -199,7 +200,7 @@ class NetworkController(settings: NetworkSettings,
 }
 
 object NetworkController {
-  object ReceivableMessages extends NetworkControllerSharedMessages {
+  object ReceivableMessages {
     case class RegisterMessagesHandler(specs: Seq[MessageSpec[_]], handler: ActorRef)
     case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
     case object ShutdownNetwork

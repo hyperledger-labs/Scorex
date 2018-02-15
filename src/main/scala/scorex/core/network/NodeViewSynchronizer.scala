@@ -49,8 +49,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   import History.HistoryComparisonResult._
 
   import NodeViewSynchronizer.ReceivableMessages._
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
+                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
+                                                                              ChangedHistory, ChangedMempool}
   import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
   import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler, SubscribePeerManagerEvent}
+  import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
@@ -328,7 +333,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 }
 
 object NodeViewSynchronizer {
-  object ReceivableMessages extends NodeViewHolderSharedMessages with NetworkControllerSharedMessages {
+  object ReceivableMessages {
     // getLocalSyncInfo messages
     case object SendLocalSyncInfo
     case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])

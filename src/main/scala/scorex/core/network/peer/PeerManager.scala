@@ -168,6 +168,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
 object PeerManager {
 
+  //TODO: Consider relocating this trait
   trait PeerManagerEvent
 
   object EventType extends Enumeration {

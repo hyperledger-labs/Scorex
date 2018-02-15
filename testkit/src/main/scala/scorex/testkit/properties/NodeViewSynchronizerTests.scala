@@ -58,10 +58,15 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     }
   }
 
+  import NodeViewHolder.ReceivableMessages.{ModifiersFromRemote, CompareViews}
   import scorex.core.LocalInterface.ReceivableMessages.{BetterNeighbourAppeared, NoBetterNeighbour}
-  import NodeViewHolder.ReceivableMessages.{ModifiersFromRemote, CompareViews}  // NodeViewHolder's messages
-  import NodeViewSynchronizer.ReceivableMessages._   // NodeViewSynchronizer's messages
-  import NetworkController.ReceivableMessages.{SendToNetwork, DataFromPeer, Blacklist}     // NetworkController's messages
+  import NodeViewSynchronizer.ReceivableMessages._
+  import NetworkController.ReceivableMessages.{SendToNetwork, Blacklist}
+  import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
+                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
+                                                                              ChangedHistory, ChangedMempool}
 
   property("NodeViewSynchronizer: SuccessfulTransaction") { withFixture { ctx =>
     import ctx._
