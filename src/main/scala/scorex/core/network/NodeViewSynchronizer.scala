@@ -308,11 +308,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   //local node sending out objects requested to remote
   protected def responseFromLocal: Receive = {
     case ResponseFromLocal(peer, _, modifiers: Seq[NodeViewModifier]) =>
-      if (modifiers.nonEmpty) {
-        val modType = modifiers.head.modifierTypeId
-        val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
-        val msg = Message(ModifiersSpec, Right(m), None)
-        peer.handlerRef ! msg
+      modifiers.headOption match {
+        case None                => // do nothing
+        case Some(firstModifier) =>
+          val modType = firstModifier.modifierTypeId
+          val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
+          val msg = Message(ModifiersSpec, Right(m), None)
+          peer.handlerRef ! msg
       }
   }
 
