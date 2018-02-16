@@ -13,6 +13,7 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Sha256
 import scorex.crypto.signatures.{PublicKey, Signature}
 
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class SimpleBoxTransactionSpecification extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks

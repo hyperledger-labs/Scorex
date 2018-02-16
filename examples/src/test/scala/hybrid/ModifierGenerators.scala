@@ -15,6 +15,7 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 import scorex.testkit.generators.CoreGenerators
 
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 trait ModifierGenerators {
   this: HybridGenerators with CoreGenerators =>
 
