@@ -18,4 +18,6 @@ class UtxoSnapshot(override val parentId: ModifierId,
 
   //todo: for Dmitry: implement: dump all the boxes
   override def serializer: Serializer[M] = ???
+
+  override def json = ???
 }

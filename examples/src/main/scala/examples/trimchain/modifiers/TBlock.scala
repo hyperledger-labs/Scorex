@@ -4,11 +4,11 @@ import com.google.common.primitives.{Longs, Shorts}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.{Encoder, Json}
 import io.circe.syntax._
-import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.block.Block
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.{ModifierId, ModifierTypeId}
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -29,6 +29,8 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
   override type M = TBlock
 
   override def serializer: Serializer[TBlock] = TBlockSerializer
+
+  override def json: Json = this.asJson
 }
 
 object TBlockSerializer extends Serializer[TBlock] {
