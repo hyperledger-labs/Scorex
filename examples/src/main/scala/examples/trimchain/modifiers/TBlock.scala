@@ -2,7 +2,7 @@ package examples.trimchain.modifiers
 
 import com.google.common.primitives.{Longs, Shorts}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.block.Block
@@ -17,12 +17,6 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
   extends TModifier with Block[PublicKey25519Proposition, SimpleBoxTransaction] {
 
   override def version: Version = 0: Version
-
-  override def json: Json =  Map(
-    "header" -> header.json,
-    "body" -> body.map(_.json).asJson,
-    "timestamp" -> timestamp.asJson
-  ).asJson
 
   override def parentId: ModifierId = header.parentId
 
@@ -68,4 +62,13 @@ object TBlockSerializer extends Serializer[TBlock] {
     val body = parseTxs(10 + headerLength).reverse
     TBlock(header, body, timestamp)
   }
+}
+
+object TBlock {
+  implicit val tBlockEncoder: Encoder[TBlock] = (tb: TBlock) =>
+    Map(
+      "header" -> tb.header.asJson,
+      "body" -> tb.body.map(_.json).asJson,
+      "timestamp" -> tb.timestamp.asJson
+    ).asJson
 }

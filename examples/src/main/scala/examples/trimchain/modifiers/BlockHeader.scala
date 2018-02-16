@@ -1,9 +1,8 @@
 package examples.trimchain.modifiers
 
 import com.google.common.primitives.Longs
-import examples.trimchain.core.Constants._
 import examples.trimchain.core._
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.serialization.Serializer
@@ -24,21 +23,24 @@ case class BlockHeader(override val parentId: ModifierId,
 
   override lazy val id: ModifierId = ModifierId @@ Constants.hashfn.hash(bytes)
 
-  override lazy val json: Json = Map(
-    "id" -> Base58.encode(id).asJson,
-    "parentId" -> Base58.encode(parentId).asJson,
-    "stateRoot" -> Base58.encode(stateRoot).asJson,
-    "txRoot" -> Base58.encode(txRoot).asJson,
-    "ticket" -> ticket.json,
-    "powNonce" -> powNonce.asJson
-  ).asJson
-
   def correctWorkDone(difficulty: BigInt): Boolean = {
     val target = Constants.MaxTarget / difficulty
     BigInt(1, id) < target
   }
 
   override lazy val serializer = BlockHeaderSerializer
+}
+
+object BlockHeader {
+  implicit val blockHeaderEncoder: Encoder[BlockHeader] = (bh: BlockHeader) =>
+    Map(
+      "id" -> Base58.encode(bh.id).asJson,
+      "parentId" -> Base58.encode(bh.parentId).asJson,
+      "stateRoot" -> Base58.encode(bh.stateRoot).asJson,
+      "txRoot" -> Base58.encode(bh.txRoot).asJson,
+      "ticket" -> bh.ticket.asJson,
+      "powNonce" -> bh.powNonce.asJson
+    ).asJson
 }
 
 object BlockHeaderSerializer extends Serializer[BlockHeader] {

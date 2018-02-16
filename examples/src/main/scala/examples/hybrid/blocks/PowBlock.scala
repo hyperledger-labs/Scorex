@@ -3,7 +3,7 @@ package examples.hybrid.blocks
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.mining.HybridMiningSettings
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import scorex.core._
 import scorex.core.block.Block
@@ -93,20 +93,12 @@ case class PowBlock(override val parentId: BlockId,
 
   lazy val brotherBytes = serializer.brotherBytes(brothers)
 
-  override lazy val json: Json = Map(
-    "id" -> Base58.encode(id).asJson,
-    "parentId" -> Base58.encode(parentId).asJson,
-    "prevPosId" -> Base58.encode(prevPosId).asJson,
-    "timestamp" -> timestamp.asJson,
-    "nonce" -> nonce.asJson,
-    "brothersHash" -> Base58.encode(brothersHash).asJson,
-    "brothers" -> brothers.map(b => Base58.encode(b.id).asJson).asJson
-  ).asJson
-
-  override lazy val toString: String = s"PoWBlock(${json.noSpaces})"
+  override lazy val toString: String = s"PoWBlock(${this.asJson.noSpaces})"
 
   //todo: coinbase transaction?
   override def transactions: Seq[SimpleBoxTransaction] = Seq()
+
+  override def json: Json = this.asJson
 }
 
 object PowBlockCompanion extends Serializer[PowBlock] {
@@ -147,4 +139,16 @@ object PowBlockCompanion extends Serializer[PowBlock] {
 
 object PowBlock {
   val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 3.toByte
+
+  implicit val powBlockEncoder: Encoder[PowBlock] = (pb: PowBlock) => {
+    Map(
+      "id" -> Base58.encode(pb.id).asJson,
+      "parentId" -> Base58.encode(pb.parentId).asJson,
+      "prevPosId" -> Base58.encode(pb.prevPosId).asJson,
+      "timestamp" -> pb.timestamp.asJson,
+      "nonce" -> pb.nonce.asJson,
+      "brothersHash" -> Base58.encode(pb.brothersHash).asJson,
+      "brothers" -> pb.brothers.map(b => Base58.encode(b.id).asJson).asJson
+    ).asJson
+  }
 }

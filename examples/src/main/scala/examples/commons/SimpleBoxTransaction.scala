@@ -3,7 +3,7 @@ package examples.commons
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.SimpleBoxTransaction._
 import examples.hybrid.wallet.HWallet
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.ModifierId
@@ -59,28 +59,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 
   override lazy val serializer = SimpleBoxTransactionCompanion
 
-  override lazy val json: Json = Map(
-    "id" -> Base58.encode(id).asJson,
-    "newBoxes" -> newBoxes.map(b => Base58.encode(b.id).asJson).toSeq.asJson,
-    "boxesToRemove" -> boxIdsToOpen.map(id => Base58.encode(id).asJson).asJson,
-    "from" -> from.map { s =>
-      Map(
-        "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
-        "nonce" -> s._2.toLong.asJson
-      ).asJson
-    }.asJson,
-    "to" -> to.map { s =>
-      Map(
-        "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
-        "value" -> s._2.toLong.asJson
-      ).asJson
-    }.asJson,
-    "signatures" -> signatures.map(s => Base58.encode(s.signature).asJson).asJson,
-    "fee" -> fee.asJson,
-    "timestamp" -> timestamp.asJson
-  ).asJson
-
-  override def toString: String = s"SimpleBoxTransaction(${json.noSpaces})"
+  override def toString: String = s"SimpleBoxTransaction(${this.asJson.noSpaces})"
 
   lazy val semanticValidity: Try[Unit] = Try {
     require(from.size == signatures.size)
@@ -93,10 +72,33 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     })
   }
 
+  override def json: Json = this.asJson
 }
 
 
 object SimpleBoxTransaction {
+
+  implicit val simpleBoxEncoder: Encoder[SimpleBoxTransaction] = (sbe: SimpleBoxTransaction) =>
+    Map(
+      "id" -> Base58.encode(sbe.id).asJson,
+      "newBoxes" -> sbe.newBoxes.map(b => Base58.encode(b.id).asJson).toSeq.asJson,
+      "boxesToRemove" -> sbe.boxIdsToOpen.map(id => Base58.encode(id).asJson).asJson,
+      "from" -> sbe.from.map { s =>
+        Map(
+          "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
+          "nonce" -> s._2.toLong.asJson
+        ).asJson
+      }.asJson,
+      "to" -> sbe.to.map { s =>
+        Map(
+          "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
+          "value" -> s._2.toLong.asJson
+        ).asJson
+      }.asJson,
+      "signatures" -> sbe.signatures.map(s => Base58.encode(s.signature).asJson).asJson,
+      "fee" -> sbe.fee.asJson,
+      "timestamp" -> sbe.timestamp.asJson
+    ).asJson
 
   def nonceFromDigest(digest: Array[Byte]): Nonce = Nonce @@ Longs.fromByteArray(digest.take(8))
 

@@ -1,7 +1,7 @@
 package examples.trimchain.core
 
 import com.google.common.primitives.{Bytes, Shorts}
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import scorex.core.serialization.{JsonSerializable, Serializer}
 import scorex.crypto.authds.SerializedAdProof
@@ -11,13 +11,17 @@ import scorex.crypto.signatures.Curve25519
 import scala.annotation.tailrec
 import scala.util.Try
 
-case class Ticket(minerKey: Array[Byte], partialProofs: Seq[SerializedAdProof]) extends JsonSerializable {
-  override lazy val json: Json = Map(
-    "minerKey" -> Base58.encode(minerKey).asJson,
-    "proofs" -> partialProofs.map(Base58.encode).asJson
-  ).asJson
+case class Ticket(minerKey: Array[Byte], partialProofs: Seq[SerializedAdProof]) {
 
-  override def toString: String = json.noSpaces
+  override def toString: String = this.asJson.noSpaces
+}
+
+object Ticket {
+  implicit val tickerEncoder: Encoder[Ticket] = (t: Ticket) =>
+    Map(
+      "minerKey" -> Base58.encode(t.minerKey).asJson,
+      "proofs" -> t.partialProofs.map(Base58.encode).asJson
+    ).asJson
 }
 
 object TicketSerializer extends Serializer[Ticket] {

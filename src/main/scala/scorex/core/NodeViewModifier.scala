@@ -8,7 +8,7 @@ import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
-sealed trait NodeViewModifier extends BytesSerializable with JsonSerializable {
+sealed trait NodeViewModifier extends BytesSerializable {
   self =>
 
   val modifierTypeId: ModifierTypeId
@@ -37,7 +37,7 @@ object NodeViewModifier {
 }
 
 
-trait PersistentNodeViewModifier extends NodeViewModifier {
+trait PersistentNodeViewModifier extends NodeViewModifier with JsonSerializable {
   def parentId: ModifierId
 }
 

@@ -1,7 +1,7 @@
 package examples.commons
 
 import com.google.common.primitives.Longs
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import scorex.core.serialization.{JsonSerializable, Serializer}
 import scorex.core.transaction.account.PublicKeyNoncedBox
@@ -14,15 +14,7 @@ import scala.util.Try
 
 case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Proposition,
                                    override val nonce: Nonce,
-                                   override val value: Value) extends PublicKeyNoncedBox[PublicKey25519Proposition] with JsonSerializable {
-
-  override def json: Json = Map(
-    "id" -> Base58.encode(id).asJson,
-    "address" -> proposition.address.asJson,
-    "publicKey" -> Base58.encode(proposition.pubKeyBytes).asJson,
-    "nonce" -> nonce.toLong.asJson,
-    "value" -> value.toLong.asJson
-  ).asJson
+                                   override val value: Value) extends PublicKeyNoncedBox[PublicKey25519Proposition] {
 
   override type M = PublicKey25519NoncedBox
 
@@ -35,6 +27,15 @@ case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Propo
 object PublicKey25519NoncedBox {
   val BoxKeyLength = Blake2b256.DigestSize
   val BoxLength: Int = Curve25519.KeyLength + 2 * 8
+
+  implicit val publicKey25519NoncedBoxEncoder: Encoder[PublicKey25519NoncedBox] = (pknb: PublicKey25519NoncedBox) =>
+    Map(
+      "id" -> Base58.encode(pknb.id).asJson,
+      "address" -> pknb.proposition.address.asJson,
+      "publicKey" -> Base58.encode(pknb.proposition.pubKeyBytes).asJson,
+      "nonce" -> pknb.nonce.toLong.asJson,
+      "value" -> pknb.value.toLong.asJson
+    ).asJson
 }
 
 object PublicKey25519NoncedBoxSerializer extends Serializer[PublicKey25519NoncedBox] {
