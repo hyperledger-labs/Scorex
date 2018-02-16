@@ -20,7 +20,10 @@ case class KLS16Proof(m: Int,
       a.parentId
     }
 
-    require(suffix.head.interlinks(i) sameElements innerchain.last.id)
+    for(firstSuffix    <- suffix.headOption;
+        lastInnerchain <- innerchain.lastOption
+       ) require(firstSuffix.interlinks(i) sameElements lastInnerchain.id)
+
 
     val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
     require(innerchain.length >= m, s"${innerchain.length} >= $m")
@@ -62,7 +65,7 @@ case class KLS16Proof(m: Int,
 
 object KLS16ProofSerializer extends Serializer[KLS16Proof] {
   override def toBytes(obj: KLS16Proof): Array[Byte] = {
-    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
+    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.drop(1).map { h =>
       val bytes = HeaderSerializer.bytesWithoutInterlinks(h)
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
     })
@@ -71,8 +74,8 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
     })
     Bytes.concat(Array(obj.m.toByte, obj.k.toByte, obj.i.toByte),
-      Shorts.toByteArray(obj.suffix.head.bytes.length.toShort),
-      obj.suffix.head.bytes,
+      Shorts.toByteArray(obj.suffix.headOption.map(_.bytes.length.toShort) getOrElse 0),
+      obj.suffix.headOption.map(_.bytes) getOrElse Array[Byte](),
       suffixTailBytes,
       Shorts.toByteArray(obj.innerchain.length.toShort),
       interchainBytes)
@@ -90,6 +93,8 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
       else {
         val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
         val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
+        //TODO: Review this logic, what should happen if `acc` is empty?
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
         parseSuffixes(index + 2 + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }

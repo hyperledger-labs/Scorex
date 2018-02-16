@@ -18,7 +18,7 @@ object SpaceSavingsCalculator extends App {
 
   //  println(lines.head)
 
-  val data = lines.tail.take(finish).map(_.split(","))
+  val data = lines.drop(1).take(finish).map(_.split(","))
 
   val blockSizes = data.map(_.apply(8)).map(_.toLong)
 

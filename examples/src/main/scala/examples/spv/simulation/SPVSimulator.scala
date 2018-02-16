@@ -16,7 +16,7 @@ object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
   val st = System.currentTimeMillis()
   val headerChain = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
 
-  val lastBlock = headerChain.last
+  val lastBlock: Option[Header] = headerChain.lastOption
   var minDiff = Difficulty
 
   val k = 6

@@ -83,9 +83,14 @@ object HybridNodeViewHolder extends ScorexLogging {
       IndexedSeq(genesisAccountPriv -> Nonce @@ 0L),
       icoMembers.map(_ -> GenesisBalance),
       0L,
-      0L)).ensuring(t => Base58.encode(t.head.id) == "EKuWxCuUAg9XgVWKxsnehP9FLsF3zPSyn9yczqeBHD8S")
+      0L)).ensuring { t =>
+        t.headOption match {
+          case None        => false
+          case Some(tHead) => Base58.encode(tHead.id) == "EKuWxCuUAg9XgVWKxsnehP9FLsF3zPSyn9yczqeBHD8S"
+        }
+      }
 
-    log.debug(s"Initialize state with transaction ${genesisTxs.head} with boxes ${genesisTxs.head.newBoxes}")
+    log.debug(s"Initialize state with transaction ${genesisTxs.headOption} with boxes ${genesisTxs.headOption.map(_.newBoxes)}")
 
     val genesisBox = PublicKey25519NoncedBox(genesisAccountPriv.publicImage, Nonce @@ 0L, GenesisBalance)
     val attachment = "genesis attachment".getBytes

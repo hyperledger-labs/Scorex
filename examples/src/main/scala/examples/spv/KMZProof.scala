@@ -23,7 +23,7 @@ object KMZProofSerializer extends Serializer[KMZProof] {
 
 
   override def toBytes(obj: KMZProof): Array[Byte] = {
-    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
+    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.drop(1).map { h =>
       HeaderSerializer.bytesWithoutInterlinks(h)
     })
     val prefixHeaders: Map[String, Header] = obj.prefixProofs.flatten.map(h => h.encodedId -> h).toMap
@@ -36,8 +36,8 @@ object KMZProofSerializer extends Serializer[KMZProof] {
     })
 
     Bytes.concat(Array(obj.m.toByte, obj.k.toByte),
-      Shorts.toByteArray(obj.suffix.head.bytes.length.toShort),
-      obj.suffix.head.bytes,
+      Shorts.toByteArray(obj.suffix.headOption.map(_.bytes.length.toShort) getOrElse 0),
+      obj.suffix.headOption.map(_.bytes) getOrElse Array[Byte](),
       suffixTailBytes,
       Shorts.toByteArray(prefixHeaders.size.toShort),
       prefixHeadersBytes,
@@ -58,6 +58,8 @@ object KMZProofSerializer extends Serializer[KMZProof] {
       if (acc.length == k) (index, acc.reverse)
       else {
         val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index, index + l)).get
+        // TODO: What should we do if `acc` is empty?
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
         parseSuffixes(index + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }

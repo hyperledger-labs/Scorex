@@ -54,7 +54,7 @@ object HeaderSerializer extends Serializer[Header] {
       if (links.isEmpty) {
         acc
       } else {
-        val headLink: Array[Byte] = links.head
+        val headLink: Array[Byte] = links.headOption getOrElse Array[Byte]()
         val repeating: Byte = links.count(_ sameElements headLink).toByte
         interlinkBytes(links.drop(repeating), Bytes.concat(acc, Array(repeating), headLink))
       }

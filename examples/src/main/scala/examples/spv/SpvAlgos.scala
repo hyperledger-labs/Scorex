@@ -15,6 +15,8 @@ object SpvAlgos {
   }
 
   def constructInterlinkVector(parent: Header): Seq[Array[Byte]] = {
+    // TODO: What should we do if `parent.interlinks` is empty? Can we return an empty sequence here?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val genesisId = parent.interlinks.head
 
     @tailrec
@@ -38,6 +40,8 @@ object SpvAlgos {
 
     val (prefix, suffix: Seq[Header]) = C.splitAt(C.length - k)
 
+    // TODO: What would be a more meaningful name for `i`? We also need a default value when `prefix` is empty
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val i = prefix.last.interlinks.size - 1
     val blockchainMap: Map[ByteArrayWrapper, Header] = C.map(b => ByteArrayWrapper(b.id) -> b).toMap
     def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
@@ -48,10 +52,13 @@ object SpvAlgos {
       if (i == 0) {
         acc
       } else {
-        val inC: Seq[Header] = constructInnerChain(suffix.head, i, boundary, headerById)
+        // TODO: What should we do if `suffix` is empty?
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+        val firstSuffix: Header = suffix.head
+        val inC: Seq[Header] = constructInnerChain(firstSuffix, i, boundary, headerById)
           .ensuring(_.forall(h => h.realDifficulty >= i * Constants.InitialDifficulty))
         val (newIn, newB) = if (inC.length >= m) {
-          (constructInnerChain(suffix.head, i, inC(inC.length - m), headerById), inC(inC.length - m))
+          (constructInnerChain(firstSuffix, i, inC(inC.length - m), headerById), inC(inC.length - m))
         } else {
           (inC, boundary)
         }
@@ -61,6 +68,8 @@ object SpvAlgos {
       }
     }
 
+    // TODO: What should we do if `C` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val boundary = C.head
     val proofChains = prove(boundary, i, Seq())
 
@@ -102,6 +111,8 @@ object SpvAlgos {
     require(k > 0 && k < blockchain.length, s"$k > 0 && $k < ${blockchain.length}")
 
     val (_, suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
+    // TODO: What should we do if `firstSuffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val firstSuffix = suffix.head
 
     //TODO make efficient
@@ -113,12 +124,14 @@ object SpvAlgos {
     def constructProof(i: Int): (Int, Seq[Header]) = {
       @tailrec
       def loop(acc: Seq[Header]): Seq[Header] = {
+        // TODO: What should we do if `acc` is empty?
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interHeader = acc.head
         if (interHeader.interlinks.length > i) {
           val header = headerById(interHeader.interlinks(i))
           loop(header +: acc)
         } else {
-          acc.reverse.tail.reverse
+          acc dropRight 1
         }
       }
 
