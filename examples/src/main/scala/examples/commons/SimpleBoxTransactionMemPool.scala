@@ -11,7 +11,6 @@ import scala.util.{Success, Try}
 
 case class SimpleBoxTransactionMemPool(unconfirmed: TrieMap[ByteArrayWrapper, SimpleBoxTransaction])
   extends MemoryPool[SimpleBoxTransaction, SimpleBoxTransactionMemPool] with ScorexLogging {
-  override type NVCT = SimpleBoxTransactionMemPool
 
   private def key(id: Array[Byte]): ByteArrayWrapper = ByteArrayWrapper(id)
 
