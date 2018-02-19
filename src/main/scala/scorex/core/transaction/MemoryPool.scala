@@ -1,7 +1,5 @@
 package scorex.core.transaction
 
-import scorex.core.{ModifierId, NodeViewComponent}
-
 import scala.util.Try
 
 /**
@@ -11,10 +9,12 @@ import scala.util.Try
   */
 trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends MempoolReader[TX] {
 
+  override type NVCT = M
 
   /**
     * Method to put a transaction into the memory pool. Validation of tha transactions against
     * the state is done in NodeVieHolder. This put() method can check whether a transaction is valid
+ *
     * @param tx
     * @return Success(updatedPool), if transaction successfully added to the pool, Failure(_) otherwise
     */
