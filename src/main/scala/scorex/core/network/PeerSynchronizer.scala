@@ -2,7 +2,7 @@ package scorex.core.network
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
@@ -52,4 +52,17 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 
     case nonsense: Any => log.warn(s"PeerSynchronizer: got something strange $nonsense")
   }
+}
+
+object PeerSynchronizerRef {
+  def props(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings): Props =
+    Props(new PeerSynchronizer(networkControllerRef, peerManager, settings))
+
+  def apply(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(networkControllerRef, peerManager, settings))
+
+  def apply(name: String, networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(networkControllerRef, peerManager, settings), name)
 }

@@ -59,8 +59,8 @@ val apiDependencies = Seq(
 )
 
 val loggingDependencies = Seq(
-  "ch.qos.logback" % "logback-classic" % "1.+",
-  "ch.qos.logback" % "logback-core" % "1.+"
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.+",
+  "ch.qos.logback" % "logback-classic" % "1.+"
 )
 
 val testingDependencies = Seq(
@@ -91,14 +91,6 @@ testOptions in Test += Tests.Argument("-oD", "-u", "target/test-reports")
 publishMavenStyle := true
 
 publishArtifact in Test := false
-
-publishTo in ThisBuild := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases" at nexus + "service/local/staging/deploy/maven2")
-}
 
 fork := true
 

@@ -2,7 +2,7 @@ package scorex.core.network
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef, Cancellable, SupervisorStrategy}
+import akka.actor.{Actor, ActorRef, ActorSystem, Cancellable, Props, SupervisorStrategy}
 import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
@@ -221,4 +221,48 @@ object PeerConnectionHandler {
   case object CloseConnection
 
   case object Blacklist
+}
+
+/*
+
+* */
+object PeerConnectionHandlerRef {
+  def props(settings: NetworkSettings,
+            networkControllerRef: ActorRef,
+            peerManagerRef: ActorRef,
+            messagesHandler: MessageHandler,
+            connection: ActorRef,
+            direction: ConnectionType,
+            ownSocketAddress: Option[InetSocketAddress],
+            remote: InetSocketAddress,
+            timeProvider: NetworkTimeProvider): Props =
+    Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, messagesHandler,
+                                    connection, direction, ownSocketAddress, remote, timeProvider))
+
+  def apply(settings: NetworkSettings,
+            networkControllerRef: ActorRef,
+            peerManagerRef: ActorRef,
+            messagesHandler: MessageHandler,
+            connection: ActorRef,
+            direction: ConnectionType,
+            ownSocketAddress: Option[InetSocketAddress],
+            remote: InetSocketAddress,
+            timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
+                         connection, direction, ownSocketAddress, remote, timeProvider))
+
+  def apply(name: String,
+            settings: NetworkSettings,
+            networkControllerRef: ActorRef,
+            peerManagerRef: ActorRef,
+            messagesHandler: MessageHandler,
+            connection: ActorRef,
+            direction: ConnectionType,
+            ownSocketAddress: Option[InetSocketAddress],
+            remote: InetSocketAddress,
+            timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
+                         connection, direction, ownSocketAddress, remote, timeProvider), name)
 }

@@ -1,7 +1,7 @@
 package scorex.core.network
 
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.NodeViewHolder._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.consensus.History.HistoryComparisonResult
@@ -18,6 +18,7 @@ import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -54,12 +55,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, localInterfaceRef, timeProvider)
 
-  protected var historyReaderOpt: Option[HR] = None
-  protected var mempoolReaderOpt: Option[MR] = None
-
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
 
+  protected var historyReaderOpt: Option[HR] = None
+  protected var mempoolReaderOpt: Option[MR] = None
 
   def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
@@ -137,11 +137,11 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")
       } else {
-        historyReaderOpt.foreach(r => syncSend(r.syncInfo))
+        historyReaderOpt.foreach(r => sendSync(r.syncInfo))
       }
   }
 
-  protected def syncSend(syncInfo: SI): Unit = {
+  protected def sendSync(syncInfo: SI): Unit = {
     val peers = statusTracker.peersToSyncWith()
     if (peers.nonEmpty)
       networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
@@ -340,4 +340,55 @@ object NodeViewSynchronizer {
   case class CheckDelivery(source: ConnectedPeer,
                            modifierTypeId: ModifierTypeId,
                            modifierId: ModifierId)
+}
+
+object NodeViewSynchronizerRef {
+  def props[P <: Proposition,
+    TX <: Transaction[P],
+    SI <: SyncInfo,
+    SIS <: SyncInfoMessageSpec[SI],
+    PMOD <: PersistentNodeViewModifier,
+    HR <: HistoryReader[PMOD, SI],
+    MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
+                             viewHolderRef: ActorRef,
+                             localInterfaceRef: ActorRef,
+                             syncInfoSpec: SIS,
+                             networkSettings: NetworkSettings,
+                             timeProvider: NetworkTimeProvider) =
+    Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
+                                                                 localInterfaceRef, syncInfoSpec,
+                                                                 networkSettings, timeProvider))
+
+  def apply[P <: Proposition,
+    TX <: Transaction[P],
+    SI <: SyncInfo,
+    SIS <: SyncInfoMessageSpec[SI],
+    PMOD <: PersistentNodeViewModifier,
+    HR <: HistoryReader[PMOD, SI],
+    MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
+                             viewHolderRef: ActorRef,
+                             localInterfaceRef: ActorRef,
+                             syncInfoSpec: SIS,
+                             networkSettings: NetworkSettings,
+                             timeProvider: NetworkTimeProvider)
+                            (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef,
+                                                       syncInfoSpec, networkSettings, timeProvider))
+
+  def apply[P <: Proposition,
+    TX <: Transaction[P],
+    SI <: SyncInfo,
+    SIS <: SyncInfoMessageSpec[SI],
+    PMOD <: PersistentNodeViewModifier,
+    HR <: HistoryReader[PMOD, SI],
+    MR <: MempoolReader[TX]](name: String,
+                             networkControllerRef: ActorRef,
+                             viewHolderRef: ActorRef,
+                             localInterfaceRef: ActorRef,
+                             syncInfoSpec: SIS,
+                             networkSettings: NetworkSettings,
+                             timeProvider: NetworkTimeProvider)
+                            (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef,
+                                                       syncInfoSpec, networkSettings, timeProvider), name)
 }

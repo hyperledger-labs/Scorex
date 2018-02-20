@@ -1,5 +1,6 @@
 package examples.hybrid
 
+import akka.actor.{ActorRef, ActorSystem, Props}
 import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction, SimpleBoxTransactionCompanion, SimpleBoxTransactionMemPool}
 import examples.commons.{Nonce, Value}
 import examples.hybrid.blocks._
@@ -101,4 +102,24 @@ object HybridNodeViewHolder extends ScorexLogging {
 
     (history, gs, gw, SimpleBoxTransactionMemPool.emptyPool)
   }
+}
+
+object HybridNodeViewHolderRef {
+  def props(settings: ScorexSettings,
+            minerSettings: HybridMiningSettings,
+            timeProvider: NetworkTimeProvider): Props =
+    Props(new HybridNodeViewHolder(settings, minerSettings, timeProvider))
+
+  def apply(settings: ScorexSettings,
+            minerSettings: HybridMiningSettings,
+            timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, minerSettings, timeProvider))
+
+  def apply(name: String,
+            settings: ScorexSettings,
+            minerSettings: HybridMiningSettings,
+            timeProvider: NetworkTimeProvider)
+           (implicit system: ActorSystem): ActorRef =
+    system.actorOf(props(settings, minerSettings, timeProvider), name)
 }

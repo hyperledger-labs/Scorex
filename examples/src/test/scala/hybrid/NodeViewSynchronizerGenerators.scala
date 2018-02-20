@@ -5,7 +5,7 @@ import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
-import scorex.core.network.{ConnectedPeer, Handshake, NodeViewSynchronizer, Outgoing}
+import scorex.core.network._
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import scorex.core.app.Version
 import scorex.core.utils.NetworkTimeProvider
@@ -19,8 +19,10 @@ trait NodeViewSynchronizerGenerators {
     def props(networkControllerRef: ActorRef,
               viewHolderRef: ActorRef,
               localInterfaceRef: ActorRef): Props =
-      Props(new NodeViewSynchronizer[P, TX, HSI, SIS, PM, HT, MP](
-        networkControllerRef, viewHolderRef, localInterfaceRef, HybridSyncInfoMessageSpec, settings.scorexSettings.network, new NetworkTimeProvider(settings.scorexSettings.ntp)))
+      NodeViewSynchronizerRef.props[P, TX, HSI, SIS, PM, HT, MP](networkControllerRef, viewHolderRef,
+                                                                 localInterfaceRef, HybridSyncInfoMessageSpec,
+                                                                 settings.scorexSettings.network,
+                                                                 new NetworkTimeProvider(settings.scorexSettings.ntp))
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
