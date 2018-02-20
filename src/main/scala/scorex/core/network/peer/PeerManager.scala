@@ -37,8 +37,10 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
-      val defaultPeerInfo = PeerInfo(timeProvider.time(), None)
-      peerDatabase.addOrUpdateKnownPeer(address, defaultPeerInfo)
+      if (!isSelf(address, None)) {
+        val defaultPeerInfo = PeerInfo(timeProvider.time(), None)
+        peerDatabase.addOrUpdateKnownPeer(address, defaultPeerInfo)
+      }
     }
   }
 
