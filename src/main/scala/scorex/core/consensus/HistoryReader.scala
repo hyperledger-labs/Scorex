@@ -34,7 +34,7 @@ trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends No
     * @param modifier - modifier to apply
     * @return
     */
-  def applicable(modifier: PM): Boolean = openSurfaceIds().exists(_ sameElements modifier.parentId)
+  def applicable(modifier: PM): Boolean = openSurfaceIds().exists(_ sameElements modifier.parentId.arr)
 
   /**
     * Return modifier of type PM with id == modifierId

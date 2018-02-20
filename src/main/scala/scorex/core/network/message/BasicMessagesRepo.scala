@@ -5,16 +5,22 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
+import scorex.core
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.{MessageCode, _}
 import scorex.core.settings.NetworkSettings
+import scorex.core.utils.ByteBoxer
+import scorex.core.utils.ByteBoxer.b
+import supertagged.@@
+import supertagged.tag
 
+import scala.collection.immutable
 import scala.util.Try
 
 
 object BasicMsgDataTypes {
-  type InvData = (ModifierTypeId, Seq[ModifierId])
+  type InvData = (ModifierTypeId, Seq[ByteBoxer[ModifierId]])
   type ModifiersData = (ModifierTypeId, Map[ModifierId, Array[Byte]])
 }
 
@@ -48,7 +54,8 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
     require(count <= maxInvObjects, s"more invs than $maxInvObjects in a message")
 
     val elems = (0 until count).map { c =>
-      ModifierId @@ bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize)
+      val byteSlice = bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize)
+      ByteBoxer[ModifierId](tag[ModifierId](byteSlice))
     }
 
     typeId -> elems
@@ -57,9 +64,9 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
   override def toBytes(data: InvData): Array[Byte] = {
     require(data._2.nonEmpty, "empty inv list")
     require(data._2.size <= maxInvObjects, s"more invs than $maxInvObjects in a message")
-    data._2.foreach(e => require(e.length == NodeViewModifier.ModifierIdSize))
+    data._2.foreach(e => require(e.arr.length == NodeViewModifier.ModifierIdSize))
 
-    Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(data._2))
+    Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(data._2.map(_.arr)))
   }
 }
 
