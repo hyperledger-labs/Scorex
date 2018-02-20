@@ -1,20 +1,19 @@
 package scorex.core.network
 
 
+import java.net.InetSocketAddress
+
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import scorex.core.NodeViewHolder._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.consensus.History.HistoryComparisonResult
-import scorex.core.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.HandshakedPeer
-import scorex.core.network.peer.PeerManager.DisconnectedPeer
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.network.peer.PeerManager.PeerManagerEvent
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -47,8 +46,16 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          networkSettings: NetworkSettings,
                          timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
-  import NodeViewSynchronizer._
   import History.HistoryComparisonResult._
+
+  import NodeViewSynchronizer.ReceivableMessages._
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
+                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
+                                                                              ChangedHistory, ChangedMempool}
+  import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
+  import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler, SubscribePeerManagerEvent}
+  import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
@@ -66,14 +73,14 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
     val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
-    networkControllerRef ! NetworkController.RegisterMessagesHandler(messageSpecs, self)
+    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
     val pmEvents = Seq(
       PeerManager.EventType.Handshaked,
       PeerManager.EventType.Disconnected
     )
-    networkControllerRef ! NetworkController.SubscribePeerManagerEvent(pmEvents)
+    networkControllerRef ! SubscribePeerManagerEvent(pmEvents)
 
 
     //subscribe for all the node view holder events involving modifiers and transactions
@@ -221,7 +228,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
         log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
           s"sending ${objs.length} modifiers ${idsToString(invData._1, objs.map(_.id))} ")
-        self ! NodeViewSynchronizer.ResponseFromLocal(remote, invData._1, objs)
+        self ! ResponseFromLocal(remote, invData._1, objs)
       }
   }
 
@@ -326,20 +333,24 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 }
 
 object NodeViewSynchronizer {
-
-  case object SendLocalSyncInfo
-
-  case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
-
-  case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
-
-  case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
-
-  case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
-
-  case class CheckDelivery(source: ConnectedPeer,
-                           modifierTypeId: ModifierTypeId,
-                           modifierId: ModifierId)
+  object ReceivableMessages {
+    // getLocalSyncInfo messages
+    case object SendLocalSyncInfo
+    case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
+    case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
+    case class CheckDelivery(source: ConnectedPeer,
+                             modifierTypeId: ModifierTypeId,
+                             modifierId: ModifierId)
+    // Moves from NodeViewHolder as this is only received here
+    case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
+                                                      status: History.HistoryComparisonResult.Value,
+                                                      remoteSyncInfo: SI,
+                                                      localSyncInfo: SI,
+                                                      extension: Option[Seq[(ModifierTypeId, ModifierId)]])
+    // Relocated from PeerManager as this events are only received here
+    case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
+    case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
+  }
 }
 
 object NodeViewSynchronizerRef {

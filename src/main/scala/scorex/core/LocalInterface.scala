@@ -1,8 +1,6 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.LocalInterface.{BetterNeighbourAppeared, LocallyGeneratedModifier, LocallyGeneratedTransaction, NoBetterNeighbour}
-import scorex.core.NodeViewHolder._
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.StateReader
@@ -13,6 +11,15 @@ import scorex.core.utils.ScorexLogging
   */
 trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
+
+  import scorex.core.LocalInterface.ReceivableMessages._
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
+                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
+                                                                              ChangedState, NewOpenSurface, RollbackFailed,
+                                                                              StartingPersistentModifierApplication}
+  import scorex.core.NodeViewHolder.ReceivableMessages.Subscribe
+  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   val viewHolderRef: ActorRef
 
@@ -40,7 +47,6 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
     case ft: FailedTransaction[P, TX] =>
       onFailedTransaction(ft.transaction)
-
 
     case stm: StartingPersistentModifierApplication[PMOD] =>
       onStartingPersistentModifierApplication(stm.modifier)
@@ -101,12 +107,8 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 }
 
 object LocalInterface {
-
-  case object NoBetterNeighbour
-
-  case object BetterNeighbourAppeared
-
-  case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
-
-  case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
+  object ReceivableMessages {
+    case object NoBetterNeighbour
+    case object BetterNeighbourAppeared
+  }
 }

@@ -10,8 +10,7 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse}
 import scorex.core.network.Handshake
-import scorex.core.network.NetworkController.ConnectTo
-import scorex.core.network.peer.{PeerInfo, PeerManager}
+import scorex.core.network.peer.PeerInfo
 import scorex.core.settings.RESTApiSettings
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,10 +20,13 @@ case class PeersApiRoute(peerManager: ActorRef,
                          override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
   extends ApiRoute {
 
+  import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetConnectedPeers, GetBlacklistedPeers}
+  import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
+
   override lazy val route = pathPrefix("peers") { allPeers ~ connectedPeers ~ blacklistedPeers ~ connect }
 
   def allPeers: Route = (path("all") & get) {
-    val result = askActor[Map[InetSocketAddress, PeerInfo]](peerManager, PeerManager.GetAllPeers).map {
+    val result = askActor[Map[InetSocketAddress, PeerInfo]](peerManager, GetAllPeers).map {
       _.map { case (address, peerInfo) =>
         PeerInfoResponse.fromAddressAndInfo(address, peerInfo)
       }
@@ -34,7 +36,7 @@ case class PeersApiRoute(peerManager: ActorRef,
 
   def connectedPeers: Route = (path("connected") & get) {
     val now = System.currentTimeMillis()
-    val result = askActor[Seq[Handshake]](peerManager, PeerManager.GetConnectedPeers).map {
+    val result = askActor[Seq[Handshake]](peerManager, GetConnectedPeers).map {
       _.map { handshake =>
         PeerInfoResponse(
           address = handshake.declaredAddress.map(_.toString).getOrElse(""),
@@ -62,7 +64,7 @@ case class PeersApiRoute(peerManager: ActorRef,
   }
 
   def blacklistedPeers: Route = (path("blacklisted") & get) {
-    val result = askActor[Seq[String]](peerManager, PeerManager.GetBlacklistedPeers).map { BlacklistedPeers }
+    val result = askActor[Seq[String]](peerManager, GetBlacklistedPeers).map { BlacklistedPeers }
     onSuccess(result) { v => complete(v.asJson) }
   }
 }
