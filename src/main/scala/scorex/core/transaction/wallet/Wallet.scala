@@ -47,8 +47,8 @@ object WalletTransaction {
                                                    (propDeserializer: Array[Byte] => Try[P],
                                                     txDeserializer: Array[Byte] => Try[TX]
                                                    ): Try[WalletTransaction[P, TX]] = Try {
-    val propLength = Ints.fromByteArray(bytes.slice(0, 4))
-    var pos = 4
+    val propLength = Ints.fromByteArray(bytes.slice(0, 4)) // scalastyle:ignore magic.number
+    var pos = 4 // scalastyle:ignore magic.number
     val propTry = propDeserializer(bytes.slice(pos, pos + propLength))
     pos = pos + propLength
 

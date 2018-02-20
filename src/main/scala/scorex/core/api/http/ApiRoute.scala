@@ -52,6 +52,4 @@ trait ApiRoute extends ApiDirectives with ActorHelper with FailFastCirceSupport 
     }
     withCors(resp)
   }
-
-
 }

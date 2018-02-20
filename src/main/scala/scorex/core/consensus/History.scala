@@ -5,7 +5,7 @@ import scorex.core.consensus.History.ProgressInfo
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
-
+// scalastyle:off line.size.limit
 /**
   * History of a blockchain system is some blocktree in fact
   * (like this: http://image.slidesharecdn.com/sfbitcoindev-chepurnoy-2015-150322043044-conversion-gate01/95/proofofstake-its-improvements-san-francisco-bitcoin-devs-hackathon-12-638.jpg),
@@ -17,7 +17,7 @@ import scala.util.Try
   * To say "longest chain" is the canonical one is simplification, usually some kind of "cumulative difficulty"
   * function has been used instead.
   */
-
+// scalastyle:on line.size.limit
 trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends HistoryReader[PM, SI] {
 
   /**
@@ -45,8 +45,8 @@ object History {
     val Equal = Value(1)
     val Younger = Value(2)
     val Older = Value(3)
-    val Nonsense = Value(4)
-    val Unknown = Value(5)
+    val Nonsense = Value(4) // scalastyle:ignore magic.number
+    val Unknown = Value(5)  // scalastyle:ignore magic.number
   }
 
   /**

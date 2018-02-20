@@ -98,11 +98,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
-  protected def viewHolderEvents: Receive = {
+  protected def transactionEvents: Receive = {
     case SuccessfulTransaction(tx) => broadcastModifierInv(tx)
     case FailedTransaction(tx, throwable) =>
     //todo: ban source peer?
+  }
 
+  protected def modifierEvents: Receive = {
     case SyntacticallySuccessfulModifier(mod) =>
     case SyntacticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
@@ -110,7 +112,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: ban source peer?
+  }
 
+  protected def historyMemPoolChanges: Receive = {
     case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
       //TODO isInstanceOf ?
       //TODO type erasure
@@ -121,6 +125,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       //TODO type erasure
       mempoolReaderOpt = Some(reader)
   }
+
+  protected def viewHolderEvents: Receive = transactionEvents orElse modifierEvents orElse historyMemPoolChanges
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>
@@ -354,7 +360,7 @@ object NodeViewSynchronizerRef {
                              localInterfaceRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
-                             timeProvider: NetworkTimeProvider) =
+                             timeProvider: NetworkTimeProvider): Props =
     Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
                                                                  localInterfaceRef, syncInfoSpec,
                                                                  networkSettings, timeProvider))

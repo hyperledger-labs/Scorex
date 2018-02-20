@@ -34,14 +34,17 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     viewHolderRef ! Subscribe(events)
   }
 
-  private def viewHolderEvents: Receive = {
+  private def viewHolderEvents: Receive = transactionReceive orElse modifiersReceive orElse commonReceive
+
+  private def transactionReceive: Receive = {
     case st: SuccessfulTransaction[P, TX] =>
       onSuccessfulTransaction(st.transaction)
 
     case ft: FailedTransaction[P, TX] =>
       onFailedTransaction(ft.transaction)
+  }
 
-
+  private def modifiersReceive: Receive = {
     case stm: StartingPersistentModifierApplication[PMOD] =>
       onStartingPersistentModifierApplication(stm.modifier)
 
@@ -56,7 +59,9 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
     case semf: SemanticallyFailedModification[PMOD] =>
       onSemanticallyFailedModification(semf.modifier)
+  }
 
+  private def commonReceive: Receive = {
     case surf: NewOpenSurface =>
       onNewSurface(surf.newSurface)
 
@@ -67,10 +72,8 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       onChangedState(r)
   }
 
-
   protected def onSuccessfulTransaction(tx: TX): Unit
   protected def onFailedTransaction(tx: TX): Unit
-
 
   protected def onStartingPersistentModifierApplication(pmod: PMOD): Unit
 
@@ -87,7 +90,9 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def onNoBetterNeighbour(): Unit
   protected def onBetterNeighbourAppeared(): Unit
 
-  override def receive: Receive = viewHolderEvents orElse {
+  override def receive: Receive = viewHolderEvents orElse localInterfaceEvents
+
+  private def localInterfaceEvents: Receive = {
     case NoBetterNeighbour =>
       onNoBetterNeighbour()
     case BetterNeighbourAppeared =>

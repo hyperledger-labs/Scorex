@@ -2,7 +2,7 @@ package scorex.core.api.http.swagger
 
 import akka.http.scaladsl.marshalling.ToResponseMarshallable.apply
 import akka.http.scaladsl.model.HttpMethods._
-import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.model.StatusCode.int2StatusCode
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directive.addByNameNullaryApply
@@ -25,10 +25,7 @@ trait CorsSupport {
   //this handles preflight OPTIONS requests.
   // TODO: see if can be done with rejection handler, otherwise has to be under addAccessControlHeaders
   private def preflightRequestHandler: Route = options {
-    complete(HttpResponse(200).withHeaders(
-      `Access-Control-Allow-Methods`(OPTIONS, POST, PUT, GET, DELETE)
-    )
-    )
+    complete(HttpResponse(StatusCodes.OK).withHeaders(`Access-Control-Allow-Methods`(OPTIONS, POST, PUT, GET, DELETE)))
   }
 
   def corsHandler(r: Route): Route = withAccessControlHeaders {

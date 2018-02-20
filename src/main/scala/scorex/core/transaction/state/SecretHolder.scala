@@ -54,7 +54,7 @@ object PrivateKey25519Serializer extends Serializer[PrivateKey25519] {
   override def toBytes(obj: PrivateKey25519): Array[Byte] = Bytes.concat(obj.privKeyBytes, obj.publicKeyBytes)
 
   override def parseBytes(bytes: Array[Byte]): Try[PrivateKey25519] = Try {
-    PrivateKey25519(PrivateKey @@ bytes.slice(0, 32), PublicKey @@ bytes.slice(32, 64))
+    PrivateKey25519(PrivateKey @@ bytes.slice(0, 32), PublicKey @@ bytes.slice(32, 64)) // scalastyle:ignore magic.number
   }
 }
 

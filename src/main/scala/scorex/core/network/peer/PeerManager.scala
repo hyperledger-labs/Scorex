@@ -96,46 +96,51 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
   private var lastIdUsed = 0
 
+  private def shouldRefuse(remote: InetSocketAddress, direction: ConnectionType): Boolean = if (direction == Incoming) {
+    false
+  } else if (connectingPeers.contains(remote)) {
+    log.info(s"Connecting to $remote")
+    false
+  } else {
+    log.info(s"Already connected peer $remote trying to connect, going to drop the duplicate connection")
+    true
+  }
+
+  private def doConnecting(remote: InetSocketAddress, direction: ConnectionType): Unit = {
+    val peerHandlerRef = sender()
+
+    if (peerDatabase.isBlacklisted(remote)) {
+      log.info(s"Got incoming connection from blacklisted $remote")
+    } else if (shouldRefuse(remote, direction)) {
+      peerHandlerRef ! CloseConnection
+    } else {
+      peerHandlerRef ! PeerConnectionHandler.StartInteraction
+      lastIdUsed += 1
+    }
+  }
+
+  private def processHandshaked(peer: ConnectedPeer): Unit = if (peerDatabase.isBlacklisted(peer.socketAddress)) {
+    log.info(s"Got handshake from blacklisted ${peer.socketAddress}")
+  } else {
+    //drop connection to self if occurred
+    if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
+      peer.handlerRef ! PeerConnectionHandler.CloseConnection
+    } else {
+      if (peer.publicPeer) {
+        self ! PeerManager.AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
+      }
+      connectedPeers += peer.socketAddress -> peer
+      notifySubscribers(PeerManager.EventType.Handshaked, HandshakedPeer(peer))
+    }
+  }
+
   private def peerCycle: Receive = {
     case DoConnecting(remote, direction) =>
-      val peerHandlerRef = sender()
-
-      if (peerDatabase.isBlacklisted(remote)) {
-        log.info(s"Got incoming connection from blacklisted $remote")
-      } else {
-        val refuse =
-          if (direction == Incoming) false
-          else if (connectingPeers.contains(remote)) {
-            log.info(s"Connecting to $remote")
-            false
-          } else {
-            log.info(s"Already connected peer $remote trying to connect, going to drop the duplicate connection")
-            true
-          }
-
-        if (refuse) {
-          peerHandlerRef ! CloseConnection
-        } else {
-          peerHandlerRef ! PeerConnectionHandler.StartInteraction
-          lastIdUsed += 1
-        }
-      }
+      doConnecting(remote, direction)
 
     //todo: filter by an id introduced by the PeerManager
-    case h@Handshaked(peer) =>
-      if (peerDatabase.isBlacklisted(peer.socketAddress)) {
-        log.info(s"Got handshake from blacklisted ${peer.socketAddress}")
-      } else {
-          //drop connection to self if occurred
-          if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
-            peer.handlerRef ! PeerConnectionHandler.CloseConnection
-          } else {
-            if(peer.publicPeer) self ! PeerManager.AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
-            connectedPeers += peer.socketAddress -> peer
-            notifySubscribers(PeerManager.EventType.Handshaked, HandshakedPeer(peer))
-          }
-        }
-
+    case _@Handshaked(peer) =>
+      processHandshaked(peer)
 
     case Disconnected(remote) =>
       connectedPeers -= remote

@@ -39,7 +39,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress,
   override def equals(obj: Any): Boolean =
     obj.cast[ConnectedPeer].exists(p => p.socketAddress == this.socketAddress && p.direction == this.direction)
 
-  override def toString = s"ConnectedPeer($socketAddress)"
+  override def toString: String = s"ConnectedPeer(address: $socketAddress, direction: $direction)"
 }
 
 
@@ -101,45 +101,52 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeReading
   }
 
-  private def handshake: Receive = ({
-    case StartInteraction =>
-      val hb = Handshake(settings.agentName,
-        Version(settings.appVersion), settings.nodeName,
-        ownSocketAddress, timeProvider.time()).bytes
+  private def startInteraction: Unit = {
+    val version = Version(settings.appVersion)
+    val hb = Handshake(settings.agentName, version, settings.nodeName, ownSocketAddress, timeProvider.time()).bytes
+    connection ! Tcp.Write(ByteString(hb))
+    log.info(s"Handshake sent to $remote")
+    handshakeSent = true
+    if (handshakeGot && handshakeSent) self ! HandshakeDone
+  }
 
-      connection ! Tcp.Write(ByteString(hb))
-      log.info(s"Handshake sent to $remote")
-      handshakeSent = true
+  private def processReceivedData(data: ByteString): Unit = HandshakeSerializer.parseBytes(data.toArray) match {
+    case Success(handshake) =>
+      receivedHandshake = Some(handshake)
+      log.info(s"Got a Handshake from $remote")
+      connection ! ResumeReading
       if (handshakeGot && handshakeSent) self ! HandshakeDone
+    case Failure(t) =>
+      log.info(s"Error during parsing a handshake", t)
+      //todo: blacklist?
+      self ! CloseConnection
+  }
 
+  private def processHandshakeDone: Unit = {
+    require(receivedHandshake.isDefined)
+
+    val peer = ConnectedPeer(remote, self, direction, receivedHandshake.get)
+    selfPeer = Some(peer)
+
+    peerManagerRef ! Handshaked(peer)
+    handshakeTimeoutCancellableOpt.map(_.cancel())
+    connection ! ResumeReading
+    context become workingCycle
+  }
+
+  private val processInteractions: Receive = {
+    case StartInteraction =>
+      startInteraction
     case Received(data) =>
-      HandshakeSerializer.parseBytes(data.toArray) match {
-        case Success(handshake) =>
-          receivedHandshake = Some(handshake)
-          log.info(s"Got a Handshake from $remote")
-          connection ! ResumeReading
-          if (handshakeGot && handshakeSent) self ! HandshakeDone
-        case Failure(t) =>
-          log.info(s"Error during parsing a handshake", t)
-          //todo: blacklist?
-          self ! CloseConnection
-      }
-
+      processReceivedData(data)
     case HandshakeTimeout =>
       self ! CloseConnection
-
     case HandshakeDone =>
-      require(receivedHandshake.isDefined)
+      processHandshakeDone
+  }
 
-      val peer = ConnectedPeer(remote, self, direction, receivedHandshake.get)
-      selfPeer = Some(peer)
-
-      peerManagerRef ! Handshaked(peer)
-      handshakeTimeoutCancellableOpt.map(_.cancel())
-      connection ! ResumeReading
-      context become workingCycle
-  }: Receive) orElse processErrors(CommunicationState.AwaitingHandshake.toString)
-
+  private def handshake: Receive = processInteractions orElse
+    processErrors(CommunicationState.AwaitingHandshake.toString)
 
   def workingCycleLocalInterface: Receive = {
     case msg: message.Message[_] =>
@@ -186,14 +193,15 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeReading
   }
 
-  def workingCycle: Receive =
-    workingCycleLocalInterface orElse
-      workingCycleRemoteInterface orElse
-      processErrors(CommunicationState.WorkingCycle.toString) orElse ({
-      case nonsense: Any =>
-        log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
-    }: Receive)
+  def workingCycle: Receive = workingCycleLocalInterface orElse
+    workingCycleRemoteInterface orElse
+    processErrors(CommunicationState.WorkingCycle.toString) orElse
+    nonsenseReceive
 
+  private def nonsenseReceive: Receive = {
+    case nonsense: Any =>
+      log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
+  }
 
   override def preStart: Unit = {
     peerManagerRef ! PeerManager.DoConnecting(remote, direction)
@@ -223,10 +231,8 @@ object PeerConnectionHandler {
   case object Blacklist
 }
 
-/*
-
-* */
 object PeerConnectionHandlerRef {
+  // scalastyle:off parameter.number
   def props(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
@@ -265,4 +271,5 @@ object PeerConnectionHandlerRef {
            (implicit system: ActorSystem): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
                          connection, direction, ownSocketAddress, remote, timeProvider), name)
+  // scalastyle:on parameter.number
 }
