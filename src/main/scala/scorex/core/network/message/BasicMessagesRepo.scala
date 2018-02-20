@@ -5,17 +5,12 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
-import scorex.core
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.core.consensus.SyncInfo
-import scorex.core.network.message.Message.{MessageCode, _}
-import scorex.core.settings.NetworkSettings
+import scorex.core.network.message.Message.MessageCode
 import scorex.core.utils.ByteBoxer
-import scorex.core.utils.ByteBoxer.b
-import supertagged.@@
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import supertagged.tag
 
-import scala.collection.immutable
 import scala.util.Try
 
 

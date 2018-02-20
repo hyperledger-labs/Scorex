@@ -7,17 +7,19 @@ import io.circe.Json
 import io.circe.syntax._
 import scorex.core._
 import scorex.core.block.Block
-import scorex.core.block.Block._
+import scorex.core.block.Block.{BlockId, _}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
+import scorex.core.utils.ByteBoxer
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey}
+import supertagged.tag
 
 import scala.util.Try
 
 class PowBlockHeader(
-                      val parentId: BlockId,
+                      val parentId: ByteBoxer[BlockId],
                       val prevPosId: BlockId,
                       val timestamp: Block.Timestamp,
                       val nonce: Long,
@@ -29,7 +31,7 @@ class PowBlockHeader(
   import PowBlockHeader._
 
   lazy val headerBytes =
-    parentId ++
+    parentId.arr ++
       prevPosId ++
       Longs.toByteArray(timestamp) ++
       Longs.toByteArray(nonce) ++
@@ -42,7 +44,7 @@ class PowBlockHeader(
   lazy val id = ModifierId @@ Blake2b256(headerBytes)
 
   override lazy val toString = s"PowBlockHeader(id: ${Base58.encode(id)})" +
-    s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +
+    s"(parentId: ${Base58.encode(parentId.arr)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +
     s"nonce: $nonce)"
 }
 
@@ -60,7 +62,7 @@ object PowBlockHeader {
     val brothersHash = bytes.slice(84, 116)
     val prop = PublicKey25519Proposition(PublicKey @@ bytes.slice(116, 148))
 
-    new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
+    new PowBlockHeader(ByteBoxer[BlockId](tag[BlockId](parentId)), prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
   }
 
   def correctWorkDone(id: Array[Byte], difficulty: BigInt, s: HybridMiningSettings): Boolean = {
@@ -69,7 +71,7 @@ object PowBlockHeader {
   }
 }
 
-case class PowBlock(override val parentId: BlockId,
+case class PowBlock(override val parentId: ByteBoxer[BlockId],
                     override val prevPosId: BlockId,
                     override val timestamp: Block.Timestamp,
                     override val nonce: Long,
@@ -95,7 +97,7 @@ case class PowBlock(override val parentId: BlockId,
 
   override lazy val json: Json = Map(
     "id" -> Base58.encode(id).asJson,
-    "parentId" -> Base58.encode(parentId).asJson,
+    "parentId" -> Base58.encode(parentId.arr).asJson,
     "prevPosId" -> Base58.encode(prevPosId).asJson,
     "timestamp" -> timestamp.asJson,
     "nonce" -> nonce.asJson,

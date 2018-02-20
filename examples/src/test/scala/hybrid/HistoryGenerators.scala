@@ -4,10 +4,11 @@ import examples.hybrid.blocks.PowBlock
 import examples.hybrid.history.{HistoryStorage, HybridHistory}
 import examples.hybrid.mining.HybridSettings
 import org.scalacheck.Gen
+import scorex.core.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.NetworkTimeProvider
+import scorex.core.utils.{ByteBoxer, NetworkTimeProvider}
 import scorex.crypto.signatures.PublicKey
-
+import supertagged.tag
 trait HistoryGenerators {
   this: StoreGenerators =>
 
@@ -21,7 +22,7 @@ trait HistoryGenerators {
   private val historyProposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
 
   private lazy val genesisBlock = PowBlock(
-    settings.mining.GenesisParentId,
+    ByteBoxer[ModifierId](tag[ModifierId](settings.mining.GenesisParentId)),
     settings.mining.GenesisParentId,
     historyTimestamp,
     historyNonce,
@@ -36,6 +37,6 @@ trait HistoryGenerators {
     val validators = Seq()
     new HybridHistory(storage, settings.mining, validators, None, new NetworkTimeProvider(settings.scorexSettings.ntp))
       .append(genesisBlock).get._1
-      .ensuring(_.modifierById(genesisBlock.id).isDefined)
+      .ensuring(_.modifierById(ModifierId !@@ genesisBlock.id).isDefined)
   }
 }

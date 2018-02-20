@@ -9,8 +9,9 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
-import scorex.core.utils.ByteStr
+import scorex.core.utils.{ByteBoxer, ByteStr}
 import scorex.crypto.signatures.Signature
+import supertagged.tag
 
 import scala.annotation.tailrec
 import scala.util.Random
@@ -22,7 +23,7 @@ class HWalletSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
+  val EmptyBytes = ByteBoxer[ModifierId](tag[ModifierId](Array.fill(32)(0: Byte)))
   val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
   val w = HWallet.readOrGenerate(settings.scorexSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()

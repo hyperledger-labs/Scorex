@@ -10,7 +10,8 @@ import scorex.core.{ModifierId, VersionTag}
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
-
+import scorex.core.utils.ByteBoxer
+import supertagged.tag
 import scala.annotation.tailrec
 import scala.util.Random
 
@@ -53,7 +54,7 @@ trait SimulatorFuctions {
     @tailrec
     def generateHeader(): Header = {
       val nonce = Random.nextInt
-      val header = Header(parent.id, interlinks, stateRoot, transactionsRoot, timestamp, nonce)
+      val header = Header(ByteBoxer[BlockId](tag[BlockId](parent.id)), interlinks, stateRoot, transactionsRoot, timestamp, nonce)
       if (correctWorkDone(header.id, difficulty)) header
       else generateHeader()
     }
@@ -74,7 +75,7 @@ trait SimulatorFuctions {
       )
     }
 
-    Header(ModifierId @@ Array.fill(32)(0: Byte), Seq(), stateRoot, defaultId, 0L, 0)
+    Header(ByteBoxer[ModifierId](tag[ModifierId](Array.fill(32)(0: Byte))), Seq(), stateRoot, defaultId, 0L, 0)
   }
 
 }

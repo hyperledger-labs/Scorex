@@ -222,7 +222,7 @@ MPool <: MemoryPool[TX, MPool]]
 
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
       val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
-      assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
+      assert(mods.head.parentId.arr.sameElements(v.history.openSurfaceIds().head))
       mods
     }
     val fork1Mods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]

@@ -8,6 +8,7 @@ import examples.hybrid.mining.{HybridSettings, PosForger, PowMiner}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HWallet
+import scorex.core.ModifierId
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -35,9 +36,9 @@ object PrivateChain extends App with ScorexLogging {
 
     val (parentId, prevPosId, brothers) = if (!h.pairCompleted) {
       //brother
-      log.info(s"Starting brother mining for ${Base58.encode(h.bestPowBlock.parentId)}:${Base58.encode(h.bestPowBlock.parentId)}")
+      log.info(s"Starting brother mining for ${Base58.encode(h.bestPowBlock.parentId.arr)}:${Base58.encode(h.bestPowBlock.parentId.arr)}")
       val bs = h.bestPowBlock.brothers :+ h.bestPowBlock.header
-      (h.bestPowBlock.parentId, h.bestPowBlock.parentId, bs)
+      (ModifierId !@@ h.bestPowBlock.parentId.arr, ModifierId !@@ h.bestPowBlock.parentId.arr, bs)
     } else {
       log.info(s"Starting new block mining for ${Base58.encode(h.bestPowId)}:${Base58.encode(h.bestPosId)}")
       (h.bestPowId, h.bestPosId, Seq()) //new step
@@ -74,7 +75,7 @@ object PrivateChain extends App with ScorexLogging {
     do {
       if (history.isEmpty || history.pairCompleted) {
         val b = generatePow(history, brother = false, hashesPerSecond)
-        if (history.isEmpty) firstId = b.id
+        if (history.isEmpty) firstId = ModifierId !@@ b.id
         history = history.append(b).get._1
         Thread.sleep(15)
       } else {

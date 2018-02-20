@@ -5,7 +5,7 @@ import akka.testkit.TestProbe
 import org.scalacheck.Gen
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
-import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
+import scorex.core.{ModifierId, NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.consensus.History.HistoryComparisonResult.{Equal, Nonsense, Older, Younger}
 import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
@@ -13,12 +13,12 @@ import scorex.core.network.message.BasicMsgDataTypes.ModifiersData
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ByteBoxer, ScorexLogging}
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.AkkaFixture
 import scorex.core.network.message._
 import scorex.core.serialization.{BytesSerializable, Serializer}
-
+import supertagged.tag
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -109,7 +109,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
 
     val dummySyncInfo = new SyncInfo {
       def answer: Boolean = true
-      def startingPoints: History.ModifierIds = Seq((mod.modifierTypeId, mod.id))
+      def startingPoints: History.ModifierIds = Seq((mod.modifierTypeId, ByteBoxer[ModifierId](tag[ModifierId](mod.id))))
       type M = BytesSerializable
       def serializer: Serializer[M] = throw new Exception
     }
@@ -139,12 +139,13 @@ trait NodeViewSynchronizerTests[P <: Proposition,
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Younger with Non-Empty Extension") { withFixture { ctx =>
     import ctx._
-    node ! OtherNodeSyncingStatus(peer, Younger, syncInfo, syncInfo, Some(Seq((mod.modifierTypeId, mod.id))))
+    node ! OtherNodeSyncingStatus(peer, Younger, syncInfo, syncInfo, Some(Seq((mod.modifierTypeId, ByteBoxer[ModifierId](tag[ModifierId](mod.id))))))
     ncProbe.fishForMessage(3 seconds) { case m =>
       m match {
         case SendToNetwork(Message(_, Right((tid, ids)), None), SendToPeer(p))
-          if p == peer && tid == mod.modifierTypeId && ids == Seq(mod.id) => true
-        case _ => false
+          if p == peer && tid == mod.modifierTypeId && ids == Seq(ByteBoxer[ModifierId](tag[ModifierId](mod.id))) => true
+        case _ =>
+          false
       }
     }
   }}
@@ -159,7 +160,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     import ctx._
     val spec = new InvSpec(3)
     val modifiers = Seq(mod.id)
-    node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
+    node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers.map(ids => ByteBoxer[ModifierId](tag[ModifierId](ids)))), peer)
     vhProbe.fishForMessage(3 seconds) { case m => m == CompareViews(peer, mod.modifierTypeId, modifiers) }
   }}
 
@@ -174,7 +175,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
       val modifiers = Seq(mod.id)
       node ! ChangedHistory(newH)
       node ! ChangedMempool(m)
-      node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
+      node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers.map(ids => ByteBoxer[ModifierId](tag[ModifierId](ids)))), peer)
 
 
 

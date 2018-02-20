@@ -6,8 +6,9 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, ModifiersSpec, RequestModifierSpec}
+import scorex.core.utils.ByteBoxer
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
-
+import supertagged.tag
 import scala.util.Try
 
 class MessageSpecification extends PropSpec
@@ -33,7 +34,7 @@ class MessageSpecification extends PropSpec
   property("InvData should not serialize big arrays") {
     val invSpec = new InvSpec(maxInvObjects)
     forAll(modifierTypeIdGen, Gen.listOfN(maxInvObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
-      val data: InvData = (b, s)
+      val data: InvData = (b, s.map(id => ByteBoxer[ModifierId](tag[ModifierId](id))))
       Try(invSpec.toBytes(data)).isSuccess shouldBe false
     }
   }
@@ -54,7 +55,7 @@ class MessageSpecification extends PropSpec
   property("RequestModifierSpec should not serialize big arrays") {
     val invSpec = new InvSpec(maxInvObjects)
     forAll(modifierTypeIdGen, Gen.listOfN(maxInvObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
-      val data: InvData = (b, s)
+      val data: InvData = (b, s.map(id => ByteBoxer[ModifierId](tag[ModifierId](id))))
       Try(invSpec.toBytes(data)).isSuccess shouldBe false
     }
   }

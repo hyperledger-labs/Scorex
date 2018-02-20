@@ -6,7 +6,9 @@ import examples.trimchain.core._
 import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.ModifierId
+import scorex.core.utils.ByteBoxer
 import scorex.crypto.authds.SerializedAdProof
+import supertagged.tag
 
 trait TrimchainGenerators extends ExamplesCommonGenerators {
 
@@ -24,7 +26,7 @@ trait TrimchainGenerators extends ExamplesCommonGenerators {
     txRoot: TransactionsRoot <- txRootGen
     powNonce: Long <- Arbitrary.arbitrary[Long]
     ticket: Ticket <- ticketGen
-  } yield BlockHeader(parentId, stateRoot, txRoot, ticket, powNonce)
+  } yield BlockHeader(ByteBoxer[ModifierId](tag[ModifierId](parentId)), stateRoot, txRoot, ticket, powNonce)
 
   val TBlockGen: Gen[TBlock] = for {
     header: BlockHeader <- blockHeaderGen

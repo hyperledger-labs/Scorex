@@ -34,7 +34,7 @@ ST <: BoxMinimalState[P, B, TX, PM, ST]]
         state1.closedBox(r.boxId).isDefined shouldBe true
       }
 
-      val state2 = state1.applyChanges(blockChanges, VersionTag @@ block.id).get
+      val state2 = state1.applyChanges(blockChanges, VersionTag !@@ block.id).get
 
       blockChanges.toAppend.foreach { case Insertion(b) =>
         state2.closedBox(b.id) shouldBe Some(b)
