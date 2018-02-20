@@ -4,9 +4,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.mining.HybridMiningSettings
-import examples.hybrid.mining.PosForger.{StartForging, StopForging}
-import examples.hybrid.mining.PowMiner.{MineBlock, StartMining, StopMining}
-import scorex.core.{LocalInterface, ModifierId, VersionTag}
+import scorex.core.{LocalInterface, ModifierId}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 class HLocalInterface(override val viewHolderRef: ActorRef,
@@ -14,6 +12,9 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
                       posForgerRef: ActorRef,
                       minerSettings: HybridMiningSettings)
   extends LocalInterface[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock] {
+
+  import examples.hybrid.mining.PosForger.ReceivableMessages.{StartForging, StopForging}
+  import examples.hybrid.mining.PowMiner.ReceivableMessages.{MineBlock, StartMining, StopMining}
 
   private var block = false
 

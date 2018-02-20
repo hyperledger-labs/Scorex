@@ -5,7 +5,6 @@ import java.net.InetSocketAddress
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.scalatest._
-import scorex.core.network.peer.PeerManager.{AddOrUpdatePeer, GetAllPeers}
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.NetworkTimeProvider
 import scala.concurrent.duration._
@@ -15,6 +14,8 @@ class PeerManagerSpec extends TestKit(ActorSystem("PeerManager"))
   with FlatSpecLike
   with Matchers
   with BeforeAndAfterAll {
+
+  import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, GetAllPeers}
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)

@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import io.circe.syntax._
-import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
+import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.consensus.History
 import scorex.core.network.ConnectedPeer
 import scorex.core.settings.RESTApiSettings
@@ -24,6 +24,8 @@ import scala.util.{Failure, Success, Try}
 case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 (override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
 (implicit val context: ActorRefFactory) extends ApiRoute {
+
+  import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 
   override val route = pathPrefix("nodeView") {
     openSurface ~ persistentModifierById ~ pool

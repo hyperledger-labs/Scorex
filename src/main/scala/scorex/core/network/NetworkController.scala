@@ -9,7 +9,6 @@ import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
-import scorex.core.network.peer.PeerManager
 import scorex.core.network.peer.PeerManager.EventType
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -19,7 +18,6 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.existentials
-import scala.reflect.runtime.universe.TypeTag
 import scala.util.{Failure, Success, Try}
 import scala.language.postfixOps
 
@@ -34,7 +32,10 @@ class NetworkController(settings: NetworkSettings,
                         timeProvider: NetworkTimeProvider
                        ) extends Actor with ScorexLogging {
 
-  import NetworkController._
+  import NetworkController.ReceivableMessages._
+  import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
+  import scorex.core.network.peer.PeerManager.ReceivableMessages.{CheckPeers, FilterPeers, Disconnected, Subscribe}
+  import PeerConnectionHandler.ReceivableMessages.CloseConnection
 
   private implicit val system: ActorSystem = context.system
 
@@ -95,7 +96,7 @@ class NetworkController(settings: NetworkSettings,
   private def bindingLogic: Receive = {
     case Bound(_) =>
       log.info("Successfully bound to the port " + settings.bindAddress.getPort)
-      context.system.scheduler.schedule(600.millis, 5.seconds)(peerManagerRef ! PeerManager.CheckPeers)
+      context.system.scheduler.schedule(600.millis, 5.seconds)(peerManagerRef ! CheckPeers)
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
@@ -124,7 +125,7 @@ class NetworkController(settings: NetworkSettings,
       }
 
     case SendToNetwork(message, sendingStrategy) =>
-      (peerManagerRef ? PeerManager.FilterPeers(sendingStrategy))
+      (peerManagerRef ? FilterPeers(sendingStrategy))
         .map(_.asInstanceOf[Seq[ConnectedPeer]])
         .foreach(_.foreach(_.handlerRef ! message))
   }
@@ -143,14 +144,14 @@ class NetworkController(settings: NetworkSettings,
 
     case DisconnectFrom(peer) =>
       log.info(s"Disconnected from ${peer.socketAddress}")
-      peer.handlerRef ! PeerConnectionHandler.CloseConnection
-      peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
+      peer.handlerRef ! CloseConnection
+      peerManagerRef ! Disconnected(peer.socketAddress)
 
     case Blacklist(peer) =>
-      peer.handlerRef ! PeerConnectionHandler.Blacklist
+      peer.handlerRef ! PeerConnectionHandler.ReceivableMessages.Blacklist
       // todo: the following message might become unnecessary if we refactor PeerManager to automatically
       // todo: remove peer from `connectedPeers` on receiving `AddToBlackList` message.
-      peerManagerRef ! PeerManager.Disconnected(peer.socketAddress)
+      peerManagerRef ! Disconnected(peer.socketAddress)
 
     case Connected(remote, local) =>
       val direction = if(outgoing.contains(remote)) Outgoing else Incoming
@@ -168,21 +169,21 @@ class NetworkController(settings: NetworkSettings,
     case CommandFailed(c: Connect) =>
       outgoing -= c.remoteAddress
       log.info("Failed to connect to : " + c.remoteAddress)
-      peerManagerRef ! PeerManager.Disconnected(c.remoteAddress)
+      peerManagerRef ! Disconnected(c.remoteAddress)
   }
 
   //calls from API / application
   def interfaceCalls: Receive = {
     case ShutdownNetwork =>
       log.info("Going to shutdown all connections & unbind port")
-      (peerManagerRef ? PeerManager.FilterPeers(Broadcast))
+      (peerManagerRef ? FilterPeers(Broadcast))
         .map(_.asInstanceOf[Seq[ConnectedPeer]])
-        .foreach(_.foreach(_.handlerRef ! PeerConnectionHandler.CloseConnection))
+        .foreach(_.foreach(_.handlerRef ! CloseConnection))
       self ! Unbind
       context stop self
 
     case SubscribePeerManagerEvent(events) =>
-      peerManagerRef ! PeerManager.Subscribe(sender(), events)
+      peerManagerRef ! Subscribe(sender(), events)
   }
 
   override def receive: Receive = bindingLogic orElse businessLogic orElse peerLogic orElse interfaceCalls orElse {
@@ -199,22 +200,15 @@ class NetworkController(settings: NetworkSettings,
 }
 
 object NetworkController {
-
-  case class RegisterMessagesHandler(specs: Seq[MessageSpec[_]], handler: ActorRef)
-
-  case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
-
-  case object ShutdownNetwork
-
-  case class ConnectTo(address: InetSocketAddress)
-
-  case class DisconnectFrom(peer: ConnectedPeer)
-
-  case class Blacklist(peer: ConnectedPeer)
-
-  case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
-
-  case class SubscribePeerManagerEvent(events: Seq[EventType.Value])
+  object ReceivableMessages {
+    case class RegisterMessagesHandler(specs: Seq[MessageSpec[_]], handler: ActorRef)
+    case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
+    case object ShutdownNetwork
+    case class ConnectTo(address: InetSocketAddress)
+    case class DisconnectFrom(peer: ConnectedPeer)
+    case class Blacklist(peer: ConnectedPeer)
+    case class SubscribePeerManagerEvent(events: Seq[EventType.Value])
+  }
 }
 
 object NetworkControllerRef {

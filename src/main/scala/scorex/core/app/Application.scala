@@ -7,7 +7,7 @@ import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.api.http.{ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
-import scorex.core.network.peer.{PeerManager, PeerManagerRef}
+import scorex.core.network.peer.PeerManagerRef
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
@@ -17,6 +17,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 trait Application extends ScorexLogging {
+
+  import scorex.core.network.NetworkController.ReceivableMessages.ShutdownNetwork
 
   type P <: Proposition
   type TX <: Transaction[P]
@@ -92,7 +94,7 @@ trait Application extends ScorexLogging {
   def stopAll(): Unit = synchronized {
     log.info("Stopping network services")
     if (settings.network.upnpEnabled) upnp.deletePort(settings.network.bindAddress.getPort)
-    networkControllerRef ! NetworkController.ShutdownNetwork
+    networkControllerRef ! ShutdownNetwork
 
     log.info("Stopping actors (incl. block generator)")
     actorSystem.terminate().onComplete { _ =>

@@ -9,8 +9,6 @@ import akka.util.{ByteString, CompactByteString}
 import com.google.common.primitives.Ints
 import scorex.core.app.Version
 import scorex.core.network.message.MessageHandler
-import scorex.core.network.peer.PeerManager
-import scorex.core.network.peer.PeerManager.{AddToBlacklist, Handshaked}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
@@ -56,7 +54,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
                             remote: InetSocketAddress,
                             timeProvider: NetworkTimeProvider) extends Actor with Buffering with ScorexLogging {
 
-  import PeerConnectionHandler._
+  import PeerConnectionHandler.CommunicationState
+  import PeerConnectionHandler.ReceivableMessages._
+  import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Handshaked, Disconnected, DoConnecting}
 
   context watch connection
 
@@ -74,8 +74,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
 
-  private object HandshakeDone
-
   private var chunksBuffer: ByteString = CompactByteString()
 
 
@@ -88,7 +86,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeWriting
 
     case cc: ConnectionClosed =>
-      peerManagerRef ! PeerManager.Disconnected(remote)
+      peerManagerRef ! Disconnected(remote)
       log.info("Connection closed to : " + remote + ": " + cc.getErrorCause + s" in state $stateName")
       context stop self
 
@@ -196,7 +194,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
 
   override def preStart: Unit = {
-    peerManagerRef ! PeerManager.DoConnecting(remote, direction)
+    peerManagerRef ! DoConnecting(remote, direction)
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
     (self ! HandshakeTimeout))
     connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
@@ -209,18 +207,19 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 }
 
 object PeerConnectionHandler {
-  case object StartInteraction
 
   private object CommunicationState extends Enumeration {
     val AwaitingHandshake = Value("AwaitingHandshake")
     val WorkingCycle = Value("WorkingCycle")
   }
 
-  case object HandshakeTimeout
-
-  case object CloseConnection
-
-  case object Blacklist
+  object ReceivableMessages {
+    private[PeerConnectionHandler] object HandshakeDone
+    case object StartInteraction
+    case object HandshakeTimeout
+    case object CloseConnection
+    case object Blacklist
+  }
 }
 
 /*
