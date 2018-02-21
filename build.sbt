@@ -2,6 +2,7 @@
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
+  wartremoverErrors ++= Seq(Wart.Recursion),
   scalaVersion := "2.12.3",
   organization := "org.scorexfoundation",
   licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
