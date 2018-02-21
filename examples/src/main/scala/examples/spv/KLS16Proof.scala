@@ -3,6 +3,7 @@ package examples.spv
 import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core.serialization.Serializer
 
+import scala.annotation.tailrec
 import scala.util.Try
 
 case class KLS16Proof(m: Int,
@@ -83,6 +84,7 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
     val i = bytes(2)
     val headSuffixLength = Shorts.fromByteArray(bytes.slice(3, 5))
     val headSuffix = HeaderSerializer.parseBytes(bytes.slice(5, 5 + headSuffixLength)).get
+    @tailrec
     def parseSuffixes(index: Int, acc: Seq[Header]): (Int, Seq[Header]) = {
       if (acc.length == k) (index, acc.reverse)
       else {
