@@ -4,6 +4,7 @@ import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core.serialization.Serializer
 import scorex.crypto.encode.Base58
 
+import scala.annotation.tailrec
 import scala.util.Try
 
 case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[Header]) {
@@ -52,6 +53,7 @@ object KMZProofSerializer extends Serializer[KMZProof] {
     val headSuffix = HeaderSerializer.parseBytes(bytes.slice(4, 4 + headSuffixLength)).get
     val l = HeaderSerializer.BytesWithoutInterlinksLength
 
+    @tailrec
     def parseSuffixes(index: Int, acc: Seq[Header]): (Int, Seq[Header]) = {
       if (acc.length == k) (index, acc.reverse)
       else {

@@ -17,6 +17,7 @@ object SpvAlgos {
   def constructInterlinkVector(parent: Header): Seq[Array[Byte]] = {
     val genesisId = parent.interlinks.head
 
+    @tailrec
     def generateInnerchain(curDifficulty: BigInt, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = {
       if (parent.realDifficulty >= curDifficulty) {
         generateInnerchain(curDifficulty * 2, acc :+ parent.id)
@@ -42,6 +43,7 @@ object SpvAlgos {
     def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
 
     //Algorithm 3 from the KMZ paper
+    @tailrec
     def prove(boundary: Header, i: Int, acc: Seq[Seq[Header]]): Seq[Seq[Header]] = {
       if (i == 0) {
         acc

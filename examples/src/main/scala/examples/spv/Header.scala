@@ -49,6 +49,7 @@ case class Header(parentId: BlockId,
 
 object HeaderSerializer extends Serializer[Header] {
   override def toBytes(h: Header): Array[Byte] = {
+    @tailrec
     def interlinkBytes(links: Seq[Array[Byte]], acc: Array[Byte]): Array[Byte] = {
       if (links.isEmpty) {
         acc
