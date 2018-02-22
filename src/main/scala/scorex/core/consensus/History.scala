@@ -28,7 +28,7 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
   /**
     * Report that modifier is valid from other nodeViewHolder components point of view
     */
-  def reportSemanticValidity(modifier: PM, valid: Boolean, lastApplied: ModifierId): (HT, ProgressInfo[PM])
+  def reportSemanticValidity(modifier: PM, valid: Boolean): (HT, ProgressInfo[PM])
 
   /**
     * @return read-only copy of this history

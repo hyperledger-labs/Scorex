@@ -247,11 +247,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           case Some(modToApply) =>
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
+                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true)
                 notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
+                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false)
                 notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
                 updateState(newHis, stateToApply, newProgressInfo)
             }
