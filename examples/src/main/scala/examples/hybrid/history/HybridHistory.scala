@@ -428,8 +428,7 @@ class HybridHistory(val storage: HistoryStorage,
 
   //todo: real impl
   override def reportSemanticValidity(modifier: HybridBlock,
-                                      valid: Boolean,
-                                      lastApplied: ModifierId): (HybridHistory, ProgressInfo[HybridBlock]) = {
+                                      valid: Boolean): (HybridHistory, ProgressInfo[HybridBlock]) = {
     this -> ProgressInfo(None, Seq(), None, Seq())
   }
 
