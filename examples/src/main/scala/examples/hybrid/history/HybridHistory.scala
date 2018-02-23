@@ -194,8 +194,12 @@ class HybridHistory(val storage: HistoryStorage,
 
     val rollbackPoint = newSuffix.headOption
 
-    val throwBlocks = oldSuffix.drop(1).map(id => modifierById(id).get)
-    val applyBlocks = newSuffix.drop(1).map(id => modifierById(id).get) ++ Seq(block)
+    // TODO: fixme, What should we do if `oldSuffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
+    // TODO: fixme, What should we do if `newSuffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(block)
     require(applyBlocks.nonEmpty)
     require(throwBlocks.nonEmpty)
 
@@ -292,7 +296,10 @@ class HybridHistory(val storage: HistoryStorage,
       case None => if (otherLastPowBlocks.length <= 1) {
         Seq()
       } else {
-        divergentSuffix(otherLastPowBlocks.drop(1), newSuffix)
+        // TODO: fixme, What should we do if `otherLastPowBlocks` is empty?
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+        val otherLastPowBlocksTail = otherLastPowBlocks.tail
+        divergentSuffix(otherLastPowBlocksTail, newSuffix)
       }
     }
   }

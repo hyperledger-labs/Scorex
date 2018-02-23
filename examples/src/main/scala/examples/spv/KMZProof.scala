@@ -23,7 +23,9 @@ object KMZProofSerializer extends Serializer[KMZProof] {
 
 
   override def toBytes(obj: KMZProof): Array[Byte] = {
-    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.drop(1).map { h =>
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
       HeaderSerializer.bytesWithoutInterlinks(h)
     })
     val prefixHeaders: Map[String, Header] = obj.prefixProofs.flatten.map(h => h.encodedId -> h).toMap

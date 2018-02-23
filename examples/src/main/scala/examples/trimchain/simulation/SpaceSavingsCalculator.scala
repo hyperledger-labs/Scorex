@@ -18,7 +18,9 @@ object SpaceSavingsCalculator extends App {
 
   //  println(lines.head)
 
-  val data = lines.drop(1).take(finish).map(_.split(","))
+  // TODO: fixme, What should we do if `lines` is empty?
+  @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+  val data = lines.tail.take(finish).map(_.split(","))
 
   val blockSizes = data.map(_.apply(8)).map(_.toLong)
 

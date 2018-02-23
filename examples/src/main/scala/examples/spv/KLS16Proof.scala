@@ -65,7 +65,9 @@ case class KLS16Proof(m: Int,
 
 object KLS16ProofSerializer extends Serializer[KLS16Proof] {
   override def toBytes(obj: KLS16Proof): Array[Byte] = {
-    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.drop(1).map { h =>
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
       val bytes = HeaderSerializer.bytesWithoutInterlinks(h)
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
     })
