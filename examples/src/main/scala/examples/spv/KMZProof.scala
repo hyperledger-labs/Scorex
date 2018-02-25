@@ -60,7 +60,7 @@ object KMZProofSerializer extends Serializer[KMZProof] {
       if (acc.length == k) (index, acc.reverse)
       else {
         val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index, index + l)).get
-        // TODO: What should we do if `acc` is empty?
+        // TODO: fixme, What should we do if `acc` is empty?
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
         parseSuffixes(index + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)

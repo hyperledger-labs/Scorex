@@ -47,7 +47,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
         val pairCompleted = view.history.pairCompleted
         val bestPowBlock = view.history.bestPowBlock
         val bestPosId = view.history.bestPosId
-        // TODO: What should we do if `view.vault.generateNewSecret().publicKeys` is empty?
+        // TODO: fixme, What should we do if `view.vault.generateNewSecret().publicKeys` is empty?
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val pubkey = view.vault.publicKeys.headOption getOrElse view.vault.generateNewSecret().publicKeys.head
         PowMiningInfo(pairCompleted, difficulty, bestPowBlock, bestPosId, pubkey)

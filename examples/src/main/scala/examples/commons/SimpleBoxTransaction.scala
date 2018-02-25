@@ -130,7 +130,7 @@ object SimpleBoxTransaction {
       w.secretByPublicImage(b.box.proposition).map(s => (s, b.box.nonce, b.box.value))
     }.toIndexedSeq
     val canSend = from.map(_._3.toLong).sum
-    // TODO: What should we do if `w.publicKeys` is empty?
+    // TODO: fixme, What should we do if `w.publicKeys` is empty?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val charge: (PublicKey25519Proposition, Value) = (w.publicKeys.head, Value @@ (canSend - amount - fee))
 

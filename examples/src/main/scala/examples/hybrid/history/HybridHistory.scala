@@ -218,7 +218,7 @@ class HybridHistory(val storage: HistoryStorage,
       val lastPow = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
       val powBlocks = lastPowBlocks(DifficultyRecalcPeriod, lastPow) //.ensuring(_.length == DifficultyRecalcPeriod)
 
-      // TODO: What should we do if `powBlocksHead` is empty?
+      // TODO: fixme, What should we do if `powBlocksHead` is empty?
       @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
       val powBlocksHead = powBlocks.head
       val realTime = lastPow.timestamp - powBlocksHead.timestamp
@@ -286,7 +286,7 @@ class HybridHistory(val storage: HistoryStorage,
   @tailrec
   private def divergentSuffix(otherLastPowBlocks: Seq[ModifierId],
                               suffixFound: Seq[ModifierId] = Seq()): Seq[ModifierId] = {
-    // TODO: What should we do if `otherLastPowBlocks` is empty? Could we return Seq[ModifierId]() in that case?
+    // TODO: fixme, What should we do if `otherLastPowBlocks` is empty? Could we return Seq[ModifierId]() in that case?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val head = otherLastPowBlocks.head
     val newSuffix = suffixFound :+ head
@@ -296,7 +296,7 @@ class HybridHistory(val storage: HistoryStorage,
       case None => if (otherLastPowBlocks.length <= 1) {
         Seq()
       } else {
-        // TODO: fixme, What should we do if `otherLastPowBlocks` is empty?
+        // `otherLastPowBlocks.tail` is safe as its length is greater than 1
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val otherLastPowBlocksTail = otherLastPowBlocks.tail
         divergentSuffix(otherLastPowBlocksTail, newSuffix)
@@ -432,10 +432,11 @@ class HybridHistory(val storage: HistoryStorage,
     }
     (winnerChain, loserChain.takeRight(loserChain.length - i))
   } ensuring { r =>
-    val condition = for(r1 <- r._1.headOption;
-                        r2 <- r._2.headOption
-                       ) yield r1 sameElements r2
-    condition getOrElse false
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val r1 = r._1.head
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val r2 = r._2.head
+    r1 sameElements r2
   }
 
   /**

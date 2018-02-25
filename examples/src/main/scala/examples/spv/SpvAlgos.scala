@@ -15,7 +15,7 @@ object SpvAlgos {
   }
 
   def constructInterlinkVector(parent: Header): Seq[Array[Byte]] = {
-    // TODO: What should we do if `parent.interlinks` is empty? Can we return an empty sequence here?
+    // TODO: fixme, What should we do if `parent.interlinks` is empty? Can we return an empty sequence here?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val genesisId = parent.interlinks.head
 
@@ -52,7 +52,8 @@ object SpvAlgos {
       if (i == 0) {
         acc
       } else {
-        // TODO: What should we do if `suffix` is empty?
+        // TODO: `suffix.head` seems to be safe due to the requirement that k < C.length
+        //       at the definition of `suffix`
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val firstSuffix: Header = suffix.head
         val inC: Seq[Header] = constructInnerChain(firstSuffix, i, boundary, headerById)
@@ -68,7 +69,9 @@ object SpvAlgos {
       }
     }
 
-    // TODO: What should we do if `C` is empty?
+    // TODO: `C.head` seems to be safe as it is required that
+    //       `0 < m < C.longth` and `0 < k < C.longth` at
+    //        the begining of this method
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val boundary = C.head
     val proofChains = prove(boundary, i, Seq())
@@ -111,7 +114,7 @@ object SpvAlgos {
     require(k > 0 && k < blockchain.length, s"$k > 0 && $k < ${blockchain.length}")
 
     val (_, suffix: Seq[Header]) = blockchain.splitAt(blockchain.length - k)
-    // TODO: What should we do if `firstSuffix` is empty?
+    // TODO: `firstSuffix.head` seems to be safe due to th requirement that k < blockchain.length
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val firstSuffix = suffix.head
 
@@ -124,7 +127,7 @@ object SpvAlgos {
     def constructProof(i: Int): (Int, Seq[Header]) = {
       @tailrec
       def loop(acc: Seq[Header]): Seq[Header] = {
-        // TODO: What should we do if `acc` is empty?
+        // TODO: fixme, What should we do if `acc` is empty?
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interHeader = acc.head
         if (interHeader.interlinks.length > i) {
