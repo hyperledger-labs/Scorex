@@ -44,7 +44,7 @@ trait SimulatorFuctions {
                stateRoot: Array[Byte],
                transactionsRoot: Array[Byte],
                timestamp: Timestamp): Header = {
-    //TODO: Review this logic, what should happen if `parents` is empty?
+    //TODO: fixme, What should happen if `parents` is empty?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val parent = parents.head
     val interlinks: Seq[Array[Byte]] = if (parents.length > 1) SpvAlgos.constructInterlinkVector(parent)

@@ -318,7 +318,7 @@ class HybridHistory(val storage: HistoryStorage,
         log.warn(s"CompareNonsense: ${other.lastPowBlockIds.toList.map(Base58.encode)} at height $height}")
         HistoryComparisonResult.Nonsense
       case 1 =>
-        // TODO: What should happen if `dSuffix` is empty?
+        // `dSuffix.head` is safe as `dSuffix.length` is 1
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val dSuffixHead = dSuffix.head
         if (dSuffixHead sameElements bestPowId) {

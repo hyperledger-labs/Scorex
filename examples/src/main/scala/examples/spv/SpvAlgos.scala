@@ -40,7 +40,7 @@ object SpvAlgos {
 
     val (prefix, suffix: Seq[Header]) = C.splitAt(C.length - k)
 
-    // TODO: What would be a more meaningful name for `i`? We also need a default value when `prefix` is empty
+    // TODO: fixme, What would be a more meaningful name for `i`? We also need a default value when `prefix` is empty
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val i = prefix.last.interlinks.size - 1
     val blockchainMap: Map[ByteArrayWrapper, Header] = C.map(b => ByteArrayWrapper(b.id) -> b).toMap
@@ -125,16 +125,17 @@ object SpvAlgos {
 
     @tailrec
     def constructProof(i: Int): (Int, Seq[Header]) = {
+
+      // TODO: `acc` is never empty here, we may add a require stating so
       @tailrec
+      @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
       def loop(acc: Seq[Header]): Seq[Header] = {
-        // TODO: fixme, What should we do if `acc` is empty?
-        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interHeader = acc.head
         if (interHeader.interlinks.length > i) {
           val header = headerById(interHeader.interlinks(i))
           loop(header +: acc)
         } else {
-          acc dropRight 1
+          acc.init
         }
       }
 

@@ -20,9 +20,11 @@ case class KLS16Proof(m: Int,
       a.parentId
     }
 
-    for(firstSuffix    <- suffix.headOption;
-        lastInnerchain <- innerchain.lastOption
-       ) require(firstSuffix.interlinks(i) sameElements lastInnerchain.id)
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val firstSuffix = suffix.head
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val lastInnerchain = innerchain.last
+    require(firstSuffix.interlinks(i) sameElements lastInnerchain.id)
 
 
     val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
@@ -95,7 +97,7 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
       else {
         val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
         val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
-        //TODO: Review this logic, what should happen if `acc` is empty?
+        //TODO: fixme, What should happen if `acc` is empty?
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
         parseSuffixes(index + 2 + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
