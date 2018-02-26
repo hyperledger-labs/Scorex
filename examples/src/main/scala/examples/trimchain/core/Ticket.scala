@@ -17,7 +17,7 @@ case class Ticket(minerKey: Array[Byte], partialProofs: Seq[SerializedAdProof]) 
 }
 
 object Ticket {
-  implicit val tickerEncoder: Encoder[Ticket] = (t: Ticket) =>
+  implicit val ticketEncoder: Encoder[Ticket] = (t: Ticket) =>
     Map(
       "minerKey" -> Base58.encode(t.minerKey).asJson,
       "proofs" -> t.partialProofs.map(Base58.encode).asJson

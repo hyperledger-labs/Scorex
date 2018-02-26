@@ -1,6 +1,5 @@
 package scorex.core.transaction.box
 
-import io.circe.Json
 import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.authds._
@@ -13,7 +12,6 @@ trait Box[P <: Proposition] extends BytesSerializable {
   val proposition: P
 
   val id: ADKey
-  val json: Json
 }
 
 object Box {

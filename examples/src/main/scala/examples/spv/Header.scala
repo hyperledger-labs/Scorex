@@ -33,8 +33,6 @@ case class Header(parentId: BlockId,
   override type M = Header
 
   override def serializer: Serializer[Header] = HeaderSerializer
-
-  override def json: Json = this.asJson
 }
 
 object Header {

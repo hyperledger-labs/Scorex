@@ -97,8 +97,6 @@ case class PowBlock(override val parentId: BlockId,
 
   //todo: coinbase transaction?
   override def transactions: Seq[SimpleBoxTransaction] = Seq()
-
-  override def json: Json = this.asJson
 }
 
 object PowBlockCompanion extends Serializer[PowBlock] {

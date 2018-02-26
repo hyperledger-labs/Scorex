@@ -37,8 +37,6 @@ case class PosBlock(override val parentId: BlockId, //PoW block
     ModifierId @@ Blake2b256(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
 
   override def toString: String = s"PoSBlock(${this.asJson.noSpaces})"
-
-  override def json: Json = this.asJson
 }
 
 object PosBlockCompanion extends Serializer[PosBlock] {
@@ -90,7 +88,7 @@ object PosBlock {
       "parentId" -> Base58.encode(psb.parentId).asJson,
       "attachment" -> Base58.encode(psb.attachment).asJson,
       "timestamp" -> psb.timestamp.asJson,
-      "transactions" -> psb.transactions.map(_.json).asJson,
+      "transactions" -> psb.transactions.map(_.asJson).asJson,
       "generatorBox" -> psb.generatorBox.asJson,
       "signature" -> Base58.encode(psb.signature.bytes).asJson
     ).asJson

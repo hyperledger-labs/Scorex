@@ -29,8 +29,6 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
   override type M = TBlock
 
   override def serializer: Serializer[TBlock] = TBlockSerializer
-
-  override def json: Json = this.asJson
 }
 
 object TBlockSerializer extends Serializer[TBlock] {
@@ -70,7 +68,7 @@ object TBlock {
   implicit val tBlockEncoder: Encoder[TBlock] = (tb: TBlock) =>
     Map(
       "header" -> tb.header.asJson,
-      "body" -> tb.body.map(_.json).asJson,
+      "body" -> tb.body.map(_.asJson).asJson,
       "timestamp" -> tb.timestamp.asJson
     ).asJson
 }

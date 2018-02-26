@@ -36,13 +36,16 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
     }
   }
 
-  def infoRoute: Route = (get & path("info")) {
-    withNodeView { view =>
-      complete(SuccessApiResponse(
+  def infoRoute: Route = path("info") {
+    val info = viewAsync().map { view =>
+      val bestBlockJson = if(view.history.bestBlock.isInstanceOf[PosBlock]) view.history.bestBlock.asInstanceOf[PosBlock].asJson
+      else view.history.bestBlock.asInstanceOf[PowBlock].asJson
+
+      SuccessApiResponse(Map(
         "height" -> view.history.height.toString.asJson,
         "bestPoS" -> Base58.encode(view.history.bestPosId).asJson,
         "bestPoW" -> Base58.encode(view.history.bestPowId).asJson,
-        "bestBlock" -> view.history.bestBlock.json,
+        "bestBlock" -> bestBlockJson,
         "stateVersion" -> Base58.encode(view.state.version).asJson
       ))
     }

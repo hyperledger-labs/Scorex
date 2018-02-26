@@ -10,7 +10,7 @@ import scorex.crypto.hash.Blake2b256
   * A transaction is an atomic state modifier
   */
 
-abstract class Transaction[P <: Proposition] extends EphemerealNodeViewModifier with JsonSerializable {
+abstract class Transaction[P <: Proposition] extends EphemerealNodeViewModifier {
   override val modifierTypeId: ModifierTypeId = Transaction.ModifierTypeId
 
   val messageToSign: Array[Byte]

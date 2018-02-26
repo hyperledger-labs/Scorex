@@ -29,8 +29,6 @@ case class BlockHeader(override val parentId: ModifierId,
   }
 
   override lazy val serializer = BlockHeaderSerializer
-
-  override def json: Json = this.asJson
 }
 
 object BlockHeader {

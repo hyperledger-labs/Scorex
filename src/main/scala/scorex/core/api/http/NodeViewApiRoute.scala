@@ -7,6 +7,7 @@ import io.circe.syntax._
 import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.consensus.History
 import scorex.core.network.ConnectedPeer
+import scorex.core.serialization.SerializerRegistry
 import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -16,14 +17,14 @@ import scorex.core.{ModifierId, PersistentNodeViewModifier}
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 
 case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 (override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
-(implicit val context: ActorRefFactory) extends ApiRoute {
+(implicit val context: ActorRefFactory, val serializerReg: SerializerRegistry) extends ApiRoute {
 
   import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 

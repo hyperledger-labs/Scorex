@@ -14,10 +14,10 @@ class UtxoSnapshot(override val parentId: ModifierId,
   //todo: check statically or dynamically output size
   override def id: ModifierId = header.id
 
+  //todo: for Dmitry: implement header + utxo root printing
+
   override type M = UtxoSnapshot
 
   //todo: for Dmitry: implement: dump all the boxes
   override def serializer: Serializer[M] = ???
-
-  override def json = ???
 }

@@ -71,8 +71,6 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
       proof.isValid(prop, messageToSign)
     })
   }
-
-  override def json: Json = this.asJson
 }
 
 

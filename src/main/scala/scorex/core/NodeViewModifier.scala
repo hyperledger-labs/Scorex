@@ -37,7 +37,7 @@ object NodeViewModifier {
 }
 
 
-trait PersistentNodeViewModifier extends NodeViewModifier with JsonSerializable {
+trait PersistentNodeViewModifier extends NodeViewModifier {
   def parentId: ModifierId
 }
 

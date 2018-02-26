@@ -22,8 +22,6 @@ case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Propo
 
   override def toString: String =
     s"PublicKey25519NoncedBox(id: ${Base16.encode(id)}, proposition: $proposition, nonce: $nonce, value: $value)"
-
-  override val json = this.asJson
 }
 
 object PublicKey25519NoncedBox {
