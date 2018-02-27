@@ -37,9 +37,12 @@ object KMZProofSerializer extends Serializer[KMZProof] {
       Shorts.toByteArray(chain.length.toShort) ++ chain.flatMap(_.id)
     })
 
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val suffixHead = obj.suffix.head
     Bytes.concat(Array(obj.m.toByte, obj.k.toByte),
-      Shorts.toByteArray(obj.suffix.headOption.map(_.bytes.length.toShort) getOrElse 0),
-      obj.suffix.headOption.map(_.bytes) getOrElse Array[Byte](),
+      Shorts.toByteArray(suffixHead.bytes.length.toShort),
+      suffixHead.bytes,
       suffixTailBytes,
       Shorts.toByteArray(prefixHeaders.size.toShort),
       prefixHeadersBytes,

@@ -77,9 +77,13 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
       val bytes = h.bytes
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
     })
+
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val suffixHead = obj.suffix.head
     Bytes.concat(Array(obj.m.toByte, obj.k.toByte, obj.i.toByte),
-      Shorts.toByteArray(obj.suffix.headOption.map(_.bytes.length.toShort) getOrElse 0),
-      obj.suffix.headOption.map(_.bytes) getOrElse Array[Byte](),
+      Shorts.toByteArray(suffixHead.bytes.length.toShort),
+      suffixHead.bytes,
       suffixTailBytes,
       Shorts.toByteArray(obj.innerchain.length.toShort),
       interchainBytes)
