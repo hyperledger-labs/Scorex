@@ -69,6 +69,8 @@ object PrivateChain extends App with ScorexLogging {
 
     println("Boxes set size: " + boxes.size)
 
+    // TODO: review me, could `firstId` still be null at the end of the do-while loop?
+    @SuppressWarnings(Array("org.wartremover.warts.Null"))
     var firstId: BlockId = null
 
     do {
