@@ -36,11 +36,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
                                                                               SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
                                                                               SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              NewOpenSurface, RollbackFailed,
+                                                                              NewOpenSurface,
                                                                               StartingPersistentModifierApplication}
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
                                                                       ChangedMempool, ChangedVault}
-  import scorex.core.LocalInterface.ReceivableMessages.ChangedState
+  import scorex.core.LocalInterface.ReceivableMessages.{ChangedState, RollbackFailed}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo

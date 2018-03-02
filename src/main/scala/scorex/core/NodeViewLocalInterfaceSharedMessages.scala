@@ -22,8 +22,7 @@ object NodeViewLocalInterfaceSharedMessages {
     //node view holder starting persistent modifier application
     case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
     case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
-    //todo: consider sending info on the rollback
-    case object RollbackFailed extends NodeViewHolderEvent
+
   }
 }
 
