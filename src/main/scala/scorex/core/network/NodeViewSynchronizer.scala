@@ -4,7 +4,6 @@ package scorex.core.network
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import scorex.core.NodeViewHolder.{NodeViewChange, NodeViewHolderEvent}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
@@ -345,6 +344,9 @@ object NodeViewSynchronizer {
                                                       extension: Option[Seq[(ModifierTypeId, ModifierId)]])
     case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
     case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
+
+    trait NodeViewHolderEvent
+    trait NodeViewChange extends NodeViewHolderEvent
     case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
     //TODO: return mempool reader
     case class ChangedMempool[MR <: MempoolReader[_ <: Transaction[_]]](mempool: MR) extends NodeViewChange

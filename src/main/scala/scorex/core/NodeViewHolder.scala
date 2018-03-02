@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ConnectedPeer
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
@@ -445,11 +446,9 @@ object NodeViewHolder {
     val VaultChanged: EventType.Value = Value(14)
   }
 
-  trait NodeViewHolderEvent
-  trait NodeViewChange extends NodeViewHolderEvent
-
-  // No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
-  // Even more, ModificationApplicationStarted seems not to be sent at all
+  // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
+  // fixme: Even more, ModificationApplicationStarted seems not to be sent at all
+  // fixme: should we delete these messages?
   case class ModificationApplicationStarted[PMOD <: PersistentNodeViewModifier](modifier: PMOD)
     extends NodeViewHolderEvent
 

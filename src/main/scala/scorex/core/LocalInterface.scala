@@ -1,7 +1,6 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.NodeViewHolder.{NodeViewChange, NodeViewHolderEvent}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.StateReader
@@ -109,6 +108,9 @@ object LocalInterface {
   object ReceivableMessages {
     case object NoBetterNeighbour
     case object BetterNeighbourAppeared
+
+    import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewHolderEvent, NodeViewChange}
+
     case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
     //todo: consider sending info on the rollback
     case object RollbackFailed extends NodeViewHolderEvent
