@@ -17,7 +17,6 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
                                                                               SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
                                                                               SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              NewOpenSurface, //RollbackFailed,
                                                                               StartingPersistentModifierApplication}
   import scorex.core.NodeViewHolder.ReceivableMessages.Subscribe
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
@@ -114,5 +113,6 @@ object LocalInterface {
     case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
     //todo: consider sending info on the rollback
     case object RollbackFailed extends NodeViewHolderEvent
+    case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
   }
 }
