@@ -36,10 +36,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
                                                                               SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
                                                                               SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              ChangedHistory, ChangedMempool, ChangedState,
-                                                                              ChangedVault, NewOpenSurface, RollbackFailed,
+                                                                              NewOpenSurface, RollbackFailed,
                                                                               StartingPersistentModifierApplication}
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.RequestFromLocal
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
+                                                                      ChangedMempool, ChangedVault}
+  import scorex.core.LocalInterface.ReceivableMessages.ChangedState
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
@@ -447,6 +448,7 @@ object NodeViewHolder {
   }
 
   trait NodeViewHolderEvent
+  trait NodeViewChange extends NodeViewHolderEvent
 
   // No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
   // Even more, ModificationApplicationStarted seems not to be sent at all

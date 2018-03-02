@@ -1,6 +1,7 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.NodeViewHolder.NodeViewChange
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.StateReader
@@ -16,7 +17,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
                                                                               SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
                                                                               SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              ChangedState, NewOpenSurface, RollbackFailed,
+                                                                              NewOpenSurface, RollbackFailed,
                                                                               StartingPersistentModifierApplication}
   import scorex.core.NodeViewHolder.ReceivableMessages.Subscribe
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
@@ -110,5 +111,6 @@ object LocalInterface {
   object ReceivableMessages {
     case object NoBetterNeighbour
     case object BetterNeighbourAppeared
+    case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
   }
 }

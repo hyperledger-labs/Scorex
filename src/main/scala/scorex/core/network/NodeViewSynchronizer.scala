@@ -4,6 +4,7 @@ package scorex.core.network
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import scorex.core.NodeViewHolder.NodeViewChange
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
@@ -51,8 +52,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   import NodeViewSynchronizer.ReceivableMessages._
   import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
                                                                               SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              ChangedHistory, ChangedMempool}
+                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification}
   import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
   import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler, SubscribePeerManagerEvent}
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
@@ -341,15 +341,19 @@ object NodeViewSynchronizer {
     case class CheckDelivery(source: ConnectedPeer,
                              modifierTypeId: ModifierTypeId,
                              modifierId: ModifierId)
-    // Moves from NodeViewHolder as this is only received here
     case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
                                                       status: History.HistoryComparisonResult.Value,
                                                       remoteSyncInfo: SI,
                                                       localSyncInfo: SI,
                                                       extension: Option[Seq[(ModifierTypeId, ModifierId)]])
-    // Relocated from PeerManager as this events are only received here
     case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
     case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
+    case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
+    //TODO: return mempool reader
+    case class ChangedMempool[MR <: MempoolReader[_ <: Transaction[_]]](mempool: MR) extends NodeViewChange
+    //TODO: return Vault reader
+    //FIXME: No actor process this message explicitly, it seems to be sent to NodeViewSynchcronizer
+    case class ChangedVault() extends NodeViewChange
   }
 }
 
