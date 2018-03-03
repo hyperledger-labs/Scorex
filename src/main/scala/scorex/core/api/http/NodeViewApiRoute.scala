@@ -100,7 +100,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     withPersistentModifier(encodedId) { tx =>
       val clazz = ClassTag(tx.getClass).runtimeClass
       val jsonOrErr = serializerReg.toJson(clazz, tx)
-      val response: ScorexApiResponse = Try(SuccessApiResponse(jsonOrErr.right.get))
+      val response: ScorexApiResponse = Try(SuccessApiResponse(jsonOrErr.right.get) : ScorexApiResponse)
         .getOrElse(ApiError(jsonOrErr.left.get.getMessage, StatusCodes.InternalServerError))
       complete(response)
     }

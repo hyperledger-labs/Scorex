@@ -153,7 +153,7 @@ class NetworkController(settings: NetworkSettings,
       peerManagerRef ! Disconnected(peer.socketAddress)
 
     case Connected(remote, local) =>
-      val direction = if(outgoing.contains(remote)) Outgoing else Incoming
+      val direction: ConnectionType = if(outgoing.contains(remote)) Outgoing else Incoming
       val logMsg = direction match {
         case Incoming => s"New incoming connection from $remote established (bound to local $local)"
         case Outgoing => s"New outgoing connection to $remote established (bound to local $local)"

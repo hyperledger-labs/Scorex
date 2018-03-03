@@ -51,7 +51,7 @@ class HybridHistory(val storage: HistoryStorage,
   val bestPowId = storage.bestPowId
   lazy val bestPosBlock = storage.bestPosBlock
   lazy val bestPowBlock = storage.bestPowBlock
-  lazy val bestBlock = if (pairCompleted) bestPosBlock else bestPowBlock
+  lazy val bestBlock: HybridBlock = if (pairCompleted) bestPosBlock else bestPowBlock
 
   /**
     * Return specified number of PoW blocks, ordered back from last one

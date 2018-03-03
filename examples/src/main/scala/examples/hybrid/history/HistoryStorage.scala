@@ -11,7 +11,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Sha256
 
-import scala.util.Failure
+import scala.util.{Failure, Try}
 
 class HistoryStorage(storage: LSMStore,
                      settings: HybridMiningSettings) extends ScorexLogging {
@@ -44,7 +44,7 @@ class HistoryStorage(storage: LSMStore,
     storage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
-      val parsed = mtypeId match {
+      val parsed: Try[HybridBlock] = mtypeId match {
         case t: Byte if t == PowBlock.ModifierTypeId =>
           PowBlockCompanion.parseBytes(bytes.tail)
         case t: Byte if t == PosBlock.ModifierTypeId =>

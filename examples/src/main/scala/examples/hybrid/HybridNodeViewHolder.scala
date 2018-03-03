@@ -102,8 +102,8 @@ object HybridNodeViewHolder extends ScorexLogging {
     history = history.append(powGenesis).get._1
     history = history.append(posGenesis).get._1
 
-    val gs = HBoxStoredState.genesisState(settings, Seq(posGenesis, powGenesis))
-    val gw = HWallet.genesisWallet(settings, Seq(posGenesis, powGenesis))
+    val gs = HBoxStoredState.genesisState(settings, Seq[HybridBlock](posGenesis, powGenesis))
+    val gw = HWallet.genesisWallet(settings, Seq[HybridBlock](posGenesis, powGenesis))
       .ensuring(_.boxes().map(_.box.value.toLong).sum >= GenesisBalance  || !Base58.encode(settings.wallet.seed.arr).startsWith("genesis"))
       .ensuring(_.boxes().forall(b => gs.closedBox(b.box.id).isDefined))
 
