@@ -55,7 +55,7 @@ MPool <: MemoryPool[TX, MPool]]
 
   import NodeViewHolder.ReceivableMessages.{Subscribe, GetDataFromCurrentView}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.LocallyGeneratedModifier
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SyntacticallySuccessfulModifier,
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SyntacticallySuccessfulModifier,
                                                                               SyntacticallyFailedModification,
                                                                               SemanticallySuccessfulModifier,
                                                                               SemanticallyFailedModification}
