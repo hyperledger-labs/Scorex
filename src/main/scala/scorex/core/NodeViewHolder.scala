@@ -155,7 +155,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     if (updatedHistory.nonEmpty) {
       notifySubscribers[ChangedHistory[HistoryReader[PMOD, SI]]](EventType.HistoryChanged, ChangedHistory(newNodeView._1.getReader))
     }
-    if (updatedState.nonEmpty && progressInfoOpt.nonEmpty) {
+    if (updatedState.nonEmpty) {
       notifySubscribers[ChangedState[StateReader, PMOD]](EventType.StateChanged, ChangedState(newNodeView._2.getReader, progressInfoOpt))
     }
     if (updatedVault.nonEmpty) {
