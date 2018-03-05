@@ -430,22 +430,18 @@ object NodeViewHolder {
     val SuccessfulSyntacticallyValidModifier: EventType.Value = Value(5)
     val SuccessfulSemanticallyValidModifier: EventType.Value = Value(6)
 
-
     //starting persistent modifier application. The application could be slow
     val StartingPersistentModifierApplication: EventType.Value = Value(7)
 
     val OpenSurfaceChanged: EventType.Value = Value(8)
 
-    //rollback failed, really wrong situation, probably
-    val FailedRollback: EventType.Value = Value(9)
+    val DownloadNeeded: EventType.Value = Value(9)
 
-    val DownloadNeeded: EventType.Value = Value(10)
-
-    val StateChanged: EventType.Value = Value(11)
-    val StateChangeFailed: EventType.Value = Value(12)
-    val HistoryChanged: EventType.Value = Value(13)
-    val MempoolChanged: EventType.Value = Value(14)
-    val VaultChanged: EventType.Value = Value(15)
+    val StateChanged: EventType.Value = Value(10)
+    val StateChangeFailed: EventType.Value = Value(11)
+    val HistoryChanged: EventType.Value = Value(12)
+    val MempoolChanged: EventType.Value = Value(13)
+    val VaultChanged: EventType.Value = Value(14)
   }
 
   trait NodeViewHolderEvent
@@ -458,5 +454,4 @@ object NodeViewHolder {
   case class DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) extends NodeViewHolderEvent
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
-
 }

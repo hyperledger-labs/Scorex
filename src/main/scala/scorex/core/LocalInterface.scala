@@ -15,13 +15,9 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   extends Actor with ScorexLogging {
 
   import scorex.core.LocalInterface.ReceivableMessages._
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
-                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              ChangedState, NewOpenSurface, RollbackFailed,
-                                                                              StartingPersistentModifierApplication}
+  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
   import scorex.core.NodeViewHolder.ReceivableMessages.Subscribe
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{ChangedState, FailedTransaction, NewOpenSurface, SemanticallyFailedModification, SemanticallySuccessfulModifier, StartingPersistentModifierApplication, SuccessfulTransaction, SyntacticallyFailedModification, SyntacticallySuccessfulModifier}
 
   val viewHolderRef: ActorRef
 
@@ -69,9 +65,6 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     case surf: NewOpenSurface =>
       onNewSurface(surf.newSurface)
 
-    case RollbackFailed =>
-      onRollbackFailed()
-
     case cs: ChangedState[StateReader@unchecked, PMOD] =>
       onChangedState(cs.reader, cs.progressInfoOpt)
 
@@ -94,7 +87,6 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def onSemanticallyFailedModification(mod: PMOD): Unit
 
   protected def onNewSurface(newSurface: Seq[ModifierId]): Unit
-  protected def onRollbackFailed(): Unit
   protected def onChangedState(r: StateReader, progressInfoOpt: Option[ProgressInfo[PMOD]]): Unit = {}
   protected def onChangedStateFailed(r: StateReader, progressInfoOpt: Option[ProgressInfo[PMOD]]): Unit = {}
 
