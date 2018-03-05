@@ -111,7 +111,7 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
     val modifiers = data._2
     Array(typeId) ++ Ints.toByteArray(modifiers.size) ++ modifiers.map { case (id, modifier) =>
       id ++ Ints.toByteArray(modifier.length) ++ modifier
-    }.reduce(_ ++ _)
+    }.fold(Array[Byte]())(_ ++ _)
   }
 }
 

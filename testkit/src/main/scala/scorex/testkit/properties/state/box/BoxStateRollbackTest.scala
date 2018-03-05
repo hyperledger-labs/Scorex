@@ -81,6 +81,7 @@ trait BoxStateRollbackTest[P <: Proposition,
       check { _ =>
         rollbackVersionOpt match {
           case None =>
+            @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
             val randomTx = txPair.head
             val block = semanticallyValidModifierWithCustomTransactions(state, Seq(randomTx))
             val blockChanges = newState.changes(block).get

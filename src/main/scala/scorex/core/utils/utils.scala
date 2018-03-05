@@ -55,8 +55,11 @@ package object utils {
     result
   }
 
-  def concatFixLengthBytes(seq: Traversable[Array[Byte]]): Array[Byte] = if(seq.isEmpty) Array[Byte]()
-  else concatFixLengthBytes(seq, seq.head.length)
+  def concatFixLengthBytes(seq: Traversable[Array[Byte]]): Array[Byte] = seq.headOption match {
+    case None       => Array[Byte]()
+    case Some(head) => concatFixLengthBytes(seq, head.length)
+  }
+
 
   def concatFixLengthBytes(seq: Traversable[Array[Byte]], length: Int): Array[Byte] = {
     val result: Array[Byte] = new Array[Byte](seq.toSeq.length * length)

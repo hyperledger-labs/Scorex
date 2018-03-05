@@ -18,7 +18,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 trait NodeViewHolderTests[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier,

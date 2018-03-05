@@ -54,6 +54,8 @@ object HeaderSerializer extends Serializer[Header] {
       if (links.isEmpty) {
         acc
       } else {
+        // `links` is not empty, it is safe to call head
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val headLink: Array[Byte] = links.head
         val repeating: Byte = links.count(_ sameElements headLink).toByte
         interlinkBytes(links.drop(repeating), Bytes.concat(acc, Array(repeating), headLink))

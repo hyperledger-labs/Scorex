@@ -15,6 +15,7 @@ import scorex.crypto.signatures.Signature
 import scala.annotation.tailrec
 import scala.util.Random
 
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class HWalletSpecification extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks
