@@ -63,10 +63,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   import NodeViewSynchronizer.ReceivableMessages._
   import NetworkController.ReceivableMessages.{SendToNetwork, Blacklist}
   import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
-                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              ChangedHistory, ChangedMempool}
+
 
   property("NodeViewSynchronizer: SuccessfulTransaction") { withFixture { ctx =>
     import ctx._
