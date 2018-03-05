@@ -1,6 +1,8 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.ChangedStateFailed
+import scorex.core.consensus.History.ProgressInfo
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.StateReader
@@ -36,11 +38,12 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
       NodeViewHolder.EventType.OpenSurfaceChanged,
       NodeViewHolder.EventType.StateChanged,
-      NodeViewHolder.EventType.FailedRollback
+      NodeViewHolder.EventType.StateChangeFailed
     )
     viewHolderRef ! Subscribe(events)
   }
 
+  // scalastyle:off
   private def viewHolderEvents: Receive = {
     case st: SuccessfulTransaction[P, TX] =>
       onSuccessfulTransaction(st.transaction)
@@ -69,9 +72,13 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     case RollbackFailed =>
       onRollbackFailed()
 
-    case ChangedState(r) =>
-      onChangedState(r)
+    case cs: ChangedState[StateReader@unchecked, PMOD] =>
+      onChangedState(cs.reader, cs.progressInfoOpt)
+
+    case csf: ChangedStateFailed[StateReader@unchecked, PMOD] =>
+      onChangedStateFailed(csf.reader, csf.progressInfoOpt)
   }
+  // scalastyle:on
 
 
   protected def onSuccessfulTransaction(tx: TX): Unit
@@ -88,7 +95,8 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   protected def onNewSurface(newSurface: Seq[ModifierId]): Unit
   protected def onRollbackFailed(): Unit
-  protected def onChangedState(r: StateReader): Unit = {}
+  protected def onChangedState(r: StateReader, progressInfoOpt: Option[ProgressInfo[PMOD]]): Unit = {}
+  protected def onChangedStateFailed(r: StateReader, progressInfoOpt: Option[ProgressInfo[PMOD]]): Unit = {}
 
   protected def onNoBetterNeighbour(): Unit
   protected def onBetterNeighbourAppeared(): Unit

@@ -1,6 +1,7 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{ChangedStateFailed, SyntacticallyFailedModification}
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ConnectedPeer
@@ -31,16 +32,14 @@ import scala.util.{Failure, Success, Try}
 trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
 
-  import NodeViewHolder._
   import NodeViewHolder.ReceivableMessages._
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
-                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              ChangedHistory, ChangedMempool, ChangedState,
-                                                                              ChangedVault, NewOpenSurface, RollbackFailed,
-                                                                              StartingPersistentModifierApplication}
+  import NodeViewHolder._
+  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{ChangedHistory, ChangedMempool, ChangedState, ChangedVault, FailedTransaction}
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{NewOpenSurface, SemanticallyFailedModification, SemanticallySuccessfulModifier}
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{StartingPersistentModifierApplication, SuccessfulTransaction}
+  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SyntacticallySuccessfulModifier, SyntacticallyFailedModification}
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.RequestFromLocal
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
   type HIS <: History[PMOD, SI, HIS]
@@ -147,7 +146,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def updateNodeView(updatedHistory: Option[HIS] = None,
                                updatedState: Option[MS] = None,
                                updatedVault: Option[VL] = None,
-                               updatedMempool: Option[MP] = None): Unit = {
+                               updatedMempool: Option[MP] = None,
+                               progressInfoOpt: Option[History.ProgressInfo[PMOD]] = None): Unit = {
     val newNodeView = (updatedHistory.getOrElse(history()),
       updatedState.getOrElse(minimalState()),
       updatedVault.getOrElse(vault()),
@@ -155,8 +155,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     if (updatedHistory.nonEmpty) {
       notifySubscribers[ChangedHistory[HistoryReader[PMOD, SI]]](EventType.HistoryChanged, ChangedHistory(newNodeView._1.getReader))
     }
-    if (updatedState.nonEmpty) {
-      notifySubscribers[ChangedState[StateReader]](EventType.StateChanged, ChangedState(newNodeView._2.getReader))
+    if (updatedState.nonEmpty && progressInfoOpt.nonEmpty) {
+      notifySubscribers[ChangedState[StateReader, PMOD]](EventType.StateChanged, ChangedState(newNodeView._2.getReader, progressInfoOpt))
     }
     if (updatedVault.nonEmpty) {
       notifySubscribers[ChangedVault](EventType.VaultChanged, ChangedVault())
@@ -234,9 +234,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
 
         if (!state.version.sameElements(branchingPoint)) {
-          state.rollbackTo(branchingPoint).map { rs =>
-            rs
-          }
+          state.rollbackTo(branchingPoint)
         } else Success(state)
       }.flatten
     } else Success(state)
@@ -248,11 +246,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
-                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
+                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier,
+                  SemanticallySuccessfulModifier(modToApply))
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
-                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
+                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier,
+                  SemanticallyFailedModification(modToApply, e))
                 updateState(newHis, stateToApply, newProgressInfo)
             }
 
@@ -261,7 +261,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
-        notifySubscribers[RollbackFailed.type](EventType.FailedRollback, RollbackFailed)
+        notifySubscribers[ChangedStateFailed[StateReader, PMOD]](EventType.StateChangeFailed,
+          ChangedStateFailed[StateReader, PMOD](state.getReader, Some(progressInfo)))
         //todo: what to return here? the situation is totally wrong
         ???
     }
@@ -294,7 +295,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 }
 
                 log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
-                updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool))
+                updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool), Some(progressInfo))
 
 
               case Failure(e) =>
@@ -337,7 +338,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   protected def processRemoteModifiers: Receive = {
-    case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
+    case ModifiersFromRemote(_, modifierTypeId, remoteObjects) =>
       modifierSerializers.get(modifierTypeId) foreach { companion =>
         remoteObjects.flatMap(r => companion.parseBytes(r).toOption).foreach {
           case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
@@ -388,7 +389,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def getNodeViewChanges: Receive = {
     case GetNodeViewChanges(history, state, vault, mempool) =>
       if (history) sender() ! ChangedHistory(nodeView._1.getReader)
-      if (state) sender() ! ChangedState(nodeView._2.getReader)
+      if (state) sender() ! ChangedState[StateReader, PMOD](nodeView._2.getReader, None)
       if (vault) sender() ! ChangedVault()
       if (mempool) sender() ! ChangedMempool(nodeView._4.getReader)
   }
@@ -441,9 +442,10 @@ object NodeViewHolder {
     val DownloadNeeded: EventType.Value = Value(10)
 
     val StateChanged: EventType.Value = Value(11)
-    val HistoryChanged: EventType.Value = Value(12)
-    val MempoolChanged: EventType.Value = Value(13)
-    val VaultChanged: EventType.Value = Value(14)
+    val StateChangeFailed: EventType.Value = Value(12)
+    val HistoryChanged: EventType.Value = Value(13)
+    val MempoolChanged: EventType.Value = Value(14)
+    val VaultChanged: EventType.Value = Value(15)
   }
 
   trait NodeViewHolderEvent

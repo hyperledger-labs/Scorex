@@ -1,6 +1,7 @@
 package scorex.core
 
 import scorex.core.NodeViewHolder.NodeViewHolderEvent
+import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{HistoryReader, SyncInfo}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
@@ -10,10 +11,14 @@ import scorex.core.transaction.state.StateReader
 object NodeViewLocalInterfaceSharedMessages {
   object ReceivableMessages {
 
-    // As NodeViewChange is sealed, the entire family had to come here.
+    // As NodeViewChange is sealed, the entire family had to come here
     sealed trait NodeViewChange extends NodeViewHolderEvent
     // Received by LocalInterface
-    case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
+    case class ChangedState[SR <: StateReader, PMOD <: PersistentNodeViewModifier](reader: SR, progressInfoOpt: Option[ProgressInfo[PMOD]])
+      extends NodeViewChange
+    // Received by LocalInterface
+    case class ChangedStateFailed[SR <: StateReader, PMOD <: PersistentNodeViewModifier](reader: SR, progressInfoOpt: Option[ProgressInfo[PMOD]])
+      extends NodeViewChange
     // Received by NodeViewSynchcronizer
     case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
     //TODO: return mempool reader
