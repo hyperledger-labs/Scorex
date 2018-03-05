@@ -3,6 +3,7 @@ package examples.spv
 import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core.serialization.Serializer
 
+import scala.annotation.tailrec
 import scala.util.Try
 
 case class KLS16Proof(m: Int,
@@ -19,7 +20,12 @@ case class KLS16Proof(m: Int,
       a.parentId
     }
 
-    require(suffix.head.interlinks(i) sameElements innerchain.last.id)
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val firstSuffix = suffix.head
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val lastInnerchain = innerchain.last
+    require(firstSuffix.interlinks(i) sameElements lastInnerchain.id)
+
 
     val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
     require(innerchain.length >= m, s"${innerchain.length} >= $m")
@@ -61,6 +67,8 @@ case class KLS16Proof(m: Int,
 
 object KLS16ProofSerializer extends Serializer[KLS16Proof] {
   override def toBytes(obj: KLS16Proof): Array[Byte] = {
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
       val bytes = HeaderSerializer.bytesWithoutInterlinks(h)
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
@@ -69,9 +77,13 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
       val bytes = h.bytes
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
     })
+
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val suffixHead = obj.suffix.head
     Bytes.concat(Array(obj.m.toByte, obj.k.toByte, obj.i.toByte),
-      Shorts.toByteArray(obj.suffix.head.bytes.length.toShort),
-      obj.suffix.head.bytes,
+      Shorts.toByteArray(suffixHead.bytes.length.toShort),
+      suffixHead.bytes,
       suffixTailBytes,
       Shorts.toByteArray(obj.innerchain.length.toShort),
       interchainBytes)
@@ -83,11 +95,14 @@ object KLS16ProofSerializer extends Serializer[KLS16Proof] {
     val i = bytes(2)
     val headSuffixLength = Shorts.fromByteArray(bytes.slice(3, 5))
     val headSuffix = HeaderSerializer.parseBytes(bytes.slice(5, 5 + headSuffixLength)).get
+    @tailrec
     def parseSuffixes(index: Int, acc: Seq[Header]): (Int, Seq[Header]) = {
       if (acc.length == k) (index, acc.reverse)
       else {
         val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
         val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
+        //TODO: fixme, What should happen if `acc` is empty?
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
         parseSuffixes(index + 2 + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }

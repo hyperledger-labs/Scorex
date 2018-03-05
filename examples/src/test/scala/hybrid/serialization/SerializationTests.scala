@@ -10,6 +10,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.wallet.{WalletBox, WalletBoxSerializer}
 
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class SerializationTests extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks

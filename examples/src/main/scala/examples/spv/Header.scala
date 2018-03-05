@@ -49,10 +49,13 @@ case class Header(parentId: BlockId,
 
 object HeaderSerializer extends Serializer[Header] {
   override def toBytes(h: Header): Array[Byte] = {
+    @tailrec
     def interlinkBytes(links: Seq[Array[Byte]], acc: Array[Byte]): Array[Byte] = {
       if (links.isEmpty) {
         acc
       } else {
+        // `links` is not empty, it is safe to call head
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val headLink: Array[Byte] = links.head
         val repeating: Byte = links.count(_ sameElements headLink).toByte
         interlinkBytes(links.drop(repeating), Bytes.concat(acc, Array(repeating), headLink))

@@ -2,11 +2,13 @@ package scorex.core.api.http
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import scorex.core.NodeViewHolder.{CurrentView, GetDataFromCurrentView}
+import scorex.core.NodeViewHolder.CurrentView
 
 import scala.concurrent.Future
 
 trait ApiRouteWithFullView[HIS, MS, VL, MP] extends ApiRoute {
+
+  import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 
   val nodeViewHolderRef: ActorRef
 

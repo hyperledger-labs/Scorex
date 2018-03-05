@@ -194,7 +194,11 @@ class HybridHistory(val storage: HistoryStorage,
 
     val rollbackPoint = newSuffix.headOption
 
+    // TODO: fixme, What should we do if `oldSuffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
+    // TODO: fixme, What should we do if `newSuffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(block)
     require(applyBlocks.nonEmpty)
     require(throwBlocks.nonEmpty)
@@ -214,7 +218,10 @@ class HybridHistory(val storage: HistoryStorage,
       val lastPow = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
       val powBlocks = lastPowBlocks(DifficultyRecalcPeriod, lastPow) //.ensuring(_.length == DifficultyRecalcPeriod)
 
-      val realTime = lastPow.timestamp - powBlocks.head.timestamp
+      // TODO: fixme, What should we do if `powBlocksHead` is empty?
+      @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+      val powBlocksHead = powBlocks.head
+      val realTime = lastPow.timestamp - powBlocksHead.timestamp
       val brothersCount = powBlocks.map(_.brothersCount).sum
       val expectedTime = (DifficultyRecalcPeriod + brothersCount) * settings.targetBlockDelay.toMillis
       val oldPowDifficulty = storage.getPoWDifficulty(Some(lastPow.prevPosId))
@@ -225,7 +232,7 @@ class HybridHistory(val storage: HistoryStorage,
       val oldPosDifficulty = storage.getPoSDifficulty(lastPow.prevPosId)
       val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * settings.rParamX10 / 10)
       log.info(s"PoW difficulty changed at ${Base58.encode(posBlock.id)}: old $oldPowDifficulty, new $newPowDiff. " +
-        s" last: $lastPow, head: ${powBlocks.head} | $brothersCount")
+        s" last: $lastPow, head: $powBlocksHead | $brothersCount")
       log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")
       (newPowDiff, newPosDiff)
     } else {
@@ -279,6 +286,8 @@ class HybridHistory(val storage: HistoryStorage,
   @tailrec
   private def divergentSuffix(otherLastPowBlocks: Seq[ModifierId],
                               suffixFound: Seq[ModifierId] = Seq()): Seq[ModifierId] = {
+    // TODO: fixme, What should we do if `otherLastPowBlocks` is empty? Could we return Seq[ModifierId]() in that case?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val head = otherLastPowBlocks.head
     val newSuffix = suffixFound :+ head
     modifierById(head) match {
@@ -287,7 +296,10 @@ class HybridHistory(val storage: HistoryStorage,
       case None => if (otherLastPowBlocks.length <= 1) {
         Seq()
       } else {
-        divergentSuffix(otherLastPowBlocks.tail, newSuffix)
+        // `otherLastPowBlocks.tail` is safe as its length is greater than 1
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+        val otherLastPowBlocksTail = otherLastPowBlocks.tail
+        divergentSuffix(otherLastPowBlocksTail, newSuffix)
       }
     }
   }
@@ -306,7 +318,10 @@ class HybridHistory(val storage: HistoryStorage,
         log.warn(s"CompareNonsense: ${other.lastPowBlockIds.toList.map(Base58.encode)} at height $height}")
         HistoryComparisonResult.Nonsense
       case 1 =>
-        if (dSuffix.head sameElements bestPowId) {
+        // `dSuffix.head` is safe as `dSuffix.length` is 1
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+        val dSuffixHead = dSuffix.head
+        if (dSuffixHead sameElements bestPowId) {
           if (other.lastPosBlockId sameElements bestPosId) {
             HistoryComparisonResult.Equal
           } else if (pairCompleted) {
@@ -317,6 +332,8 @@ class HybridHistory(val storage: HistoryStorage,
         } else HistoryComparisonResult.Younger
       case _ =>
         // +1 to include common block
+        // TODO: What would be a default value for `localSuffixLength` in order to remove the unsafe calls to get and tail?
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val localSuffixLength = storage.heightOf(bestPowId).get - storage.heightOf(dSuffix.last).get
         val otherSuffixLength = dSuffix.length
 
@@ -407,14 +424,26 @@ class HybridHistory(val storage: HistoryStorage,
     def in(m: HybridBlock): Boolean = loserChain.exists(s => s sameElements m.id)
 
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
-    val i = loserChain.indexWhere(id => id sameElements winnerChain.head)
+    val i = loserChain.indexWhere { id =>
+      winnerChain.headOption match {
+        case None                  => false
+        case Some(winnerChainHead) => id sameElements winnerChainHead
+      }
+    }
     (winnerChain, loserChain.takeRight(loserChain.length - i))
-  }.ensuring(r => r._1.head sameElements r._2.head)
+  } ensuring { r =>
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val r1 = r._1.head
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val r2 = r._2.head
+    r1 sameElements r2
+  }
 
   /**
     * Average delay in milliseconds between last $blockNum blocks starting from $block
     * Debug only
     */
+  @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
   def averageDelay(id: ModifierId, blockNum: Int): Try[Long] = Try {
     val block = modifierById(id).get
     val c = chainBack(block, isGenesis, blockNum).get.map(_._2)

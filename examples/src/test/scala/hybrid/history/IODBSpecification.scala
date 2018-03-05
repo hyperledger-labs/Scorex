@@ -11,6 +11,7 @@ import scorex.core.ModifierId
 import scorex.crypto.encode.Base58
 import scorex.testkit.utils.FileUtils
 
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class IODBSpecification extends fixture.PropSpec
   with GeneratorDrivenPropertyChecks
   with Matchers

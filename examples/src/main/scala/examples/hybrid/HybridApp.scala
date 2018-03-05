@@ -7,7 +7,6 @@ import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo, HybridSyncInfoMessageSpec}
 import examples.hybrid.mining._
 import examples.hybrid.wallet.{SimpleBoxTransactionGenerator, SimpleBoxTransactionGeneratorRef}
-import examples.hybrid.wallet.SimpleBoxTransactionGenerator.StartGeneration
 import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApiRoute}
 import scorex.core.app.Application
 import scorex.core.network.{NodeViewSynchronizer, NodeViewSynchronizerRef}
@@ -20,6 +19,8 @@ import scala.io.Source
 import scala.language.postfixOps
 
 class HybridApp(val settingsFilename: String) extends Application {
+
+  import examples.hybrid.wallet.SimpleBoxTransactionGenerator.ReceivableMessages.StartGeneration
 
   override type P = PublicKey25519Proposition
   override type TX = SimpleBoxTransaction

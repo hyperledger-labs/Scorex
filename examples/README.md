@@ -1,29 +1,19 @@
-# Scorex Examples
+# Scorex Example: Twinscoin
 
 
-There are two examples of blockchain systems built on top of Scorex at the moment.
-
-The first one is the simplest proof-of-stake cryptocurrency with an account-based transactional model and everything stored in memory. It can be found under the 
-[src/main/scala/examples/curvepos](src/main/scala/examples/curvepos) folder. 
-
-The second one is Twinscoin, explained in more detail below. 
-
-
-## Twinscoin
-
+Currently, Scorex's distribution contains one example of blockchain system built on top of Scorex: **TwinsCoin**.
 
 Twinscoin is a hybrid Proof-of-Work(PoW) and Proof-of-Stake(PoS) cryptocurrency with 
 1:1 correspondence between PoW and PoS blocks. The main goal is to protect the hybrid 
 chain against majority of hashing power being adversarial.
 
-The main points of the implementation are: 
+The main characteristic of the implementation are: 
 
-* The use of the [Twinscoin consensus protocol](https://eprint.iacr.org/2017/232.pdf)
+* The use of the [Twinscoin consensus protocol](https://eprint.iacr.org/2017/232.pdf);
 
-* A Bitcoin-like transactional model with a transaction having multiple inputs and outputs. However, there are no 
-[Bitcoin-like scripts](https://en.bitcoin.it/wiki/Script).
+* A Bitcoin-like transaction model with a transaction having multiple inputs and outputs (with no [scripts](https://en.bitcoin.it/wiki/Script), however);
 
-* Persistence done by using the [IODB](https://github.com/input-output-hk/iodb) versioned key-value database
+* Persistence through the [IODB](https://github.com/input-output-hk/iodb) versioned key-value database.
 
 
 ### Execution

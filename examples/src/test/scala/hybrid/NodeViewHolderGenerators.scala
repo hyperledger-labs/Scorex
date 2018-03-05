@@ -8,6 +8,7 @@ import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
 import scorex.core.utils.{ByteStr, NetworkTimeProvider}
 
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes =>
 
   class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings.scorexSettings, settings.mining, new NetworkTimeProvider(settings.scorexSettings.ntp)) {

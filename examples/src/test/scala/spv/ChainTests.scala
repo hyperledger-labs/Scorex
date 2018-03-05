@@ -11,7 +11,7 @@ import scorex.crypto.hash.Blake2b256
 
 import scala.util.{Failure, Try}
 
-
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class ChainTests extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks
