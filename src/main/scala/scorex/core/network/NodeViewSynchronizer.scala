@@ -309,6 +309,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected def responseFromLocal: Receive = {
     case ResponseFromLocal(peer, _, modifiers: Seq[NodeViewModifier]) =>
       if (modifiers.nonEmpty) {
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val modType = modifiers.head.modifierTypeId
         val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
         val msg = Message(ModifiersSpec, Right(m), None)
