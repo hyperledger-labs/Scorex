@@ -18,7 +18,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 trait NodeViewHolderTests[P <: Proposition,
 TX <: Transaction[P],
 PM <: PersistentNodeViewModifier,
@@ -55,7 +55,7 @@ MPool <: MemoryPool[TX, MPool]]
 
   import NodeViewHolder.ReceivableMessages.{Subscribe, GetDataFromCurrentView}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.LocallyGeneratedModifier
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SyntacticallySuccessfulModifier,
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SyntacticallySuccessfulModifier,
                                                                               SyntacticallyFailedModification,
                                                                               SemanticallySuccessfulModifier,
                                                                               SemanticallyFailedModification}

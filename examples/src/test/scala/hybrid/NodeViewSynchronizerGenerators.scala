@@ -11,7 +11,7 @@ import scorex.core.app.Version
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
 
-
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 trait NodeViewSynchronizerGenerators {
   this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes with CoreGenerators with ExamplesCommonGenerators =>
 
