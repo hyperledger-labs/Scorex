@@ -49,10 +49,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   import History.HistoryComparisonResult._
 
   import NodeViewSynchronizer.ReceivableMessages._
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
-                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              ChangedHistory, ChangedMempool}
   import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
   import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler, SubscribePeerManagerEvent}
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
@@ -342,15 +338,31 @@ object NodeViewSynchronizer {
     case class CheckDelivery(source: ConnectedPeer,
                              modifierTypeId: ModifierTypeId,
                              modifierId: ModifierId)
-    // Moves from NodeViewHolder as this is only received here
     case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
                                                       status: History.HistoryComparisonResult.Value,
                                                       remoteSyncInfo: SI,
                                                       localSyncInfo: SI,
                                                       extension: Option[Seq[(ModifierTypeId, ModifierId)]])
-    // Relocated from PeerManager as this events are only received here
     case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
     case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
+
+    trait NodeViewHolderEvent
+    trait NodeViewChange extends NodeViewHolderEvent
+    case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
+    //TODO: return mempool reader
+    case class ChangedMempool[MR <: MempoolReader[_ <: Transaction[_]]](mempool: MR) extends NodeViewChange
+    //TODO: return Vault reader
+    //FIXME: No actor process this message explicitly, it seems to be sent to NodeViewSynchcronizer
+    case class ChangedVault() extends NodeViewChange
+
+    //hierarchy of events regarding modifiers application outcome
+    trait ModificationOutcome extends NodeViewHolderEvent
+    case class FailedTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX, error: Throwable) extends ModificationOutcome
+    case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX) extends ModificationOutcome
+    case class SyntacticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
+    case class SemanticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
+    case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
+    case class SemanticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
   }
 }
 
