@@ -1,12 +1,10 @@
 package scorex.mid.state
 
-import scorex.core
-import scorex.core.{PersistentNodeViewModifier, VersionTag}
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{BoxStateChanges, MinimalState, ModifierValidation, TransactionValidation}
-import supertagged.@@
+import scorex.core.{PersistentNodeViewModifier, VersionTag}
 
 import scala.util.{Failure, Success, Try}
 
@@ -75,5 +73,3 @@ trait BoxMinimalState[P <: Proposition,
 
   def semanticValidity(tx: BTX): Try[Unit]
 }
-
-
