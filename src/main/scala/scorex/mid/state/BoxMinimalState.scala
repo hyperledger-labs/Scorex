@@ -29,7 +29,7 @@ trait BoxMinimalState[P <: Proposition,
 
   override def applyModifier(mod: M): Try[BMS] = {
     validate(mod) flatMap {_ =>
-      changes(mod).flatMap(cs => applyChanges(cs, mod.id.asInstanceOf[VersionTag]))
+      changes(mod).flatMap(cs => applyChanges(cs, VersionTag @@ mod.id))
     }
   }
 

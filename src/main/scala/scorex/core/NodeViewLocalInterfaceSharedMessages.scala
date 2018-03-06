@@ -13,17 +13,28 @@ object NodeViewLocalInterfaceSharedMessages {
 
     // As NodeViewChange is sealed, the entire family had to come here
     sealed trait NodeViewChange extends NodeViewHolderEvent
-    // Received by LocalInterface
+
+    /**
+      * Received by LocalInterface
+      * @param reader - StateReader
+      * @param progressInfoOpt - ProgressInfo (provides recipient with the details of update) (Optional)
+      * @tparam SR
+      * @tparam PMOD
+      */
     case class ChangedState[SR <: StateReader, PMOD <: PersistentNodeViewModifier](reader: SR, progressInfoOpt: Option[ProgressInfo[PMOD]])
       extends NodeViewChange
+
     // Received by LocalInterface
     case class ChangedStateFailed[SR <: StateReader, PMOD <: PersistentNodeViewModifier](reader: SR, progressInfoOpt: Option[ProgressInfo[PMOD]])
       extends NodeViewChange
+
     // Received by NodeViewSynchcronizer
     case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
+
     //TODO: return mempool reader
     // Received by NodeViewSynchcronizer
     case class ChangedMempool[MR <: MempoolReader[_ <: Transaction[_]]](mempool: MR) extends NodeViewChange
+
     //TODO: return Vault reader
     // No actor process this message explicitly, it seems to be sent to NodeViewSynchcronizer
     case class ChangedVault() extends NodeViewChange
