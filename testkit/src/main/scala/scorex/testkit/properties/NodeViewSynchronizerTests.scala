@@ -29,6 +29,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Failure
 
+@SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
 trait NodeViewSynchronizerTests[P <: Proposition,
   TX <: Transaction[P],
   PM <: PersistentNodeViewModifier,

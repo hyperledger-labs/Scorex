@@ -67,6 +67,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def viewHolderEvents: Receive = {
     case SuccessfulTransaction(tx) =>
       broadcastModifierInv(tx)

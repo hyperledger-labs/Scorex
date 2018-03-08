@@ -393,6 +393,7 @@ class HybridHistory(val storage: HistoryStorage,
                         until: HybridBlock => Boolean,
                         limit: Int = Int.MaxValue,
                         acc: Seq[(ModifierTypeId, ModifierId)] = Seq()): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+    @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
     val sum: Seq[(ModifierTypeId, ModifierId)] = if (m.isInstanceOf[PosBlock]) (PosBlock.ModifierTypeId -> m.id) +: acc
     else (PowBlock.ModifierTypeId -> m.id) +: acc
 
