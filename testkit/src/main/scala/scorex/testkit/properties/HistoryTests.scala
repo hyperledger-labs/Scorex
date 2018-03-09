@@ -57,7 +57,7 @@ trait HistoryTests[P <: Proposition,
   property(propertyNameGenerator("report semantically validation after appending valid modifier")) {
     forAll(generatorWithValidModifier) { case (h, m) =>
       h.append(m)
-      h.reportSemanticValidity(m, true, m.id)
+      h.reportSemanticValidity(m, true)
       h.isSemanticallyValid(m.id) shouldBe ModifierSemanticValidity.Valid
     }
   }
