@@ -8,6 +8,7 @@ import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
 import com.google.common.primitives.Ints
 import scorex.core.app.Version
+import scorex.core.network.PeerConnectionHandler.{AwaitingHandshake, WorkingCycle}
 import scorex.core.network.message.MessageHandler
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -136,7 +137,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading
       context become workingCycle
-  }: Receive) orElse processErrors(CommunicationState.AwaitingHandshake.toString)
+  }: Receive) orElse processErrors(AwaitingHandshake.toString)
 
 
   def workingCycleLocalInterface: Receive = {
@@ -187,7 +188,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   def workingCycle: Receive =
     workingCycleLocalInterface orElse
       workingCycleRemoteInterface orElse
-      processErrors(CommunicationState.WorkingCycle.toString) orElse ({
+      processErrors(WorkingCycle.toString) orElse ({
       case nonsense: Any =>
         log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
     }: Receive)
@@ -208,10 +209,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
 object PeerConnectionHandler {
 
-  private object CommunicationState extends Enumeration {
-    val AwaitingHandshake = Value("AwaitingHandshake")
-    val WorkingCycle = Value("WorkingCycle")
-  }
+  sealed trait CommunicationState
+  case object AwaitingHandshake extends CommunicationState
+  case object WorkingCycle extends CommunicationState
 
   object ReceivableMessages {
     private[PeerConnectionHandler] object HandshakeDone
