@@ -147,7 +147,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   def sendExtension(remote: ConnectedPeer,
                     status: HistoryComparisonResult,
                     extOpt: Option[Seq[(ModifierTypeId, ModifierId)]]): Unit = extOpt match {
-    case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
+    case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status." : String)
     case Some(ext) =>
       ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
         case (mid, mods) =>
@@ -288,7 +288,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
-    val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected

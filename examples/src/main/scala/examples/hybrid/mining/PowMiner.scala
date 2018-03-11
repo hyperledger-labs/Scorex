@@ -124,7 +124,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
 
         p.future.onComplete { toBlock =>
           toBlock.getOrElse(None).foreach { block =>
-            log.debug(s"Locally generated PoW block: $block with difficulty $difficulty")
+            log.debug(s"Locally generated PoW block: $block with difficulty $difficulty" : String)
             self ! block
           }
         }
