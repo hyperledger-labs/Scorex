@@ -50,7 +50,7 @@ trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends No
     * @param modifierId - modifier id to check
     * @return
     */
-  def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value
+  def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity
 
   //todo: output should be ID | Seq[ID]
   def openSurfaceIds(): Seq[ModifierId]

@@ -10,7 +10,7 @@ import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidato
 import io.iohk.iodb.LSMStore
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, Nonsense, Equal, Younger, Older, ProgressInfo}
-import scorex.core.consensus.{History, ModifierSemanticValidity}
+import scorex.core.consensus.{History, ModifierSemanticValidity, Valid, Absent}
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -458,10 +458,8 @@ class HybridHistory(val storage: HistoryStorage,
   }
 
   //todo: real impl
-  override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value = {
-    modifierById(modifierId).map { _ =>
-      ModifierSemanticValidity.Valid
-    }.getOrElse(ModifierSemanticValidity.Absent)
+  override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity = {
+    modifierById(modifierId).map(_ => Valid).getOrElse(Absent)
   }
 }
 

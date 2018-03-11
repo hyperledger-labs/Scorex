@@ -4,7 +4,7 @@ import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.consensus.{History, ModifierSemanticValidity, SyncInfo}
+import scorex.core.consensus.{History, Valid, SyncInfo}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
@@ -58,7 +58,7 @@ trait HistoryTests[P <: Proposition,
     forAll(generatorWithValidModifier) { case (h, m) =>
       h.append(m)
       h.reportSemanticValidity(m, true, m.id)
-      h.isSemanticallyValid(m.id) shouldBe ModifierSemanticValidity.Valid
+      h.isSemanticallyValid(m.id) shouldBe Valid
     }
   }
 
