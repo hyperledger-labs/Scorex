@@ -13,7 +13,6 @@ import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
-import scorex.core.network.peer.PeerManager.PeerManagerEvent
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -73,8 +72,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
     //register as a listener for peers got connected (handshaked) or disconnected
     val pmEvents = Seq(
-      PeerManager.EventType.Handshaked,
-      PeerManager.EventType.Disconnected
+      PeerManager.HandshakedEvent,
+      PeerManager.DisconnectedEvent
     )
     networkControllerRef ! SubscribePeerManagerEvent(pmEvents)
 
@@ -343,6 +342,7 @@ object NodeViewSynchronizer {
                                                       remoteSyncInfo: SI,
                                                       localSyncInfo: SI,
                                                       extension: Option[Seq[(ModifierTypeId, ModifierId)]])
+    trait PeerManagerEvent
     case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
     case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
 
