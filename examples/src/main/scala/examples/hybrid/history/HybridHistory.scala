@@ -9,7 +9,7 @@ import examples.hybrid.mining.HybridMiningSettings
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
 import scorex.core.block.{Block, BlockValidator}
-import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, ProgressInfo}
+import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, Nonsense, Equal, Younger, Older, ProgressInfo}
 import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -310,26 +310,23 @@ class HybridHistory(val storage: HistoryStorage,
     * @param other other's node sync info
     * @return Equal if nodes have the same history, Younger if another node is behind, Older if a new node is ahead
     */
-  override def compare(other: HybridSyncInfo): HistoryComparisonResult.Value = {
+  override def compare(other: HybridSyncInfo): HistoryComparisonResult = {
     val dSuffix = divergentSuffix(other.lastPowBlockIds.reverse)
 
     dSuffix.length match {
       case 0 =>
         log.warn(s"CompareNonsense: ${other.lastPowBlockIds.toList.map(Base58.encode)} at height $height}")
-        HistoryComparisonResult.Nonsense
+        Nonsense
       case 1 =>
         // `dSuffix.head` is safe as `dSuffix.length` is 1
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val dSuffixHead = dSuffix.head
         if (dSuffixHead sameElements bestPowId) {
-          if (other.lastPosBlockId sameElements bestPosId) {
-            HistoryComparisonResult.Equal
-          } else if (pairCompleted) {
-            HistoryComparisonResult.Older
-          } else {
-            HistoryComparisonResult.Younger
-          }
-        } else HistoryComparisonResult.Younger
+          if (other.lastPosBlockId sameElements bestPosId) Equal
+          else if (pairCompleted) Older
+          else Younger
+        }
+        else Younger
       case _ =>
         // +1 to include common block
         // TODO: What would be a default value for `localSuffixLength` in order to remove the unsafe calls to get and tail?
@@ -337,11 +334,9 @@ class HybridHistory(val storage: HistoryStorage,
         val localSuffixLength = storage.heightOf(bestPowId).get - storage.heightOf(dSuffix.last).get
         val otherSuffixLength = dSuffix.length
 
-        if (localSuffixLength < otherSuffixLength)
-          HistoryComparisonResult.Older
-        else if (localSuffixLength == otherSuffixLength)
-          HistoryComparisonResult.Equal
-        else HistoryComparisonResult.Younger
+        if (localSuffixLength < otherSuffixLength) Older
+        else if (localSuffixLength == otherSuffixLength) Equal
+        else Younger
     }
   }
 

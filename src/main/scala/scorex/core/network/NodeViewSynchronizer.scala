@@ -45,7 +45,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          networkSettings: NetworkSettings,
                          timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
-  import History.HistoryComparisonResult._
+  import History._
 
   import NodeViewSynchronizer.ReceivableMessages._
   import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
@@ -126,7 +126,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>
-      statusTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
+      statusTracker.updateStatus(remote, Unknown)
 
     case DisconnectedPeer(remote) =>
       statusTracker.clearStatus(remote)
@@ -161,7 +161,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
           log.debug(s"Comparison with $remote having starting points ${idsToString(syncInfo.startingPoints)}. " +
             s"Comparison result is $comparison. Sending extension of length ${ext.length}: ${idsToString(ext)}")
 
-          if (!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
+          if (!(extensionOpt.nonEmpty || comparison != Younger)) {
             log.warn("Extension is empty while comparison is younger")
           }
 
@@ -338,7 +338,7 @@ object NodeViewSynchronizer {
                              modifierTypeId: ModifierTypeId,
                              modifierId: ModifierId)
     case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
-                                                      status: History.HistoryComparisonResult.Value,
+                                                      status: History.HistoryComparisonResult,
                                                       remoteSyncInfo: SI,
                                                       localSyncInfo: SI,
                                                       extension: Option[Seq[(ModifierTypeId, ModifierId)]])

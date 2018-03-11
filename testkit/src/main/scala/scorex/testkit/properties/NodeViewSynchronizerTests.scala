@@ -6,7 +6,7 @@ import org.scalacheck.Gen
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
-import scorex.core.consensus.History.HistoryComparisonResult.{Equal, Nonsense, Older, Younger}
+import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
 import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.message.BasicMsgDataTypes.ModifiersData
