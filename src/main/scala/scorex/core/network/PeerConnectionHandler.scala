@@ -209,6 +209,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
 object PeerConnectionHandler {
 
+
+  // todo: use the "become" approach to handle state more elegantly
   sealed trait CommunicationState
   case object AwaitingHandshake extends CommunicationState
   case object WorkingCycle extends CommunicationState
