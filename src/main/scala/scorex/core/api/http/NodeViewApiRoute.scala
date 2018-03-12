@@ -27,7 +27,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 
   import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 
-  override val route = pathPrefix("nodeView") {
+  override val route = (pathPrefix("nodeView") & withCors) {
     openSurface ~ persistentModifierById ~ pool
   }
 
@@ -42,53 +42,55 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 
   case class OpenSurface(ids: Seq[ModifierId])
 
-  def getOpenSurface: Future[OpenSurface] = {
+  def withOpenSurface(fn: OpenSurface => Route): Route = {
     def f(v: CurrentView[HIS, MS, VL, MP]): OpenSurface = OpenSurface(v.history.openSurfaceIds())
-
-    (nodeViewHolderRef ? GetDataFromCurrentView(f)).map(_.asInstanceOf[OpenSurface])
+    val futureOpenSurface = (nodeViewHolderRef ? GetDataFromCurrentView(f)).map(_.asInstanceOf[OpenSurface])
+    onSuccess(futureOpenSurface)(fn)
   }
 
   case class MempoolData(size: Int, transactions: Iterable[TX])
 
-  def getMempool: Future[MempoolData] = {
+  def withMempool(fn: MempoolData => Route): Route = {
     def f(v: CurrentView[HIS, MS, VL, MP]): MempoolData = MempoolData(v.pool.size, v.pool.take(1000))
-
-    (nodeViewHolderRef ? GetDataFromCurrentView(f)).map(_.asInstanceOf[MempoolData])
+    val futureMempoolData = (nodeViewHolderRef ? GetDataFromCurrentView(f)).map(_.asInstanceOf[MempoolData])
+    onSuccess(futureMempoolData)(fn)
   }
 
-  def pool: Route = path("pool") {
-    onComplete(getMempool) {
-      case Success(mpd) => jsonRoute(SuccessApiResponse(
-        Map(
-          "size" -> mpd.size.asJson,
-          "transactions" -> mpd.transactions.map(_.json).asJson
-        ).asJson
-      ), get)
-      case Failure(e) => jsonRoute(ApiException(e), get)
-    }
-  }
-
-  def openSurface: Route = path("openSurface") {
-    onComplete(getOpenSurface) {
-      case Success(os) => jsonRoute(SuccessApiResponse(os.ids.map(Base58.encode).asJson), get)
-      case Failure(ex)  => jsonRoute(ApiException(ex), get)
-    }
-  }
-
-  def persistentModifierById: Route = path("persistentModifier" / Segment) { encodedId =>
-    val persistentModifier = Base58.decode(encodedId) match {
+  def withPersistentModifier(encodedId: String)(fn: PM => Route): Route = {
+    Base58.decode(encodedId) match {
+      case Failure(e) => complete(ApiError.notExists)
       case Success(rawId) =>
         val id = ModifierId @@ rawId
 
         def f(v: CurrentView[HIS, MS, VL, MP]): Option[PM] = v.history.modifierById(id)
 
-        (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[PM]](f)).mapTo[Option[PM]]
-          .map(_.map(tx => SuccessApiResponse(tx.json)).getOrElse(ApiError.notExists))
-      case _ => Future(ApiError.notExists)
+        val futurePersistentModifier = (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[PM]](f)).mapTo[Option[PM]]
+        onComplete(futurePersistentModifier) {
+          case Success(Some(tx)) => fn(tx)
+          case Success(None) => complete(ApiError.notExists)
+          case Failure(_) => complete(ApiError.notExists)
+        }
     }
-    onComplete(persistentModifier) {
-      case Success(r) => jsonRoute(r, get)
-      case Failure(ex) => jsonRoute(ApiException(ex), get)
+  }
+
+  def pool: Route = (get & path("pool")) {
+    withMempool { mpd =>
+      complete(SuccessApiResponse(
+          "size" -> mpd.size.asJson,
+          "transactions" -> mpd.transactions.map(_.json).asJson
+      ))
+    }
+  }
+
+  def openSurface: Route = (get & path("openSurface")) {
+    withOpenSurface { os =>
+      complete(SuccessApiResponse(os.ids.map(Base58.encode).asJson))
+    }
+  }
+
+  def persistentModifierById: Route = (get & path("persistentModifier" / Segment)) { encodedId =>
+    withPersistentModifier(encodedId) { tx =>
+      complete(SuccessApiResponse(tx.json))
     }
   }
 
