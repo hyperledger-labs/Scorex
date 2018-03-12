@@ -9,7 +9,7 @@ branches:
     - master
     - /^\d\.\d+$/
 script:
-  - sbt "project examples" clean coverage test && sbt test
+  - sbt "project examples" clean coverage test && sbt clean test
 cache:
   directories:
   - "$HOME/.ivy2/cache"
