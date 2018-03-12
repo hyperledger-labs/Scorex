@@ -253,7 +253,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         deliveryTracker.delete(modifierId)
       }
       else {
-        log.info(s"Peer $peer has not delivered asked modifier ${Base58.encode(modifierId)} on time")
+        log.info(s"Peer $peer has not delivered asked modifier ${Base58.encode(modifierId)} on time" : String)
         penalizeNonDeliveringPeer(peer)
         deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
       }

@@ -59,15 +59,8 @@ class NetworkController(settings: NetworkSettings,
             val extAddr = intfAddr.getAddress
             myAddrs.contains(extAddr)
           }
-        } match {
-          case true => true
-          case false =>
-            if (settings.upnpEnabled) {
-              val extAddr = upnp.externalAddress
-              myAddrs.contains(extAddr)
-            } else false
-        }
-      }.recover { case t: Throwable =>
+        } || (settings.upnpEnabled && myAddrs.exists(_ == upnp.externalAddress))
+      } recover { case t: Throwable =>
         log.error("Declared address validation failed: ", t)
       }
     }

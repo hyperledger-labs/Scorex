@@ -10,6 +10,7 @@ lazy val commonSettings = Seq(
     Wart.FinalVal,
     Wart.IsInstanceOf,
     Wart.JavaConversions,
+    Wart.JavaSerializable,
     Wart.Serializable),
   scalaVersion := "2.12.3",
   organization := "org.scorexfoundation",
