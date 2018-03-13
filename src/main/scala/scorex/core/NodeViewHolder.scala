@@ -1,10 +1,11 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{ChangedStateFailed, SyntacticallyFailedModification}
+import scorex.core.LocalInterface.ReceivableMessages.ChangedStateFailed
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ConnectedPeer
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
@@ -32,14 +33,15 @@ import scala.util.{Failure, Success, Try}
 trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
 
-  import NodeViewHolder.ReceivableMessages._
   import NodeViewHolder._
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{ChangedHistory, ChangedMempool, ChangedState, ChangedVault, FailedTransaction}
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{NewOpenSurface, SemanticallyFailedModification, SemanticallySuccessfulModifier}
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{StartingPersistentModifierApplication, SuccessfulTransaction}
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SyntacticallySuccessfulModifier, SyntacticallyFailedModification}
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.RequestFromLocal
+  import NodeViewHolder.ReceivableMessages._
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
+    ChangedMempool, ChangedVault,
+    SuccessfulTransaction, FailedTransaction,
+    SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+    SemanticallySuccessfulModifier, SemanticallyFailedModification}
+  import scorex.core.LocalInterface.ReceivableMessages.{ChangedState, NewOpenSurface, StartingPersistentModifierApplication}
+  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
   type HIS <: History[PMOD, SI, HIS]
@@ -443,8 +445,6 @@ object NodeViewHolder {
     val MempoolChanged: EventType.Value = Value(13)
     val VaultChanged: EventType.Value = Value(14)
   }
-
-  trait NodeViewHolderEvent
 
   // No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
   // Even more, ModificationApplicationStarted seems not to be sent at all

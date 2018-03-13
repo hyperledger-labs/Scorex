@@ -1,23 +1,21 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
-import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.ChangedStateFailed
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.StateReader
 import scorex.core.utils.ScorexLogging
 
-/**
-  *
-  */
 trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
 
   import scorex.core.LocalInterface.ReceivableMessages._
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedModifier, LocallyGeneratedTransaction}
   import scorex.core.NodeViewHolder.ReceivableMessages.Subscribe
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{ChangedState, FailedTransaction, NewOpenSurface, SemanticallyFailedModification, SemanticallySuccessfulModifier, StartingPersistentModifierApplication, SuccessfulTransaction, SyntacticallyFailedModification, SyntacticallySuccessfulModifier}
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SuccessfulTransaction, FailedTransaction, SyntacticallySuccessfulModifier,
+    SyntacticallyFailedModification, SemanticallySuccessfulModifier,
+    SemanticallyFailedModification}
+  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   val viewHolderRef: ActorRef
 
@@ -39,7 +37,6 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     viewHolderRef ! Subscribe(events)
   }
 
-  // scalastyle:off
   private def viewHolderEvents: Receive = {
     case st: SuccessfulTransaction[P, TX] =>
       onSuccessfulTransaction(st.transaction)
@@ -71,7 +68,6 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     case csf: ChangedStateFailed[StateReader@unchecked, PMOD] =>
       onChangedStateFailed(csf.reader, csf.progressInfoOpt)
   }
-  // scalastyle:on
 
 
   protected def onSuccessfulTransaction(tx: TX): Unit
@@ -110,5 +106,22 @@ object LocalInterface {
   object ReceivableMessages {
     case object NoBetterNeighbour
     case object BetterNeighbourAppeared
+
+    import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewHolderEvent, NodeViewChange}
+
+    /**
+      * Received by LocalInterface
+      * @param reader - StateReader
+      * @param progressInfoOpt - ProgressInfo (provides recipient with the details of update) (Optional)
+      */
+    case class ChangedState[SR <: StateReader, PMOD <: PersistentNodeViewModifier](reader: SR, progressInfoOpt: Option[ProgressInfo[PMOD]])
+      extends NodeViewChange
+
+    // Received by LocalInterface
+    case class ChangedStateFailed[SR <: StateReader, PMOD <: PersistentNodeViewModifier](reader: SR, progressInfoOpt: Option[ProgressInfo[PMOD]])
+      extends NodeViewChange
+
+    case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
+    case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
   }
 }
