@@ -6,9 +6,10 @@ import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.consensus.History.HistoryComparisonResult
+import scorex.core.utils.ByteBoxer
 import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.crypto.encode.Base58
-
+import supertagged.tag
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class HybridHistorySpecification extends PropSpec
   with PropertyChecks
@@ -23,42 +24,42 @@ class HybridHistorySpecification extends PropSpec
     var ids: Seq[ModifierId] = Seq()
     forAll(posBlockGen, powBlockGen) { (posR, powR) =>
       if (history.height <= HybridHistory.DifficultyRecalcPeriod) {
-        val posBlock = posR.copy(parentId = history.bestPowId)
+        val posBlock = posR.copy(parentId = ByteBoxer[ModifierId](tag[ModifierId](history.bestPowId)))
         history = history.append(posBlock).get._1
         history.bestBlock.encodedId shouldBe posBlock.encodedId
 
-        val powBlock = powR.copy(parentId = history.bestPowId, prevPosId = history.bestPosId, brothers = Seq(),
+        val powBlock = powR.copy(parentId = ByteBoxer[ModifierId](tag[ModifierId](history.bestPowId)), prevPosId = history.bestPosId, brothers = Seq(),
           brothersCount = 0)
         history = history.append(powBlock).get._1
         history.bestBlock.encodedId shouldBe powBlock.encodedId
 
         history.modifierById(posBlock.id).isDefined shouldBe true
-        history.modifierById(powBlock.id).isDefined shouldBe true
+        history.modifierById(ModifierId !@@ powBlock.id).isDefined shouldBe true
         ids = ids ++ Seq(posBlock.id, powBlock.id)
       }
     }
 
-    val startFrom = Seq((ModifierTypeId @@ 2.toByte, ModifierId @@ ids.head))
+    val startFrom = Seq((ModifierTypeId @@ 2.toByte, ByteBoxer[ModifierId](tag[ModifierId](ids.head))))
 
-    history.continuationIds(startFrom, ids.length).get.map(_._2).map(Base58.encode) shouldEqual ids.map(Base58.encode)
+    history.continuationIds(startFrom, ids.length).get.map(_._2.arr).map(Base58.encode) shouldEqual ids.map(Base58.encode)
 
     ids.length shouldBe HybridHistory.DifficultyRecalcPeriod
 
     //continuationIds with limit
     forAll(Gen.choose(0, ids.length - 1)) { startIndex: Int =>
-      val startFrom = Seq((ModifierTypeId @@ 2.toByte, ids(startIndex)))
-      val startList = ids.take(startIndex + 1).map(a => (ModifierTypeId @@ 2.toByte, a))
+      val startFrom = Seq((ModifierTypeId @@ 2.toByte, ByteBoxer[ModifierId](tag[ModifierId](ids(startIndex)))))
+      val startList = ids.take(startIndex + 1).map(a => (ModifierTypeId @@ 2.toByte, ByteBoxer[ModifierId](tag[ModifierId](a))))
       val restIds = ids.zipWithIndex.filter { case (datum, index) => index >= startIndex }.map(_._1).map(Base58.encode)
 
-      history.continuationIds(startFrom, ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
-      history.continuationIds(startList, ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
+      history.continuationIds(startFrom, ids.length).get.map(_._2.arr).map(Base58.encode) shouldEqual restIds
+      history.continuationIds(startList, ids.length).get.map(_._2.arr).map(Base58.encode) shouldEqual restIds
 
       val limit = 5
       val continuation = history.continuationIds(startList, limit).get
       continuation.length shouldBe Math.min(limit, restIds.length)
-      startList.exists(sl => sl._2 sameElements continuation.head._2) shouldBe true
+      startList.exists(sl => sl._2.arr sameElements continuation.head._2.arr) shouldBe true
       continuation.tail.foreach { c =>
-        startList.exists(sl => sl._2 sameElements c._2) shouldBe false
+        startList.exists(sl => sl._2.arr sameElements c._2.arr) shouldBe false
       }
     }
   }
@@ -72,7 +73,7 @@ class HybridHistorySpecification extends PropSpec
     //complete pair
     forAll(posBlockGen) { posR =>
       if (!history.pairCompleted) {
-        val posBlock = posR.copy(parentId = history.bestPowId)
+        val posBlock = posR.copy(parentId = ByteBoxer[ModifierId](tag[ModifierId](history.bestPowId)))
         history = history.append(posBlock).get._1
         history.bestBlock.encodedId shouldBe posBlock.encodedId
       }

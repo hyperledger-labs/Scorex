@@ -5,18 +5,18 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
-import scorex.core.consensus.History.HistoryComparisonResult
+import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
-import scorex.core.utils.NetworkTimeProvider
+import scorex.core.utils.{ByteBoxer, NetworkTimeProvider, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.peer.PeerManager.PeerManagerEvent
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+import supertagged.tag
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -97,7 +97,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   }
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
-    val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
+    val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(ByteBoxer[ModifierId](tag[ModifierId](m.id)))), None)
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
@@ -206,7 +206,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       if spec.messageCode == InvSpec.MessageCode =>
       //TODO can't replace here because of modifiers cache
 
-      viewHolderRef ! CompareViews(remote, invData._1, invData._2)
+      viewHolderRef ! CompareViews(remote, invData._1, invData._2.map(b => ModifierId !@@ b.arr))
   }
 
   //other node asking for objects by their ids
@@ -217,13 +217,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       readers.foreach { reader =>
         val objs: Seq[NodeViewModifier] = invData._1 match {
           case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-            reader._2.getAll(invData._2)
+            reader._2.getAll(invData._2.map(b => ModifierId !@@ b.arr))
           case _: ModifierTypeId =>
-            invData._2.flatMap(id => reader._1.modifierById(id))
+            invData._2.flatMap(id => reader._1.modifierById(ModifierId !@@ id.arr))
         }
 
         log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
-          s"sending ${objs.length} modifiers ${idsToString(invData._1, objs.map(_.id))} ")
+          s"sending ${objs.length} modifiers ${idsToString(invData._1, objs.map(o => ByteBoxer[ModifierId](tag[ModifierId](o.id))))} ")
         self ! ResponseFromLocal(remote, invData._1, objs)
       }
   }
@@ -264,7 +264,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case RequestFromLocal(peer, modifierTypeId, modifierIds) =>
 
       if (modifierIds.nonEmpty) {
-        val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
+        val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds.map(id => ByteBoxer[ModifierId](tag[ModifierId](id)))), None)
         peer.handlerRef ! msg
       }
       deliveryTracker.expect(peer, modifierTypeId, modifierIds)
@@ -342,7 +342,7 @@ object NodeViewSynchronizer {
                                                       status: History.HistoryComparisonResult.Value,
                                                       remoteSyncInfo: SI,
                                                       localSyncInfo: SI,
-                                                      extension: Option[Seq[(ModifierTypeId, ModifierId)]])
+                                                      extension: Option[ModifierIds])
     case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
     case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
 

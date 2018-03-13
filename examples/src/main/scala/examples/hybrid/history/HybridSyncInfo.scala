@@ -4,8 +4,9 @@ import examples.hybrid.blocks.{PosBlock, PowBlock}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.SyncInfoMessageSpec
 import scorex.core.serialization.Serializer
+import scorex.core.utils.ByteBoxer
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
-
+import supertagged.tag
 import scala.util.Try
 
 
@@ -23,8 +24,8 @@ case class HybridSyncInfo(answer: Boolean,
 
   require(lastPowBlockIds.size <= MaxLastPowBlocks)
 
-  override def startingPoints: Seq[(ModifierTypeId, ModifierId)] =
-    Seq(lastPowBlockIds.map(b => PowBlock.ModifierTypeId -> b) ++ Seq(PosBlock.ModifierTypeId -> lastPosBlockId)).flatten
+  override def startingPoints: Seq[(ModifierTypeId, ByteBoxer[ModifierId])] =
+    Seq(lastPowBlockIds.map(b => PowBlock.ModifierTypeId -> ByteBoxer[ModifierId](tag[ModifierId](b))) ++ Seq(PosBlock.ModifierTypeId -> ByteBoxer[ModifierId](tag[ModifierId](lastPosBlockId)))).flatten
 
 
   override type M = HybridSyncInfo

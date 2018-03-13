@@ -11,10 +11,10 @@ import scorex.core.ModifierId
 import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ByteBoxer, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
-
+import supertagged.tag
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -97,9 +97,9 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
 
         val (parentId, prevPosId, brothers) = if (!pmi.pairCompleted) {
           //brother
-          log.info(s"Starting brother mining for ${Base58.encode(bestPowBlock.parentId)}:${Base58.encode(bestPowBlock.prevPosId)}")
+          log.info(s"Starting brother mining for ${Base58.encode(bestPowBlock.parentId.arr)}:${Base58.encode(bestPowBlock.prevPosId)}")
           val bs = bestPowBlock.brothers :+ bestPowBlock.header
-          (bestPowBlock.parentId, bestPowBlock.prevPosId, bs)
+          (ModifierId !@@ bestPowBlock.parentId.arr, bestPowBlock.prevPosId, bs)
         } else {
           log.info(s"Starting new block mining for ${bestPowBlock.encodedId}:${Base58.encode(pmi.bestPosId)}")
           (bestPowBlock.id, pmi.bestPosId, Seq()) //new step
@@ -171,7 +171,7 @@ object PowMiner extends App {
 
     val bHash = if (brothers.isEmpty) Array.fill(32)(0: Byte) else Blake2b256(PowBlockCompanion.brotherBytes(brothers))
 
-    val b = PowBlock(parentId, prevPosId, ts, nonce, brothers.size, bHash, proposition, brothers)
+    val b = PowBlock(ByteBoxer[BlockId](tag[BlockId](parentId)), prevPosId, ts, nonce, brothers.size, bHash, proposition, brothers)
 
     val foundBlock =
       if (b.correctWork(difficulty, settings)) {

@@ -2,6 +2,7 @@ package scorex.core.consensus
 
 import scorex.core._
 import scorex.core.consensus.History.ProgressInfo
+import scorex.core.utils.ByteBoxer
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
@@ -39,7 +40,7 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
 
 object History {
 
-  type ModifierIds = Seq[(ModifierTypeId, ModifierId)]
+  type ModifierIds = Seq[(ModifierTypeId, ByteBoxer[ModifierId])]
 
   object HistoryComparisonResult extends Enumeration {
     val Equal = Value(1)

@@ -9,11 +9,15 @@ import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import scorex.core.ModifierId
+import scorex.core.block.Block
+import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
+import scorex.core.utils.ByteBoxer
 import scorex.crypto.encode.Base58
-import scorex.crypto.hash.Blake2b256
+import scorex.crypto.hash.{Blake2b256, Digest32}
 import scorex.testkit.generators.CoreGenerators
+import supertagged.tag
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 trait ModifierGenerators {
@@ -81,7 +85,7 @@ trait ModifierGenerators {
   }
 
   def semanticallyValidModifier(state: HBoxStoredState): PosBlock =
-    validPosBlocks(state, Seq(ModifierId @@ state.version)).head
+    validPosBlocks(state, Seq(ModifierId !@@ state.version)).head
 
   def pairCompleted(curHistory: HybridHistory, blocks: Seq[HybridBlock]): Boolean =
     if (blocks.isEmpty) curHistory.pairCompleted
@@ -108,7 +112,7 @@ trait ModifierGenerators {
           case i: Int if i >= 2 => blocks.drop(1).last.id -> blocks.last.id
         }
 
-        new PowBlock(bestPowId, bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
+        new PowBlock(ByteBoxer[ModifierId](tag[ModifierId](bestPowId)), bestPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
       }
     } else { //generate PoS block
       for {
@@ -129,8 +133,12 @@ trait ModifierGenerators {
 
   def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock = {
     syntacticallyValidModifier(curHistory) match {
-      case pow: PowBlock => pow.copy(parentId = ModifierId @@ hf(pow.parentId))
-      case pos: PosBlock => pos.copy(parentId = ModifierId @@ hf(pos.parentId))
+      case pow: PowBlock =>
+        val hfed = ModifierId !@@ hf(pow.parentId.arr)
+        pow.copy(parentId = ByteBoxer[ModifierId](tag[ModifierId](hfed)))
+      case pos: PosBlock =>
+        val hfed = ModifierId !@@ hf(pos.parentId.arr)
+        pos.copy(parentId = ByteBoxer[ModifierId](tag[ModifierId](hfed)))
     }
   }
 
@@ -175,10 +183,10 @@ trait ModifierGenerators {
     validMods.foldLeft((Seq[HybridBlock](), history.bestPowId, history.bestPosId)){case ((blocks, bestPw, bestPs), b) =>
       b match {
         case pwb: PowBlock =>
-          val newPwb = pwb.copy(parentId = bestPw, prevPosId = bestPs)
-          (blocks ++ Seq(newPwb), newPwb.id, bestPs)
+          val newPwb = pwb.copy(parentId = ByteBoxer[ModifierId](tag[ModifierId](bestPw)), prevPosId = bestPs)
+          (blocks ++ Seq(newPwb), ModifierId !@@ newPwb.id, bestPs)
         case psb: PosBlock =>
-          val newPsb = psb.copy(parentId = bestPw)
+          val newPsb = psb.copy(parentId = ByteBoxer[ModifierId](tag[ModifierId](bestPw)))
           (blocks ++ Seq(newPsb), bestPw, newPsb.id)
       }
     }._1
@@ -186,9 +194,9 @@ trait ModifierGenerators {
     lazy val head = blocks.head
     lazy val headLinksValid = head match {
       case psb: PosBlock =>
-        history.bestPowId.sameElements(psb.parentId)
+        history.bestPowId.sameElements(psb.parentId.arr)
       case pwb: PowBlock =>
-        history.bestPowId.sameElements(pwb.parentId) && history.bestPosId.sameElements(pwb.prevPosId)
+        history.bestPowId.sameElements(pwb.parentId.arr) && history.bestPosId.sameElements(pwb.prevPosId)
     }
     headLinksValid && history.applicable(head)
   }

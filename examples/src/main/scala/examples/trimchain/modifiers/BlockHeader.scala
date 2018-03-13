@@ -7,12 +7,13 @@ import io.circe.Json
 import io.circe.syntax._
 import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.serialization.Serializer
+import scorex.core.utils.ByteBoxer
 import scorex.crypto.encode.Base58
-
+import supertagged.tag
 import scala.util.Try
 
 //TODO compact proof of ticket in header
-case class BlockHeader(override val parentId: ModifierId,
+case class BlockHeader(override val parentId: ByteBoxer[ModifierId],
                        stateRoot: StateRoot,
                        txRoot: TransactionsRoot,
                        ticket: Ticket,
@@ -26,7 +27,7 @@ case class BlockHeader(override val parentId: ModifierId,
 
   override lazy val json: Json = Map(
     "id" -> Base58.encode(id).asJson,
-    "parentId" -> Base58.encode(parentId).asJson,
+    "parentId" -> Base58.encode(parentId.arr).asJson,
     "stateRoot" -> Base58.encode(stateRoot).asJson,
     "txRoot" -> Base58.encode(txRoot).asJson,
     "ticket" -> ticket.json,
@@ -44,7 +45,7 @@ case class BlockHeader(override val parentId: ModifierId,
 object BlockHeaderSerializer extends Serializer[BlockHeader] {
   private val ds = Constants.hashfn.DigestSize
 
-  override def toBytes(obj: BlockHeader): Array[Byte] = obj.parentId ++ obj.stateRoot ++ obj.txRoot ++
+  override def toBytes(obj: BlockHeader): Array[Byte] = obj.parentId.arr ++ obj.stateRoot ++ obj.txRoot ++
     Longs.toByteArray(obj.powNonce) ++ TicketSerializer.toBytes(obj.ticket)
 
 
@@ -54,6 +55,6 @@ object BlockHeaderSerializer extends Serializer[BlockHeader] {
     val txRoot = TransactionsRoot @@ bytes.slice(2 * ds, 3 * ds)
     val powNonce = Longs.fromByteArray(bytes.slice(3 * ds, 3 * ds + 8))
     val ticket = TicketSerializer.parseBytes(bytes.slice(3 * ds + 8, bytes.length)).get
-    BlockHeader(parentId, stateRoot, txRoot, ticket, powNonce)
+    BlockHeader(ByteBoxer[ModifierId](tag[ModifierId](parentId)), stateRoot, txRoot, ticket, powNonce)
   }
 }

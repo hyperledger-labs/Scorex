@@ -7,8 +7,10 @@ import scorex.core.app.Version
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
+import scorex.core.utils.ByteBoxer
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.crypto.signatures.Curve25519
+import supertagged.tag
 
 trait ObjectGenerators {
 
@@ -40,7 +42,7 @@ trait ObjectGenerators {
   lazy val invDataGen: Gen[InvData] = for {
     modifierTypeId: ModifierTypeId <- modifierTypeIdGen
     modifierIds: Seq[ModifierId] <- Gen.nonEmptyListOf(modifierIdGen) if modifierIds.nonEmpty
-  } yield modifierTypeId -> modifierIds
+  } yield modifierTypeId -> modifierIds.map(ids => ByteBoxer[ModifierId](tag[ModifierId](ids)))
 
   lazy val modifierWithIdGen: Gen[(ModifierId, Array[Byte])] = for {
     id <- modifierIdGen

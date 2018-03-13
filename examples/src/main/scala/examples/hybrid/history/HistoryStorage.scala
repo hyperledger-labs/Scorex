@@ -79,7 +79,7 @@ class HistoryStorage(storage: LSMStore,
       case powBlock: PowBlock if isBest =>
         Seq(bestPowIdKey -> ByteArrayWrapper(powBlock.id), bestPosIdKey -> ByteArrayWrapper(powBlock.prevPosId))
       case posBlock: PosBlock if isBest =>
-        Seq(bestPowIdKey -> ByteArrayWrapper(posBlock.parentId), bestPosIdKey -> ByteArrayWrapper(posBlock.id))
+        Seq(bestPowIdKey -> ByteArrayWrapper(posBlock.parentId.arr), bestPosIdKey -> ByteArrayWrapper(posBlock.id))
       case _ => Seq()
     }
 
@@ -112,7 +112,7 @@ class HistoryStorage(storage: LSMStore,
 
   def parentId(block: HybridBlock): ModifierId = block match {
     case powBlock: PowBlock => powBlock.prevPosId
-    case posBlock: PosBlock => posBlock.parentId
+    case posBlock: PosBlock => ModifierId !@@ posBlock.parentId.arr
   }
 
   private def blockHeightKey(blockId: ModifierId): ByteArrayWrapper =
@@ -125,7 +125,7 @@ class HistoryStorage(storage: LSMStore,
     .map(b => Longs.fromByteArray(b.data))
 
   def isGenesis(b: HybridBlock): Boolean = b match {
-    case powB: PowBlock => powB.parentId sameElements settings.GenesisParentId
-    case posB: PosBlock => heightOf(posB.parentId).contains(1L)
+    case powB: PowBlock => powB.parentId.arr sameElements settings.GenesisParentId
+    case posB: PosBlock => heightOf(ModifierId !@@ posB.parentId.arr).contains(1L)
   }
 }

@@ -11,11 +11,13 @@ import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import io.iohk.iodb.LSMStore
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
+import scorex.core.utils.ByteBoxer
 import scorex.core.{ModifierId, VersionTag}
 import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
 import scorex.crypto.authds.{ADDigest, ADKey}
 import scorex.crypto.hash.{Blake2b256Unsafe, Digest32}
 import scorex.crypto.signatures.{Curve25519, PublicKey}
+import supertagged.tag
 
 import scala.util.{Failure, Random, Success, Try}
 
@@ -42,7 +44,7 @@ object Algos extends App {
     val partialProofs = utxos.zipWithIndex.map { case (utxo, stateIndex) =>
       val ids = (0 until NElementsInProof) map (elementIndex => ADKey @@ hashfn(seed ++ minerPubKey ++
         Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
-      val proof = utxo.lookupProof(ids).get
+      val proof = utxo.lookupProof(ids.map(i => ADKey !@@ i)).get
       seed = hashfn(scorex.core.utils.concatFixLengthBytes(ids)) //TODO do we need it?
       proof
     }
@@ -65,7 +67,7 @@ object Algos extends App {
       val st = hashfn(parentId ++ transactionsRoot ++ currentStateRoot)
       val nonce = Random.nextLong()
       val ticket = generateTicket(miningUtxos, st, minerPubKey, nonce).get
-      val header = BlockHeader(parentId, currentStateRoot, transactionsRoot, ticket, nonce)
+      val header = BlockHeader(ByteBoxer[ModifierId](tag[ModifierId](parentId)), currentStateRoot, transactionsRoot, ticket, nonce)
 
       if (header.correctWorkDone(difficulty)) {
         println(s"pow done in $i attempts")
@@ -94,7 +96,7 @@ object Algos extends App {
       val v = new BatchAVLVerifier[Digest32, Blake2b256Unsafe](ADDigest @@ sroot, pp, keyLength = BoxKeyLength,
         valueLengthOpt = Some(BoxLength))
 
-      ids.foreach(id => v.performOneOperation(Lookup(ADKey @@ id)).get)
+      ids.foreach(id => v.performOneOperation(Lookup(ADKey !@@ id)).get)
       seed = hashfn(scorex.core.utils.concatFixLengthBytes(ids)) //TODO do we need it?
     }
 
@@ -119,7 +121,7 @@ object Algos extends App {
 
   val headerOpt = pow(ModifierId @@ Array.fill(32)(0: Byte),
     TransactionsRoot @@ Array.fill(32)(0: Byte),
-    StateRoot @@ u2.rootHash,
+    StateRoot !@@ u2.rootHash,
     pk1.pubKeyBytes,
     IndexedSeq(u2),
     Constants.Difficulty, 500).get

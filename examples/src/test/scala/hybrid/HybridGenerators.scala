@@ -15,11 +15,12 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
+import scorex.core.utils.ByteBoxer
 import scorex.core.{ModifierId, NodeViewModifier}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Signature
 import scorex.testkit.utils.{FileUtils, NoShrink}
-
+import supertagged.tag
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -72,7 +73,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
     brothersCount: Byte <- positiveByteGen
     brothersHash: Array[Byte] <- genBytesList(Blake2b256.DigestSize)
     prop: PublicKey25519Proposition <- propositionGen
-  } yield new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
+  } yield new PowBlockHeader(ByteBoxer[ModifierId](tag[ModifierId](parentId)), prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
 
   lazy val powBlockGen: Gen[PowBlock] = for {
     parentId: BlockId <- modifierIdGen
@@ -85,7 +86,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
   } yield {
     val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
     val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
-    new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
+    new PowBlock(ByteBoxer[ModifierId](tag[ModifierId](parentId)), prevPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
   }
 
   lazy val noncedBoxGen: Gen[PublicKey25519NoncedBox] = for {

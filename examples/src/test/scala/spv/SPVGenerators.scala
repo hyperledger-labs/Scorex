@@ -4,6 +4,8 @@ import commons.ExamplesCommonGenerators
 import examples.spv._
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.ModifierId
+import scorex.core.utils.ByteBoxer
+import supertagged.tag
 
 trait SPVGenerators extends ExamplesCommonGenerators {
 
@@ -14,6 +16,6 @@ trait SPVGenerators extends ExamplesCommonGenerators {
     stateRoot: Array[Byte] <- genBytesList(Constants.hashfn.DigestSize)
     timestamp: Long <- Arbitrary.arbitrary[Long].map(t => Math.abs(t))
     powNonce: Int <- Arbitrary.arbitrary[Int]
-  } yield Header(parentId, innerchainLinks, stateRoot, txRoot, timestamp, powNonce)
+  } yield Header(ByteBoxer[ModifierId](tag[ModifierId](parentId)), innerchainLinks, stateRoot, txRoot, timestamp, powNonce)
 
 }

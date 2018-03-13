@@ -8,16 +8,18 @@ import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mining.HybridMiningSettings
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
+import scorex.core.block.Block.BlockId
 import scorex.core.serialization.Serializer
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519Companion
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{ByteBoxer, NetworkTimeProvider, ScorexLogging}
 import scorex.core.{ModifierTypeId, NodeViewHolder, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
-
+import supertagged.tag
+import supertagged.@@
 
 class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider) extends NodeViewHolder[PublicKey25519Proposition,
   SimpleBoxTransaction,
@@ -75,7 +77,7 @@ object HybridNodeViewHolder extends ScorexLogging {
 
     val genesisAccount = PrivateKey25519Companion.generateKeys("genesis".getBytes)
     val genesisAccountPriv = genesisAccount._1
-    val powGenesis = PowBlock(minerSettings.GenesisParentId, minerSettings.GenesisParentId, 1481110008516L, 38,
+    val powGenesis = PowBlock(ByteBoxer[BlockId](tag[BlockId](minerSettings.GenesisParentId)), minerSettings.GenesisParentId, 1481110008516L, 38,
       0, Array.fill(32)(0: Byte), genesisAccount._2, Seq())
 
 

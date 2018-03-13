@@ -1,11 +1,11 @@
 package scorex.core.consensus
 
-import scorex.core.{ModifierId, ModifierTypeId}
-import scorex.core.NodeViewModifier._
 import scorex.core.block.Block
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ByteBoxer, ScorexLogging}
+import scorex.core.{ModifierId, ModifierTypeId}
+import supertagged.{ untag, tag}
 
 import scala.util.Try
 
@@ -44,14 +44,14 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   override def openSurfaceIds(): scala.Seq[ModifierId] = lastBlockIds(1)
 
   override def continuationIds(info: SI, size: Int):
-  Option[Seq[(ModifierTypeId, ModifierId)]] = {
+  Option[Seq[(ModifierTypeId, ByteBoxer[ModifierId])]] = {
     val openSurface = info.startingPoints
     require(openSurface.size == 1)
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val modId = openSurface.head._1
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-    val s = lookForward(openSurface.head._2, size)
-    if (s.isEmpty) None else Some(s.map(id => modId -> id))
+    val s = lookForward(ModifierId !@@ openSurface.head._2.arr, size)
+    if (s.isEmpty) None else Some(s.map(id => modId -> ByteBoxer[ModifierId](tag[ModifierId](id))))
   }
 
   /**
@@ -66,7 +66,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
 
   def parent(block: B, back: Int = 1): Option[B] = {
     require(back > 0)
-    heightOf(block.parentId).flatMap(referenceHeight => blockAt(referenceHeight - back + 1))
+    heightOf(ModifierId !@@ block.parentId.arr).flatMap(referenceHeight => blockAt(referenceHeight - back + 1))
   }
 
   def lastBlocks(howMany: Int): Seq[B] =

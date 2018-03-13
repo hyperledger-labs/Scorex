@@ -234,7 +234,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
 
         if (!state.version.sameElements(branchingPoint)) {
-          state.rollbackTo(branchingPoint).map { rs =>
+          state.rollbackTo(VersionTag !@@ branchingPoint).map { rs =>
             rs
           }
         } else Success(state)
@@ -251,7 +251,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
+                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId !@@ state.version)
                 notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
                 updateState(newHis, stateToApply, newProgressInfo)
             }
@@ -288,7 +288,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
                 //we consider that vault always able to perform a rollback needed
                 val newVault = if (progressInfo.chainSwitchingNeeded) {
-                  vault().rollback(VersionTag @@ progressInfo.branchPoint.get).get.scanPersistent(progressInfo.toApply)
+                  vault().rollback(VersionTag !@@ progressInfo.branchPoint.get).get.scanPersistent(progressInfo.toApply)
                 } else {
                   vault().scanPersistent(progressInfo.toApply)
                 }

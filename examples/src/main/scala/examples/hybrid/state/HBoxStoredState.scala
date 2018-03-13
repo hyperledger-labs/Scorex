@@ -51,13 +51,13 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     mod match {
       case pwb: PowBlock =>
         //coinbase transaction is generated implicitly when block is applied to state, no validation needed
-        require((pwb.parentId sameElements version) || (pwb.prevPosId sameElements version)
+        require((pwb.parentId.arr sameElements version) || (pwb.prevPosId sameElements version)
           || pwb.brothers.exists(_.id sameElements version), s"Incorrect state version: ${Base58.encode(version)} " +
-          s"found, (${Base58.encode(pwb.prevPosId)} || ${Base58.encode(pwb.parentId)} ||" +
+          s"found, (${Base58.encode(pwb.prevPosId)} || ${Base58.encode(pwb.parentId.arr)} ||" +
           s" ${pwb.brothers.map(b => Base58.encode(b.id))}) expected")
 
       case psb: PosBlock =>
-        require(psb.parentId sameElements version, s"Incorrect state version!: ${Base58.encode(psb.parentId)} found, " +
+        require(psb.parentId.arr sameElements version, s"Incorrect state version!: ${Base58.encode(psb.parentId.arr)} found, " +
           s"${Base58.encode(version)} expected")
         closedBox(psb.generatorBox.id).get
         psb.transactions.foreach(tx => validate(tx).get)
@@ -150,7 +150,7 @@ object HBoxStoredState {
 
   def genesisState(settings: ScorexSettings, initialBlocks: Seq[HybridBlock]): HBoxStoredState = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
-      state.changes(mod).flatMap(cs => state.applyChanges(cs, VersionTag @@ mod.id)).get
+      state.changes(mod).flatMap(cs => state.applyChanges(cs, VersionTag !@@ mod.id)).get
     }
   }
 }

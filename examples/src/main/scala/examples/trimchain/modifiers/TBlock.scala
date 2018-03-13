@@ -9,6 +9,7 @@ import scorex.core.block.Block
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.utils.ByteBoxer
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -24,7 +25,7 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
     "timestamp" -> timestamp.asJson
   ).asJson
 
-  override def parentId: ModifierId = header.parentId
+  override def parentId: ByteBoxer[ModifierId] = header.parentId
 
   override def transactions: Seq[SimpleBoxTransaction] = body
 

@@ -4,6 +4,7 @@ import com.typesafe.config.ConfigFactory
 import scorex.core.serialization.{BytesSerializable, JsonSerializable}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.utils.ByteBoxer
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
@@ -38,7 +39,7 @@ object NodeViewModifier {
 
 
 trait PersistentNodeViewModifier extends NodeViewModifier {
-  def parentId: ModifierId
+  def parentId: ByteBoxer[ModifierId]
 }
 
 

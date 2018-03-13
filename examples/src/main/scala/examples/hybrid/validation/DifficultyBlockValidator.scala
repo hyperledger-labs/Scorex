@@ -3,6 +3,7 @@ package examples.hybrid.validation
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HistoryStorage
 import examples.hybrid.mining.{HybridMiningSettings, PosForger}
+import scorex.core.ModifierId
 import scorex.core.block.BlockValidator
 import scorex.crypto.encode.Base58
 
@@ -32,7 +33,7 @@ class DifficultyBlockValidator(settings: HybridMiningSettings, storage: HistoryS
   //PoS consensus rules checks, throws exception if anything wrong
   private def checkPoSConsensusRules(posBlock: PosBlock, miningSettings: HybridMiningSettings): Try[Unit] = Try {
     if (!storage.isGenesis(posBlock)) {
-      val parentPoW: PowBlock = storage.modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
+      val parentPoW: PowBlock = storage.modifierById(ModifierId !@@ posBlock.parentId.arr).get.asInstanceOf[PowBlock]
       val hit = PosForger.hit(parentPoW)(posBlock.generatorBox)
       val posDifficulty = storage.getPoSDifficulty(parentPoW.prevPosId)
       val target = (miningSettings.MaxTarget / posDifficulty) * posBlock.generatorBox.value

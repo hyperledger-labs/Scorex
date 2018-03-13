@@ -10,12 +10,13 @@ import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.utils.ByteBoxer
 import scorex.crypto.encode.Base58
-
+import supertagged.tag
 import scala.annotation.tailrec
 import scala.util.Try
 
-case class Header(parentId: BlockId,
+case class Header(parentId: ByteBoxer[BlockId],
                   interlinks: Seq[Array[Byte]],
                   stateRoot: Array[Byte],
                   transactionsRoot: Array[Byte],
@@ -33,7 +34,7 @@ case class Header(parentId: BlockId,
     "innerchainLinks" -> interlinks.map(l => Base58.encode(l).asJson).asJson,
     "transactionsRoot" -> Base58.encode(transactionsRoot).asJson,
     "stateRoot" -> Base58.encode(stateRoot).asJson,
-    "parentId" -> Base58.encode(parentId).asJson,
+    "parentId" -> Base58.encode(parentId.arr).asJson,
     "timestamp" -> timestamp.asJson,
     "nonce" -> nonce.asJson
   ).asJson
@@ -67,7 +68,7 @@ object HeaderSerializer extends Serializer[Header] {
   val BytesWithoutInterlinksLength = 108
 
   def bytesWithoutInterlinks(h: Header): Array[Byte] = {
-    Bytes.concat(h.parentId, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce))
+    Bytes.concat(h.parentId.arr, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce))
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Header] = Try {
@@ -88,6 +89,6 @@ object HeaderSerializer extends Serializer[Header] {
     }
     val innerchainLinks = parseInnerchainLinks(108, Seq())
 
-    Header(parentId, innerchainLinks, stateRoot, transactionsRoot, timestamp, nonce)
+    Header(ByteBoxer[BlockId](tag[BlockId](parentId)), innerchainLinks, stateRoot, transactionsRoot, timestamp, nonce)
   }
 }

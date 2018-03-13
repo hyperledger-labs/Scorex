@@ -13,13 +13,14 @@ import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, Prog
 import scorex.core.consensus.{History, ModifierSemanticValidity}
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{ByteBoxer, NetworkTimeProvider, ScorexLogging}
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Try}
+import supertagged.tag
 
 /**
   * History storage
@@ -42,7 +43,7 @@ class HybridHistory(val storage: HistoryStorage,
     (storage.bestPowId sameElements settings.GenesisParentId, bestPosId sameElements settings.GenesisParentId) match {
       case (true, true) => true
       case (false, true) => false
-      case (false, false) => bestPosBlock.parentId sameElements bestPowId
+      case (false, false) => bestPosBlock.parentId.arr sameElements bestPowId
       case (true, false) => ??? //shouldn't be
     }
 
@@ -66,7 +67,7 @@ class HybridHistory(val storage: HistoryStorage,
     def loop(b: PowBlock, acc: Seq[PowBlock] = Seq()): Seq[PowBlock] = if (acc.length >= count) {
       acc
     } else {
-      modifierById(b.parentId) match {
+      modifierById(ModifierId !@@ b.parentId.arr) match {
         case Some(parent: PowBlock) => loop(parent, b +: acc)
         case _ => b +: acc
       }
@@ -97,7 +98,7 @@ class HybridHistory(val storage: HistoryStorage,
       storage.update(powBlock, None, isBest = true)
       ProgressInfo(None, Seq(), Some(powBlock), Seq())
     } else {
-      storage.heightOf(powBlock.parentId) match {
+      storage.heightOf(ModifierId !@@ powBlock.parentId.arr) match {
         case Some(parentHeight) =>
           val isBestBrother = (bestPosId sameElements powBlock.prevPosId) &&
             (bestPowBlock.brothersCount < powBlock.brothersCount)
@@ -106,7 +107,7 @@ class HybridHistory(val storage: HistoryStorage,
 
           val mod: ProgressInfo[HybridBlock] = if (isBest) {
             if (isGenesis(powBlock) ||
-              ((powBlock.parentId sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
+              ((powBlock.parentId.arr sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
               log.debug(s"New best PoW block ${Base58.encode(powBlock.id)}")
               //just apply one block to the end
               ProgressInfo(None, Seq(), Some(powBlock), Seq())
@@ -135,13 +136,13 @@ class HybridHistory(val storage: HistoryStorage,
 
   private def posBlockAppend(posBlock: PosBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
     val difficulties = calcDifficultiesForNewBlock(posBlock)
-    val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
+    val parent = modifierById(ModifierId !@@ posBlock.parentId.arr).get.asInstanceOf[PowBlock]
     val isBest = storage.height == storage.parentHeight(posBlock)
 
     val mod: ProgressInfo[HybridBlock] = if (!isBest) {
       log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
       ProgressInfo(None, Seq(), None, Seq())
-    } else if (posBlock.parentId sameElements bestPowId) {
+    } else if (posBlock.parentId.arr sameElements bestPowId) {
       log.debug(s"New best PoS block ${Base58.encode(posBlock.id)}")
       ProgressInfo(None, Seq(), Some(posBlock), Seq())
     } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
@@ -215,7 +216,7 @@ class HybridHistory(val storage: HistoryStorage,
 
       //recalc difficulties
 
-      val lastPow = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
+      val lastPow = modifierById(ModifierId !@@ posBlock.parentId.arr).get.asInstanceOf[PowBlock]
       val powBlocks = lastPowBlocks(DifficultyRecalcPeriod, lastPow) //.ensuring(_.length == DifficultyRecalcPeriod)
 
       // TODO: fixme, What should we do if `powBlocksHead` is empty?
@@ -237,8 +238,8 @@ class HybridHistory(val storage: HistoryStorage,
       (newPowDiff, newPosDiff)
     } else {
       //Same difficulty as in previous block
-      assert(modifierById(posBlock.parentId).isDefined, "Parent should always be in history")
-      val parentPoSId: ModifierId = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock].prevPosId
+      assert(modifierById(ModifierId !@@ posBlock.parentId.arr).isDefined, "Parent should always be in history")
+      val parentPoSId: ModifierId = modifierById(ModifierId !@@ posBlock.parentId.arr).get.asInstanceOf[PowBlock].prevPosId
       (storage.getPoWDifficulty(Some(parentPoSId)), storage.getPoSDifficulty(parentPoSId))
     }
   }
@@ -251,20 +252,20 @@ class HybridHistory(val storage: HistoryStorage,
   override def applicable(block: HybridBlock): Boolean = {
     block match {
       case pwb: PowBlock =>
-        contains(pwb.parentId) && contains(pwb.prevPosId)
+        contains(ModifierId !@@ pwb.parentId.arr) && contains(pwb.prevPosId)
       case psb: PosBlock =>
-        contains(psb.parentId)
+        contains(ModifierId !@@ psb.parentId.arr)
     }
   }
 
-  def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[ModifierIds] = {
+  def continuationIds(from: Seq[(ModifierTypeId, ByteBoxer[ModifierId])], size: Int): Option[ModifierIds] = {
     def inList(m: HybridBlock): Boolean = idInList(m.id) || isGenesis(m)
 
-    def idInList(id: ModifierId): Boolean = from.exists(f => f._2 sameElements id)
+    def idInList(id: ModifierId): Boolean = from.exists(f => f._2.arr sameElements id)
 
     //Look without limit for case difference between nodes is bigger then size
     chainBack(bestBlock, inList) match {
-      case Some(chain) if chain.exists(id => idInList(id._2)) => Some(chain.take(size))
+      case Some(chain) if chain.exists(id => idInList(id._2)) => Some(chain.take(size).map({case (t, ids) => (t, ByteBoxer[ModifierId](tag[ModifierId](ids)))}))
       case Some(chain) =>
         log.warn("Found chain without ids form remote")
         None
@@ -273,14 +274,14 @@ class HybridHistory(val storage: HistoryStorage,
   }
 
   override def continuationIds(info: HybridSyncInfo,
-                               size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+                               size: Int): Option[Seq[(ModifierTypeId, ByteBoxer[ModifierId])]] = {
     continuationIds(info.startingPoints, size)
   }
 
   override def syncInfo: HybridSyncInfo =
     HybridSyncInfo(
       false,
-      lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks, bestPowBlock).map(_.id),
+      lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks, bestPowBlock).map(pb => ModifierId !@@ pb.id),
       bestPosId)
 
   @tailrec
@@ -385,7 +386,7 @@ class HybridHistory(val storage: HistoryStorage,
   }
 
   def parentBlock(m: HybridBlock): Option[HybridBlock] = m match {
-    case b: PosBlock => modifierById(b.parentId)
+    case b: PosBlock => modifierById(ModifierId !@@ b.parentId.arr)
     case b: PowBlock => modifierById(b.prevPosId)
   }
 
