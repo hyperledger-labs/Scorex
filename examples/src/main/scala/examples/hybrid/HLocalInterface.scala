@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.mining.HybridMiningSettings
-import scorex.core.{LocalInterface, ModifierId}
+import scorex.core.{LocalInterface, ModifierId, VersionTag}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 class HLocalInterface(override val viewHolderRef: ActorRef,
@@ -32,9 +32,11 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
 
   override protected def onNewSurface(newSurface: Seq[ModifierId]): Unit = {}
 
-  override protected def onRollbackFailed(): Unit = {
+  override protected def onRollbackFailed(branchingPointOpt: Option[VersionTag]): Unit = {
     log.error("Too deep rollback occurred!")
   }
+
+  override protected def onRollbackSucceed(branchingPointOpt: Option[VersionTag]): Unit = {}
 
   //stop PoW miner and start PoS forger if PoW block comes
   //stop PoW forger and start PoW miner if PoS block comes

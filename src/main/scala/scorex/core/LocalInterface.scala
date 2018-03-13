@@ -68,7 +68,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       onRollbackFailed(rf.branchingPointOpt)
 
     case rs: RollbackSucceed =>
-      onRollbackSucceeded(rs.branchingPointOpt)
+      onRollbackSucceed(rs.branchingPointOpt)
 
     case ChangedState(r) =>
       onChangedState(r)
@@ -89,7 +89,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   protected def onNewSurface(newSurface: Seq[ModifierId]): Unit
   protected def onRollbackFailed(branchingPointOpt: Option[VersionTag]): Unit
-  protected def onRollbackSucceeded(branchingPointOpt: Option[VersionTag]): Unit
+  protected def onRollbackSucceed(branchingPointOpt: Option[VersionTag]): Unit
   protected def onChangedState(r: StateReader): Unit = {}
 
   protected def onNoBetterNeighbour(): Unit
