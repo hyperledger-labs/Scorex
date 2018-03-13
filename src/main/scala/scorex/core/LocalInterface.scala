@@ -64,8 +64,11 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     case surf: NewOpenSurface =>
       onNewSurface(surf.newSurface)
 
-    case RollbackFailed =>
-      onRollbackFailed()
+    case rf: RollbackFailed =>
+      onRollbackFailed(rf.branchingPointOpt)
+
+    case rs: RollbackSucceed =>
+      onRollbackSucceeded(rs.branchingPointOpt)
 
     case ChangedState(r) =>
       onChangedState(r)
@@ -85,7 +88,8 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def onSemanticallyFailedModification(mod: PMOD): Unit
 
   protected def onNewSurface(newSurface: Seq[ModifierId]): Unit
-  protected def onRollbackFailed(): Unit
+  protected def onRollbackFailed(branchingPointOpt: Option[VersionTag]): Unit
+  protected def onRollbackSucceeded(branchingPointOpt: Option[VersionTag]): Unit
   protected def onChangedState(r: StateReader): Unit = {}
 
   protected def onNoBetterNeighbour(): Unit
@@ -112,8 +116,10 @@ object LocalInterface {
     import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewHolderEvent, NodeViewChange}
 
     case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
-    //todo: consider sending info on the rollback
-    case object RollbackFailed extends NodeViewHolderEvent
+
+    case class RollbackFailed(branchingPointOpt: Option[VersionTag]) extends NodeViewHolderEvent
+    case class RollbackSucceed(branchingPointOpt: Option[VersionTag]) extends NodeViewHolderEvent
+
     case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
     case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
   }
