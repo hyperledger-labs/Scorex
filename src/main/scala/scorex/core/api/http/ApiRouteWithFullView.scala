@@ -1,6 +1,7 @@
 package scorex.core.api.http
 
 import akka.actor.ActorRef
+import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import scorex.core.NodeViewHolder.CurrentView
 
@@ -11,6 +12,8 @@ trait ApiRouteWithFullView[HIS, MS, VL, MP] extends ApiRoute {
   import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 
   val nodeViewHolderRef: ActorRef
+
+  def withNodeView(f: CurrentView[HIS, MS, VL, MP] => Route): Route = onSuccess(viewAsync())(f)
 
   //TODO Data received in current view is mutable and may be inconsistent.
   //Better get concrete data you need from NodeViewHolder

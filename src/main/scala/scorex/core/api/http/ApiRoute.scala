@@ -1,7 +1,6 @@
 package scorex.core.api.http
 
 import akka.actor.ActorRefFactory
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server.{Directive0, Route}
 import akka.http.scaladsl.unmarshalling.PredefinedFromEntityUnmarshallers
 import akka.util.Timeout
@@ -42,14 +41,7 @@ trait ApiRoute extends ApiDirectives with ActorHelper with FailFastCirceSupport 
   def deleteJsonRoute(fn: Future[ScorexApiResponse]): Route = jsonRoute(Await.result(fn, settings.timeout), delete)
 
   protected def jsonRoute(fn: ScorexApiResponse, method: Directive0): Route = method {
-    val resp = fn match {
-      case SuccessApiResponse(js) =>
-        complete(HttpEntity(ContentTypes.`application/json`, js.spaces2))
-      case ApiException(e) =>
-        complete(StatusCodes.InternalServerError -> e.getMessage)
-      case err@ApiError(msg, code) =>
-        complete(code -> msg)
-    }
-    withCors(resp)
+    withCors(complete(fn))
   }
+
 }
