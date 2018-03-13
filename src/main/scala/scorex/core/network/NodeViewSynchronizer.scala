@@ -381,7 +381,7 @@ object NodeViewSynchronizerRef {
                              viewHolderRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
-                             timeProvider: NetworkTimeProvider) =
+                             timeProvider: NetworkTimeProvider): Props =
     Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
                                                                  networkSettings, timeProvider))
 

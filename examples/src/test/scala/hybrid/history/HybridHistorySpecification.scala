@@ -104,7 +104,7 @@ class HybridHistorySpecification extends PropSpec
     compareAndCheck(history, youngerSyncInfo) shouldBe Younger
 
     compareAndCheck(history, youngerSyncInfo.copy(lastPosBlockId = modifierIdGen.sample.get)) shouldBe Younger
-    val posDiffComparison = if (history.pairCompleted) Older else Younger
+    val posDiffComparison: HistoryComparisonResult = if (history.pairCompleted) Older else Younger
     compareAndCheck(history, equalsSyncInfo.copy(lastPosBlockId = modifierIdGen.sample.get)) shouldBe posDiffComparison
 
     val betterForkSyncInfo = equalsSyncInfo

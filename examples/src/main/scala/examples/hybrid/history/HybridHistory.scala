@@ -460,7 +460,7 @@ class HybridHistory(val storage: HistoryStorage,
 
   //todo: real impl
   override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity = {
-    modifierById(modifierId).map(_ => Valid).getOrElse(Absent)
+    if(modifierById(modifierId).isEmpty) Absent else Valid
   }
 }
 

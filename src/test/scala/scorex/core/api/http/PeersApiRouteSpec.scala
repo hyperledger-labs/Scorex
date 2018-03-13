@@ -3,14 +3,16 @@ package scorex.core.api.http
 import java.net.InetSocketAddress
 
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
+import akka.http.scaladsl.server
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.testkit.TestDuration
+import io.circe.Json
 import io.circe.syntax._
 import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.api.http.PeersApiRoute.PeerInfoResponse
 import scorex.core.settings.RESTApiSettings
-import scala.language.postfixOps
 
+import scala.language.postfixOps
 import scala.concurrent.duration._
 
 class PeersApiRouteSpec extends FlatSpec
@@ -18,18 +20,18 @@ class PeersApiRouteSpec extends FlatSpec
   with ScalatestRouteTest
   with Stubs {
 
-  implicit val timeout = RouteTestTimeout(15.seconds dilated)
+  implicit val timeout: RouteTestTimeout = RouteTestTimeout(15.seconds dilated)
 
-  val addr = new InetSocketAddress("localhost", 8080)
-  val restApiSettings = RESTApiSettings(addr, None, None, 10 seconds)
-  val prefix = "/peers"
-  val routes = PeersApiRoute(pmRef, networkControllerRef, restApiSettings).route
+  val addr: InetSocketAddress = new InetSocketAddress("localhost", 8080)
+  val restApiSettings: RESTApiSettings = RESTApiSettings(addr, None, None, 10 seconds)
+  val prefix: String = "/peers"
+  val routes: server.Route = PeersApiRoute(pmRef, networkControllerRef, restApiSettings).route
 
-  val peersResp = peers.map { case (address, peerInfo) =>
+  val peersResp: String = peers.map { case (address, peerInfo) =>
     PeerInfoResponse.fromAddressAndInfo(address, peerInfo).asJson
   }.asJson.toString
 
-  val connectedPeersResp = connectedPeers.map { handshake =>
+  val connectedPeersResp: Json = connectedPeers.map { handshake =>
     Map(
       "address" -> handshake.declaredAddress.toString.asJson,
       "name" -> handshake.nodeName.asJson,

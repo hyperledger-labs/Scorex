@@ -88,8 +88,10 @@ object PeersApiRoute {
 
   case class BlacklistedPeers(addresses: Seq[String])
 
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val encodePeerInfoResponse: Encoder[PeerInfoResponse] = deriveEncoder
 
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val encodeBlackListedPeers: Encoder[BlacklistedPeers] = deriveEncoder
 
 }

@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.core.network.message.{GetPeersSpec, Message, PeersSpec}
+import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import shapeless.syntax.typeable._
@@ -24,7 +24,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 
   private implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
 
-  val messageSpecs = Seq(GetPeersSpec, PeersSpec)
+  val messageSpecs: Seq[MessageSpec[_]] = Seq[MessageSpec[_]](GetPeersSpec, PeersSpec)
 
   override def preStart: Unit = {
     super.preStart()

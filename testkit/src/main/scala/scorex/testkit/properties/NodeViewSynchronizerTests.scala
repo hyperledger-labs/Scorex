@@ -50,6 +50,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
 
   class SynchronizerFixture extends AkkaFixture {
+    @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
     val (node, syncInfo, mod, tx, peer, pchProbe, ncProbe, vhProbe, eventListener) = nodeViewSynchronizer
   }
 

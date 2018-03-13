@@ -48,9 +48,9 @@ class MessageSerializer[Content] extends Serializer[Message[Content]] {
 object Message {
   type MessageCode = Byte
 
-  val MAGIC = Array(0x12: Byte, 0x34: Byte, 0x56: Byte, 0x78: Byte)
+  val MAGIC: Array[Byte] = Array[Byte](0x12: Byte, 0x34: Byte, 0x56: Byte, 0x78: Byte)
 
-  val MagicLength = MAGIC.length
+  val MagicLength: Int = MAGIC.length
 
-  val ChecksumLength = 4
+  val ChecksumLength: Int = 4
 }
