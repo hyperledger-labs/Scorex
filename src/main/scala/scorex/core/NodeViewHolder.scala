@@ -1,10 +1,11 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.LocalInterface.ReceivableMessages.ChangedStateFailed
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ConnectedPeer
-import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
@@ -35,11 +36,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   import NodeViewHolder._
   import NodeViewHolder.ReceivableMessages._
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
-                                                                      ChangedMempool, ChangedVault,
-                                                                      SuccessfulTransaction, FailedTransaction,
-                                                                      SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                      SemanticallySuccessfulModifier, SemanticallyFailedModification}
-  import scorex.core.LocalInterface.ReceivableMessages.{ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
+    ChangedMempool, ChangedVault,
+    SuccessfulTransaction, FailedTransaction,
+    SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+    SemanticallySuccessfulModifier, SemanticallyFailedModification}
+  import scorex.core.LocalInterface.ReceivableMessages.{ChangedState, NewOpenSurface, StartingPersistentModifierApplication}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
@@ -147,7 +148,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def updateNodeView(updatedHistory: Option[HIS] = None,
                                updatedState: Option[MS] = None,
                                updatedVault: Option[VL] = None,
-                               updatedMempool: Option[MP] = None): Unit = {
+                               updatedMempool: Option[MP] = None,
+                               progressInfoOpt: Option[History.ProgressInfo[PMOD]] = None): Unit = {
     val newNodeView = (updatedHistory.getOrElse(history()),
       updatedState.getOrElse(minimalState()),
       updatedVault.getOrElse(vault()),
@@ -156,7 +158,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       notifySubscribers[ChangedHistory[HistoryReader[PMOD, SI]]](EventType.HistoryChanged, ChangedHistory(newNodeView._1.getReader))
     }
     if (updatedState.nonEmpty) {
-      notifySubscribers[ChangedState[StateReader]](EventType.StateChanged, ChangedState(newNodeView._2.getReader))
+      notifySubscribers[ChangedState[StateReader, PMOD]](EventType.StateChanged, ChangedState(newNodeView._2.getReader, progressInfoOpt))
     }
     if (updatedVault.nonEmpty) {
       notifySubscribers[ChangedVault](EventType.VaultChanged, ChangedVault())
@@ -234,9 +236,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
 
         if (!state.version.sameElements(branchingPoint)) {
-          state.rollbackTo(branchingPoint).map { rs =>
-            rs
-          }
+          state.rollbackTo(branchingPoint)
         } else Success(state)
       }.flatten
     } else Success(state)
@@ -248,11 +248,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
-                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
+                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier,
+                  SemanticallySuccessfulModifier(modToApply))
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
-                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
+                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier,
+                  SemanticallyFailedModification(modToApply, e))
                 updateState(newHis, stateToApply, newProgressInfo)
             }
 
@@ -261,7 +263,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
-        notifySubscribers[RollbackFailed.type](EventType.FailedRollback, RollbackFailed)
+        notifySubscribers[ChangedStateFailed[StateReader, PMOD]](EventType.StateChangeFailed,
+          ChangedStateFailed[StateReader, PMOD](state.getReader, Some(progressInfo)))
         //todo: what to return here? the situation is totally wrong
         ???
     }
@@ -294,7 +297,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 }
 
                 log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
-                updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool))
+                updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool), Some(progressInfo))
 
 
               case Failure(e) =>
@@ -337,7 +340,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   protected def processRemoteModifiers: Receive = {
-    case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
+    case ModifiersFromRemote(_, modifierTypeId, remoteObjects) =>
       modifierSerializers.get(modifierTypeId) foreach { companion =>
         remoteObjects.flatMap(r => companion.parseBytes(r).toOption).foreach {
           case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
@@ -388,7 +391,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def getNodeViewChanges: Receive = {
     case GetNodeViewChanges(history, state, vault, mempool) =>
       if (history) sender() ! ChangedHistory(nodeView._1.getReader)
-      if (state) sender() ! ChangedState(nodeView._2.getReader)
+      if (state) sender() ! ChangedState[StateReader, PMOD](nodeView._2.getReader, None)
       if (vault) sender() ! ChangedVault()
       if (mempool) sender() ! ChangedMempool(nodeView._4.getReader)
   }
@@ -429,31 +432,26 @@ object NodeViewHolder {
     val SuccessfulSyntacticallyValidModifier: EventType.Value = Value(5)
     val SuccessfulSemanticallyValidModifier: EventType.Value = Value(6)
 
-
     //starting persistent modifier application. The application could be slow
     val StartingPersistentModifierApplication: EventType.Value = Value(7)
 
     val OpenSurfaceChanged: EventType.Value = Value(8)
 
-    //rollback failed, really wrong situation, probably
-    val FailedRollback: EventType.Value = Value(9)
+    val DownloadNeeded: EventType.Value = Value(9)
 
-    val DownloadNeeded: EventType.Value = Value(10)
-
-    val StateChanged: EventType.Value = Value(11)
+    val StateChanged: EventType.Value = Value(10)
+    val StateChangeFailed: EventType.Value = Value(11)
     val HistoryChanged: EventType.Value = Value(12)
     val MempoolChanged: EventType.Value = Value(13)
     val VaultChanged: EventType.Value = Value(14)
   }
 
-  // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
-  // fixme: Even more, ModificationApplicationStarted seems not to be sent at all
-  // fixme: should we delete these messages?
+  // No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
+  // Even more, ModificationApplicationStarted seems not to be sent at all
   case class ModificationApplicationStarted[PMOD <: PersistentNodeViewModifier](modifier: PMOD)
     extends NodeViewHolderEvent
 
   case class DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) extends NodeViewHolderEvent
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
-
 }

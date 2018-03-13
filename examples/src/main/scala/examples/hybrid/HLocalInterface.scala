@@ -32,10 +32,6 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
 
   override protected def onNewSurface(newSurface: Seq[ModifierId]): Unit = {}
 
-  override protected def onRollbackFailed(): Unit = {
-    log.error("Too deep rollback occurred!")
-  }
-
   //stop PoW miner and start PoS forger if PoW block comes
   //stop PoW forger and start PoW miner if PoS block comes
   override protected def onSemanticallySuccessfulModification(mod: HybridBlock): Unit = {

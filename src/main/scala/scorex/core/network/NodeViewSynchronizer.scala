@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
-import scorex.core.consensus.History.HistoryComparisonResult
+import scorex.core.consensus.History.{HistoryComparisonResult, ProgressInfo}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
 import scorex.core.transaction.box.proposition.Proposition
@@ -15,6 +15,7 @@ import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.peer.PeerManager.PeerManagerEvent
 import scorex.core.settings.NetworkSettings
+import scorex.core.transaction.state.StateReader
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
@@ -330,6 +331,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 }
 
 object NodeViewSynchronizer {
+
   object ReceivableMessages {
     // getLocalSyncInfo messages
     case object SendLocalSyncInfo

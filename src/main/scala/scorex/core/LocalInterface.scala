@@ -1,22 +1,20 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.consensus.History.ProgressInfo
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.StateReader
 import scorex.core.utils.ScorexLogging
 
-/**
-  *
-  */
 trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
 
   import scorex.core.LocalInterface.ReceivableMessages._
   import scorex.core.NodeViewHolder.ReceivableMessages.Subscribe
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SuccessfulTransaction, FailedTransaction, SyntacticallySuccessfulModifier,
-                                                                      SyntacticallyFailedModification, SemanticallySuccessfulModifier,
-                                                                      SemanticallyFailedModification}
+    SyntacticallyFailedModification, SemanticallySuccessfulModifier,
+    SemanticallyFailedModification}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   val viewHolderRef: ActorRef
@@ -34,7 +32,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
       NodeViewHolder.EventType.OpenSurfaceChanged,
       NodeViewHolder.EventType.StateChanged,
-      NodeViewHolder.EventType.FailedRollback
+      NodeViewHolder.EventType.StateChangeFailed
     )
     viewHolderRef ! Subscribe(events)
   }
@@ -64,11 +62,11 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     case surf: NewOpenSurface =>
       onNewSurface(surf.newSurface)
 
-    case RollbackFailed =>
-      onRollbackFailed()
+    case cs: ChangedState[StateReader@unchecked, PMOD] =>
+      onChangedState(cs.reader, cs.progressInfoOpt)
 
-    case ChangedState(r) =>
-      onChangedState(r)
+    case csf: ChangedStateFailed[StateReader@unchecked, PMOD] =>
+      onChangedStateFailed(csf.reader, csf.progressInfoOpt)
   }
 
 
@@ -85,8 +83,8 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def onSemanticallyFailedModification(mod: PMOD): Unit
 
   protected def onNewSurface(newSurface: Seq[ModifierId]): Unit
-  protected def onRollbackFailed(): Unit
-  protected def onChangedState(r: StateReader): Unit = {}
+  protected def onChangedState(r: StateReader, progressInfoOpt: Option[ProgressInfo[PMOD]]): Unit = {}
+  protected def onChangedStateFailed(r: StateReader, progressInfoOpt: Option[ProgressInfo[PMOD]]): Unit = {}
 
   protected def onNoBetterNeighbour(): Unit
   protected def onBetterNeighbourAppeared(): Unit
@@ -111,9 +109,18 @@ object LocalInterface {
 
     import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewHolderEvent, NodeViewChange}
 
-    case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
-    //todo: consider sending info on the rollback
-    case object RollbackFailed extends NodeViewHolderEvent
+    /**
+      * Received by LocalInterface
+      * @param reader - StateReader
+      * @param progressInfoOpt - ProgressInfo (provides recipient with the details of update) (Optional)
+      */
+    case class ChangedState[SR <: StateReader, PMOD <: PersistentNodeViewModifier](reader: SR, progressInfoOpt: Option[ProgressInfo[PMOD]])
+      extends NodeViewChange
+
+    // Received by LocalInterface
+    case class ChangedStateFailed[SR <: StateReader, PMOD <: PersistentNodeViewModifier](reader: SR, progressInfoOpt: Option[ProgressInfo[PMOD]])
+      extends NodeViewChange
+
     case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
     case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
   }
