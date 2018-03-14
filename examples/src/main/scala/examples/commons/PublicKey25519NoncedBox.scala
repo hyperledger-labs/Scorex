@@ -3,7 +3,7 @@ package examples.commons
 import com.google.common.primitives.Longs
 import io.circe.{Encoder, Json}
 import io.circe.syntax._
-import scorex.core.serialization.{JsonSerializable, Serializer}
+import scorex.core.serialization.Serializer
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.{Base16, Base58}

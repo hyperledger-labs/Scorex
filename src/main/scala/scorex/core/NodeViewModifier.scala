@@ -1,7 +1,7 @@
 package scorex.core
 
 import com.typesafe.config.ConfigFactory
-import scorex.core.serialization.{BytesSerializable, JsonSerializable}
+import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58

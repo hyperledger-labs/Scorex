@@ -3,7 +3,7 @@ package examples.trimchain.core
 import com.google.common.primitives.{Bytes, Shorts}
 import io.circe.{Encoder, Json}
 import io.circe.syntax._
-import scorex.core.serialization.{JsonSerializable, Serializer}
+import scorex.core.serialization.Serializer
 import scorex.crypto.authds.SerializedAdProof
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.Curve25519

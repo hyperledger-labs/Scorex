@@ -1,6 +1,5 @@
 package scorex.core.transaction
 
-import scorex.core.serialization.JsonSerializable
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.{EphemerealNodeViewModifier, ModifierId, ModifierTypeId}
 import scorex.crypto.hash.Blake2b256
