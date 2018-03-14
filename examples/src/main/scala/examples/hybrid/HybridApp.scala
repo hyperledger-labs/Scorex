@@ -6,10 +6,10 @@ import examples.hybrid.api.http.{DebugApiRoute, StatsApiRoute, WalletApiRoute}
 import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo, HybridSyncInfoMessageSpec}
 import examples.hybrid.mining._
-import examples.hybrid.wallet.{SimpleBoxTransactionGenerator, SimpleBoxTransactionGeneratorRef}
+import examples.hybrid.wallet.SimpleBoxTransactionGeneratorRef
 import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApiRoute}
 import scorex.core.app.Application
-import scorex.core.network.{NodeViewSynchronizer, NodeViewSynchronizerRef}
+import scorex.core.network.NodeViewSynchronizerRef
 import scorex.core.network.message.MessageSpec
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -57,11 +57,6 @@ class HybridApp(val settingsFilename: String) extends Application {
                                                       PMOD, HybridHistory, SimpleBoxTransactionMemPool]
                                                      (networkControllerRef, nodeViewHolderRef, localInterface,
                                                       HybridSyncInfoMessageSpec, settings.network, timeProvider))
-
-  //touching lazy vals
-  miner
-  localInterface
-  nodeViewSynchronizer
 
   if (settings.network.nodeName.startsWith("generatorNode")) {
     log.info("Starting transactions generation")
