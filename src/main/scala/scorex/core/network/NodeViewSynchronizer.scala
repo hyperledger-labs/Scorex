@@ -16,13 +16,12 @@ import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
-
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 /**
-  * A middle layer between a node view holder(NodeViewHolder) and the p2p network
+  * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
   *
   * @param networkControllerRef reference to network controller actor
   * @param viewHolderRef        reference to node view holder actor
@@ -54,46 +53,16 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
-  protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
-  protected val statusTracker = new SyncTracker(self, context, networkSettings, localInterfaceRef, timeProvider)
-
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
+
+  protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
+  protected val statusTracker = new SyncTracker(self, context, networkSettings, localInterfaceRef, timeProvider)
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
 
-  def readers: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
-
-  override def preStart(): Unit = {
-    //register as a handler for synchronization-specific types of messages
-    val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
-    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
-
-    //register as a listener for peers got connected (handshaked) or disconnected
-    val pmEvents = Seq(
-      PeerManager.HandshakedEvent,
-      PeerManager.DisconnectedEvent
-    )
-    networkControllerRef ! SubscribePeerManagerEvent(pmEvents)
-
-
-    //subscribe for all the node view holder events involving modifiers and transactions
-    val vhEvents = Seq(
-      NodeViewHolder.EventType.HistoryChanged,
-      NodeViewHolder.EventType.MempoolChanged,
-      NodeViewHolder.EventType.FailedTransaction,
-      NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SemanticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
-      NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
-    )
-    viewHolderRef ! Subscribe(vhEvents)
-    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
-
-    statusTracker.scheduleSendSyncInfo()
-  }
+  private def readersOpt: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
     val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
@@ -101,26 +70,28 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   }
 
   protected def viewHolderEvents: Receive = {
-    case SuccessfulTransaction(tx) => broadcastModifierInv(tx)
+    case SuccessfulTransaction(tx) =>
+      broadcastModifierInv(tx)
+
     case FailedTransaction(tx, throwable) =>
-    //todo: ban source peer?
+    //todo: penalize source peer?
 
     case SyntacticallySuccessfulModifier(mod) =>
     case SyntacticallyFailedModification(mod, throwable) =>
-    //todo: ban source peer?
+    //todo: penalize source peer?
 
-    case SemanticallySuccessfulModifier(mod) => broadcastModifierInv(mod)
+    case SemanticallySuccessfulModifier(mod) =>
+      broadcastModifierInv(mod)
+
     case SemanticallyFailedModification(mod, throwable) =>
-    //todo: ban source peer?
+    //todo: penalize source peer?
 
     case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
-      //TODO isInstanceOf ?
-      //TODO type erasure
+      //TODO isInstanceOf, type erasure
       historyReaderOpt = Some(reader)
 
     case ChangedMempool(reader: MR@unchecked) if reader.isInstanceOf[MR] =>
-      //TODO isInstanceOf ?
-      //TODO type erasure
+      //TODO isInstanceOf, type erasure
       mempoolReaderOpt = Some(reader)
   }
 
@@ -153,49 +124,53 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected def processSync: Receive = {
     case DataFromPeer(spec, syncInfo: SI@unchecked, remote)
       if spec.messageCode == syncInfoSpec.messageCode =>
+
       historyReaderOpt match {
         case Some(historyReader) =>
           val extensionOpt = historyReader.continuationIds(syncInfo, networkSettings.networkChunkSize)
           val ext = extensionOpt.getOrElse(Seq())
           val comparison = historyReader.compare(syncInfo)
           log.debug(s"Comparison with $remote having starting points ${idsToString(syncInfo.startingPoints)}. " +
-            s"Comparison result is $comparison. Sending extension of length ${ext.length}: ${idsToString(ext)}")
+            s"Comparison result is $comparison. Sending extension of length ${ext.length}")
+          log.trace(s"Extension ids: ${idsToString(ext)}")
 
           if (!(extensionOpt.nonEmpty || comparison != Younger)) {
             log.warn("Extension is empty while comparison is younger")
           }
 
-          self ! OtherNodeSyncingStatus(
-            remote,
-            comparison,
-            syncInfo,
-            historyReader.syncInfo,
-            extensionOpt
-          )
+          self ! OtherNodeSyncingStatus(remote, comparison, extensionOpt)
         case _ =>
+      }
+  }
+
+
+  // Send history extension to the (less developed) peer 'remote' which does not have it.
+  def sendExtension(remote: ConnectedPeer,
+                    status: HistoryComparisonResult,
+                    extOpt: Option[Seq[(ModifierTypeId, ModifierId)]]): Unit = extOpt match {
+    case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
+    case Some(ext) =>
+      ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
+        case (mid, mods) =>
+          networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
       }
   }
 
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
-    case OtherNodeSyncingStatus(remote, status, _, _, extOpt) =>
+    case OtherNodeSyncingStatus(remote, status, extOpt) =>
       statusTracker.updateStatus(remote, status)
 
       status match {
-        case Unknown => log.warn("Peer status is still unknown") //todo: should we ban peer if its status is unknown after getting info from it?
-        case Nonsense => log.warn("Got nonsense") //todo: fix, see https://github.com/ScorexFoundation/Scorex/issues/158
-        case Younger => processExtension()
+        case Unknown =>
+          //todo: should we ban peer if its status is unknown after getting info from it?
+          log.warn("Peer status is still unknown")
+        case Nonsense =>
+          //todo: fix, see https://github.com/ScorexFoundation/Scorex/issues/158
+          log.warn("Got nonsense")
+        case Younger =>
+          sendExtension(remote, status, extOpt)
         case _ => // does nothing for `Equal` and `Older`
-      }
-
-      // Send history extension to the (less developed) peer 'remote' which does not have it.
-      def processExtension(): Unit = extOpt match {
-        case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
-        case Some(ext) =>
-          ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
-            case (mid, mods) =>
-              networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
-          }
       }
   }
 
@@ -203,8 +178,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected def processInv: Receive = {
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == InvSpec.MessageCode =>
-      //TODO can't replace here because of modifiers cache
 
+      //TODO can't replace viewHolderRef with a reader because of modifiers cache
       viewHolderRef ! CompareViews(remote, invData._1, invData._2)
   }
 
@@ -213,12 +188,12 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case DataFromPeer(spec, invData: InvData@unchecked, remote)
       if spec.messageCode == RequestModifierSpec.MessageCode =>
 
-      readers.foreach { reader =>
+      readersOpt.foreach { readers =>
         val objs: Seq[NodeViewModifier] = invData._1 match {
           case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-            reader._2.getAll(invData._2)
+            readers._2.getAll(invData._2)
           case _: ModifierTypeId =>
-            invData._2.flatMap(id => reader._1.modifierById(id))
+            invData._2.flatMap(id => readers._1.modifierById(id))
         }
 
         log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
@@ -237,8 +212,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       val typeId = data._1
       val modifiers = data._2
 
-      log.info(s"Got modifiers of type $typeId with ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
-      log.info(s"From remote connected peer: $remote")
+      log.info(s"Got modifiers of type $typeId from remote connected peer: $remote")
+      log.trace(s"Received modifier ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
 
       for ((id, _) <- modifiers) deliveryTracker.receive(typeId, id, remote)
 
@@ -312,6 +287,36 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       }
   }
 
+  override def preStart(): Unit = {
+    //register as a handler for synchronization-specific types of messages
+    val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
+
+    //register as a listener for peers got connected (handshaked) or disconnected
+    val pmEvents = Seq(
+      PeerManager.HandshakedEvent,
+      PeerManager.DisconnectedEvent
+    )
+    networkControllerRef ! SubscribePeerManagerEvent(pmEvents)
+
+
+    //subscribe for all the node view holder events involving modifiers and transactions
+    val vhEvents = Seq(
+      NodeViewHolder.EventType.HistoryChanged,
+      NodeViewHolder.EventType.MempoolChanged,
+      NodeViewHolder.EventType.FailedTransaction,
+      NodeViewHolder.EventType.SuccessfulTransaction,
+      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
+      NodeViewHolder.EventType.SemanticallyFailedPersistentModifier,
+      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
+      NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
+    )
+    viewHolderRef ! Subscribe(vhEvents)
+    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
+
+    statusTracker.scheduleSendSyncInfo()
+  }
+
   override def receive: Receive =
     getLocalSyncInfo orElse
       processSync orElse
@@ -339,8 +344,6 @@ object NodeViewSynchronizer {
                              modifierId: ModifierId)
     case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
                                                       status: History.HistoryComparisonResult,
-                                                      remoteSyncInfo: SI,
-                                                      localSyncInfo: SI,
                                                       extension: Option[Seq[(ModifierTypeId, ModifierId)]])
     trait PeerManagerEvent
     case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent

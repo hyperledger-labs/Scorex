@@ -2,9 +2,10 @@ package scorex.core.app
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.ExceptionHandler
 import akka.stream.ActorMaterializer
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
-import scorex.core.api.http.{ApiRoute, CompositeHttpService}
+import scorex.core.api.http.{ApiErrorHandler, ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.network.peer.PeerManagerRef
@@ -14,7 +15,6 @@ import scorex.core.transaction.Transaction
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 trait Application extends ScorexLogging {
 
@@ -32,6 +32,8 @@ trait Application extends ScorexLogging {
 
   //api
   val apiRoutes: Seq[ApiRoute]
+
+  implicit def exceptionHandler: ExceptionHandler = ApiErrorHandler.exceptionHandler
 
   protected implicit lazy val actorSystem = ActorSystem(settings.network.agentName)
 
@@ -80,7 +82,9 @@ trait Application extends ScorexLogging {
     log.debug(s"RPC is allowed at ${settings.restApi.bindAddress.toString}")
 
     implicit val materializer = ActorMaterializer()
-    Http().bindAndHandle(combinedRoute, settings.restApi.bindAddress.getAddress.getHostAddress, settings.restApi.bindAddress.getPort)
+    val bindAddress = settings.restApi.bindAddress
+
+    Http().bindAndHandle(combinedRoute, bindAddress.getAddress.getHostAddress, bindAddress.getPort)
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {

@@ -15,7 +15,6 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 
@@ -28,16 +27,16 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
   //TODO move to settings?
   val DefaultFee = 100
 
-  override val route = pathPrefix("wallet") {
+  override val route = (pathPrefix("wallet") & withCors) {
     balances ~ transfer
   }
 
-  def transfer: Route = path("transfer") {
+  def transfer: Route = (get & path("transfer")) {
     entity(as[String]) { body =>
       withAuth {
-        val transfer = viewAsync().map { view =>
+        withNodeView { view =>
           parse(body) match {
-            case Left(failure) => ApiException(failure.getCause)
+            case Left(failure) => complete(ApiException(failure.getCause))
             case Right(json) => Try {
               val wallet = view.vault
               // TODO: Can we do this extraction in a safer way (not calling head/get)?
@@ -49,35 +48,26 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
               val fee: Long = (json \\ "fee").headOption.flatMap(_.asNumber).flatMap(_.toLong).getOrElse(DefaultFee)
               val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, Value @@ amount)), fee).get
               nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
-              tx.json
+              tx.asJson
             } match {
-              case Success(resp) => SuccessApiResponse(resp)
-              case Failure(e) => ApiException(e)
+              case Success(resp) => complete(SuccessApiResponse(resp))
+              case Failure(e) => complete(ApiException(e))
             }
           }
-        }
-        onComplete(transfer) {
-          case Success(r) => jsonRoute(r, get)
-          case Failure(ex) => jsonRoute(ApiException(ex), get)
         }
       }
     }
   }
 
-  def balances: Route = path("balances") {
-    val balances = viewAsync().map { view =>
+  def balances: Route = (get & path("balances")) {
+    withNodeView { view =>
       val wallet = view.vault
       val boxes = wallet.boxes()
-
-      SuccessApiResponse(Map(
+      complete(SuccessApiResponse(
         "totalBalance" -> boxes.map(_.box.value.toLong).sum.toString.asJson,
         "publicKeys" -> wallet.publicKeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
-        "boxes" -> boxes.map(_.box.json).asJson
-      ).asJson)
-    }
-    onComplete(balances) {
-      case Success(r) => jsonRoute(r, get)
-      case Failure(ex) => jsonRoute(ApiException(ex), get)
+        "boxes" -> boxes.map(_.box.asJson).asJson
+      ))
     }
   }
 

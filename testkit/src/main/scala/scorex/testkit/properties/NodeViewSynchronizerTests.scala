@@ -120,26 +120,26 @@ trait NodeViewSynchronizerTests[P <: Proposition,
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Nonsense") { withFixture { ctx =>
     import ctx._
-    node ! OtherNodeSyncingStatus(peer, Nonsense, syncInfo, syncInfo, None)
+    node ! OtherNodeSyncingStatus(peer, Nonsense, None)
     // NVS does nothing in this case
   }}
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older") { withFixture { ctx =>
     import ctx._
-    node ! OtherNodeSyncingStatus(peer, Older, syncInfo, syncInfo, None)
+    node ! OtherNodeSyncingStatus(peer, Older, None)
     liProbe.fishForMessage(3 seconds) { case m => m == BetterNeighbourAppeared }
   }}
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older and then Younger") { withFixture { ctx =>
     import ctx._
-    node ! OtherNodeSyncingStatus(peer, Older, syncInfo, syncInfo, None)
-    node ! OtherNodeSyncingStatus(peer, Younger, syncInfo, syncInfo, None)
+    node ! OtherNodeSyncingStatus(peer, Older, None)
+    node ! OtherNodeSyncingStatus(peer, Younger, None)
     liProbe.fishForMessage(3 seconds) { case m => m == NoBetterNeighbour }
   }}
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Younger with Non-Empty Extension") { withFixture { ctx =>
     import ctx._
-    node ! OtherNodeSyncingStatus(peer, Younger, syncInfo, syncInfo, Some(Seq((mod.modifierTypeId, mod.id))))
+    node ! OtherNodeSyncingStatus(peer, Younger, Some(Seq((mod.modifierTypeId, mod.id))))
     ncProbe.fishForMessage(3 seconds) { case m =>
       m match {
         case SendToNetwork(Message(_, Right((tid, ids)), None), SendToPeer(p))
@@ -151,7 +151,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Equal") { withFixture { ctx =>
     import ctx._
-    node ! OtherNodeSyncingStatus(peer, Equal, syncInfo, syncInfo, None)
+    node ! OtherNodeSyncingStatus(peer, Equal, None)
     // NVS does nothing significant in this case
   }}
 
