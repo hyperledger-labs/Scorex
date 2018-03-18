@@ -58,7 +58,7 @@ class HistoryStorage(storage: LSMStore,
     }
   }
 
-  def update(b: HybridBlock, diff: Option[(BigInt, Long)], isBest: Boolean) {
+  def update(b: HybridBlock, diff: Option[(BigInt, Long)], isBest: Boolean): Unit = {
     log.debug(s"Write new best=$isBest block ${b.encodedId}")
     val typeByte = b match {
       case _: PowBlock =>

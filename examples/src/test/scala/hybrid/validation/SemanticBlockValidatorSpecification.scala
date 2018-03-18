@@ -13,7 +13,7 @@ class SemanticBlockValidatorSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  val validator = new SemanticBlockValidator(Blake2b256)
+  val validator: SemanticBlockValidator = new SemanticBlockValidator(Blake2b256)
 
   property("Generated PoS block semantics is valid") {
     forAll(posBlockGen) { posBlock =>

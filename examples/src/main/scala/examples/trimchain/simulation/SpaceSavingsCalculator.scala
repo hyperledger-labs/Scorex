@@ -6,27 +6,27 @@ import examples.commons.PublicKey25519NoncedBox
 
 object SpaceSavingsCalculator extends App {
 
-  val eta = 100
-  val start = 1000
-  val finish = 10000
+  val eta: Int = 100
+  val start: Int = 1000
+  val finish: Int = 10000
 
-  val outSize = PublicKey25519NoncedBox.BoxLength
+  val outSize: Int = PublicKey25519NoncedBox.BoxLength
 
-  val file = new File("/home/pozharko/Code/papers/trimchain/results-20.csv")
+  val file: File = new File("/home/pozharko/Code/papers/trimchain/results-20.csv")
 
-  val lines = scala.io.Source.fromFile(file).getLines().toIndexedSeq
+  val lines: IndexedSeq[String] = scala.io.Source.fromFile(file).getLines().toIndexedSeq
 
   //  println(lines.head)
 
   // TODO: fixme, What should we do if `lines` is empty?
   @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-  val data = lines.tail.take(finish).map(_.split(","))
+  val data: IndexedSeq[Array[String]] = lines.tail.take(finish).map(_.split(","))
 
-  val blockSizes = data.map(_.apply(8)).map(_.toLong)
+  val blockSizes: IndexedSeq[Long] = data.map(_.apply(8)).map(_.toLong)
 
-  val headerSizes = data.map(_.apply(5)).map(_.toLong)
+  val headerSizes: IndexedSeq[Long] = data.map(_.apply(5)).map(_.toLong)
 
-  val currentUtxoSizes = data.map(_.apply(2)).map(_.toLong * outSize)
+  val currentUtxoSizes: IndexedSeq[Long] = data.map(_.apply(2)).map(_.toLong * outSize)
 
   println(s"height,full,spv,light,mining,f/s,f/l,f/m")
   (start to finish).foreach{h =>

@@ -47,10 +47,10 @@ class HybridHistory(val storage: HistoryStorage,
     }
 
   val height: Long = storage.height
-  val bestPosId = storage.bestPosId
-  val bestPowId = storage.bestPowId
-  lazy val bestPosBlock = storage.bestPosBlock
-  lazy val bestPowBlock = storage.bestPowBlock
+  val bestPosId: ModifierId = storage.bestPosId
+  val bestPowId: ModifierId = storage.bestPowId
+  lazy val bestPosBlock: PosBlock = storage.bestPosBlock
+  lazy val bestPowBlock: PowBlock = storage.bestPowBlock
   lazy val bestBlock: HybridBlock = if (pairCompleted) bestPosBlock else bestPowBlock
 
   /**
@@ -466,7 +466,7 @@ class HybridHistory(val storage: HistoryStorage,
 
 
 object HybridHistory extends ScorexLogging {
-  val DifficultyRecalcPeriod = 20
+  val DifficultyRecalcPeriod: Int = 20
 
   def readOrGenerate(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider): HybridHistory = {
     readOrGenerate(settings.dataDir, settings.logDir, minerSettings, timeProvider)

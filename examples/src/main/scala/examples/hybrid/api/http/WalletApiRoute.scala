@@ -25,9 +25,9 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
   import scorex.core.NodeViewHolder.ReceivableMessages.LocallyGeneratedTransaction
 
   //TODO move to settings?
-  val DefaultFee = 100
+  val DefaultFee: Int = 100
 
-  override val route = (pathPrefix("wallet") & withCors) {
+  override val route: Route = (pathPrefix("wallet") & withCors) {
     balances ~ transfer
   }
 

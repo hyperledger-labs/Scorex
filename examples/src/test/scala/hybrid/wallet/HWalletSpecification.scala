@@ -9,6 +9,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
+import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ByteStr
 import scorex.crypto.signatures.Signature
 
@@ -23,12 +24,12 @@ class HWalletSpecification extends PropSpec
   with HybridGenerators {
 
   val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
-  val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
+  val EmptySignature: Signature25519 = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
-  val w = HWallet.readOrGenerate(settings.scorexSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()
+  val w: HWallet = HWallet.readOrGenerate(settings.scorexSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()
   w.secrets.size should be >= 2
-  val fs = w.secrets.head
-  val ss = w.secrets.tail.head
+  val fs: PrivateKey25519 = w.secrets.head
+  val ss: PrivateKey25519 = w.secrets.tail.head
 
   //todo: what is this test about actually?
   ignore("Wallet should generate same keys") {

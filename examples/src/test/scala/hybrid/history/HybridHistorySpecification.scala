@@ -16,7 +16,7 @@ class HybridHistorySpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  var history = historyGen.sample.get
+  var history: HybridHistory = historyGen.sample.get
 
   //Generate chain
   property("Block application and HybridHistory.continuationIds") {

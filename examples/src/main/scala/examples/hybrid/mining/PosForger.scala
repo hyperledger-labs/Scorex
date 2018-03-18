@@ -61,7 +61,7 @@ object PosForger extends ScorexLogging {
 
   import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 
-  val InitialDifficuly = 15000000000L
+  val InitialDifficuly: Long = 15000000000L
 
   object ReceivableMessages {
     case object StartForging
@@ -135,7 +135,7 @@ object PosForger extends ScorexLogging {
 
   }
 
-  val TransactionsPerBlock = 50
+  val TransactionsPerBlock: Int = 50
 
 }
 

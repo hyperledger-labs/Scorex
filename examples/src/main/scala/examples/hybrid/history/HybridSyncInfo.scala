@@ -33,7 +33,7 @@ case class HybridSyncInfo(answer: Boolean,
 }
 
 object HybridSyncInfo {
-  val MaxLastPowBlocks = 50 //don't make it more than 127 without changing serialization!
+  val MaxLastPowBlocks: Int = 50 //don't make it more than 127 without changing serialization! (use Byte as type?)
 }
 
 object HybridSyncInfoSerializer extends Serializer[HybridSyncInfo] {
