@@ -7,7 +7,7 @@ lazy val commonSettings = Seq(
     Wart.TraversableOps,
     Wart.Null,
     Wart.Product,
-    //Wart.PublicInference,
+    Wart.PublicInference,
     Wart.FinalVal,
     Wart.IsInstanceOf,
     Wart.JavaConversions,
