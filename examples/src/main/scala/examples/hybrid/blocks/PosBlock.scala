@@ -2,7 +2,7 @@ package examples.hybrid.blocks
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction, SimpleBoxTransactionCompanion}
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import scorex.core.{ModifierId, ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.block.Block
@@ -36,17 +36,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override lazy val id: ModifierId =
     ModifierId @@ Blake2b256(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
 
-  override def json: Json = Map(
-    "id" -> Base58.encode(id).asJson,
-    "parentId" -> Base58.encode(parentId).asJson,
-    "attachment" -> Base58.encode(attachment).asJson,
-    "timestamp" -> timestamp.asJson,
-    "transactions" -> transactions.map(_.json).asJson,
-    "generatorBox" -> generatorBox.json,
-    "signature" -> Base58.encode(signature.bytes).asJson
-  ).asJson
-
-  override def toString: String = s"PoSBlock(${json.noSpaces})"
+  override def toString: String = s"PoSBlock(${this.asJson.noSpaces})"
 }
 
 object PosBlockCompanion extends Serializer[PosBlock] {
@@ -91,6 +81,18 @@ object PosBlockCompanion extends Serializer[PosBlock] {
 object PosBlock {
   val MaxBlockSize = 512 * 1024  //512K
   val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 4.toByte
+
+  implicit val posBlockEncoder: Encoder[PosBlock] = (psb: PosBlock) => {
+    Map(
+      "id" -> Base58.encode(psb.id).asJson,
+      "parentId" -> Base58.encode(psb.parentId).asJson,
+      "attachment" -> Base58.encode(psb.attachment).asJson,
+      "timestamp" -> psb.timestamp.asJson,
+      "transactions" -> psb.transactions.map(_.asJson).asJson,
+      "generatorBox" -> psb.generatorBox.asJson,
+      "signature" -> Base58.encode(psb.signature.bytes).asJson
+    ).asJson
+  }
 
   def create(parentId: BlockId,
              timestamp: Block.Timestamp,

@@ -15,7 +15,6 @@ class UtxoSnapshot(override val parentId: ModifierId,
   override def id: ModifierId = header.id
 
   //todo: for Dmitry: implement header + utxo root printing
-  override def json: Json = ???
 
   override type M = UtxoSnapshot
 
