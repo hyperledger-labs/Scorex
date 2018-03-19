@@ -41,13 +41,13 @@ object History {
 
   type ModifierIds = Seq[(ModifierTypeId, ModifierId)]
 
-  object HistoryComparisonResult extends Enumeration {
-    val Equal = Value(1)
-    val Younger = Value(2)
-    val Older = Value(3)
-    val Nonsense = Value(4)
-    val Unknown = Value(5)
-  }
+  sealed trait HistoryComparisonResult
+  case object Equal extends HistoryComparisonResult
+  case object Younger extends HistoryComparisonResult
+  case object Older extends HistoryComparisonResult
+  case object Nonsense extends HistoryComparisonResult
+  case object Unknown extends HistoryComparisonResult
+
 
   /**
     * Info returned by history to nodeViewHolder after modifier application

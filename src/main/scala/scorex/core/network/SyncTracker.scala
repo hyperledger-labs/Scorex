@@ -25,12 +25,12 @@ class SyncTracker(nvsRef: ActorRef,
                   localInterfaceRef: ActorRef,
                   timeProvider: NetworkTimeProvider) extends ScorexLogging {
 
-  import History.HistoryComparisonResult._
+  import History._
   import scorex.core.utils.NetworkTime.Time
 
   private var schedule: Option[Cancellable] = None
 
-  private val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult.Value]()
+  private val statuses = mutable.Map[ConnectedPeer, HistoryComparisonResult]()
   private val lastSyncSentTime = mutable.Map[ConnectedPeer, Time]()
 
   private var lastSyncInfoSentTime: Time = 0L
@@ -46,7 +46,7 @@ class SyncTracker(nvsRef: ActorRef,
 
   def minInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
 
-  def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult.Value): Unit = {
+  def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult): Unit = {
     val seniorsBefore = numOfSeniors()
     statuses += peer -> status
     val seniorsAfter = numOfSeniors()
@@ -100,8 +100,8 @@ class SyncTracker(nvsRef: ActorRef,
   def peersToSyncWith(): Seq[ConnectedPeer] = {
     val outdated = outdatedPeers()
 
-    lazy val unknowns = statuses.filter(_._2 == HistoryComparisonResult.Unknown).keys.toIndexedSeq
-    lazy val olders = statuses.filter(_._2 == HistoryComparisonResult.Older).keys.toIndexedSeq
+    lazy val unknowns = statuses.filter(_._2 == Unknown).keys.toIndexedSeq
+    lazy val olders = statuses.filter(_._2 == Older).keys.toIndexedSeq
     lazy val nonOutdated = if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
 
     val peers = if (outdated.nonEmpty) outdated

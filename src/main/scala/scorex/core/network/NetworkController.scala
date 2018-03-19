@@ -207,7 +207,7 @@ object NetworkController {
     case class ConnectTo(address: InetSocketAddress)
     case class DisconnectFrom(peer: ConnectedPeer)
     case class Blacklist(peer: ConnectedPeer)
-    case class SubscribePeerManagerEvent(events: Seq[EventType.Value])
+    case class SubscribePeerManagerEvent(events: Seq[EventType])
   }
 }
 
