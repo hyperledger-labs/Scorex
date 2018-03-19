@@ -3,6 +3,7 @@ package scorex.core.network.peer
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.PeerManagerEvent
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -28,9 +29,9 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   //peers before handshake
   private val connectingPeers = mutable.Set[InetSocketAddress]()
 
-  private val subscribers = mutable.Map[PeerManager.EventType.Value, Seq[ActorRef]]()
+  private val subscribers = mutable.Map[EventType, Seq[ActorRef]]()
 
-  protected def notifySubscribers[O <: PeerManagerEvent](eventType: EventType.Value, event: O): Unit =
+  protected def notifySubscribers[O <: PeerManagerEvent](eventType: EventType, event: O): Unit =
     subscribers.getOrElse(eventType, Seq()).foreach(_ ! event)
 
   private lazy val peerDatabase = new PeerDatabaseImpl(Some(settings.dataDir + "/peers.dat"))
@@ -137,7 +138,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           } else {
             if(peer.publicPeer) self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
             connectedPeers += peer.socketAddress -> peer
-            notifySubscribers(PeerManager.EventType.Handshaked, HandshakedPeer(peer))
+            notifySubscribers(HandshakedEvent, HandshakedPeer(peer))
           }
         }
 
@@ -145,7 +146,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
     case Disconnected(remote) =>
       connectedPeers -= remote
       connectingPeers -= remote
-      notifySubscribers(PeerManager.EventType.Disconnected, DisconnectedPeer(remote))
+      notifySubscribers(DisconnectedEvent, DisconnectedPeer(remote))
   }
 
   override def receive: Receive = ({
@@ -170,13 +171,9 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
 object PeerManager {
 
-  //TODO: Consider relocating this trait
-  trait PeerManagerEvent
-
-  object EventType extends Enumeration {
-    val Handshaked: EventType.Value = Value(1)
-    val Disconnected: EventType.Value = Value(2)
-  }
+  sealed trait EventType
+  case object HandshakedEvent extends EventType
+  case object DisconnectedEvent extends EventType
 
   object ReceivableMessages {
     case object CheckPeers
@@ -193,7 +190,7 @@ object PeerManager {
     case object GetConnectedPeers
     case object GetAllPeers
     case object GetBlacklistedPeers
-    case class Subscribe(listener: ActorRef, events: Seq[EventType.Value])
+    case class Subscribe(listener: ActorRef, events: Seq[EventType])
 
     // peerCycle messages
     case class DoConnecting(remote: InetSocketAddress, direction: ConnectionType)

@@ -13,7 +13,6 @@ import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
-import scorex.core.network.peer.PeerManager.PeerManagerEvent
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
@@ -45,7 +44,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          networkSettings: NetworkSettings,
                          timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
-  import History.HistoryComparisonResult._
+  import History._
 
   import NodeViewSynchronizer.ReceivableMessages._
   import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
@@ -64,7 +63,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected var mempoolReaderOpt: Option[MR] = None
 
   private def readersOpt: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
-
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
     val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
@@ -99,7 +97,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>
-      statusTracker.updateStatus(remote, HistoryComparisonResult.Unknown)
+      statusTracker.updateStatus(remote, Unknown)
 
     case DisconnectedPeer(remote) =>
       statusTracker.clearStatus(remote)
@@ -136,7 +134,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
             s"Comparison result is $comparison. Sending extension of length ${ext.length}")
           log.trace(s"Extension ids: ${idsToString(ext)}")
 
-          if (!(extensionOpt.nonEmpty || comparison != HistoryComparisonResult.Younger)) {
+          if (!(extensionOpt.nonEmpty || comparison != Younger)) {
             log.warn("Extension is empty while comparison is younger")
           }
 
@@ -148,7 +146,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   // Send history extension to the (less developed) peer 'remote' which does not have it.
   def sendExtension(remote: ConnectedPeer,
-                    status: HistoryComparisonResult.Value,
+                    status: HistoryComparisonResult,
                     extOpt: Option[Seq[(ModifierTypeId, ModifierId)]]): Unit = extOpt match {
     case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
     case Some(ext) =>
@@ -296,8 +294,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
     //register as a listener for peers got connected (handshaked) or disconnected
     val pmEvents = Seq(
-      PeerManager.EventType.Handshaked,
-      PeerManager.EventType.Disconnected
+      PeerManager.HandshakedEvent,
+      PeerManager.DisconnectedEvent
     )
     networkControllerRef ! SubscribePeerManagerEvent(pmEvents)
 
@@ -345,8 +343,9 @@ object NodeViewSynchronizer {
                              modifierTypeId: ModifierTypeId,
                              modifierId: ModifierId)
     case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
-                                                      status: History.HistoryComparisonResult.Value,
+                                                      status: History.HistoryComparisonResult,
                                                       extension: Option[Seq[(ModifierTypeId, ModifierId)]])
+    trait PeerManagerEvent
     case class HandshakedPeer(remote: ConnectedPeer) extends PeerManagerEvent
     case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
 
