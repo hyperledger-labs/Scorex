@@ -50,7 +50,7 @@ trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends No
     * @param modifierId - modifier id to check
     * @return
     */
-  def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity.Value
+  def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity
 
   //todo: output should be ID | Seq[ID]
   def openSurfaceIds(): Seq[ModifierId]
@@ -74,5 +74,5 @@ trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends No
     * @param other other's node sync info
     * @return Equal if nodes have the same history, Younger if another node is behind, Older if a new node is ahead
     */
-  def compare(other: SI): HistoryComparisonResult.Value
+  def compare(other: SI): HistoryComparisonResult
 }

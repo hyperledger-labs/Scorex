@@ -18,6 +18,7 @@ case class CompositeHttpService(system: ActorSystem, routes: Seq[ApiRoute], sett
     redirect("/swagger", StatusCodes.PermanentRedirect)
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
   val compositeRoute = routes.map(_.route).reduce(_ ~ _) ~ corsHandler(swaggerService.route) ~
     path("swagger") {
       getFromResource("swagger-ui/index.html")

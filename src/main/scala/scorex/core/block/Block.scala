@@ -1,12 +1,11 @@
 package scorex.core.block
 
-import io.circe.Json
-import scorex.core.{ModifierId, NodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.consensus.History
-import scorex.core.serialization.{JsonSerializable, Serializer}
-import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.serialization.Serializer
 import scorex.core.transaction._
+import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.{ModifierId, NodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 
 /**
   * A block is an atomic piece of data network participates are agreed on.
@@ -25,11 +24,9 @@ import scorex.core.transaction._
   */
 
 trait Block[P <: Proposition, TX <: Transaction[P]]
-  extends TransactionsCarryingPersistentNodeViewModifier[P, TX] with JsonSerializable {
+  extends TransactionsCarryingPersistentNodeViewModifier[P, TX] {
 
   def version: Version
-
-  def json: Json
 
   def timestamp: Timestamp
 }

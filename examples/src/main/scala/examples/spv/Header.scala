@@ -3,7 +3,7 @@ package examples.spv
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.SimpleBoxTransaction
 import examples.spv.Constants._
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier}
 import scorex.core.block.Block
@@ -28,23 +28,24 @@ case class Header(parentId: BlockId,
 
   lazy val realDifficulty: BigInt = SpvAlgos.blockIdDifficulty(id)
 
-  override def json: Json = Map(
-    "id" -> Base58.encode(id).asJson,
-    "innerchainLinks" -> interlinks.map(l => Base58.encode(l).asJson).asJson,
-    "transactionsRoot" -> Base58.encode(transactionsRoot).asJson,
-    "stateRoot" -> Base58.encode(stateRoot).asJson,
-    "parentId" -> Base58.encode(parentId).asJson,
-    "timestamp" -> timestamp.asJson,
-    "nonce" -> nonce.asJson
-  ).asJson
-
-
-  override def toString: String = s"Header(${json.noSpaces})"
+  override def toString: String = s"Header(${this.asJson.noSpaces})"
 
   override type M = Header
 
   override def serializer: Serializer[Header] = HeaderSerializer
+}
 
+object Header {
+  implicit val headerEncoder: Encoder[Header] = (h: Header) =>
+    Map(
+      "id" -> Base58.encode(h.id).asJson,
+      "innerchainLinks" -> h.interlinks.map(l => Base58.encode(l).asJson).asJson,
+      "transactionsRoot" -> Base58.encode(h.transactionsRoot).asJson,
+      "stateRoot" -> Base58.encode(h.stateRoot).asJson,
+      "parentId" -> Base58.encode(h.parentId).asJson,
+      "timestamp" -> h.timestamp.asJson,
+      "nonce" -> h.nonce.asJson
+    ).asJson
 }
 
 object HeaderSerializer extends Serializer[Header] {
@@ -54,6 +55,8 @@ object HeaderSerializer extends Serializer[Header] {
       if (links.isEmpty) {
         acc
       } else {
+        // `links` is not empty, it is safe to call head
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val headLink: Array[Byte] = links.head
         val repeating: Byte = links.count(_ sameElements headLink).toByte
         interlinkBytes(links.drop(repeating), Bytes.concat(acc, Array(repeating), headLink))

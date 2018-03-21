@@ -23,6 +23,8 @@ object KMZProofSerializer extends Serializer[KMZProof] {
 
 
   override def toBytes(obj: KMZProof): Array[Byte] = {
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
       HeaderSerializer.bytesWithoutInterlinks(h)
     })
@@ -35,9 +37,12 @@ object KMZProofSerializer extends Serializer[KMZProof] {
       Shorts.toByteArray(chain.length.toShort) ++ chain.flatMap(_.id)
     })
 
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val suffixHead = obj.suffix.head
     Bytes.concat(Array(obj.m.toByte, obj.k.toByte),
-      Shorts.toByteArray(obj.suffix.head.bytes.length.toShort),
-      obj.suffix.head.bytes,
+      Shorts.toByteArray(suffixHead.bytes.length.toShort),
+      suffixHead.bytes,
       suffixTailBytes,
       Shorts.toByteArray(prefixHeaders.size.toShort),
       prefixHeadersBytes,
@@ -58,6 +63,8 @@ object KMZProofSerializer extends Serializer[KMZProof] {
       if (acc.length == k) (index, acc.reverse)
       else {
         val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index, index + l)).get
+        // TODO: fixme, What should we do if `acc` is empty?
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
         parseSuffixes(index + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }

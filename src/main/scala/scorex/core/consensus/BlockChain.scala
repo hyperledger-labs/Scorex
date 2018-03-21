@@ -36,7 +36,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   /**
     * Block with maximum blockchain score
     */
-  def lastBlock: B = lastBlocks(1).head
+  def lastBlock: Option[B] = lastBlocks(1).headOption
 
   def lastBlockIds(howMany: Int): Seq[ModifierId] = lastBlocks(howMany).map(_.id)
 
@@ -47,7 +47,9 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   Option[Seq[(ModifierTypeId, ModifierId)]] = {
     val openSurface = info.startingPoints
     require(openSurface.size == 1)
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val modId = openSurface.head._1
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val s = lookForward(openSurface.head._2, size)
     if (s.isEmpty) None else Some(s.map(id => modId -> id))
   }
@@ -73,8 +75,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   /**
     * Return howMany blocks starting from parentSignature
     */
-  def lookForward(parentSignature: ModifierId, howMany: Int): Seq[ModifierId] =
-  heightOf(parentSignature).map { h =>
+  def lookForward(parentSignature: ModifierId, howMany: Int): Seq[ModifierId] = heightOf(parentSignature).map { h =>
     (h + 1).to(Math.min(height(), h + howMany: Int)).flatMap(blockAt).map(_.id)
   }.getOrElse(Seq())
 

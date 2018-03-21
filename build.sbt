@@ -2,7 +2,7 @@
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  wartremoverErrors ++= Seq(Wart.Recursion),
+  wartremoverErrors ++= Seq(Wart.Recursion, Wart.TraversableOps), // , Wart.Product, Wart.Var, Wart.Null
   scalaVersion := "2.12.3",
   organization := "org.scorexfoundation",
   licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
@@ -75,7 +75,7 @@ val testingDependencies = Seq(
 
 libraryDependencies ++= Seq(
   "com.iheart" %% "ficus" % "1.4.2",
-  "org.scorexfoundation" %% "scrypto" % "2.+"
+  "org.scorexfoundation" %% "scrypto" % "2.0.5"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 

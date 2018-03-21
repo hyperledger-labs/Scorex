@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ConnectedPeer
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
@@ -33,13 +34,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   import NodeViewHolder._
   import NodeViewHolder.ReceivableMessages._
-  import scorex.core.NodeViewLocalInterfaceSharedMessages.ReceivableMessages.{SuccessfulTransaction, FailedTransaction,
-                                                                              SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                              SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                              ChangedHistory, ChangedMempool, ChangedState,
-                                                                              ChangedVault, NewOpenSurface, RollbackFailed,
-                                                                              StartingPersistentModifierApplication}
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.RequestFromLocal
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
+                                                                      ChangedMempool, ChangedVault,
+                                                                      SuccessfulTransaction, FailedTransaction,
+                                                                      SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+                                                                      SemanticallySuccessfulModifier, SemanticallyFailedModification}
+  import scorex.core.LocalInterface.ReceivableMessages.{ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
@@ -446,10 +446,9 @@ object NodeViewHolder {
     val VaultChanged: EventType.Value = Value(14)
   }
 
-  trait NodeViewHolderEvent
-
-  // No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
-  // Even more, ModificationApplicationStarted seems not to be sent at all
+  // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
+  // fixme: Even more, ModificationApplicationStarted seems not to be sent at all
+  // fixme: should we delete these messages?
   case class ModificationApplicationStarted[PMOD <: PersistentNodeViewModifier](modifier: PMOD)
     extends NodeViewHolderEvent
 
