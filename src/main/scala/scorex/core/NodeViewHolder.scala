@@ -1,6 +1,7 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.LocalInterface.ReceivableMessages.RollbackSucceed
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ConnectedPeer
@@ -249,6 +250,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               case Success(stateAfterApply) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
                 notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
+                notifySubscribers[RollbackSucceed](EventType.SucceededRollback, RollbackSucceed(progressInfo.branchPoint.map(VersionTag @@ _)))
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
@@ -261,7 +263,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
-        notifySubscribers[RollbackFailed.type](EventType.FailedRollback, RollbackFailed)
+        notifySubscribers[RollbackFailed](EventType.FailedRollback, RollbackFailed(progressInfo.branchPoint.map(VersionTag @@ _)))
         //todo: what to return here? the situation is totally wrong
         ???
     }
@@ -437,13 +439,14 @@ object NodeViewHolder {
 
     //rollback failed, really wrong situation, probably
     val FailedRollback: EventType.Value = Value(9)
+    val SucceededRollback: EventType.Value = Value(10)
 
-    val DownloadNeeded: EventType.Value = Value(10)
+    val DownloadNeeded: EventType.Value = Value(11)
 
-    val StateChanged: EventType.Value = Value(11)
-    val HistoryChanged: EventType.Value = Value(12)
-    val MempoolChanged: EventType.Value = Value(13)
-    val VaultChanged: EventType.Value = Value(14)
+    val StateChanged: EventType.Value = Value(12)
+    val HistoryChanged: EventType.Value = Value(13)
+    val MempoolChanged: EventType.Value = Value(14)
+    val VaultChanged: EventType.Value = Value(15)
   }
 
   // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
