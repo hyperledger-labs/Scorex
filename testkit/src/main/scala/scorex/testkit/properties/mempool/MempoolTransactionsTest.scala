@@ -81,7 +81,7 @@ trait MempoolTransactionsTest[P <: Proposition, TX <: Transaction[P], MPool <: M
   property("Size of mempool should decrease when removing a present transaction") {
     forAll(memPoolGenerator, transactionSeqGenerator) { (mp: MPool, txs: Seq[TX]) =>
       val m: MPool = mp.put(txs).get
-      val m2: MPool = m.remove(txs.head)
+      val m2: MPool = m.remove(txs.headOption.get)
       m2.size shouldBe txs.size - 1
     }
   }
@@ -97,7 +97,7 @@ trait MempoolTransactionsTest[P <: Proposition, TX <: Transaction[P], MPool <: M
   property("Mempool transactions should be filtered successfully") {
     forAll(memPoolGenerator, transactionSeqGenerator) { (mp: MPool, txs: Seq[TX]) =>
       val m: MPool = mp.put(txs).get
-      val m2: MPool = m.filter(tx => tx equals txs.head)
+      val m2: MPool = m.filter(tx => tx equals txs.headOption.get)
       m2.size shouldBe 1
     }
   }
@@ -119,7 +119,7 @@ trait MempoolTransactionsTest[P <: Proposition, TX <: Transaction[P], MPool <: M
   property("Mempool should contain present transactions") {
     forAll(memPoolGenerator, transactionSeqGenerator) { (mp: MPool, txs: Seq[TX]) =>
       val m: MPool = mp.put(txs).get
-      m.contains(txs.head.id) shouldBe true
+      m.contains(txs.headOption.get.id) shouldBe true
     }
   }
 
