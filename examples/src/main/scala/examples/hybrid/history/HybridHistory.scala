@@ -126,7 +126,7 @@ class HybridHistory(val storage: HistoryStorage,
 
         case None =>
           log.warn(s"No parent block ${powBlock.parentId} in history")
-          ???
+          ProgressInfo[HybridBlock](None, Seq[HybridBlock](), None, Seq())
       }
     }
     // require(modifications.toApply.exists(_.id sameElements powBlock.id))
