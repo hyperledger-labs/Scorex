@@ -41,7 +41,7 @@ class HLocalInterface(override val viewHolderRef: ActorRef,
   override protected def onSemanticallySuccessfulModification(mod: HybridBlock): Unit = {
     if (!block) {
       mod match {
-        case wb: PowBlock =>
+        case _: PowBlock =>
           posForgerRef ! StartForging
           powMinerRef ! MineBlock
 

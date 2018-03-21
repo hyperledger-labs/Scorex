@@ -98,7 +98,7 @@ class HybridHistory(val storage: HistoryStorage,
       ProgressInfo(None, Seq(), Some(powBlock), Seq())
     } else {
       storage.heightOf(powBlock.parentId) match {
-        case Some(parentHeight) =>
+        case Some(_) =>
           val isBestBrother = (bestPosId sameElements powBlock.prevPosId) &&
             (bestPowBlock.brothersCount < powBlock.brothersCount)
 
@@ -265,7 +265,7 @@ class HybridHistory(val storage: HistoryStorage,
     //Look without limit for case difference between nodes is bigger then size
     chainBack(bestBlock, inList) match {
       case Some(chain) if chain.exists(id => idInList(id._2)) => Some(chain.take(size))
-      case Some(chain) =>
+      case Some(_) =>
         log.warn("Found chain without ids form remote")
         None
       case _ => None
@@ -279,7 +279,7 @@ class HybridHistory(val storage: HistoryStorage,
 
   override def syncInfo: HybridSyncInfo =
     HybridSyncInfo(
-      false,
+      answer = false,
       lastPowBlocks(HybridSyncInfo.MaxLastPowBlocks, bestPowBlock).map(_.id),
       bestPosId)
 
@@ -291,7 +291,7 @@ class HybridHistory(val storage: HistoryStorage,
     val head = otherLastPowBlocks.head
     val newSuffix = suffixFound :+ head
     modifierById(head) match {
-      case Some(b) =>
+      case Some(_) =>
         newSuffix
       case None => if (otherLastPowBlocks.length <= 1) {
         Seq()
