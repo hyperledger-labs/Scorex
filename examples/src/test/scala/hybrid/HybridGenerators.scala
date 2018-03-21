@@ -8,6 +8,7 @@ import examples.hybrid.blocks._
 import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.mining.HybridSettings
 import examples.hybrid.state.HBoxStoredState
+import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.block.Block._
@@ -20,6 +21,7 @@ import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Signature
 import scorex.testkit.utils.{FileUtils, NoShrink}
 
+import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -119,7 +121,14 @@ trait HybridGenerators extends ExamplesCommonGenerators
   } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
 
   //Generators
-  val transactionGenerator: Gen[SimpleBoxTransaction] = simpleBoxTransactionGen
+  val memPoolElementGen: Gen[(ByteArrayWrapper, SimpleBoxTransaction)] = for {
+    id <- modifierIdGen.map(ByteArrayWrapper(_))
+    transaction <- simpleBoxTransactionGen
+  } yield (id, transaction)
+
+  val emptyMemPoolGen: Gen[SimpleBoxTransactionMemPool] = for {
+    map <- Gen.buildableOfN[TrieMap[ByteArrayWrapper, SimpleBoxTransaction], (ByteArrayWrapper, SimpleBoxTransaction)](0, memPoolElementGen)
+  } yield SimpleBoxTransactionMemPool(map)
 
   def stateChangesGenerator(state: HBoxStoredState): ChangesGen = {
     val removals: List[Removal[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
