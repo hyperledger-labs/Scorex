@@ -197,7 +197,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   /*
 
-    Assume history knew following blocktree:
+    Assume that history knows the following blocktree:
 
            G
           / \
@@ -232,12 +232,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     val stateToApplyTry: Try[MS] = if (progressInfo.chainSwitchingNeeded) {
       Try {
         val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
-
-        if (!state.version.sameElements(branchingPoint)) {
-          state.rollbackTo(branchingPoint).map { rs =>
-            rs
-          }
-        } else Success(state)
+        if (!state.version.sameElements(branchingPoint)) state.rollbackTo(branchingPoint) else Success(state)
       }.flatten
     } else Success(state)
 

@@ -9,8 +9,8 @@ import examples.hybrid.mining.HybridMiningSettings
 import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidator, SemanticBlockValidator}
 import io.iohk.iodb.LSMStore
 import scorex.core.block.{Block, BlockValidator}
-import scorex.core.consensus.History.{HistoryComparisonResult, ModifierIds, Nonsense, Equal, Younger, Older, ProgressInfo}
-import scorex.core.consensus.{History, ModifierSemanticValidity, Valid, Absent}
+import scorex.core.consensus.History._
+import scorex.core.consensus._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -102,6 +102,7 @@ class HybridHistory(val storage: HistoryStorage,
           val isBestBrother = (bestPosId sameElements powBlock.prevPosId) &&
             (bestPowBlock.brothersCount < powBlock.brothersCount)
 
+          //potentially the best block, if its not a block in a fork containing invalid block
           val isBest: Boolean = storage.height == storage.parentHeight(powBlock) || isBestBrother
 
           val mod: ProgressInfo[HybridBlock] = if (isBest) {
@@ -115,6 +116,7 @@ class HybridHistory(val storage: HistoryStorage,
               //new best brother
               ProgressInfo(Some(powBlock.prevPosId), Seq(bestPowBlock), Some(powBlock), Seq())
             } else {
+              //we're switching to a better chain, if it does not contain an invalid block
               bestForkChanges(powBlock)
             }
           } else {
@@ -194,17 +196,31 @@ class HybridHistory(val storage: HistoryStorage,
 
     val rollbackPoint = newSuffix.headOption
 
-    // TODO: fixme, What should we do if `oldSuffix` is empty?
-    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-    val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
-    // TODO: fixme, What should we do if `newSuffix` is empty?
-    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-    val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(block)
-    require(applyBlocks.nonEmpty)
-    require(throwBlocks.nonEmpty)
+    val newSuffixValid = !newSuffix.drop(1).map(storage.semanticValidity).contains(Invalid)
 
-    //TODO should be applyBlocks here
-    ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks.headOption, Seq())
+    if(newSuffixValid) {
+
+      //update best links
+      newSuffix.sliding(2, 1).foreach{p =>
+        storage.updateBestChild(p(0), p(1))
+      }
+
+      // TODO: fixme, What should we do if `oldSuffix` is empty?
+      @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+      val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
+      // TODO: fixme, What should we do if `newSuffix` is empty?
+      @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+      val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(block)
+      require(applyBlocks.nonEmpty)
+      require(throwBlocks.nonEmpty)
+      require(storage.bestChildId(modifierById(rollbackPoint.get).get).get sameElements applyBlocks.headOption.get.id)
+
+      //TODO should be applyBlocks here
+      ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks.headOption, Seq())
+    } else {
+      log.info(s"Orphaned block $block from invalid suffix")
+      ProgressInfo(None, Seq(), None, Seq())
+    }
   }
 
   private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, Long) = {
@@ -421,7 +437,7 @@ class HybridHistory(val storage: HistoryStorage,
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
     val i = loserChain.indexWhere { id =>
       winnerChain.headOption match {
-        case None                  => false
+        case None => false
         case Some(winnerChainHead) => id sameElements winnerChainHead
       }
     }
@@ -450,17 +466,24 @@ class HybridHistory(val storage: HistoryStorage,
     chainBack(storage.bestPosBlock, isGenesis).get.map(_._2).map(Base58.encode).mkString(",")
   }
 
-  //todo: real impl
   override def reportSemanticValidity(modifier: HybridBlock,
                                       valid: Boolean,
                                       lastApplied: ModifierId): (HybridHistory, ProgressInfo[HybridBlock]) = {
-    this -> ProgressInfo(None, Seq(), None, Seq())
+    val v = if (valid) Valid else Invalid
+    storage.updateValidity(modifier, v)
+
+    val h = new HybridHistory(storage, settings, validators, statsLogger, timeProvider)
+
+    if (valid) {
+      val p = ProgressInfo(None, Seq(), storage.bestChildId(modifier).flatMap(storage.modifierById), Seq())
+      h -> p
+    } else {
+      h -> ProgressInfo(None, Seq(), None, Seq())
+    }
   }
 
-  //todo: real impl
-  override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity = {
-    modifierById(modifierId).map(_ => Valid).getOrElse(Absent)
-  }
+  override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity =
+    storage.semanticValidity(modifierId)
 }
 
 

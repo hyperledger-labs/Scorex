@@ -113,6 +113,4 @@ class HybridHistorySpecification extends PropSpec
 
     compareAndCheck(history, betterForkSyncInfo) shouldBe Older
   }
-
-
 }
