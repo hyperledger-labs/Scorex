@@ -47,7 +47,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   import NodeViewSynchronizer.ReceivableMessages._
   import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
-  import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler, SubscribePeerManagerEvent}
+  import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler}
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
@@ -292,11 +292,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
-    val pmEvents = Seq(
-      PeerManager.HandshakedEvent,
-      PeerManager.DisconnectedEvent
-    )
-    networkControllerRef ! SubscribePeerManagerEvent(pmEvents)
+    context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
+    context.system.eventStream.subscribe(self, classOf[DisconnectedPeer])
+    // todo: replace the two lines above by a single line with classOf[PeerManagementEvent]
 
 
     //subscribe for all the node view holder events involving modifiers and transactions

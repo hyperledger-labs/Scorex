@@ -9,7 +9,6 @@ import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
-import scorex.core.network.peer.PeerManager.EventType
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
@@ -34,7 +33,7 @@ class NetworkController(settings: NetworkSettings,
 
   import NetworkController.ReceivableMessages._
   import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
-  import scorex.core.network.peer.PeerManager.ReceivableMessages.{CheckPeers, FilterPeers, Disconnected, Subscribe}
+  import scorex.core.network.peer.PeerManager.ReceivableMessages.{CheckPeers, FilterPeers, Disconnected}
   import PeerConnectionHandler.ReceivableMessages.CloseConnection
 
   private implicit val system: ActorSystem = context.system
@@ -181,9 +180,6 @@ class NetworkController(settings: NetworkSettings,
         .foreach(_.foreach(_.handlerRef ! CloseConnection))
       self ! Unbind
       context stop self
-
-    case SubscribePeerManagerEvent(events) =>
-      peerManagerRef ! Subscribe(sender(), events)
   }
 
   override def receive: Receive = bindingLogic orElse businessLogic orElse peerLogic orElse interfaceCalls orElse {
@@ -207,7 +203,6 @@ object NetworkController {
     case class ConnectTo(address: InetSocketAddress)
     case class DisconnectFrom(peer: ConnectedPeer)
     case class Blacklist(peer: ConnectedPeer)
-    case class SubscribePeerManagerEvent(events: Seq[EventType])
   }
 }
 
