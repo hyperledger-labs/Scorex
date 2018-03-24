@@ -121,7 +121,7 @@ class HybridHistory(val storage: HistoryStorage,
             }
           } else {
             log.debug(s"New orphaned PoW block ${Base58.encode(powBlock.id)}")
-            ProgressInfo(None, Seq(), None, Seq()) //todo: fix
+            ProgressInfo(None, Seq(), None, Seq())
           }
           storage.update(powBlock, None, isBest)
           mod
@@ -186,7 +186,6 @@ class HybridHistory(val storage: HistoryStorage,
     res
   }
 
-  //TODO fix for new NodeViewHolder
   def bestForkChanges(block: HybridBlock): ProgressInfo[HybridBlock] = {
     val parentId = storage.parentId(block)
     val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(parentId).get)
@@ -215,7 +214,6 @@ class HybridHistory(val storage: HistoryStorage,
       require(throwBlocks.nonEmpty)
       require(storage.bestChildId(modifierById(rollbackPoint.get).get).get sameElements applyBlocks.headOption.get.id)
 
-      //TODO should be applyBlocks here
       ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks.headOption, Seq())
     } else {
       log.info(s"Orphaned block $block from invalid suffix")
