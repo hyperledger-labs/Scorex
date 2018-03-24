@@ -66,6 +66,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
     }
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.Serializable"))
   override def receive: Receive = {
     case StartMining =>
       if (settings.blockGenerationDelay >= 1.minute) {
@@ -124,7 +125,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
 
         p.future.onComplete { toBlock =>
           toBlock.getOrElse(None).foreach { block =>
-            log.debug(s"Locally generated PoW block: $block with difficulty $difficulty" : String)
+            log.debug(s"Locally generated PoW block: $block with difficulty $difficulty")
             self ! block
           }
         }

@@ -147,7 +147,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   def sendExtension(remote: ConnectedPeer,
                     status: HistoryComparisonResult,
                     extOpt: Option[Seq[(ModifierTypeId, ModifierId)]]): Unit = extOpt match {
-    case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status." : String)
+    case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
     case Some(ext) =>
       ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
         case (mid, mods) =>
@@ -246,6 +246,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   // todo: make DeliveryTracker an independent actor and move checkDelivery there?
 
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
+  @SuppressWarnings(Array("org.wartremover.warts.JavaSerializable"))
   protected def checkDelivery: Receive = {
     case CheckDelivery(peer, modifierTypeId, modifierId) =>
 
@@ -253,7 +254,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         deliveryTracker.delete(modifierId)
       }
       else {
-        log.info(s"Peer $peer has not delivered asked modifier ${Base58.encode(modifierId)} on time" : String)
+        log.info(s"Peer $peer has not delivered asked modifier ${Base58.encode(modifierId)} on time")
         penalizeNonDeliveringPeer(peer)
         deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
       }
