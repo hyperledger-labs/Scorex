@@ -6,7 +6,6 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
-import scorex.core.network.peer.PeerManager
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.NetworkTimeProvider
