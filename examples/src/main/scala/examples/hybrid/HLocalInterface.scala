@@ -3,7 +3,7 @@ package examples.hybrid
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.mining.HybridMiningSettings
-import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour}
+import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewHolderEvent, RollbackFailed, SemanticallySuccessfulModifier}
 import scorex.core.utils.ScorexLogging
 
@@ -20,6 +20,7 @@ class HLocalInterface(viewHolderRef: ActorRef,
 
   override def preStart(): Unit = {
     context.system.eventStream.subscribe(self, classOf[NodeViewHolderEvent])
+    context.system.eventStream.subscribe(self, classOf[NodeViewSynchronizerEvent])
   }
 
   override def receive: Receive = {

@@ -18,6 +18,11 @@ import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, Totally
 import scorex.testkit.utils.AkkaFixture
 import scorex.core.network.message._
 import scorex.core.serialization.{BytesSerializable, Serializer}
+import NodeViewHolder.ReceivableMessages.{CompareViews, ModifiersFromRemote}
+import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
+import NodeViewSynchronizer.ReceivableMessages._
+import NetworkController.ReceivableMessages.{Blacklist, SendToNetwork}
+import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -44,7 +49,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
 
   class SynchronizerFixture extends AkkaFixture {
-    val (node, syncInfo, mod, tx, peer, pchProbe, ncProbe, vhProbe, liProbe) = nodeViewSynchronizer
+    val (node, syncInfo, mod, tx, peer, pchProbe, ncProbe, vhProbe, eventListener) = nodeViewSynchronizer
   }
 
   // ToDo: factor this out of here and NVHTests?
@@ -57,12 +62,6 @@ trait NodeViewSynchronizerTests[P <: Proposition,
       Await.result(fixture.system.terminate(), Duration.Inf)
     }
   }
-
-  import NodeViewHolder.ReceivableMessages.{ModifiersFromRemote, CompareViews}
-  import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour}
-  import NodeViewSynchronizer.ReceivableMessages._
-  import NetworkController.ReceivableMessages.{SendToNetwork, Blacklist}
-  import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
 
   property("NodeViewSynchronizer: SuccessfulTransaction") { withFixture { ctx =>
@@ -126,15 +125,17 @@ trait NodeViewSynchronizerTests[P <: Proposition,
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older") { withFixture { ctx =>
     import ctx._
+    system.eventStream.subscribe(eventListener.ref, classOf[NodeViewSynchronizerEvent])
     node ! OtherNodeSyncingStatus(peer, Older, None)
-    liProbe.fishForMessage(3 seconds) { case m => m == BetterNeighbourAppeared }
+    eventListener.fishForMessage(3 seconds) { case m => m == BetterNeighbourAppeared }
   }}
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older and then Younger") { withFixture { ctx =>
     import ctx._
+    system.eventStream.subscribe(eventListener.ref, classOf[NodeViewSynchronizerEvent])
     node ! OtherNodeSyncingStatus(peer, Older, None)
     node ! OtherNodeSyncingStatus(peer, Younger, None)
-    liProbe.fishForMessage(3 seconds) { case m => m == NoBetterNeighbour }
+    eventListener.fishForMessage(3 seconds) { case m => m == NoBetterNeighbour }
   }}
 
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Younger with Non-Empty Extension") { withFixture { ctx =>

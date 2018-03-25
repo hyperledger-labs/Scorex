@@ -59,7 +59,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(NodeViewSynchronizerRef.props[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type,
                                                       PMOD, HybridHistory, SimpleBoxTransactionMemPool]
-                                                     (networkControllerRef, nodeViewHolderRef, localInterface,
+                                                     (networkControllerRef, nodeViewHolderRef,
                                                       HybridSyncInfoMessageSpec, settings.network, timeProvider))
 
   if (settings.network.nodeName.startsWith("generatorNode")) {

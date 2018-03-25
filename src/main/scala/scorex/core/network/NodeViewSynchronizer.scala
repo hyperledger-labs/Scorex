@@ -25,7 +25,6 @@ import scala.language.postfixOps
   *
   * @param networkControllerRef reference to network controller actor
   * @param viewHolderRef        reference to node view holder actor
-  * @param localInterfaceRef    reference to local interface actor
   * @param syncInfoSpec         SyncInfo specification
   * @tparam P   proposition
   * @tparam TX  transaction
@@ -39,7 +38,6 @@ PMOD <: PersistentNodeViewModifier,
 HR <: HistoryReader[PMOD, SI],
 MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          viewHolderRef: ActorRef,
-                         localInterfaceRef: ActorRef,
                          syncInfoSpec: SIS,
                          networkSettings: NetworkSettings,
                          timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
@@ -57,7 +55,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
 
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
-  protected val statusTracker = new SyncTracker(self, context, networkSettings, localInterfaceRef, timeProvider)
+  protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
@@ -380,12 +378,10 @@ object NodeViewSynchronizerRef {
     HR <: HistoryReader[PMOD, SI],
     MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                              viewHolderRef: ActorRef,
-                             localInterfaceRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider) =
-    Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
-                                                                 localInterfaceRef, syncInfoSpec,
+    Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
                                                                  networkSettings, timeProvider))
 
   def apply[P <: Proposition,
@@ -396,12 +392,11 @@ object NodeViewSynchronizerRef {
     HR <: HistoryReader[PMOD, SI],
     MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                              viewHolderRef: ActorRef,
-                             localInterfaceRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
                             (implicit system: ActorSystem): ActorRef =
-    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef,
+    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
                                                        syncInfoSpec, networkSettings, timeProvider))
 
   def apply[P <: Proposition,
@@ -413,11 +408,10 @@ object NodeViewSynchronizerRef {
     MR <: MempoolReader[TX]](name: String,
                              networkControllerRef: ActorRef,
                              viewHolderRef: ActorRef,
-                             localInterfaceRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
                             (implicit system: ActorSystem): ActorRef =
-    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef,
+    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
                                                        syncInfoSpec, networkSettings, timeProvider), name)
 }

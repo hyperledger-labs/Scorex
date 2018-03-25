@@ -22,7 +22,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class SyncTracker(nvsRef: ActorRef,
                   context: ActorContext,
                   networkSettings: NetworkSettings,
-                  localInterfaceRef: ActorRef,
                   timeProvider: NetworkTimeProvider) extends ScorexLogging {
 
   import History._
@@ -58,10 +57,10 @@ class SyncTracker(nvsRef: ActorRef,
       log.info("Syncing is done, switching to stable regime")
       stableSyncRegime = true
       scheduleSendSyncInfo()
-      localInterfaceRef ! NoBetterNeighbour
+      context.system.eventStream.publish(NoBetterNeighbour)
     }
     if (seniorsBefore == 0 && seniorsAfter > 0) {
-      localInterfaceRef ! BetterNeighbourAppeared
+      context.system.eventStream.publish(BetterNeighbourAppeared)
     }
   }
 
