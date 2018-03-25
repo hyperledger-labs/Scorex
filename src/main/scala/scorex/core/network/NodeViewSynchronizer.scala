@@ -324,6 +324,12 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 }
 
 object NodeViewSynchronizer {
+  object Events {
+    trait NodeViewSynchronizerEvent
+    case object NoBetterNeighbour extends NodeViewSynchronizerEvent
+    case object BetterNeighbourAppeared extends NodeViewSynchronizerEvent
+  }
+
   object ReceivableMessages {
     // getLocalSyncInfo messages
     case object SendLocalSyncInfo

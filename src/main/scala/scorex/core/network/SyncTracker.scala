@@ -3,7 +3,7 @@ package scorex.core.network
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorContext, ActorRef, Cancellable}
-import scorex.core.LocalInterface.ReceivableMessages.{BetterNeighbourAppeared, NoBetterNeighbour}
+import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.consensus.History
 import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.SendLocalSyncInfo

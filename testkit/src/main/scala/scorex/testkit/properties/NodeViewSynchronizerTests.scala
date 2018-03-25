@@ -59,7 +59,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   }
 
   import NodeViewHolder.ReceivableMessages.{ModifiersFromRemote, CompareViews}
-  import scorex.core.LocalInterface.ReceivableMessages.{BetterNeighbourAppeared, NoBetterNeighbour}
+  import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour}
   import NodeViewSynchronizer.ReceivableMessages._
   import NetworkController.ReceivableMessages.{SendToNetwork, Blacklist}
   import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
