@@ -16,7 +16,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   import scorex.core.LocalInterface.ReceivableMessages._
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SuccessfulTransaction, FailedTransaction, SyntacticallySuccessfulModifier,
                                                                       SyntacticallyFailedModification, SemanticallySuccessfulModifier,
-                                                                      SemanticallyFailedModification}
+                                                                      SemanticallyFailedModification, ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   val viewHolderRef: ActorRef
@@ -94,13 +94,5 @@ object LocalInterface {
   object ReceivableMessages {
     case object NoBetterNeighbour
     case object BetterNeighbourAppeared
-
-    import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewHolderEvent, NodeViewChange}
-
-    case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
-    //todo: consider sending info on the rollback
-    case object RollbackFailed extends NodeViewHolderEvent
-    case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
-    case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
   }
 }

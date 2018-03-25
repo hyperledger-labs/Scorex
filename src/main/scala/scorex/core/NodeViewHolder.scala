@@ -38,8 +38,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                                                                       ChangedMempool, ChangedVault,
                                                                       SuccessfulTransaction, FailedTransaction,
                                                                       SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                      SemanticallySuccessfulModifier, SemanticallyFailedModification}
-  import scorex.core.LocalInterface.ReceivableMessages.{ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
+                                                                      SemanticallySuccessfulModifier, SemanticallyFailedModification,
+                                                                      ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo

@@ -13,8 +13,10 @@ import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.settings.NetworkSettings
+import scorex.core.transaction.state.StateReader
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -338,6 +340,7 @@ object NodeViewSynchronizer {
     case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
 
     trait NodeViewHolderEvent
+
     trait NodeViewChange extends NodeViewHolderEvent
     case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
     //TODO: return mempool reader
@@ -345,6 +348,12 @@ object NodeViewSynchronizer {
     //TODO: return Vault reader
     //FIXME: No actor process this message explicitly, it seems to be sent to NodeViewSynchcronizer
     case class ChangedVault() extends NodeViewChange
+    case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
+    //todo: consider sending info on the rollback
+
+    case object RollbackFailed extends NodeViewHolderEvent
+    case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
+    case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
 
     //hierarchy of events regarding modifiers application outcome
     trait ModificationOutcome extends NodeViewHolderEvent
