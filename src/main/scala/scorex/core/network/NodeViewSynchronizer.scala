@@ -46,7 +46,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   import History._
 
   import NodeViewSynchronizer.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
+  import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, CompareViews, ModifiersFromRemote}
   import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler}
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
@@ -298,17 +298,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
 
     //subscribe for all the node view holder events involving modifiers and transactions
-    val vhEvents = Seq(
-      NodeViewHolder.EventType.HistoryChanged,
-      NodeViewHolder.EventType.MempoolChanged,
-      NodeViewHolder.EventType.FailedTransaction,
-      NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SemanticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
-      NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
-    )
-    viewHolderRef ! Subscribe(vhEvents)
+    context.system.eventStream.subscribe(self, classOf[NodeViewChange])
+    context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     statusTracker.scheduleSendSyncInfo()

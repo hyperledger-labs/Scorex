@@ -1,9 +1,9 @@
 package scorex.testkit.properties
 
 import akka.actor._
+import akka.testkit.TestProbe
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
-import scorex.core.NodeViewHolder.EventType._
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
@@ -34,10 +34,10 @@ MPool <: MemoryPool[TX, MPool]]
     with TotallyValidModifierProducer[PM, ST, SI, HT]
     with SemanticallyInvalidModifierProducer[PM, ST] {
 
-  def nodeViewHolder(implicit system: ActorSystem): (ActorRef, PM, ST, HT)
+  def nodeViewHolder(implicit system: ActorSystem): (ActorRef, TestProbe, PM, ST, HT)
 
   class HolderFixture extends AkkaFixture {
-    val (node, mod, s, h) = nodeViewHolder
+    val (node, eventListener, mod, s, h) = nodeViewHolder
   }
 
   private def withFixture(testCode: HolderFixture => Any): Unit = {
@@ -49,11 +49,7 @@ MPool <: MemoryPool[TX, MPool]]
     }
   }
 
-  val semantic = Seq(SuccessfulSemanticallyValidModifier, SemanticallyFailedPersistentModifier)
-  val syntactic = Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier)
-  val allEvents = semantic ++ syntactic
-
-  import NodeViewHolder.ReceivableMessages.{Subscribe, GetDataFromCurrentView}
+  import NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.LocallyGeneratedModifier
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SyntacticallySuccessfulModifier,
                                                                               SyntacticallyFailedModification,
@@ -63,54 +59,58 @@ MPool <: MemoryPool[TX, MPool]]
   property("NodeViewHolder syntactically valid modifier subscription") { withFixture { ctx =>
     import ctx._
 
-    node ! Subscribe(syntactic)
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
   }}
 
   property("NodeViewHolder: syntactically failed modifier subscription") { withFixture { ctx =>
     import ctx._
 
-    node ! Subscribe(syntactic)
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallyFailedModification[PM]])
     val invalid = syntacticallyInvalidModifier(h)
     node ! LocallyGeneratedModifier(invalid)
-    expectMsgType[SyntacticallyFailedModification[PM]]
+    eventListener.expectMsgType[SyntacticallyFailedModification[PM]]
   }}
 
   property("NodeViewHolder: semantically valid modifier subscription") { withFixture { ctx =>
     import ctx._
 
-    node ! Subscribe(allEvents)
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
+    system.eventStream.subscribe(eventListener.ref, classOf[SemanticallySuccessfulModifier[PM]])
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
-    expectMsgType[SemanticallySuccessfulModifier[PM]]
+    eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    eventListener.expectMsgType[SemanticallySuccessfulModifier[PM]]
   }}
 
   property("NodeViewHolder: semantically failed modifier subscription") { withFixture { ctx =>
     import ctx._
 
-    node ! Subscribe(allEvents)
+
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
+    system.eventStream.subscribe(eventListener.ref, classOf[SemanticallyFailedModification[PM]])
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v => semanticallyInvalidModifier(v.state) }
     val invalid = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(invalid)
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
-    expectMsgType[SemanticallyFailedModification[PM]]
+    eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    eventListener.expectMsgType[SemanticallyFailedModification[PM]]
   }}
 
   property("NodeViewHolder: syntactically/semantically valid modifier subscription") { withFixture { ctx =>
     import ctx._
 
-    node ! Subscribe(allEvents)
 
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
+    system.eventStream.subscribe(eventListener.ref, classOf[SemanticallySuccessfulModifier[PM]])
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
-    expectMsgType[SemanticallySuccessfulModifier[PM]]
+    eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    eventListener.expectMsgType[SemanticallySuccessfulModifier[PM]]
   }}
 
   property("NodeViewHolder: check state after creation") { withFixture { ctx =>
@@ -131,8 +131,9 @@ MPool <: MemoryPool[TX, MPool]]
 
   property("NodeViewHolder: check that valid modifiers are applicable") { withFixture { ctx =>
     import ctx._
-    node ! Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
 
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallyFailedModification[PM]])
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
       totallyValidModifiers(v.history, v.state, 10) //todo: fix magic number
     }
@@ -142,22 +143,24 @@ MPool <: MemoryPool[TX, MPool]]
       node ! LocallyGeneratedModifier(mod)
     }
 
-    (1 to mods.size).foreach(_ => expectMsgType[SyntacticallySuccessfulModifier[PM]])
+    (1 to mods.size).foreach(_ => eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]])
   }}
 
   property("NodeViewHolder: apply locally generated mod") { withFixture { ctx =>
     import ctx._
-    node ! Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
+
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallyFailedModification[PM]])
 
     val invalid = syntacticallyInvalidModifier(h)
 
     node ! LocallyGeneratedModifier(invalid)
 
-    expectMsgType[SyntacticallyFailedModification[PM]]
+    eventListener.expectMsgType[SyntacticallyFailedModification[PM]]
 
     node ! LocallyGeneratedModifier(mod)
 
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
       v.state.version.sameElements(s.version) && v.history.contains(mod.id)
@@ -171,13 +174,14 @@ MPool <: MemoryPool[TX, MPool]]
 
     val waitDuration = 5.seconds
 
-    node ! Subscribe(Seq(SuccessfulSyntacticallyValidModifier, SyntacticallyFailedPersistentModifier))
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
+    system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallyFailedModification[PM]])
 
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v => totallyValidModifiers(v.history, v.state, 2) }
     val initMods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
     initMods.foreach { mod =>
       node ! LocallyGeneratedModifier(mod)
-      expectMsgType[SyntacticallySuccessfulModifier[PM]]
+      eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
     }
 
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v =>
@@ -192,8 +196,8 @@ MPool <: MemoryPool[TX, MPool]]
 
     node ! LocallyGeneratedModifier(fork1Mod)
     node ! LocallyGeneratedModifier(fork2Mod)
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
-    expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
+    eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
     node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
       v.history.contains(fork1Mod.id) || v.history.contains(fork2Mod.id)

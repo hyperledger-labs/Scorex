@@ -101,12 +101,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   //todo: make configurable limited size
   private val modifiersCache = mutable.Map[MapKey, PMOD]()
 
-
-  private val subscribers = mutable.Map[NodeViewHolder.EventType.Value, Seq[ActorRef]]()
-
-  protected def notifySubscribers[O <: NodeViewHolderEvent](eventType: EventType.Value, signal: O): Unit =
-    subscribers.getOrElse(eventType, Seq()).foreach(_ ! signal)
-
   protected def txModify(tx: TX): Unit = {
     //todo: async validation?
     val errorOpt: Option[Throwable] = minimalState() match {
@@ -125,14 +119,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             log.debug(s"Unconfirmed transaction $tx added to the memory pool")
             val newVault = vault().scanOffchain(tx)
             updateNodeView(updatedVault = Some(newVault), updatedMempool = Some(newPool))
-            notifySubscribers(EventType.SuccessfulTransaction, SuccessfulTransaction[P, TX](tx))
+            context.system.eventStream.publish(SuccessfulTransaction[P, TX](tx))
 
           case Failure(e) =>
-            notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
+            context.system.eventStream.publish(FailedTransaction[P, TX](tx, e))
         }
 
       case Some(e) =>
-        notifySubscribers(EventType.FailedTransaction, FailedTransaction[P, TX](tx, e))
+        context.system.eventStream.publish(FailedTransaction[P, TX](tx, e))
     }
   }
 
@@ -153,16 +147,16 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       updatedVault.getOrElse(vault()),
       updatedMempool.getOrElse(memoryPool()))
     if (updatedHistory.nonEmpty) {
-      notifySubscribers[ChangedHistory[HistoryReader[PMOD, SI]]](EventType.HistoryChanged, ChangedHistory(newNodeView._1.getReader))
+      context.system.eventStream.publish(ChangedHistory(newNodeView._1.getReader))
     }
     if (updatedState.nonEmpty) {
-      notifySubscribers[ChangedState[StateReader]](EventType.StateChanged, ChangedState(newNodeView._2.getReader))
+      context.system.eventStream.publish(ChangedState(newNodeView._2.getReader))
     }
     if (updatedVault.nonEmpty) {
-      notifySubscribers[ChangedVault](EventType.VaultChanged, ChangedVault())
+      context.system.eventStream.publish(ChangedVault())
     }
     if (updatedMempool.nonEmpty) {
-      notifySubscribers[ChangedMempool[MempoolReader[TX]]](EventType.MempoolChanged, ChangedMempool(newNodeView._4.getReader))
+      context.system.eventStream.publish(ChangedMempool(newNodeView._4.getReader))
     }
     nodeView = newNodeView
   }
@@ -192,7 +186,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   private def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
     pi.toDownload.foreach { case (tid, id) =>
-      notifySubscribers(EventType.DownloadNeeded, DownloadRequest(tid, id))
+      context.system.eventStream.publish(DownloadRequest(tid, id))
     }
 
   /*
@@ -248,11 +242,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
-                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
+                context.system.eventStream.publish(SemanticallySuccessfulModifier(modToApply))
                 updateState(newHis, stateAfterApply, newProgressInfo)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
-                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
+                context.system.eventStream.publish(SemanticallyFailedModification(modToApply, e))
                 updateState(newHis, stateToApply, newProgressInfo)
             }
 
@@ -261,7 +255,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
-        notifySubscribers[RollbackFailed.type](EventType.FailedRollback, RollbackFailed)
+        context.system.eventStream.publish(RollbackFailed)
         //todo: what to return here? the situation is totally wrong
         ???
     }
@@ -270,15 +264,15 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   //todo: update state in async way?
   protected def pmodModify(pmod: PMOD): Unit =
     if (!history().contains(pmod.id)) {
-      notifySubscribers(EventType.StartingPersistentModifierApplication, StartingPersistentModifierApplication(pmod))
+      context.system.eventStream.publish(StartingPersistentModifierApplication(pmod))
 
       log.info(s"Apply modifier ${pmod.encodedId} of type ${pmod.modifierTypeId} to nodeViewHolder")
 
       history().append(pmod) match {
         case Success((historyBeforeStUpdate, progressInfo)) =>
           log.debug(s"Going to apply modifications to the state: $progressInfo")
-          notifySubscribers(EventType.SuccessfulSyntacticallyValidModifier, SyntacticallySuccessfulModifier(pmod))
-          notifySubscribers(EventType.OpenSurfaceChanged, NewOpenSurface(historyBeforeStUpdate.openSurfaceIds()))
+          context.system.eventStream.publish(SyntacticallySuccessfulModifier(pmod))
+          context.system.eventStream.publish(NewOpenSurface(historyBeforeStUpdate.openSurfaceIds()))
 
           if (progressInfo.toApply.nonEmpty) {
             val (newHistory, newStateTry) = updateState(historyBeforeStUpdate, minimalState(), progressInfo)
@@ -300,7 +294,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               case Failure(e) =>
                 log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to minimal state", e)
                 updateNodeView(updatedHistory = Some(newHistory))
-                notifySubscribers(EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(pmod, e))
+                context.system.eventStream.publish(SemanticallyFailedModification(pmod, e))
             }
           } else {
             requestDownloads(progressInfo)
@@ -308,20 +302,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           }
         case Failure(e) =>
           log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to history", e)
-          notifySubscribers(EventType.SyntacticallyFailedPersistentModifier, SyntacticallyFailedModification(pmod, e))
+          context.system.eventStream.publish(SyntacticallyFailedModification(pmod, e))
       }
     } else {
       log.warn(s"Trying to apply modifier ${pmod.encodedId} that's already in history")
     }
-
-
-  protected def handleSubscribe: Receive = {
-    case Subscribe(events) =>
-      events.foreach { evt =>
-        val current = subscribers.getOrElse(evt, Seq())
-        subscribers.put(evt, current :+ sender())
-      }
-  }
 
 
   protected def compareViews: Receive = {
@@ -394,7 +379,6 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   override def receive: Receive =
-    handleSubscribe orElse
       compareViews orElse
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
@@ -410,8 +394,6 @@ object NodeViewHolder {
   object ReceivableMessages {
     // Explicit request of NodeViewChange events of certain types.
     case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
-    //a command to subscribe for events
-    case class Subscribe(events: Seq[EventType.Value])
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
     // Moved from NodeViewSynchronizer as this was only received here
@@ -420,31 +402,31 @@ object NodeViewHolder {
 
   }
 
-  object EventType extends Enumeration {
-    //finished modifier application, successful of failed
-    val FailedTransaction: EventType.Value = Value(1)
-    val SyntacticallyFailedPersistentModifier: EventType.Value = Value(2)
-    val SemanticallyFailedPersistentModifier: EventType.Value = Value(3)
-    val SuccessfulTransaction: EventType.Value = Value(4)
-    val SuccessfulSyntacticallyValidModifier: EventType.Value = Value(5)
-    val SuccessfulSemanticallyValidModifier: EventType.Value = Value(6)
-
-
-    //starting persistent modifier application. The application could be slow
-    val StartingPersistentModifierApplication: EventType.Value = Value(7)
-
-    val OpenSurfaceChanged: EventType.Value = Value(8)
-
-    //rollback failed, really wrong situation, probably
-    val FailedRollback: EventType.Value = Value(9)
-
-    val DownloadNeeded: EventType.Value = Value(10)
-
-    val StateChanged: EventType.Value = Value(11)
-    val HistoryChanged: EventType.Value = Value(12)
-    val MempoolChanged: EventType.Value = Value(13)
-    val VaultChanged: EventType.Value = Value(14)
-  }
+//  object EventType extends Enumeration {
+//    //finished modifier application, successful of failed
+//    val FailedTransaction: EventType.Value = Value(1)
+//    val SyntacticallyFailedPersistentModifier: EventType.Value = Value(2)
+//    val SemanticallyFailedPersistentModifier: EventType.Value = Value(3)
+//    val SuccessfulTransaction: EventType.Value = Value(4)
+//    val SuccessfulSyntacticallyValidModifier: EventType.Value = Value(5)
+//    val SuccessfulSemanticallyValidModifier: EventType.Value = Value(6)
+//
+//
+//    //starting persistent modifier application. The application could be slow
+//    val StartingPersistentModifierApplication: EventType.Value = Value(7)
+//
+//    val OpenSurfaceChanged: EventType.Value = Value(8)
+//
+//    //rollback failed, really wrong situation, probably
+//    val FailedRollback: EventType.Value = Value(9)
+//
+//    val DownloadNeeded: EventType.Value = Value(10)
+//
+//    val StateChanged: EventType.Value = Value(11)
+//    val HistoryChanged: EventType.Value = Value(12)
+//    val MempoolChanged: EventType.Value = Value(13)
+//    val VaultChanged: EventType.Value = Value(14)
+//  }
 
   // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
   // fixme: Even more, ModificationApplicationStarted seems not to be sent at all

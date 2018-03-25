@@ -1,6 +1,7 @@
 package hybrid
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.testkit.TestProbe
 import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.HybridNodeViewHolder
 import examples.hybrid.wallet.HWallet
@@ -27,7 +28,7 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
     def props(h: HT, s: ST): Props = Props(new NodeViewHolderForTests(h, s))
   }
 
-  def nodeViewHolder(implicit system: ActorSystem): (ActorRef, PM, ST, HT) = {
+  def nodeViewHolder(implicit system: ActorSystem): (ActorRef, TestProbe, PM, ST, HT) = {
     val h = historyGen.sample.get
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
@@ -35,6 +36,7 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
     val s = sRaw.copy(version = VersionTag @@ v)
     val ref = system.actorOf(NodeViewHolderForTests.props(h, s))
     val m = totallyValidModifier(h, s)
-    (ref, m, s, h)
+    val eventListener = TestProbe()
+    (ref, eventListener, m, s, h)
   }
 }
