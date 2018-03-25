@@ -401,33 +401,7 @@ object NodeViewHolder {
     case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
   }
-
-//  object EventType extends Enumeration {
-//    //finished modifier application, successful of failed
-//    val FailedTransaction: EventType.Value = Value(1)
-//    val SyntacticallyFailedPersistentModifier: EventType.Value = Value(2)
-//    val SemanticallyFailedPersistentModifier: EventType.Value = Value(3)
-//    val SuccessfulTransaction: EventType.Value = Value(4)
-//    val SuccessfulSyntacticallyValidModifier: EventType.Value = Value(5)
-//    val SuccessfulSemanticallyValidModifier: EventType.Value = Value(6)
-//
-//
-//    //starting persistent modifier application. The application could be slow
-//    val StartingPersistentModifierApplication: EventType.Value = Value(7)
-//
-//    val OpenSurfaceChanged: EventType.Value = Value(8)
-//
-//    //rollback failed, really wrong situation, probably
-//    val FailedRollback: EventType.Value = Value(9)
-//
-//    val DownloadNeeded: EventType.Value = Value(10)
-//
-//    val StateChanged: EventType.Value = Value(11)
-//    val HistoryChanged: EventType.Value = Value(12)
-//    val MempoolChanged: EventType.Value = Value(13)
-//    val VaultChanged: EventType.Value = Value(14)
-//  }
-
+  
   // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
   // fixme: Even more, ModificationApplicationStarted seems not to be sent at all
   // fixme: should we delete these messages?
