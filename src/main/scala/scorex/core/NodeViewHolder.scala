@@ -1,14 +1,14 @@
 package scorex.core
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.Actor
 import scorex.core.consensus.History.ProgressInfo
-import scorex.core.consensus.{History, HistoryReader, SyncInfo}
+import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.state.{MinimalState, StateReader, TransactionValidation}
+import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
