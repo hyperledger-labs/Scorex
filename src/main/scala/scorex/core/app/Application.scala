@@ -58,7 +58,6 @@ trait Application extends ScorexLogging {
 
   val nodeViewHolderRef: ActorRef
   val nodeViewSynchronizer: ActorRef
-  val localInterface: ActorRef
   /**
     * API description in openapi format in YAML or JSON
     */

@@ -54,7 +54,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   val miner: ActorRef = PowMinerRef(nodeViewHolderRef, hybridSettings.mining)
   val forger: ActorRef = PosForgerRef(hybridSettings, nodeViewHolderRef)
 
-  override val localInterface: ActorRef = HLocalInterfaceRef(nodeViewHolderRef, miner, forger, hybridSettings.mining)
+  val localInterface: ActorRef = HLocalInterfaceRef(nodeViewHolderRef, miner, forger, hybridSettings.mining)
 
   override val nodeViewSynchronizer: ActorRef =
     actorSystem.actorOf(NodeViewSynchronizerRef.props[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type,
