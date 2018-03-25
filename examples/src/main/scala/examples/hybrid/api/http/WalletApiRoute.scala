@@ -22,7 +22,7 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
                          (implicit val context: ActorRefFactory)
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
 
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.LocallyGeneratedTransaction
+  import scorex.core.NodeViewHolder.ReceivableMessages.LocallyGeneratedTransaction
 
   //TODO move to settings?
   val DefaultFee = 100

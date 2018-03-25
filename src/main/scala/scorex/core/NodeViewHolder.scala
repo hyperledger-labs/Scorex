@@ -40,7 +40,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                                                                       SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
                                                                       SemanticallySuccessfulModifier, SemanticallyFailedModification,
                                                                       ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
+  //import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
   type HIS <: History[PMOD, SI, HIS]
@@ -400,6 +400,8 @@ object NodeViewHolder {
     case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
     case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
+    case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
+    case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
   }
 
 //  object EventType extends Enumeration {

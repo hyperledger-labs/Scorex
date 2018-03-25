@@ -23,7 +23,7 @@ class HybridNodeViewHolder(settings: ScorexSettings,
                            minerSettings: HybridMiningSettings,
                            timeProvider: NetworkTimeProvider)
   extends NodeViewHolder[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock] {
-  
+
   override val networkChunkSize: Int = settings.network.networkChunkSize
 
   override type SI = HybridSyncInfo
