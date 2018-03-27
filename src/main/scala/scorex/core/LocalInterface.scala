@@ -1,6 +1,7 @@
 package scorex.core
 
 import akka.actor.{Actor, ActorRef}
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.StateReader
@@ -13,7 +14,6 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   extends Actor with ScorexLogging {
 
   import scorex.core.LocalInterface.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.Subscribe
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SuccessfulTransaction, FailedTransaction, SyntacticallySuccessfulModifier,
                                                                       SyntacticallyFailedModification, SemanticallySuccessfulModifier,
                                                                       SemanticallyFailedModification}
@@ -22,21 +22,7 @@ trait LocalInterface[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   val viewHolderRef: ActorRef
 
   override def preStart(): Unit = {
-    val events = Seq(
-      NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.FailedTransaction,
-
-      NodeViewHolder.EventType.StartingPersistentModifierApplication,
-      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SemanticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
-      NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier,
-
-      NodeViewHolder.EventType.OpenSurfaceChanged,
-      NodeViewHolder.EventType.StateChanged,
-      NodeViewHolder.EventType.FailedRollback
-    )
-    viewHolderRef ! Subscribe(events)
+    context.system.eventStream.subscribe(self, classOf[NodeViewHolderEvent])
   }
 
   private def viewHolderEvents: Receive = {
