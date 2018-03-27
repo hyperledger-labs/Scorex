@@ -5,7 +5,6 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
-import scorex.core.consensus.History.HistoryComparisonResult
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PeerManager
 import scorex.core.transaction.box.proposition.Proposition
@@ -47,8 +46,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   import History._
 
   import NodeViewSynchronizer.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.{Subscribe, GetNodeViewChanges, CompareViews, ModifiersFromRemote}
-  import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler, SubscribePeerManagerEvent}
+  import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, CompareViews, ModifiersFromRemote}
+  import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler}
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
@@ -293,25 +292,14 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
-    val pmEvents = Seq(
-      PeerManager.HandshakedEvent,
-      PeerManager.DisconnectedEvent
-    )
-    networkControllerRef ! SubscribePeerManagerEvent(pmEvents)
+    context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
+    context.system.eventStream.subscribe(self, classOf[DisconnectedPeer])
+    // todo: replace the two lines above by a single line with classOf[PeerManagementEvent]
 
 
     //subscribe for all the node view holder events involving modifiers and transactions
-    val vhEvents = Seq(
-      NodeViewHolder.EventType.HistoryChanged,
-      NodeViewHolder.EventType.MempoolChanged,
-      NodeViewHolder.EventType.FailedTransaction,
-      NodeViewHolder.EventType.SuccessfulTransaction,
-      NodeViewHolder.EventType.SyntacticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SemanticallyFailedPersistentModifier,
-      NodeViewHolder.EventType.SuccessfulSyntacticallyValidModifier,
-      NodeViewHolder.EventType.SuccessfulSemanticallyValidModifier
-    )
-    viewHolderRef ! Subscribe(vhEvents)
+    context.system.eventStream.subscribe(self, classOf[NodeViewChange])
+    context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     statusTracker.scheduleSendSyncInfo()
