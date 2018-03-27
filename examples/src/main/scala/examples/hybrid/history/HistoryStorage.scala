@@ -1,18 +1,17 @@
 package examples.hybrid.history
 
 import com.google.common.primitives.Longs
-import examples.commons.SimpleBoxTransaction
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{HybridMiningSettings, PosForger}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.ModifierId
-import scorex.core.block.Block
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.consensus.{Absent, ModifierSemanticValidity, Unknown}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Sha256
 
 import scala.util.Failure
 
+//TODO: why to use IODB if there's no rollback?
 class HistoryStorage(storage: LSMStore,
                      settings: HybridMiningSettings) extends ScorexLogging {
 
@@ -39,8 +38,7 @@ class HistoryStorage(storage: LSMStore,
     modifierById(bestPosId).get.asInstanceOf[PosBlock]
   }
 
-  def modifierById(blockId: ModifierId): Option[HybridBlock with
-    Block[PublicKey25519Proposition, SimpleBoxTransaction]] = {
+  def modifierById(blockId: ModifierId): Option[HybridBlock] = {
     storage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
@@ -58,7 +56,28 @@ class HistoryStorage(storage: LSMStore,
     }
   }
 
-  def update(b: HybridBlock, diff: Option[(BigInt, Long)], isBest: Boolean) {
+
+  def semanticValidity(id: ModifierId): ModifierSemanticValidity = {
+    modifierById(id).map { b =>
+      storage
+        .get(validityKey(b))
+        .map(_.data.head)
+        .map(ModifierSemanticValidity.restoreFromCode)
+        .getOrElse(Unknown)
+    }.getOrElse(Absent)
+  }
+
+  def updateValidity(b: HybridBlock, status: ModifierSemanticValidity) {
+    val version = ByteArrayWrapper(Sha256(b.id :+ status.code))
+    storage.update(version, Seq(), Seq(validityKey(b) -> ByteArrayWrapper(Array(status. code))))
+  }
+
+  def updateBestChild(parentId: ModifierId, childId: ModifierId): Unit = {
+    val version = ByteArrayWrapper(Sha256(scala.util.Random.nextString(20).getBytes("UTF-8")))
+    storage.update(version, Seq(), Seq(bestChildKey(parentId) -> ByteArrayWrapper(childId)))
+  }
+
+  def update(b: HybridBlock, difficulty: Option[(BigInt, Long)], isBest: Boolean) {
     log.debug(s"Write new best=$isBest block ${b.encodedId}")
     val typeByte = b match {
       case _: PowBlock =>
@@ -70,7 +89,7 @@ class HistoryStorage(storage: LSMStore,
     val blockH: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] =
       Seq(blockHeightKey(b.id) -> ByteArrayWrapper(Longs.toByteArray(parentHeight(b) + 1)))
 
-    val blockDiff: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] = diff.map { d =>
+    val blockDiff: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] = difficulty.map { d =>
       Seq(blockDiffKey(b.id, isPos = false) -> ByteArrayWrapper(d._1.toByteArray),
         blockDiffKey(b.id, isPos = true) -> ByteArrayWrapper(Longs.toByteArray(d._2)))
     }.getOrElse(Seq())
@@ -83,10 +102,16 @@ class HistoryStorage(storage: LSMStore,
       case _ => Seq()
     }
 
+    val childSeq = if(!isGenesis(b) && isBest) Seq(bestChildKey(b.parentId) -> ByteArrayWrapper(b.id)) else Seq()
+
     storage.update(
       ByteArrayWrapper(b.id),
       Seq(),
-      blockDiff ++ blockH ++ bestBlockSeq ++ Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
+      blockDiff ++
+        blockH ++
+        bestBlockSeq ++
+        childSeq ++
+        Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
   }
 
   def getPoWDifficulty(idOpt: Option[ModifierId]): BigInt = {
@@ -115,11 +140,21 @@ class HistoryStorage(storage: LSMStore,
     case posBlock: PosBlock => posBlock.parentId
   }
 
+  def bestChildId(block: HybridBlock): Option[ModifierId] =
+    storage.get(bestChildKey(block.id)).map(ModifierId @@ _.data)
+
+
+  private def bestChildKey(blockId: ModifierId): ByteArrayWrapper =
+    ByteArrayWrapper(Sha256("child".getBytes("UTF-8") ++ blockId))
+
+  private def validityKey(b: HybridBlock): ByteArrayWrapper =
+    ByteArrayWrapper(Sha256("validity".getBytes("UTF-8") ++ b.id))
+
   private def blockHeightKey(blockId: ModifierId): ByteArrayWrapper =
-    ByteArrayWrapper(Sha256("height".getBytes ++ blockId))
+    ByteArrayWrapper(Sha256("height".getBytes("UTF-8") ++ blockId))
 
   private def blockDiffKey(blockId: Array[Byte], isPos: Boolean): ByteArrayWrapper =
-    ByteArrayWrapper(Sha256(s"difficulties$isPos".getBytes ++ blockId))
+    ByteArrayWrapper(Sha256(s"difficulties$isPos".getBytes("UTF-8") ++ blockId))
 
   def heightOf(blockId: ModifierId): Option[Long] = storage.get(blockHeightKey(blockId))
     .map(b => Longs.fromByteArray(b.data))
