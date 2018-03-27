@@ -69,12 +69,14 @@ class HistoryStorage(storage: LSMStore,
 
   def updateValidity(b: HybridBlock, status: ModifierSemanticValidity) {
     val version = ByteArrayWrapper(Sha256(b.id :+ status.code))
-    storage.update(version, Seq(), Seq(validityKey(b) -> ByteArrayWrapper(Array(status. code))))
+    if (!storage.versionIDExists(version))
+      storage.update(version, Seq(), Seq(validityKey(b) -> ByteArrayWrapper(Array(status. code))))
   }
 
   def updateBestChild(parentId: ModifierId, childId: ModifierId): Unit = {
     val version = ByteArrayWrapper(Sha256(scala.util.Random.nextString(20).getBytes("UTF-8")))
-    storage.update(version, Seq(), Seq(bestChildKey(parentId) -> ByteArrayWrapper(childId)))
+    if (!storage.versionIDExists(version))
+      storage.update(version, Seq(), Seq(bestChildKey(parentId) -> ByteArrayWrapper(childId)))
   }
 
   def update(b: HybridBlock, difficulty: Option[(BigInt, Long)], isBest: Boolean) {

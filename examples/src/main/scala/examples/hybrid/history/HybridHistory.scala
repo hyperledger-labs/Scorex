@@ -201,7 +201,7 @@ class HybridHistory(val storage: HistoryStorage,
     if(newSuffixValid) {
 
       //update best links
-      newSuffix.sliding(2, 1).foreach{p =>
+      (newSuffix ++ Seq(block.id)).sliding(2, 1).foreach{p =>
         storage.updateBestChild(p(0), p(1))
       }
 
