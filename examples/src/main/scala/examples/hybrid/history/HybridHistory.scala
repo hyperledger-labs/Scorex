@@ -151,7 +151,7 @@ class HybridHistory(val storage: HistoryStorage,
       //rollback to previous PoS block and apply parent block one more time
       storage.updateBestChild(parent.prevPosId, parent.id)
       storage.updateBestChild(parent.id, posBlock.id)
-      ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq(parent), Seq())
+      ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq(parent, posBlock), Seq())
     } else {
       bestForkChanges(posBlock)
     }
