@@ -15,6 +15,7 @@ import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletBoxSerializer, W
 import scorex.core.utils.{ByteStr, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
+import scorex.crypto.signatures.PublicKey
 
 import scala.util.Try
 
@@ -155,4 +156,22 @@ object HWallet {
       a.scanPersistent(b)
     }
   }
+}
+
+
+object GenesisStateGenerator extends App {
+  val w1 = HWallet(ByteStr.decodeBase58("minerNode1").get, new LSMStore(new File("/tmp/w1")))
+  val w2 = HWallet(ByteStr.decodeBase58("minerNode2").get, new LSMStore(new File("/tmp/w2")))
+  val w3 = HWallet(ByteStr.decodeBase58("minerNode3").get, new LSMStore(new File("/tmp/w3")))
+
+  (1 to 20).foreach(_ => w1.generateNewSecret())
+  (1 to 20).foreach(_ => w2.generateNewSecret())
+  (1 to 10).foreach(_ => w3.generateNewSecret())
+
+  val pks =
+  w1.publicKeys.map(_.pubKeyBytes).map(Base58.encode) ++
+    w2.publicKeys.map(_.pubKeyBytes).map(Base58.encode) ++
+    w3.publicKeys.map(_.pubKeyBytes).map(Base58.encode)
+
+  println(pks.map(pk => s""""$pk",""").mkString("\n"))
 }
