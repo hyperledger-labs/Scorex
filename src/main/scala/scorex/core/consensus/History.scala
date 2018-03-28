@@ -60,7 +60,7 @@ object History {
     */
   case class ProgressInfo[PM <: PersistentNodeViewModifier](branchPoint: Option[ModifierId],
                                                             toRemove: Seq[PM],
-                                                            toApply: Option[PM],
+                                                            toApply: Seq[PM],
                                                             toDownload: Seq[(ModifierTypeId, ModifierId)]
                                                            ) {
 

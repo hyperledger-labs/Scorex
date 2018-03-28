@@ -95,7 +95,7 @@ class HybridHistory(val storage: HistoryStorage,
   private def powBlockAppend(powBlock: PowBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
     val progress: ProgressInfo[HybridBlock] = if (isGenesis(powBlock)) {
       storage.update(powBlock, None, isBest = true)
-      ProgressInfo(None, Seq(), Some(powBlock), Seq())
+      ProgressInfo(None, Seq(), Seq(powBlock), Seq())
     } else {
       storage.heightOf(powBlock.parentId) match {
         case Some(_) =>
@@ -110,25 +110,25 @@ class HybridHistory(val storage: HistoryStorage,
               ((powBlock.parentId sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
               log.debug(s"New best PoW block ${Base58.encode(powBlock.id)}")
               //just apply one block to the end
-              ProgressInfo(None, Seq(), Some(powBlock), Seq())
+              ProgressInfo(None, Seq(), Seq(powBlock), Seq())
             } else if (isBestBrother) {
               log.debug(s"New best brother ${Base58.encode(powBlock.id)}")
               //new best brother
-              ProgressInfo(Some(powBlock.prevPosId), Seq(bestPowBlock), Some(powBlock), Seq())
+              ProgressInfo(Some(powBlock.prevPosId), Seq(bestPowBlock), Seq(powBlock), Seq())
             } else {
               //we're switching to a better chain, if it does not contain an invalid block
               bestForkChanges(powBlock)
             }
           } else {
             log.debug(s"New orphaned PoW block ${Base58.encode(powBlock.id)}")
-            ProgressInfo(None, Seq(), None, Seq())
+            ProgressInfo(None, Seq(), Seq(), Seq())
           }
           storage.update(powBlock, None, isBest)
           mod
 
         case None =>
           log.warn(s"No parent block ${powBlock.parentId} in history")
-          ProgressInfo[HybridBlock](None, Seq[HybridBlock](), None, Seq())
+          ProgressInfo[HybridBlock](None, Seq[HybridBlock](), Seq(), Seq())
       }
     }
     // require(modifications.toApply.exists(_.id sameElements powBlock.id))
@@ -142,16 +142,16 @@ class HybridHistory(val storage: HistoryStorage,
 
     val mod: ProgressInfo[HybridBlock] = if (!isBest) {
       log.debug(s"New orphaned PoS block ${Base58.encode(posBlock.id)}")
-      ProgressInfo(None, Seq(), None, Seq())
+      ProgressInfo(None, Seq(), Seq(), Seq())
     } else if (posBlock.parentId sameElements bestPowId) {
       log.debug(s"New best PoS block ${Base58.encode(posBlock.id)}")
-      ProgressInfo(None, Seq(), Some(posBlock), Seq())
+      ProgressInfo(None, Seq(), Seq(posBlock), Seq())
     } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
       log.debug(s"New best PoS block with link to non-best brother ${Base58.encode(posBlock.id)}")
       //rollback to previous PoS block and apply parent block one more time
       storage.updateBestChild(parent.prevPosId, parent.id)
       storage.updateBestChild(parent.id, posBlock.id)
-      ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Some(parent), Seq())
+      ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq(parent, posBlock), Seq())
     } else {
       bestForkChanges(posBlock)
     }
@@ -201,7 +201,7 @@ class HybridHistory(val storage: HistoryStorage,
     if(newSuffixValid) {
 
       //update best links
-      newSuffix.sliding(2, 1).foreach{p =>
+      (newSuffix ++ Seq(block.id)).sliding(2, 1).foreach{p =>
         storage.updateBestChild(p(0), p(1))
       }
 
@@ -215,10 +215,10 @@ class HybridHistory(val storage: HistoryStorage,
       require(throwBlocks.nonEmpty)
       require(storage.bestChildId(modifierById(rollbackPoint.get).get).get sameElements applyBlocks.headOption.get.id)
 
-      ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks.headOption, Seq())
+      ProgressInfo[HybridBlock](rollbackPoint, throwBlocks, applyBlocks, Seq())
     } else {
       log.info(s"Orphaned block $block from invalid suffix")
-      ProgressInfo(None, Seq(), None, Seq())
+      ProgressInfo(None, Seq(), Seq(), Seq())
     }
   }
 
@@ -474,10 +474,11 @@ class HybridHistory(val storage: HistoryStorage,
     val h = new HybridHistory(storage, settings, validators, statsLogger, timeProvider)
 
     if (valid) {
-      val p = ProgressInfo(None, Seq(), storage.bestChildId(modifier).flatMap(storage.modifierById), Seq())
+      val nextModToApply = storage.bestChildId(modifier).flatMap(storage.modifierById)
+      val p = ProgressInfo(None, Seq(), nextModToApply.map(Seq(_)).getOrElse(Seq()), Seq())
       h -> p
     } else {
-      h -> ProgressInfo(None, Seq(), None, Seq())
+      h -> ProgressInfo(None, Seq(), Seq(), Seq())
     }
   }
 
