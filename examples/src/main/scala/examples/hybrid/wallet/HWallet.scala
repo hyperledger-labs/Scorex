@@ -15,7 +15,6 @@ import scorex.core.transaction.wallet.{Wallet, WalletBox, WalletBoxSerializer, W
 import scorex.core.utils.{ByteStr, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.PublicKey
 
 import scala.util.Try
 
@@ -125,7 +124,7 @@ object HWallet {
   def readOrGenerate(settings: ScorexSettings, seed: ByteStr): HWallet = {
     val wFile = walletFile(settings)
     wFile.mkdirs()
-    val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000)
+    val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000, keepVersions = 100) //todo: configurable kV
 
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {

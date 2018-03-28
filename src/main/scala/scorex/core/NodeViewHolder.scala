@@ -34,11 +34,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   import NodeViewHolder._
   import NodeViewHolder.ReceivableMessages._
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
-                                                                      ChangedMempool, ChangedVault,
-                                                                      SuccessfulTransaction, FailedTransaction,
-                                                                      SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                      SemanticallySuccessfulModifier, SemanticallyFailedModification}
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{
+    RequestFromLocal, ChangedHistory,
+    ChangedMempool, ChangedVault,
+    SuccessfulTransaction, FailedTransaction,
+    SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+    SemanticallySuccessfulModifier, SemanticallyFailedModification
+  }
   import scorex.core.LocalInterface.ReceivableMessages.{ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
   import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
@@ -175,10 +177,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   //todo: this method causes delays in a block processing as it removes transactions from mempool and checks
   //todo: validity of remaining transactions in a synchronous way. Do this job async!
-  protected def updateMemPool(progressInfo: History.ProgressInfo[PMOD], memPool: MP, state: MS): MP = {
-    val rolledBackTxs = progressInfo.toRemove.flatMap(extractTransactions)
+  protected def updateMemPool(blocksRemoved: Seq[PMOD], blocksApplied: Seq[PMOD], memPool: MP, state: MS): MP = {
+    val rolledBackTxs = blocksRemoved.flatMap(extractTransactions)
 
-    val appliedTxs = progressInfo.toApply.flatMap(extractTransactions)
+    val appliedTxs = blocksApplied.flatMap(extractTransactions)
 
     memPool.putWithoutCheck(rolledBackTxs).filter { tx =>
       !appliedTxs.exists(t => t.id sameElements tx.id) && {
@@ -194,6 +196,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     pi.toDownload.foreach { case (tid, id) =>
       notifySubscribers(EventType.DownloadNeeded, DownloadRequest(tid, id))
     }
+
+  private def trimChainSuffix(suffix: IndexedSeq[PMOD], rollbackPoint: ModifierId): IndexedSeq[PMOD] = {
+    val idx = suffix.indexWhere(_.id.sameElements(rollbackPoint))
+    if (idx == -1) IndexedSeq() else suffix.drop(idx)
+  }
 
   /*
 
@@ -226,15 +233,16 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   @tailrec
   private def updateState(history: HIS,
                           state: MS,
-                          progressInfo: ProgressInfo[PMOD]): (HIS, Try[MS]) = {
+                          progressInfo: ProgressInfo[PMOD],
+                          suffixApplied: IndexedSeq[PMOD]): (HIS, Try[MS], Seq[PMOD]) = {
     requestDownloads(progressInfo)
 
-    val stateToApplyTry: Try[MS] = if (progressInfo.chainSwitchingNeeded) {
-      Try {
-        val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
-        if (!state.version.sameElements(branchingPoint)) state.rollbackTo(branchingPoint) else Success(state)
-      }.flatten
-    } else Success(state)
+    val (stateToApplyTry: Try[MS], suffixTrimmed: IndexedSeq[PMOD]) = if (progressInfo.chainSwitchingNeeded) {
+        val branchingPoint = VersionTag @@ progressInfo.branchPoint.get     //todo: .get
+        if (!state.version.sameElements(branchingPoint)){
+          state.rollbackTo(branchingPoint) -> trimChainSuffix(suffixApplied, branchingPoint)
+        } else Success(state) -> IndexedSeq()
+    } else Success(state) -> suffixApplied
 
     stateToApplyTry match {
       case Success(stateToApply) =>
@@ -244,15 +252,15 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
               case Success(stateAfterApply) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
                 notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
-                updateState(newHis, stateAfterApply, newProgressInfo)
+                updateState(newHis, stateAfterApply, newProgressInfo, suffixTrimmed :+ modToApply)
               case Failure(e) =>
                 val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
                 notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
-                updateState(newHis, stateToApply, newProgressInfo)
+                updateState(newHis, stateToApply, newProgressInfo, suffixTrimmed)
             }
 
           case None =>
-            history -> Success(stateToApply)
+            (history, Success(stateToApply), suffixTrimmed)
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
@@ -276,16 +284,18 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           notifySubscribers(EventType.OpenSurfaceChanged, NewOpenSurface(historyBeforeStUpdate.openSurfaceIds()))
 
           if (progressInfo.toApply.nonEmpty) {
-            val (newHistory, newStateTry) = updateState(historyBeforeStUpdate, minimalState(), progressInfo)
+            val (newHistory, newStateTry, blocksApplied) =
+              updateState(historyBeforeStUpdate, minimalState(), progressInfo, IndexedSeq())
+
             newStateTry match {
               case Success(newMinState) =>
-                val newMemPool = updateMemPool(progressInfo, memoryPool(), newMinState)
+                val newMemPool = updateMemPool(progressInfo.toRemove, blocksApplied, memoryPool(), newMinState)
 
                 //we consider that vault always able to perform a rollback needed
                 val newVault = if (progressInfo.chainSwitchingNeeded) {
                   vault().rollback(VersionTag @@ progressInfo.branchPoint.get).get
                 } else vault()
-                progressInfo.toApply.foreach(newVault.scanPersistent)
+                blocksApplied.foreach(newVault.scanPersistent)
 
                 log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
                 updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool))
@@ -402,14 +412,18 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 object NodeViewHolder {
 
   object ReceivableMessages {
+
     // Explicit request of NodeViewChange events of certain types.
     case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
+
     //a command to subscribe for events
     case class Subscribe(events: Seq[EventType.Value])
+
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
     // Moved from NodeViewSynchronizer as this was only received here
     case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
+
     case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
   }

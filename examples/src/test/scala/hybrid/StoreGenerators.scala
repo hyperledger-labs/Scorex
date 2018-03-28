@@ -6,7 +6,7 @@ import scorex.testkit.utils.FileUtils
 
 trait StoreGenerators extends FileUtils {
 
-  protected val minKeepVersions = 5
+  protected val minKeepVersions = 10
   protected val maxKeepVersions = 20
 
   protected lazy val keepVersionsGen = Gen.chooseNum(minKeepVersions, maxKeepVersions)
