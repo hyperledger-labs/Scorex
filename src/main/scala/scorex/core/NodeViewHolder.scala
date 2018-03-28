@@ -178,7 +178,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def updateMemPool(progressInfo: History.ProgressInfo[PMOD], memPool: MP, state: MS): MP = {
     val rolledBackTxs = progressInfo.toRemove.flatMap(extractTransactions)
 
-    val appliedTxs = progressInfo.toApply.map(extractTransactions).getOrElse(Seq())
+    val appliedTxs = progressInfo.toApply.flatMap(extractTransactions)
 
     memPool.putWithoutCheck(rolledBackTxs).filter { tx =>
       !appliedTxs.exists(t => t.id sameElements tx.id) && {
@@ -238,7 +238,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
     stateToApplyTry match {
       case Success(stateToApply) =>
-        progressInfo.toApply match {
+        progressInfo.toApply.headOption match {
           case Some(modToApply) =>
             stateToApply.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
@@ -283,10 +283,9 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
                 //we consider that vault always able to perform a rollback needed
                 val newVault = if (progressInfo.chainSwitchingNeeded) {
-                  vault().rollback(VersionTag @@ progressInfo.branchPoint.get).get.scanPersistent(progressInfo.toApply)
-                } else {
-                  vault().scanPersistent(progressInfo.toApply)
-                }
+                  vault().rollback(VersionTag @@ progressInfo.branchPoint.get).get
+                } else vault()
+                progressInfo.toApply.foreach(newVault.scanPersistent)
 
                 log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
                 updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool))
