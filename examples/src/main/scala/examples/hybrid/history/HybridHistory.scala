@@ -474,6 +474,8 @@ class HybridHistory(val storage: HistoryStorage,
   override def reportModifierIsInvalid(modifier: HybridBlock,
                                        progressInfo: ProgressInfo[HybridBlock]): (HybridHistory,
                                                                                   ProgressInfo[HybridBlock]) = {
+    storage.updateValidity(modifier, Invalid)
+
     new HybridHistory(storage, settings, validators, statsLogger, timeProvider) ->
       ProgressInfo(None, Seq(), Seq(), Seq())
   }
