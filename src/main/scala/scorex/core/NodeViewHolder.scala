@@ -237,6 +237,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                           suffixApplied: IndexedSeq[PMOD]): (HIS, Try[MS], Seq[PMOD]) = {
     requestDownloads(progressInfo)
 
+    case class UpdateInformation(history: HIS,
+                                 state: MS,
+                                 failedMod: Option[PMOD],
+                                 alternativeProgressInfo: Option[ProgressInfo[PMOD]],
+                                 suffix: IndexedSeq[PMOD])
+
     val (stateToApplyTry: Try[MS], suffixTrimmed: IndexedSeq[PMOD]) = if (progressInfo.chainSwitchingNeeded) {
         val branchingPoint = VersionTag @@ progressInfo.branchPoint.get     //todo: .get
         if (!state.version.sameElements(branchingPoint)){
@@ -246,21 +252,29 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
     stateToApplyTry match {
       case Success(stateToApply) =>
-        progressInfo.toApply.headOption match {
-          case Some(modToApply) =>
-            stateToApply.applyModifier(modToApply) match {
-              case Success(stateAfterApply) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
-                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
-                updateState(newHis, stateAfterApply, newProgressInfo, suffixTrimmed :+ modToApply)
-              case Failure(e) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
-                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
-                updateState(newHis, stateToApply, newProgressInfo, suffixTrimmed)
-            }
 
-          case None =>
-            (history, Success(stateToApply), suffixTrimmed)
+        val u0 = UpdateInformation(history, stateToApply, None, None, suffixTrimmed)
+
+        val uf = progressInfo.toApply.foldLeft(u0) {case (u, modToApply) =>
+          if(u.failedMod.isEmpty) {
+            u.state.applyModifier(modToApply) match {
+              case Success(stateAfterApply) =>
+                val newHis = history.reportModifierIsValid(modToApply)
+                notifySubscribers[SemanticallySuccessfulModifier[PMOD]](EventType.SuccessfulSemanticallyValidModifier, SemanticallySuccessfulModifier(modToApply))
+                //updateState(newHis, stateAfterApply, newProgressInfo, suffixTrimmed :+ modToApply)
+                UpdateInformation(newHis, stateAfterApply, None, None, u.suffix :+ modToApply)
+              case Failure(e) =>
+                val (newHis, newProgressInfo) = history.reportModifierIsInvalid(modToApply, progressInfo)
+                notifySubscribers[SemanticallyFailedModification[PMOD]](EventType.SemanticallyFailedPersistentModifier, SemanticallyFailedModification(modToApply, e))
+                //updateState(newHis, stateToApply, newProgressInfo, suffixTrimmed)
+                UpdateInformation(newHis, u.state, Some(modToApply), Some(newProgressInfo), u.suffix)
+            }
+          } else u
+        }
+
+        uf.failedMod match {
+          case Some(mod) => updateState(uf.history, uf.state, uf.alternativeProgressInfo.get, uf.suffix)
+          case None => (uf.history, Success(uf.state), uf.suffix)
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)

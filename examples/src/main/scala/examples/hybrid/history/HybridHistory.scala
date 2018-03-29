@@ -465,21 +465,17 @@ class HybridHistory(val storage: HistoryStorage,
     chainBack(storage.bestPosBlock, isGenesis).get.map(_._2).map(Base58.encode).mkString(",")
   }
 
-  override def reportSemanticValidity(modifier: HybridBlock,
-                                      valid: Boolean,
-                                      lastApplied: ModifierId): (HybridHistory, ProgressInfo[HybridBlock]) = {
-    val v = if (valid) Valid else Invalid
-    storage.updateValidity(modifier, v)
+  override def reportModifierIsValid(modifier: HybridBlock): HybridHistory = {
+    storage.updateValidity(modifier, Valid)
 
-    val h = new HybridHistory(storage, settings, validators, statsLogger, timeProvider)
+    new HybridHistory(storage, settings, validators, statsLogger, timeProvider)
+  }
 
-    if (valid) {
-      val nextModToApply = storage.bestChildId(modifier).flatMap(storage.modifierById)
-      val p = ProgressInfo(None, Seq(), nextModToApply.map(Seq(_)).getOrElse(Seq()), Seq())
-      h -> p
-    } else {
-      h -> ProgressInfo(None, Seq(), Seq(), Seq())
-    }
+  override def reportModifierIsInvalid(modifier: HybridBlock,
+                                       progressInfo: ProgressInfo[HybridBlock]): (HybridHistory,
+                                                                                  ProgressInfo[HybridBlock]) = {
+    new HybridHistory(storage, settings, validators, statsLogger, timeProvider) ->
+      ProgressInfo(None, Seq(), Seq(), Seq())
   }
 
   override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity =
