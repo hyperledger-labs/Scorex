@@ -26,12 +26,15 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
   def append(modifier: PM): Try[(HT, ProgressInfo[PM])]
 
   /**
-    * Report that modifier is valid from other nodeViewHolder components point of view
+    * Report that modifier is valid from point of view of the state component
+    * @param modifier - valid modifier
     */
   def reportModifierIsValid(modifier: PM): HT
 
   /**
-    * Report that modifier is valid from other nodeViewHolder components point of view
+    * Report that modifier is invalid from other nodeViewHolder components point of view
+    * @param modifier - invalid modifier
+    * @param progressInfo - what suffix failed to be applied because of an invalid modifier
     */
   def reportModifierIsInvalid(modifier: PM, progressInfo: ProgressInfo[PM]): (HT, ProgressInfo[PM])
 
