@@ -20,8 +20,7 @@ import scala.util.{Failure, Random, Success, Try}
 class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
   import SimpleBoxTransactionGenerator.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.LocallyGeneratedTransaction
+  import scorex.core.NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView, LocallyGeneratedTransaction}
 
   private val getRequiredData: GetDataFromCurrentView[HybridHistory,
     HBoxStoredState,
