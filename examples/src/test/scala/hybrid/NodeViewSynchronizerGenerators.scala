@@ -17,10 +17,8 @@ trait NodeViewSynchronizerGenerators {
 
   object NodeViewSynchronizerForTests {
     def props(networkControllerRef: ActorRef,
-              viewHolderRef: ActorRef,
-              localInterfaceRef: ActorRef): Props =
-      NodeViewSynchronizerRef.props[P, TX, HSI, SIS, PM, HT, MP](networkControllerRef, viewHolderRef,
-                                                                 localInterfaceRef, HybridSyncInfoMessageSpec,
+              viewHolderRef: ActorRef): Props =
+      NodeViewSynchronizerRef.props[P, TX, HSI, SIS, PM, HT, MP](networkControllerRef, viewHolderRef, HybridSyncInfoMessageSpec,
                                                                  settings.scorexSettings.network,
                                                                  new NetworkTimeProvider(settings.scorexSettings.ntp))
   }
@@ -35,15 +33,15 @@ trait NodeViewSynchronizerGenerators {
 
     val ncProbe = TestProbe("NetworkControllerProbe")
     val vhProbe = TestProbe("ViewHolderProbe")
-    val liProbe = TestProbe("LocalInterfaceProbe")
     val pchProbe = TestProbe("PeerHandlerProbe")
+    val eventListener = TestProbe("EventListener")
 
-    val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref, liProbe.ref))
+    val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref))
     val m = totallyValidModifier(h, s)
     val tx = simpleBoxTransactionGen.sample.get
     val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref, Outgoing,
       Handshake("", Version(0,1,2), "", None, 0L))
 
-    (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, liProbe)
+    (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, eventListener)
   }
 }

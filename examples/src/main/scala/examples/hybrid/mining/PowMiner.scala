@@ -29,8 +29,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
 
   import PowMiner._
   import PowMiner.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.LocallyGeneratedModifier
+  import scorex.core.NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView, LocallyGeneratedModifier}
 
 
   private var cancellableOpt: Option[Cancellable] = None

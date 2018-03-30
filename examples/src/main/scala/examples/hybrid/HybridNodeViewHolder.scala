@@ -19,9 +19,11 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 
-class HybridNodeViewHolder(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider) extends NodeViewHolder[PublicKey25519Proposition,
-  SimpleBoxTransaction,
-  HybridBlock] {
+class HybridNodeViewHolder(settings: ScorexSettings,
+                           minerSettings: HybridMiningSettings,
+                           timeProvider: NetworkTimeProvider)
+  extends NodeViewHolder[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock] {
+
   override val networkChunkSize: Int = settings.network.networkChunkSize
 
   override type SI = HybridSyncInfo

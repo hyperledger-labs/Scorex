@@ -18,8 +18,7 @@ class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor
 
   import PosForger._
   import PosForger.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.LocallyGeneratedModifier
+  import scorex.core.NodeViewHolder.ReceivableMessages.LocallyGeneratedModifier
 
 
   var forging = false

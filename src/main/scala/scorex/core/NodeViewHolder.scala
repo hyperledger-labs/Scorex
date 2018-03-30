@@ -34,15 +34,13 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   import NodeViewHolder._
   import NodeViewHolder.ReceivableMessages._
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{
-    RequestFromLocal, ChangedHistory,
-    ChangedMempool, ChangedVault,
-    SuccessfulTransaction, FailedTransaction,
-    SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-    SemanticallySuccessfulModifier, SemanticallyFailedModification
-  }
-  import scorex.core.LocalInterface.ReceivableMessages.{ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
-  import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
+                                                                      ChangedMempool, ChangedVault,
+                                                                      SuccessfulTransaction, FailedTransaction,
+                                                                      SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
+                                                                      SemanticallySuccessfulModifier, SemanticallyFailedModification,
+                                                                      ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
+  //import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
   type HIS <: History[PMOD, SI, HIS]
@@ -423,6 +421,8 @@ object NodeViewHolder {
     case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
     case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
+    case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
+    case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
   }
 
   // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages

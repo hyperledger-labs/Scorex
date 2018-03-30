@@ -6,15 +6,16 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
-import scorex.core.network.peer.PeerManager
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.settings.NetworkSettings
+import scorex.core.transaction.state.StateReader
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -24,7 +25,6 @@ import scala.language.postfixOps
   *
   * @param networkControllerRef reference to network controller actor
   * @param viewHolderRef        reference to node view holder actor
-  * @param localInterfaceRef    reference to local interface actor
   * @param syncInfoSpec         SyncInfo specification
   * @tparam P   proposition
   * @tparam TX  transaction
@@ -38,7 +38,6 @@ PMOD <: PersistentNodeViewModifier,
 HR <: HistoryReader[PMOD, SI],
 MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          viewHolderRef: ActorRef,
-                         localInterfaceRef: ActorRef,
                          syncInfoSpec: SIS,
                          networkSettings: NetworkSettings,
                          timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
@@ -56,7 +55,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
 
   protected val deliveryTracker = new DeliveryTracker(context, deliveryTimeout, maxDeliveryChecks, self)
-  protected val statusTracker = new SyncTracker(self, context, networkSettings, localInterfaceRef, timeProvider)
+  protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
@@ -322,6 +321,12 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 }
 
 object NodeViewSynchronizer {
+  object Events {
+    trait NodeViewSynchronizerEvent
+    case object NoBetterNeighbour extends NodeViewSynchronizerEvent
+    case object BetterNeighbourAppeared extends NodeViewSynchronizerEvent
+  }
+
   object ReceivableMessages {
     // getLocalSyncInfo messages
     case object SendLocalSyncInfo
@@ -338,6 +343,7 @@ object NodeViewSynchronizer {
     case class DisconnectedPeer(remote: InetSocketAddress) extends PeerManagerEvent
 
     trait NodeViewHolderEvent
+
     trait NodeViewChange extends NodeViewHolderEvent
     case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
     //TODO: return mempool reader
@@ -345,6 +351,12 @@ object NodeViewSynchronizer {
     //TODO: return Vault reader
     //FIXME: No actor process this message explicitly, it seems to be sent to NodeViewSynchcronizer
     case class ChangedVault() extends NodeViewChange
+    case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
+    //todo: consider sending info on the rollback
+
+    case object RollbackFailed extends NodeViewHolderEvent
+    case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
+    case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
 
     //hierarchy of events regarding modifiers application outcome
     trait ModificationOutcome extends NodeViewHolderEvent
@@ -366,12 +378,10 @@ object NodeViewSynchronizerRef {
     HR <: HistoryReader[PMOD, SI],
     MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                              viewHolderRef: ActorRef,
-                             localInterfaceRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider) =
-    Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
-                                                                 localInterfaceRef, syncInfoSpec,
+    Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
                                                                  networkSettings, timeProvider))
 
   def apply[P <: Proposition,
@@ -382,12 +392,11 @@ object NodeViewSynchronizerRef {
     HR <: HistoryReader[PMOD, SI],
     MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                              viewHolderRef: ActorRef,
-                             localInterfaceRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
                             (implicit system: ActorSystem): ActorRef =
-    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef,
+    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
                                                        syncInfoSpec, networkSettings, timeProvider))
 
   def apply[P <: Proposition,
@@ -399,11 +408,10 @@ object NodeViewSynchronizerRef {
     MR <: MempoolReader[TX]](name: String,
                              networkControllerRef: ActorRef,
                              viewHolderRef: ActorRef,
-                             localInterfaceRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
                             (implicit system: ActorSystem): ActorRef =
-    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, localInterfaceRef,
+    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
                                                        syncInfoSpec, networkSettings, timeProvider), name)
 }
