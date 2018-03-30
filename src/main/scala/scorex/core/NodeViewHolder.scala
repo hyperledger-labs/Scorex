@@ -196,7 +196,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     if (idx == -1) IndexedSeq() else suffix.drop(idx)
   }
 
-  /*
+  /**
 
     Assume that history knows the following blocktree:
 
@@ -221,8 +221,12 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
     In this case history should be informed about the bad modifier and it should retarget state
 
-    todo: write tests for this case
-       */
+    //todo: improve the comment below
+
+    We assume that we apply modifiers sequentially (on a single modifier coming from the network or generated locally),
+    and in case of failed application of some modifier in a progressInfo, rollback point in an alternative should be not
+    earlier than a rollback point of an initial progressInfo.
+   **/
 
   @tailrec
   private def updateState(history: HIS,
