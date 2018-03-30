@@ -31,7 +31,7 @@ trait EphemerealNodeViewModifier extends NodeViewModifier
   * have identifiers of the some length fixed with the ModifierIdSize constant
   */
 object NodeViewModifier {
-  val DefaultIdSize: Int = 32 // in bytes
+  private val DefaultIdSize = 32 // in bytes, TODO: should we use type Byte?
 
   val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(DefaultIdSize)
 }

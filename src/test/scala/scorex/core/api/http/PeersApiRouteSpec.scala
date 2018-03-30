@@ -3,7 +3,6 @@ package scorex.core.api.http
 import java.net.InetSocketAddress
 
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
-import akka.http.scaladsl.server
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.testkit.TestDuration
 import io.circe.Json
@@ -22,10 +21,10 @@ class PeersApiRouteSpec extends FlatSpec
 
   implicit val timeout: RouteTestTimeout = RouteTestTimeout(15.seconds dilated)
 
-  val addr: InetSocketAddress = new InetSocketAddress("localhost", 8080)
-  val restApiSettings: RESTApiSettings = RESTApiSettings(addr, None, None, 10 seconds)
-  val prefix: String = "/peers"
-  val routes: server.Route = PeersApiRoute(pmRef, networkControllerRef, restApiSettings).route
+  private val addr = new InetSocketAddress("localhost", 8080)
+  private val restApiSettings = RESTApiSettings(addr, None, None, 10 seconds)
+  private val prefix = "/peers"
+  private val routes = PeersApiRoute(pmRef, networkControllerRef, restApiSettings).route
 
   val peersResp: String = peers.map { case (address, peerInfo) =>
     PeerInfoResponse.fromAddressAndInfo(address, peerInfo).asJson

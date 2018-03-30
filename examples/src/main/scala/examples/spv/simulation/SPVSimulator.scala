@@ -9,19 +9,19 @@ import scorex.crypto.hash.Blake2b256
 
 object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
 
-  val Height: Int = 500000
-  val Difficulty: BigInt = BigInt(1)
-  val stateRoot: hash.Digest32 = Blake2b256("")
-  val minerKeys: (PrivateKey25519, PublicKey25519Proposition) = PrivateKey25519Companion.generateKeys(stateRoot)
+  private val Height = 500000
+  private val Difficulty = BigInt(1)
+  private val stateRoot = Blake2b256("")
+  private val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
 
-  val genesis: Header = genGenesisHeader(stateRoot, minerKeys._2)
+  private val genesis = genGenesisHeader(stateRoot, minerKeys._2)
   val st: Long = System.currentTimeMillis()
-  val headerChain: Seq[Header] = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
+  private val headerChain: Seq[Header] = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
 
   val lastBlock: Option[Header] = headerChain.lastOption
   var minDiff: BigInt = Difficulty
 
-  val k: Int = 6
+  private val k = 6
 
   println(s"Chain of length $Height, k=$k")
   println("m,proofLength,blockNum,uniqueBlockNum")

@@ -10,7 +10,7 @@ import scorex.crypto.hash.Blake2b256
 
 
 case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val context: ActorRefFactory) extends ApiRoute {
-  val SeedSize: Int = 32
+  private val SeedSize = 32
 
   private def seed(length: Int): String = {
     val seed = new Array[Byte](length)

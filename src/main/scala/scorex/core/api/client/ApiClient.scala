@@ -52,9 +52,9 @@ class ApiClient(settings: RESTApiSettings) {
 }
 
 object ApiClient extends App {
-  val settingsFilename: String = args.headOption.getOrElse("settings.conf")
-  val settings: ScorexSettings = ScorexSettings.read(Some(settingsFilename))
-  val apiClient: ApiClient = new ApiClient(settings.restApi)
+  private val settingsFilename = args.headOption.getOrElse("settings.conf")
+  private val settings = ScorexSettings.read(Some(settingsFilename))
+  private val apiClient = new ApiClient(settings.restApi)
 
   println("Welcome to the Scorex command-line client...")
   Iterator.continually(StdIn.readLine()).takeWhile(!_.equals("quit")).foreach { command =>

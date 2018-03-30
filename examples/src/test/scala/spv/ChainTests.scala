@@ -22,8 +22,8 @@ class ChainTests extends PropSpec
   with SimulatorFuctions {
 
 
-  val Height: Int = 5000
-  val Difficulty: BigInt = BigInt(1)
+  private val Height = 5000
+  private val Difficulty = BigInt(1)
   val stateRoot: hash.Digest32 = Blake2b256("")
   val minerKeys: (PrivateKey25519, PublicKey25519Proposition) = PrivateKey25519Companion.generateKeys(stateRoot)
 

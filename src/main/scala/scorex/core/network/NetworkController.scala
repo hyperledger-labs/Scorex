@@ -122,7 +122,7 @@ class NetworkController(settings: NetworkSettings,
         .foreach(_.foreach(_.handlerRef ! message))
   }
 
-  val outgoing: mutable.Set[InetSocketAddress] = mutable.Set[InetSocketAddress]()
+  private val outgoing = mutable.Set[InetSocketAddress]()
 
   def peerLogic: Receive = {
     case ConnectTo(remote) =>

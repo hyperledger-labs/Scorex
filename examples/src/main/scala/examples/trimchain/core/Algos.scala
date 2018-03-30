@@ -107,13 +107,13 @@ object Algos extends App {
 
   new File("/tmp/utxo").delete()
   new File("/tmp/utxo").mkdirs()
-  val store: LSMStore = new LSMStore(new File("/tmp/utxo"))
-  val u1: PersistentAuthenticatedUtxo = PersistentAuthenticatedUtxo(store, 0, None, VersionTag @@ Array.fill(32)(0: Byte))
+  private val store = new LSMStore(new File("/tmp/utxo"))
+  private val u1 = PersistentAuthenticatedUtxo(store, 0, None, VersionTag @@ Array.fill(32)(0: Byte))
 
-  val pk1: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ Array.fill(32)(Random.nextInt(100).toByte))
-  val b1: PublicKey25519NoncedBox = PublicKey25519NoncedBox(pk1, Nonce @@ 1L, Value @@ 10L)
-  val b2: PublicKey25519NoncedBox = PublicKey25519NoncedBox(pk1, Nonce @@ 2L, Value @@ 20L)
-  val u2: PersistentAuthenticatedUtxo = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))),
+  private val pk1 = PublicKey25519Proposition(PublicKey @@ Array.fill(32)(Random.nextInt(100).toByte))
+  private val b1 = PublicKey25519NoncedBox(pk1, Nonce @@ 1L, Value @@ 10L)
+  private val b2 = PublicKey25519NoncedBox(pk1, Nonce @@ 2L, Value @@ 20L)
+  private val u2 = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))),
     VersionTag @@ Array.fill(32)(Random.nextInt(100).toByte)).get
 
 
