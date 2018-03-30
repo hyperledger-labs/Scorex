@@ -3,7 +3,6 @@ package scorex.core.network.peer
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.PeerManagerEvent
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -17,7 +16,6 @@ import scala.util.Random
   */
 class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
-  import PeerManager._
   import PeerManager.ReceivableMessages._
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
   import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
@@ -28,11 +26,6 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
   //peers before handshake
   private val connectingPeers = mutable.Set[InetSocketAddress]()
-
-  private val subscribers = mutable.Map[EventType, Seq[ActorRef]]()
-
-  protected def notifySubscribers[O <: PeerManagerEvent](eventType: EventType, event: O): Unit =
-    subscribers.getOrElse(eventType, Seq()).foreach(_ ! event)
 
   private lazy val peerDatabase = new PeerDatabaseImpl(Some(settings.dataDir + "/peers.dat"))
 
@@ -81,11 +74,11 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
     case GetBlacklistedPeers =>
       sender() ! peerDatabase.blacklistedPeers()
 
-    case Subscribe(listener, events) =>
-      events.foreach { evt =>
-        val current = subscribers.getOrElse(evt, Seq())
-        subscribers.put(evt, current :+ listener)
-      }
+//    case Subscribe(listener, events) =>
+//      events.foreach { evt =>
+//        val current = subscribers.getOrElse(evt, Seq())
+//        subscribers.put(evt, current :+ listener)
+//      }
   }
 
 
@@ -138,7 +131,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           } else {
             if(peer.publicPeer) self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
             connectedPeers += peer.socketAddress -> peer
-            notifySubscribers(HandshakedEvent, HandshakedPeer(peer))
+            context.system.eventStream.publish(HandshakedPeer(peer))
           }
         }
 
@@ -146,7 +139,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
     case Disconnected(remote) =>
       connectedPeers -= remote
       connectingPeers -= remote
-      notifySubscribers(DisconnectedEvent, DisconnectedPeer(remote))
+      context.system.eventStream.publish(DisconnectedPeer(remote))
   }
 
   override def receive: Receive = ({
@@ -171,10 +164,6 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
 object PeerManager {
 
-  sealed trait EventType
-  case object HandshakedEvent extends EventType
-  case object DisconnectedEvent extends EventType
-
   object ReceivableMessages {
     case object CheckPeers
     case class AddToBlacklist(remote: InetSocketAddress)
@@ -190,7 +179,6 @@ object PeerManager {
     case object GetConnectedPeers
     case object GetAllPeers
     case object GetBlacklistedPeers
-    case class Subscribe(listener: ActorRef, events: Seq[EventType])
 
     // peerCycle messages
     case class DoConnecting(remote: InetSocketAddress, direction: ConnectionType)
