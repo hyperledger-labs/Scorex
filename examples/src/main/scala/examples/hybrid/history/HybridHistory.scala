@@ -458,6 +458,7 @@ class HybridHistory(val storage: HistoryStorage,
 
   override def reportModifierIsValid(modifier: HybridBlock): HybridHistory = {
     storage.updateValidity(modifier, Valid)
+    storage.update(modifier, None, isBest = true)
 
     new HybridHistory(storage, settings, validators, statsLogger, timeProvider)
   }
