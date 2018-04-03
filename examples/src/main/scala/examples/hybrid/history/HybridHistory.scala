@@ -213,7 +213,7 @@ class HybridHistory(val storage: HistoryStorage,
     }
   }
 
-  private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, Long) = {
+  private def calcDifficultiesForNewBlock(posBlock: PosBlock): (BigInt, BigInt) = {
     def bounded(newVal: BigInt, oldVal: BigInt): BigInt = if (newVal > oldVal * 2) oldVal * 2 else newVal
 
     val powHeight = storage.parentHeight(posBlock) / 2 + 1
