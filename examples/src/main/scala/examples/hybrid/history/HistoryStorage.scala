@@ -11,7 +11,7 @@ import scorex.crypto.hash.Sha256
 
 import scala.util.Failure
 
-//TODO: why to use IODB if there's no rollback?
+//TODO: why we are using IODB if there's no rollback?
 class HistoryStorage(storage: LSMStore,
                      settings: HybridMiningSettings) extends ScorexLogging {
 

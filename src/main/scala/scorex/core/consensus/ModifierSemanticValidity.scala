@@ -5,12 +5,11 @@ sealed trait ModifierSemanticValidity {
 }
 
 object ModifierSemanticValidity {
-  def restoreFromCode(code: Byte): ModifierSemanticValidity = code match {
-    case b: Byte if b == Absent.code => Absent
-    case b: Byte if b == Unknown.code => Unknown
-    case b: Byte if b == Valid.code => Valid
-    case b: Byte if b == Invalid.code => Invalid
-  }
+  def restoreFromCode(code: Byte): ModifierSemanticValidity =
+    if (code == Valid.code) Valid
+    else if (code == Unknown.code) Unknown
+    else if (code == Invalid.code) Invalid
+    else Absent
 }
 
 case object Absent extends ModifierSemanticValidity {

@@ -28,6 +28,7 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
   /**
     * Report that modifier is valid from point of view of the state component
     * @param modifier - valid modifier
+    * @return modified history
     */
   def reportModifierIsValid(modifier: PM): HT
 
@@ -35,6 +36,7 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
     * Report that modifier is invalid from other nodeViewHolder components point of view
     * @param modifier - invalid modifier
     * @param progressInfo - what suffix failed to be applied because of an invalid modifier
+    * @return modified history and new progress info
     */
   def reportModifierIsInvalid(modifier: PM, progressInfo: ProgressInfo[PM]): (HT, ProgressInfo[PM])
 
@@ -63,7 +65,7 @@ object History {
     *
     * @param branchPoint - branch point in case of rollback
     * @param toRemove    - modifiers to remove from current node view
-    * @param toApply     - modifier to apply to current node view. Apply at most 1 modifier
+    * @param toApply     - modifiers to apply to current node view
     * @param toDownload  - modifiers to download from other nodes
     * @tparam PM - type of used modifier
     */
