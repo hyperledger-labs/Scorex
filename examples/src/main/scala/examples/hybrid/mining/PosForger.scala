@@ -61,23 +61,23 @@ object PosForger extends ScorexLogging {
 
   import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 
-  val InitialDifficuly = 15000000000L
+  val InitialDifficuly = 1500000000L
 
   object ReceivableMessages {
     case object StartForging
     case object StopForging
     case class PosForgingInfo(pairCompleted: Boolean,
                               bestPowBlock: PowBlock,
-                              diff: Long,
+                              diff: BigInt,
                               boxKeys: Seq[(PublicKey25519NoncedBox, PrivateKey25519)],
                               txsToInclude: Seq[SimpleBoxTransaction])
   }
 
   import ReceivableMessages.PosForgingInfo
 
-  def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): Long = {
+  def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): BigInt = {
     val h = Blake2b256(pwb.bytes ++ box.bytes)
-    Longs.fromByteArray((0: Byte) +: h.take(7))
+    BigInt(1, h)
   }
 
   def posIteration(powBlock: PowBlock,
