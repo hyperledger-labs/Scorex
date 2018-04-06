@@ -4,15 +4,15 @@ import scorex.crypto.hash.Blake2b256
 
 
 object Constants {
-  val n = 20
-  val k = 1
-  val NElementsInProof = 10
+  val n: Int = 20
+  val k: Int = 1
+  val NElementsInProof: Int = 10
 
-  val hashfn = Blake2b256
+  val hashfn: Blake2b256.type = Blake2b256
 
-  val StateRootLength = hashfn.DigestSize
+  val StateRootLength: Int = hashfn.DigestSize
 
-  val TxRootLength = hashfn.DigestSize
+  val TxRootLength: Int = hashfn.DigestSize
 
 
   lazy val MaxTarget = BigInt(1, Array.fill(32)(Byte.MinValue))

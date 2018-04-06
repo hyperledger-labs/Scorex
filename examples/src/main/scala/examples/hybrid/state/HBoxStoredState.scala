@@ -121,6 +121,7 @@ object HBoxStoredState {
           val forgerNonce = Nonce @@ Longs.fromByteArray(ps.id.take(8))
           val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, Value @@ reward)
 
+          @SuppressWarnings(Array("org.wartremover.warts.Product","org.wartremover.warts.Serializable"))
           val ops: Seq[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
             toRemove.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](id)) ++
               toAdd.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)) ++

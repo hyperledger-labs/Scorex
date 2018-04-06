@@ -15,7 +15,9 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 import scorex.testkit.generators.CoreGenerators
 
-@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+import scala.collection.mutable
+
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps","org.wartremover.warts.IsInstanceOf"))
 trait ModifierGenerators {
   this: HybridGenerators with CoreGenerators =>
 
@@ -165,9 +167,9 @@ trait ModifierGenerators {
 
     assert(parentIds.size == mods.count(_.isInstanceOf[PosBlock]))
 
-    val posBlocks = validPosBlocks(state, parentIds).toBuffer
+    val posBlocks: mutable.Buffer[HybridBlock] = validPosBlocks(state, parentIds).toBuffer
 
-    val validMods = mods.map {
+    val validMods: Seq[HybridBlock] = mods.map {
       case pw: PowBlock => pw
       case _: PosBlock => posBlocks.remove(0)
     }

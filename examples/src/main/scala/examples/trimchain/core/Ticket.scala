@@ -26,7 +26,7 @@ object Ticket {
 
 object TicketSerializer extends Serializer[Ticket] {
 
-  val MinerKeySize = Curve25519.KeyLength
+  val MinerKeySize: Int = Curve25519.KeyLength
 
   override def toBytes(obj: Ticket): Array[Byte] = {
     val proofsBytes = obj.partialProofs.map { bytes =>

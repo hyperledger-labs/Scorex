@@ -9,7 +9,7 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import io.circe.parser._
 import io.circe.syntax._
-import scorex.core.api.http.{ApiException, ApiRouteWithFullView, SuccessApiResponse}
+import scorex.core.api.http.{ApiException, ApiRouteWithFullView, ScorexApiResponse, SuccessApiResponse}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
@@ -25,9 +25,9 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
   import scorex.core.NodeViewHolder.ReceivableMessages.LocallyGeneratedTransaction
 
   //TODO move to settings?
-  val DefaultFee = 100
+  val DefaultFee: Int = 100
 
-  override val route = (pathPrefix("wallet") & withCors) {
+  override val route: Route = (pathPrefix("wallet") & withCors) {
     balances ~ transfer
   }
 

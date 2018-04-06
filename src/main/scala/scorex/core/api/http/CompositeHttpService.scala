@@ -10,7 +10,7 @@ import scorex.core.settings.RESTApiSettings
 case class CompositeHttpService(system: ActorSystem, routes: Seq[ApiRoute], settings: RESTApiSettings, swaggerConf: String)
   extends CorsSupport {
 
-  implicit val actorSystem = system
+  implicit val actorSystem: ActorSystem = system
 
   val swaggerService: SwaggerConfigRoute = new SwaggerConfigRoute(swaggerConf: String, settings: RESTApiSettings)
 

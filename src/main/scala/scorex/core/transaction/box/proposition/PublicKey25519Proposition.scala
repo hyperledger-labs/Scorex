@@ -45,8 +45,8 @@ object PublicKey25519PropositionSerializer extends Serializer[PublicKey25519Prop
 
 object PublicKey25519Proposition {
   val AddressVersion: Byte = 1
-  val ChecksumLength = 4
-  val AddressLength = 1 + Constants25519.PubKeyLength + ChecksumLength
+  val ChecksumLength: Int = 4
+  val AddressLength: Int = 1 + Constants25519.PubKeyLength + ChecksumLength
 
   def calcCheckSum(bytes: Array[Byte]): Array[Byte] = Blake2b256.hash(bytes).take(ChecksumLength)
 
@@ -67,6 +67,6 @@ object PublicKey25519Proposition {
 }
 
 object Constants25519 {
-  val PrivKeyLength = 32
-  val PubKeyLength = 32
+  val PrivKeyLength: Int = 32
+  val PubKeyLength: Int = 32
 }

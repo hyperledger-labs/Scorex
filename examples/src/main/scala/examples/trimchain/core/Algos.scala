@@ -107,17 +107,17 @@ object Algos extends App {
 
   new File("/tmp/utxo").delete()
   new File("/tmp/utxo").mkdirs()
-  val store = new LSMStore(new File("/tmp/utxo"))
-  val u1 = PersistentAuthenticatedUtxo(store, 0, None, VersionTag @@ Array.fill(32)(0: Byte))
+  private val store = new LSMStore(new File("/tmp/utxo"))
+  private val u1 = PersistentAuthenticatedUtxo(store, 0, None, VersionTag @@ Array.fill(32)(0: Byte))
 
-  val pk1 = PublicKey25519Proposition(PublicKey @@ Array.fill(32)(Random.nextInt(100).toByte))
-  val b1 = PublicKey25519NoncedBox(pk1, Nonce @@ 1L, Value @@ 10L)
-  val b2 = PublicKey25519NoncedBox(pk1, Nonce @@ 2L, Value @@ 20L)
-  val u2 = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))),
+  private val pk1 = PublicKey25519Proposition(PublicKey @@ Array.fill(32)(Random.nextInt(100).toByte))
+  private val b1 = PublicKey25519NoncedBox(pk1, Nonce @@ 1L, Value @@ 10L)
+  private val b2 = PublicKey25519NoncedBox(pk1, Nonce @@ 2L, Value @@ 20L)
+  private val u2 = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))),
     VersionTag @@ Array.fill(32)(Random.nextInt(100).toByte)).get
 
 
-  val headerOpt = pow(ModifierId @@ Array.fill(32)(0: Byte),
+  val headerOpt: Option[BlockHeader] = pow(ModifierId @@ Array.fill(32)(0: Byte),
     TransactionsRoot @@ Array.fill(32)(0: Byte),
     StateRoot @@ u2.rootHash,
     pk1.pubKeyBytes,

@@ -6,27 +6,27 @@ import examples.commons.PublicKey25519NoncedBox
 
 object SpaceSavingsCalculator extends App {
 
-  val eta = 100
-  val start = 1000
-  val finish = 10000
+  private val eta = 100
+  private val start = 1000
+  private val finish = 10000
 
-  val outSize = PublicKey25519NoncedBox.BoxLength
+  private val outSize = PublicKey25519NoncedBox.BoxLength
 
-  val file = new File("/home/pozharko/Code/papers/trimchain/results-20.csv")
+  private val file = new File("/home/pozharko/Code/papers/trimchain/results-20.csv")
 
-  val lines = scala.io.Source.fromFile(file).getLines().toIndexedSeq
+  private val lines = scala.io.Source.fromFile(file).getLines().toIndexedSeq
 
   //  println(lines.head)
 
   // TODO: fixme, What should we do if `lines` is empty?
   @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-  val data = lines.tail.take(finish).map(_.split(","))
+  private val data = lines.tail.take(finish).map(_.split(","))
 
-  val blockSizes = data.map(_.apply(8)).map(_.toLong)
+  private val blockSizes = data.map(_.apply(8)).map(_.toLong)
 
-  val headerSizes = data.map(_.apply(5)).map(_.toLong)
+  private val headerSizes = data.map(_.apply(5)).map(_.toLong)
 
-  val currentUtxoSizes = data.map(_.apply(2)).map(_.toLong * outSize)
+  private val currentUtxoSizes = data.map(_.apply(2)).map(_.toLong * outSize)
 
   println(s"height,full,spv,light,mining,f/s,f/l,f/m")
   (start to finish).foreach{h =>

@@ -59,15 +59,8 @@ class NetworkController(settings: NetworkSettings,
             val extAddr = intfAddr.getAddress
             myAddrs.contains(extAddr)
           }
-        } match {
-          case true => true
-          case false =>
-            if (settings.upnpEnabled) {
-              val extAddr = upnp.externalAddress
-              myAddrs.contains(extAddr)
-            } else false
-        }
-      }.recover { case t: Throwable =>
+        } || (settings.upnpEnabled && myAddrs.exists(_ == upnp.externalAddress))
+      } recover { case t: Throwable =>
         log.error("Declared address validation failed: ", t)
       }
     }
@@ -129,7 +122,7 @@ class NetworkController(settings: NetworkSettings,
         .foreach(_.foreach(_.handlerRef ! message))
   }
 
-  val outgoing = mutable.Set[InetSocketAddress]()
+  private val outgoing = mutable.Set[InetSocketAddress]()
 
   def peerLogic: Receive = {
     case ConnectTo(remote) =>
@@ -153,7 +146,7 @@ class NetworkController(settings: NetworkSettings,
       peerManagerRef ! Disconnected(peer.socketAddress)
 
     case Connected(remote, local) =>
-      val direction = if(outgoing.contains(remote)) Outgoing else Incoming
+      val direction: ConnectionType = if(outgoing.contains(remote)) Outgoing else Incoming
       val logMsg = direction match {
         case Incoming => s"New incoming connection from $remote established (bound to local $local)"
         case Outgoing => s"New outgoing connection to $remote established (bound to local $local)"

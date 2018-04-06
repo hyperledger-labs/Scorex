@@ -16,7 +16,7 @@ case class Version(firstDigit: Byte, secondDigit: Byte, thirdDigit: Byte) extend
 }
 
 object ApplicationVersionSerializer extends Serializer[Version] {
-  val SerializedVersionLength = 3
+  val SerializedVersionLength: Int = 3
 
   override def toBytes(obj: Version): Array[Byte] =
     Array(obj.firstDigit, obj.secondDigit, obj.thirdDigit)

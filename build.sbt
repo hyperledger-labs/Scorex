@@ -2,7 +2,17 @@
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  wartremoverErrors ++= Seq(Wart.Recursion, Wart.TraversableOps), // , Wart.Product, Wart.Var, Wart.Null
+  wartremoverErrors ++= Seq(
+    Wart.Recursion,
+    Wart.TraversableOps,
+    Wart.Null,
+    Wart.Product,
+    Wart.PublicInference,
+    Wart.FinalVal,
+    Wart.IsInstanceOf,
+    Wart.JavaConversions,
+    Wart.JavaSerializable,
+    Wart.Serializable),
   scalaVersion := "2.12.3",
   organization := "org.scorexfoundation",
   licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
