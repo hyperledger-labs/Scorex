@@ -4,6 +4,7 @@ import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
+import akka.util.ByteString
 import io.circe.syntax._
 import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.consensus.History
@@ -61,7 +62,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     Base58.decode(encodedId) match {
       case Failure(e) => complete(ApiError.notExists)
       case Success(rawId) =>
-        val id = ModifierId @@ rawId
+        val id: ModifierId = ModifierId @@ rawId.toSeq
 
         def f(v: CurrentView[HIS, MS, VL, MP]): Option[PM] = v.history.modifierById(id)
 
@@ -95,7 +96,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 
   def openSurface: Route = (get & path("openSurface")) {
     withOpenSurface { os =>
-      complete(SuccessApiResponse(os.ids.map(Base58.encode).asJson))
+      complete(SuccessApiResponse(os.ids.map(id => Base58.encode(id.toArray)).asJson))
     }
   }
 

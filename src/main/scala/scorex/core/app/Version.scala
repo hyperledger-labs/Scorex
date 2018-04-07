@@ -1,6 +1,8 @@
 package scorex.core.app
 
+import akka.util.ByteString
 import scorex.core.serialization.{BytesSerializable, Serializer}
+
 import scala.util.Try
 
 object Version {
@@ -18,10 +20,10 @@ case class Version(firstDigit: Byte, secondDigit: Byte, thirdDigit: Byte) extend
 object ApplicationVersionSerializer extends Serializer[Version] {
   val SerializedVersionLength = 3
 
-  override def toBytes(obj: Version): Array[Byte] =
-    Array(obj.firstDigit, obj.secondDigit, obj.thirdDigit)
+  override def toBytes(obj: Version): Seq[Byte] =
+    ByteString(obj.firstDigit, obj.secondDigit, obj.thirdDigit)
 
-  override def parseBytes(bytes: Array[Byte]): Try[Version] = Try {
+  override def parseBytes(bytes: Seq[Byte]): Try[Version] = Try {
     Version(
       bytes(0),
       bytes(1),

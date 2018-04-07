@@ -12,7 +12,7 @@ import scorex.core.transaction.state.Secret
   */
 
 trait Proof[P <: Proposition] extends BytesSerializable {
-  def isValid(proposition: P, message: Array[Byte]): Boolean
+  def isValid(proposition: P, message: Seq[Byte]): Boolean
 }
 
 trait ProofOfKnowledge[S <: Secret, P <: ProofOfKnowledgeProposition[S]] extends Proof[P]

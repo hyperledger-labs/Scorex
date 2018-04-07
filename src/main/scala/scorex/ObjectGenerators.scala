@@ -2,6 +2,7 @@ package scorex
 
 import java.net.{InetAddress, InetSocketAddress}
 
+import akka.util.ByteString
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.app.Version
 import scorex.core.network.message.BasicMsgDataTypes._
@@ -18,8 +19,8 @@ trait ObjectGenerators {
 
   lazy val smallInt: Gen[Int] = Gen.choose(0, 20)
 
-  lazy val nonEmptyBytesGen: Gen[Array[Byte]] = Gen.nonEmptyListOf(Arbitrary.arbitrary[Byte])
-    .map(_.toArray).suchThat(_.length > 0)
+  lazy val nonEmptyBytesGen: Gen[ByteString] = Gen.nonEmptyListOf(Arbitrary.arbitrary[Byte])
+    .map(ByteString(_:_*)).suchThat(_.nonEmpty)
 
   def genBoundedBytes(minSize: Int, maxSize: Int): Gen[Array[Byte]] = {
     Gen.choose(minSize, maxSize) flatMap { sz => Gen.listOfN(sz, Arbitrary.arbitrary[Byte]).map(_.toArray) }
@@ -33,7 +34,7 @@ trait ObjectGenerators {
 
 
   lazy val modifierIdGen: Gen[ModifierId] = Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte])
-    .map(id => ModifierId @@ id.toArray)
+    .map(id => ModifierId @@ Seq(id:_*))
 
   lazy val modifierTypeIdGen: Gen[ModifierTypeId] = Arbitrary.arbitrary[Byte].map(t => ModifierTypeId @@ t)
 
@@ -42,14 +43,14 @@ trait ObjectGenerators {
     modifierIds: Seq[ModifierId] <- Gen.nonEmptyListOf(modifierIdGen) if modifierIds.nonEmpty
   } yield modifierTypeId -> modifierIds
 
-  lazy val modifierWithIdGen: Gen[(ModifierId, Array[Byte])] = for {
+  lazy val modifierWithIdGen: Gen[(ModifierId, ByteString)] = for {
     id <- modifierIdGen
     mod <- nonEmptyBytesGen
   } yield id -> mod
 
   lazy val modifiersGen: Gen[ModifiersData] = for {
     modifierTypeId: ModifierTypeId <- modifierTypeIdGen
-    modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
+    modifiers: Map[ModifierId, ByteString] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
   } yield modifierTypeId -> modifiers
 
 

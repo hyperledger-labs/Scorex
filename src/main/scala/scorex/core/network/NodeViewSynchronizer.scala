@@ -211,7 +211,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       val modifiers = data._2
 
       log.info(s"Got modifiers of type $typeId from remote connected peer: $remote")
-      log.trace(s"Received modifier ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+      log.trace(s"Received modifier ids ${data._2.keySet.map(id => Base58.encode(id.toArray)).mkString(",")}")
 
       for ((id, _) <- modifiers) deliveryTracker.receive(typeId, id, remote)
 
@@ -219,7 +219,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
       if (spam.nonEmpty) {
         log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
-          s": ${spam.keys.map(Base58.encode)}")
+          s": ${spam.keys.map(id => Base58.encode(id.toArray))}")
         penalizeSpammingPeer(remote)
         val mids = spam.keys.toSeq
         deliveryTracker.deleteSpam(mids)
@@ -252,7 +252,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         deliveryTracker.delete(modifierId)
       }
       else {
-        log.info(s"Peer $peer has not delivered asked modifier ${Base58.encode(modifierId)} on time")
+        log.info(s"Peer $peer has not delivered asked modifier ${Base58.encode(modifierId.toArray)} on time")
         penalizeNonDeliveringPeer(peer)
         deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
       }

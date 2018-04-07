@@ -37,10 +37,10 @@ case class PublicKey25519Proposition(pubKeyBytes: PublicKey) extends ProofOfKnow
 }
 
 object PublicKey25519PropositionSerializer extends Serializer[PublicKey25519Proposition] {
-  override def toBytes(obj: PublicKey25519Proposition): Array[Byte] = obj.pubKeyBytes
+  override def toBytes(obj: PublicKey25519Proposition): Seq[Byte] = obj.pubKeyBytes
 
-  override def parseBytes(bytes: Array[Byte]): Try[PublicKey25519Proposition] =
-    Try(PublicKey25519Proposition(PublicKey @@ bytes))
+  override def parseBytes(bytes: Seq[Byte]): Try[PublicKey25519Proposition] =
+    Try(PublicKey25519Proposition(PublicKey @@ bytes.toArray))
 }
 
 object PublicKey25519Proposition {

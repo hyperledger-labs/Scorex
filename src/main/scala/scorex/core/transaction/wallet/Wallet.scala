@@ -1,5 +1,6 @@
 package scorex.core.transaction.wallet
 
+import akka.util.ByteString
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.Transaction
@@ -12,25 +13,25 @@ import scorex.crypto.encode.Base58
 import scala.util.Try
 
 //TODO why do we need transactionId and createdAt
-case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
+case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Seq[Byte], createdAt: Long)
                                                    (subclassDeser: Serializer[B]) extends BytesSerializable {
   override type M = WalletBox[P, B]
 
   override def serializer: Serializer[WalletBox[P, B]] = new WalletBoxSerializer(subclassDeser)
 
-  override def toString: String = s"WalletBox($box, ${Base58.encode(transactionId)}, $createdAt)"
+  override def toString: String = s"WalletBox($box, ${Base58.encode(transactionId.toArray)}, $createdAt)"
 }
 
 
 class WalletBoxSerializer[P <: Proposition, B <: Box[P]](subclassDeser: Serializer[B]) extends Serializer[WalletBox[P, B]] {
-  override def toBytes(box: WalletBox[P, B]): Array[Byte] = {
-    Bytes.concat(box.transactionId, Longs.toByteArray(box.createdAt), box.box.bytes)
+  override def toBytes(box: WalletBox[P, B]): Seq[Byte] = {
+    box.transactionId ++ Longs.toByteArray(box.createdAt) ++ box.box.bytes
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[WalletBox[P, B]] = Try {
+  override def parseBytes(bytes: Seq[Byte]): Try[WalletBox[P, B]] = Try {
     val txId = bytes.slice(0, NodeViewModifier.ModifierIdSize)
     val createdAt = Longs.fromByteArray(
-      bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8))
+      bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8).toArray)
     val boxB = bytes.slice(NodeViewModifier.ModifierIdSize + 8, bytes.length)
     val box: B = subclassDeser.parseBytes(boxB).get
     WalletBox[P, B](box, txId, createdAt)(subclassDeser)
@@ -43,19 +44,20 @@ case class WalletTransaction[P <: Proposition, TX <: Transaction[P]](proposition
                                                                      createdAt: Long)
 
 object WalletTransaction {
-  def parse[P <: Proposition, TX <: Transaction[P]](bytes: Array[Byte])
-                                                   (propDeserializer: Array[Byte] => Try[P],
-                                                    txDeserializer: Array[Byte] => Try[TX]
+  def parse[P <: Proposition, TX <: Transaction[P]](bytes: Seq[Byte])
+                                                   (propDeserializer: Seq[Byte] => Try[P],
+                                                    txDeserializer: Seq[Byte] => Try[TX]
                                                    ): Try[WalletTransaction[P, TX]] = Try {
-    val propLength = Ints.fromByteArray(bytes.slice(0, 4))
+    val propLength = Ints.fromByteArray(bytes.slice(0, 4).toArray)
     var pos = 4
     val propTry = propDeserializer(bytes.slice(pos, pos + propLength))
     pos = pos + propLength
 
-    val txLength = Ints.fromByteArray(bytes.slice(pos, pos + 4))
+    val txLength = Ints.fromByteArray(bytes.slice(pos, pos + 4).toArray)
     val txTry = txDeserializer(bytes.slice(pos, pos + txLength))
     pos = pos + txLength
 
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val blockIdOpt: Option[ModifierId] =
       if (bytes.slice(pos, pos + 1).head == 0) {
         pos = pos + 1
@@ -67,19 +69,22 @@ object WalletTransaction {
         o
       }
 
-    val createdAt = Longs.fromByteArray(bytes.slice(pos, pos + 8))
+    val createdAt = Longs.fromByteArray(bytes.slice(pos, pos + 8).toArray)
 
 
     WalletTransaction[P, TX](propTry.get, txTry.get, blockIdOpt, createdAt)
   }
 
-  def bytes[P <: Proposition, TX <: Transaction[P]](wt: WalletTransaction[P, TX]): Array[Byte] = {
+  def bytes[P <: Proposition, TX <: Transaction[P]](wt: WalletTransaction[P, TX]): Seq[Byte] = {
     val propBytes = wt.proposition.bytes
     val txBytes = wt.tx.bytes
-    val bIdBytes = wt.blockId.map(id => Array(1: Byte) ++ id).getOrElse(Array(0: Byte))
+    val bIdBytes = wt.blockId.map(id => ByteString(1: Byte) ++ id).getOrElse(ByteString(0: Byte))
 
-    Bytes.concat(Ints.toByteArray(propBytes.length), propBytes, Ints.toByteArray(txBytes.length), txBytes, bIdBytes,
-      Longs.toByteArray(wt.createdAt))
+    ByteString(Ints.toByteArray(propBytes.length)) ++
+      propBytes ++
+      Ints.toByteArray(txBytes.length) ++
+      txBytes ++ bIdBytes ++
+      Longs.toByteArray(wt.createdAt)
   }
 }
 

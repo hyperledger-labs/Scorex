@@ -1,14 +1,15 @@
 package scorex.core.network.message
 
-import com.google.common.primitives.{Bytes, Ints}
+import com.google.common.primitives.Ints
 import scorex.core.network.ConnectedPeer
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.{Success, Try}
+import akka.util.ByteString
 
 case class Message[Content](spec: MessageSpec[Content],
-                            input: Either[Array[Byte], Content],
+                            input: Either[Seq[Byte], Content],
                             source: Option[ConnectedPeer]) extends BytesSerializable {
 
   lazy val dataBytes = input match {
@@ -32,23 +33,26 @@ class MessageSerializer[Content] extends Serializer[Message[Content]] {
 
   import Message.{ChecksumLength, MAGIC}
 
-  override def toBytes(obj: Message[Content]): Array[Byte] = {
+  override def toBytes(obj: Message[Content]): Seq[Byte] = {
     val dataWithChecksum = if (obj.dataLength > 0) {
-      val checksum = Blake2b256.hash(obj.dataBytes).take(ChecksumLength)
-      Bytes.concat(checksum, obj.dataBytes)
-    } else obj.dataBytes //empty array
+      val checksum = Blake2b256.hash(obj.dataBytes.toArray).take(ChecksumLength)
+      ByteString(checksum) ++ obj.dataBytes
+    } else obj.dataBytes // empty
 
-    MAGIC ++ Array(obj.spec.messageCode) ++ Ints.toByteArray(obj.dataLength) ++ dataWithChecksum
+    MAGIC ++
+      ByteString(obj.spec.messageCode) ++
+      ByteString(Ints.toByteArray(obj.dataLength)) ++
+      dataWithChecksum
   }
 
   //TODO move MessageHandler.parseBytes here
-  override def parseBytes(bytes: Array[Byte]): Try[Message[Content]] = ???
+  override def parseBytes(bytes: Seq[Byte]): Try[Message[Content]] = ???
 }
 
 object Message {
   type MessageCode = Byte
 
-  val MAGIC = Array(0x12: Byte, 0x34: Byte, 0x56: Byte, 0x78: Byte)
+  val MAGIC = ByteString(0x12: Byte, 0x34: Byte, 0x56: Byte, 0x78: Byte)
 
   val MagicLength = MAGIC.length
 

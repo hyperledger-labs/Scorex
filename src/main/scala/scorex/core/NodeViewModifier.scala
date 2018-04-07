@@ -16,7 +16,7 @@ sealed trait NodeViewModifier extends BytesSerializable {
   //todo: check statically or dynamically output size
   def id: ModifierId
 
-  def encodedId: String = Base58.encode(id)
+  def encodedId: String = Base58.encode(id.toArray)
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case that: NodeViewModifier => (that.id sameElements id) && (that.modifierTypeId == modifierTypeId)

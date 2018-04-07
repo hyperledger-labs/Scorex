@@ -51,10 +51,10 @@ case class PrivateKey25519(privKeyBytes: PrivateKey, publicKeyBytes: PublicKey) 
 }
 
 object PrivateKey25519Serializer extends Serializer[PrivateKey25519] {
-  override def toBytes(obj: PrivateKey25519): Array[Byte] = Bytes.concat(obj.privKeyBytes, obj.publicKeyBytes)
+  override def toBytes(obj: PrivateKey25519): Seq[Byte] = obj.privKeyBytes ++ obj.publicKeyBytes
 
-  override def parseBytes(bytes: Array[Byte]): Try[PrivateKey25519] = Try {
-    PrivateKey25519(PrivateKey @@ bytes.slice(0, 32), PublicKey @@ bytes.slice(32, 64))
+  override def parseBytes(bytes: Seq[Byte]): Try[PrivateKey25519] = Try {
+    PrivateKey25519(PrivateKey @@ bytes.slice(0, 32).toArray, PublicKey @@ bytes.slice(32, 64).toArray)
   }
 }
 

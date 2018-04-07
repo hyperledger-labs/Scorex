@@ -90,16 +90,11 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     */
   val networkChunkSize: Int
 
-
-  protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
-
-  protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
-
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
   //todo: make configurable limited size
-  private val modifiersCache = mutable.Map[MapKey, PMOD]()
+  private val modifiersCache = mutable.Map[ModifierId, PMOD]()
 
   protected def txModify(tx: TX): Unit = {
     //todo: async validation?
@@ -315,7 +310,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
           memoryPool().notIn(modifierIds)
         case _ =>
-          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(key(mid)))
+          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
       }
 
       sender() ! RequestFromLocal(peer, modifierTypeId, ids)
@@ -329,14 +324,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             txModify(tx)
 
           case pmod: PMOD@unchecked =>
-            if (history().contains(pmod) || modifiersCache.contains(key(pmod.id))) {
+            if (history().contains(pmod) || modifiersCache.contains(pmod.id)) {
               log.warn(s"Received modifier ${pmod.encodedId} that is already in history")
             } else {
-              modifiersCache.put(key(pmod.id), pmod)
+              modifiersCache.put(pmod.id, pmod)
             }
         }
 
-        log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(id => Base58.encode(id.toArray)).mkString(",")}")
 
         var t: Option[PMOD] = None
         do {
@@ -352,7 +347,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           t.foreach(pmodModify)
         } while (t.isDefined)
 
-        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(id => Base58.encode(id.toArray)).mkString(",")}")
       }
   }
 
@@ -398,7 +393,7 @@ object NodeViewHolder {
 
     // Moved from NodeViewSynchronizer as this was only received here
     case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
-    case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
+    case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Seq[Byte]])
 
     case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)

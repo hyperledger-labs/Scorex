@@ -106,7 +106,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
         Version(settings.appVersion), settings.nodeName,
         ownSocketAddress, timeProvider.time()).bytes
 
-      connection ! Tcp.Write(ByteString(hb))
+      val bs: ByteString = ByteString(hb:_*)
+      connection ! Tcp.Write(bs)
       log.info(s"Handshake sent to $remote")
       handshakeSent = true
       if (handshakeGot && handshakeSent) self ! HandshakeDone

@@ -15,8 +15,8 @@ case class Signature25519(signature: Signature) extends ProofOfKnowledge[Private
   require(signature.isEmpty || signature.length == Curve25519.SignatureLength,
     s"${signature.length} != ${Curve25519.SignatureLength}")
 
-  override def isValid(proposition: PublicKey25519Proposition, message: Array[Byte]): Boolean =
-    Curve25519.verify(signature, message, proposition.pubKeyBytes)
+  override def isValid(proposition: PublicKey25519Proposition, message: Seq[Byte]): Boolean =
+    Curve25519.verify(signature, message.toArray, proposition.pubKeyBytes)
 
   override type M = Signature25519
 
@@ -26,9 +26,9 @@ case class Signature25519(signature: Signature) extends ProofOfKnowledge[Private
 }
 
 object Signature25519Serializer extends Serializer[Signature25519] {
-  override def toBytes(obj: Signature25519): Array[Byte] = obj.signature
+  override def toBytes(obj: Signature25519): Seq[Byte] = obj.signature
 
-  override def parseBytes(bytes: Array[Byte]): Try[Signature25519] = Try(Signature25519(Signature @@ bytes))
+  override def parseBytes(bytes: Seq[Byte]): Try[Signature25519] = Try(Signature25519(Signature @@ bytes.toArray))
 }
 
 object Signature25519 {
