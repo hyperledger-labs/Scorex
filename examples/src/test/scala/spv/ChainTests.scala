@@ -1,12 +1,14 @@
 package spv
 
 import examples.spv.simulation.SimulatorFuctions
-import examples.spv.{SpvAlgos, Header, KLS16ProofSerializer, KMZProofSerializer}
+import examples.spv.{Header, KLS16ProofSerializer, KMZProofSerializer, SpvAlgos}
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.transaction.state.PrivateKey25519Companion
+import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
+import scorex.crypto.hash
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.{Failure, Try}
@@ -20,15 +22,15 @@ class ChainTests extends PropSpec
   with SimulatorFuctions {
 
 
-  val Height = 5000
-  val Difficulty = BigInt(1)
-  val stateRoot = Blake2b256("")
-  val minerKeys = PrivateKey25519Companion.generateKeys(stateRoot)
+  private val Height = 5000
+  private val Difficulty = BigInt(1)
+  val stateRoot: hash.Digest32 = Blake2b256("")
+  val minerKeys: (PrivateKey25519, PublicKey25519Proposition) = PrivateKey25519Companion.generateKeys(stateRoot)
 
-  val genesis = genGenesisHeader(stateRoot, minerKeys._2)
-  val headerChain = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
-  val lastBlock = headerChain.last
-  val lastInnerLinks = lastBlock.interlinks
+  val genesis: Header = genGenesisHeader(stateRoot, minerKeys._2)
+  val headerChain: Seq[Header] = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
+  val lastBlock: Header = headerChain.last
+  val lastInnerLinks: Seq[Array[Byte]] = lastBlock.interlinks
 
   property("constructInnerChain contains all blocks at the level if no boundary provided") {
     val blockchainMap: Map[ByteArrayWrapper, Header] = headerChain.map(b => ByteArrayWrapper(b.id) -> b).toMap
@@ -135,7 +137,7 @@ class ChainTests extends PropSpec
     }
   }
 
-  val mkGen = for {
+  val mkGen: Gen[(Int, Int)] = for {
     m <- Gen.choose(1, 100)
     k <- Gen.choose(2, 100)
   } yield (m, k)

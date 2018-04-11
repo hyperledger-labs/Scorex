@@ -38,9 +38,6 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   type MS <: MinimalState[PM, _ <: MinimalState[_, _]]
   type VL <: Vault[P, TX, PM, _ <: Vault[P, TX, PM, _]]
 
-  //TODO null?
-  private val source: ConnectedPeer = null
-
   case class OpenSurface(ids: Seq[ModifierId])
 
   def withOpenSurface(fn: OpenSurface => Route): Route = {
@@ -103,7 +100,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
     withPersistentModifier(encodedId) { tx =>
       val clazz = ClassTag(tx.getClass).runtimeClass
       val jsonOrErr = serializerReg.toJson(clazz, tx)
-      val response: ScorexApiResponse = Try(SuccessApiResponse(jsonOrErr.right.get))
+      val response: ScorexApiResponse = Try(SuccessApiResponse(jsonOrErr.right.get) : ScorexApiResponse)
         .getOrElse(ApiError(jsonOrErr.left.get.getMessage, StatusCodes.InternalServerError))
       complete(response)
     }

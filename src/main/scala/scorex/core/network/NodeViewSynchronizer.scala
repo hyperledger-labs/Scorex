@@ -67,6 +67,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def viewHolderEvents: Receive = {
     case SuccessfulTransaction(tx) =>
       broadcastModifierInv(tx)
@@ -245,6 +246,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   // todo: make DeliveryTracker an independent actor and move checkDelivery there?
 
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
+  @SuppressWarnings(Array("org.wartremover.warts.JavaSerializable"))
   protected def checkDelivery: Receive = {
     case CheckDelivery(peer, modifierTypeId, modifierId) =>
 
@@ -287,7 +289,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
-    val messageSpecs = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
@@ -380,7 +382,7 @@ object NodeViewSynchronizerRef {
                              viewHolderRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
-                             timeProvider: NetworkTimeProvider) =
+                             timeProvider: NetworkTimeProvider): Props =
     Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
                                                                  networkSettings, timeProvider))
 

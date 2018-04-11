@@ -5,6 +5,7 @@ import examples.commons.PublicKey25519NoncedBox
 import examples.commons.{Nonce, Value}
 import examples.trimchain.core.Constants._
 import examples.trimchain.core.{Algos, Constants}
+import scorex.core.VersionTag
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
 
@@ -15,8 +16,8 @@ object ValidationSimulator extends App with Simulators {
   // NElementsInProof: 10, validation time: 0.000530379 seconds
   // NElementsInProof: 20, validation time: 0.000618186 seconds
 
-  val StateSize = 5000000
-  val ValidationNum = 10000
+  val StateSize: Int = 5000000
+  val ValidationNum: Int = 10000
 
   val genesisBoxes = (1 to StateSize) map { i =>
     PublicKey25519NoncedBox(
@@ -29,8 +30,8 @@ object ValidationSimulator extends App with Simulators {
   val genesisChanges: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
     BoxStateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
 
-  val genesisUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
-  val rootHash = genesisUtxo.rootHash
+  val genesisUtxo: InMemoryAuthenticatedUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
+  val rootHash: VersionTag = genesisUtxo.rootHash
 
   var validationTime: Long = 0L
   (0 until ValidationNum) foreach { _ =>

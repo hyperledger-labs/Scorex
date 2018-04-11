@@ -66,6 +66,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
     }
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.Serializable"))
   override def receive: Receive = {
     case StartMining =>
       if (settings.blockGenerationDelay >= 1.minute) {
