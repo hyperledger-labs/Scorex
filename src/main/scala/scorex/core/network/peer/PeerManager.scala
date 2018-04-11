@@ -95,47 +95,46 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
   private var lastIdUsed = 0
 
-  private def peerCycle: Receive = {
-    case DoConnecting(remote, direction) =>
-      val peerHandlerRef = sender()
+  private def peerCycle: Receive = connecting orElse handshaked orElse disconnected
 
+  private def connecting: Receive = {
+    case DoConnecting(remote, direction) =>
       if (peerDatabase.isBlacklisted(remote)) {
         log.info(s"Got incoming connection from blacklisted $remote")
       } else {
-        val refuse =
-          if (direction == Incoming) false
-          else if (connectingPeers.contains(remote)) {
-            log.info(s"Connecting to $remote")
-            false
-          } else {
-            log.info(s"Already connected peer $remote trying to connect, going to drop the duplicate connection")
-            true
-          }
-
-        if (refuse) {
+        val peerHandlerRef = sender
+        val isIncoming = direction == Incoming
+        val isAlreadyConnecting = connectingPeers.contains(remote)
+        if (isAlreadyConnecting && !isIncoming) {
+          log.info(s"Already connected peer $remote trying to connect, going to drop the duplicate connection")
           peerHandlerRef ! CloseConnection
         } else {
+          if (!isIncoming) log.info(s"Connecting to $remote")
           peerHandlerRef ! StartInteraction
           lastIdUsed += 1
         }
       }
+  }
 
-    //todo: filter by an id introduced by the PeerManager
-    case h@Handshaked(peer) =>
+
+  private def handshaked: Receive = {
+    case Handshaked(peer) =>
+      //todo: filter by an id introduced by the PeerManager
       if (peerDatabase.isBlacklisted(peer.socketAddress)) {
         log.info(s"Got handshake from blacklisted ${peer.socketAddress}")
       } else {
-          //drop connection to self if occurred
-          if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
-            peer.handlerRef ! CloseConnection
-          } else {
-            if(peer.publicPeer) self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
-            connectedPeers += peer.socketAddress -> peer
-            context.system.eventStream.publish(HandshakedPeer(peer))
-          }
+        //drop connection to self if occurred
+        if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
+          peer.handlerRef ! CloseConnection
+        } else {
+          if (peer.publicPeer) self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
+          connectedPeers += peer.socketAddress -> peer
+          context.system.eventStream.publish(HandshakedPeer(peer))
         }
+      }
+  }
 
-
+  private def disconnected: Receive = {
     case Disconnected(remote) =>
       connectedPeers -= remote
       connectingPeers -= remote
