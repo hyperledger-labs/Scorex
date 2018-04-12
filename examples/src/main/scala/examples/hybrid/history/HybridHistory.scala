@@ -149,7 +149,7 @@ class HybridHistory(val storage: HistoryStorage,
     } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
       log.debug(s"New best PoS block with link to non-best brother ${Base58.encode(posBlock.id)}")
       //rollback to previous PoS block and apply parent block one more time
-      ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq(parent, posBlock), Seq())
+      ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq[HybridBlock](parent, posBlock), Seq())
     } else {
       bestForkChanges(posBlock)
     }
