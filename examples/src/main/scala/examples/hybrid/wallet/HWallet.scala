@@ -159,9 +159,9 @@ object HWallet {
 
 
 object GenesisStateGenerator extends App {
-  val w1 = HWallet(ByteStr.decodeBase58("minerNode1").get, new LSMStore(new File("/tmp/w1")))
-  val w2 = HWallet(ByteStr.decodeBase58("minerNode2").get, new LSMStore(new File("/tmp/w2")))
-  val w3 = HWallet(ByteStr.decodeBase58("minerNode3").get, new LSMStore(new File("/tmp/w3")))
+  private val w1 = HWallet(ByteStr.decodeBase58("minerNode1").get, new LSMStore(new File("/tmp/w1")))
+  private val w2 = HWallet(ByteStr.decodeBase58("minerNode2").get, new LSMStore(new File("/tmp/w2")))
+  private val w3 = HWallet(ByteStr.decodeBase58("minerNode3").get, new LSMStore(new File("/tmp/w3")))
 
   (1 to 20).foreach(_ => w1.generateNewSecret())
   (1 to 20).foreach(_ => w2.generateNewSecret())
