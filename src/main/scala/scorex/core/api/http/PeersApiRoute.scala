@@ -23,7 +23,7 @@ case class PeersApiRoute(peerManager: ActorRef,
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetConnectedPeers, GetBlacklistedPeers}
   import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
 
-  override lazy val route = pathPrefix("peers") { allPeers ~ connectedPeers ~ blacklistedPeers ~ connect }
+  override lazy val route: Route = pathPrefix("peers") { allPeers ~ connectedPeers ~ blacklistedPeers ~ connect }
 
   def allPeers: Route = (path("all") & get) {
     val result = askActor[Map[InetSocketAddress, PeerInfo]](peerManager, GetAllPeers).map {
@@ -50,7 +50,9 @@ case class PeersApiRoute(peerManager: ActorRef,
 
   private val addressAndPortRegexp = "\\w+:\\d{1,5}".r
 
-  def connect: Route = (path("connect") & post & withAuth & entity[String](as[String])) { body =>
+  //todo: here we receive plain text string, not a json string
+  //Quote marks should be successfully parsed here to comply json
+  def connect: Route = (path("connect") & post & withAuth & entity(as[String])) { body =>
     complete {
       if (addressAndPortRegexp.findFirstMatchIn(body).isDefined) {
         val Array(host, port) = body.split(":")
@@ -88,8 +90,10 @@ object PeersApiRoute {
 
   case class BlacklistedPeers(addresses: Seq[String])
 
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val encodePeerInfoResponse: Encoder[PeerInfoResponse] = deriveEncoder
 
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val encodeBlackListedPeers: Encoder[BlacklistedPeers] = deriveEncoder
 
 }

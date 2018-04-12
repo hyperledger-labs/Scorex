@@ -37,6 +37,7 @@ MPool <: MemoryPool[TX, MPool]]
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, TestProbe, PM, ST, HT)
 
   class HolderFixture extends AkkaFixture {
+    @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
     val (node, eventListener, mod, s, h) = nodeViewHolder
   }
 

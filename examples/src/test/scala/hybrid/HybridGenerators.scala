@@ -131,13 +131,14 @@ trait HybridGenerators extends ExamplesCommonGenerators
   } yield SimpleBoxTransactionMemPool(map)
 
   def stateChangesGenerator(state: HBoxStoredState): ChangesGen = {
-    val removals: List[Removal[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+    val removals: List[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
       state.store.getAll().take(5).map(_._2).map(_.data)
         .map(PublicKey25519NoncedBoxSerializer.parseBytes).map(_.get).toList
         .map(b => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](b.id))
 
     noncedBoxListGen.map { boxesToAdd: List[PublicKey25519NoncedBox] =>
-      val insertions = boxesToAdd.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b))
+      val insertions: List[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
+        boxesToAdd.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b))
       val ops = scala.util.Random.shuffle(removals ++ insertions)
       BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
     }

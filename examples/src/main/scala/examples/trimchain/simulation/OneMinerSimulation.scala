@@ -24,23 +24,23 @@ object OneMinerSimulation extends App with Simulators {
 
   type Height = Int
 
-  val experimentId = Random.nextInt(500000)
-  val NewBoxesPerBlock = 5000
+  private val experimentId = Random.nextInt(500000)
+  private val NewBoxesPerBlock = 5000
 
-  val headersChain = mutable.Map[Height, BlockHeader]()
+  private val headersChain = mutable.Map[Height, BlockHeader]()
 
-  val bcDir = new File("/tmp/oms/bc" + experimentId)
+  private val bcDir = new File("/tmp/oms/bc" + experimentId)
   bcDir.mkdirs()
 
-  val fullBlocksStore = new MemoryFullBlockStore
+  private val fullBlocksStore = new MemoryFullBlockStore
   //  val fullBlocksStore = new LSMStore(bcDir, keySize = 4)
 
   def currentHeight: Int = Try(headersChain.keySet.max).getOrElse(0)
 
-  val cuDir = new File("/tmp/oms/cu" + experimentId)
+  private val cuDir = new File("/tmp/oms/cu" + experimentId)
   cuDir.mkdirs()
 
-  val muDir = new File("/tmp/oms/mu" + experimentId)
+  private val muDir = new File("/tmp/oms/mu" + experimentId)
   muDir.mkdirs()
 
   def generateTransactions(richBoxes: Seq[PublicKey25519NoncedBox]): Seq[SimpleBoxTransaction] = {
@@ -65,17 +65,17 @@ object OneMinerSimulation extends App with Simulators {
   val genesisChanges: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
     BoxStateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
 
-  var currentUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
+  private var currentUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
 
-  var miningHeight = 0
-  var miningUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
+  private var miningHeight = 0
+  private var miningUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
     .ensuring(_.rootHash sameElements currentUtxo.rootHash)
 
   var generatingBoxes: Seq[PublicKey25519NoncedBox] = genesisBoxes
 
   log("Current height,Mining height,Current utxo size,Mining utxo size,Work valid,Header size,Ticket size,Proof size,Block size")
 
-  val blocksNum = 10000
+  private val blocksNum = 10000
   (1 to blocksNum) foreach { _ =>
     val t0 = System.currentTimeMillis()
 

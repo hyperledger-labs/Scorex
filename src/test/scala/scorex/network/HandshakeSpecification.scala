@@ -15,7 +15,7 @@ with GeneratorDrivenPropertyChecks
 with Matchers
 with ObjectGenerators {
 
-  val validNumbers =
+  val validNumbers: Gen[Int] =
     for (n <- Gen.choose(Integer.MIN_VALUE + 1, Integer.MAX_VALUE)) yield n
 
   property("handshake should remain the same after serialization/deserialization") {

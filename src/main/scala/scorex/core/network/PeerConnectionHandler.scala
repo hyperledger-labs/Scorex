@@ -23,7 +23,6 @@ case object Incoming extends ConnectionType
 case object Outgoing extends ConnectionType
 
 
-
 case class ConnectedPeer(socketAddress: InetSocketAddress,
                          handlerRef: ActorRef,
                          direction: ConnectionType,
@@ -38,7 +37,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress,
   override def equals(obj: Any): Boolean =
     obj.cast[ConnectedPeer].exists(p => p.socketAddress == this.socketAddress && p.direction == this.direction)
 
-  override def toString = s"ConnectedPeer($socketAddress)"
+  override def toString: String = s"ConnectedPeer($socketAddress)"
 }
 
 
@@ -55,7 +54,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
                             remote: InetSocketAddress,
                             timeProvider: NetworkTimeProvider) extends Actor with Buffering with ScorexLogging {
 
-  import PeerConnectionHandler.CommunicationState
   import PeerConnectionHandler.ReceivableMessages._
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Handshaked, Disconnected, DoConnecting}
 
@@ -77,6 +75,13 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private var chunksBuffer: ByteString = CompactByteString()
 
+
+  private def handshake: Receive =
+    startInteraction orElse
+      receivedData orElse
+      handshakeTimeout orElse
+      handshakeDone orElse
+      processErrors(AwaitingHandshake.toString)
 
   private def processErrors(stateName: String): Receive = {
     case CommandFailed(w: Write) =>
@@ -100,7 +105,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeReading
   }
 
-  private def handshake: Receive = ({
+  private def startInteraction: Receive = {
     case StartInteraction =>
       val hb = Handshake(settings.agentName,
         Version(settings.appVersion), settings.nodeName,
@@ -110,7 +115,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       log.info(s"Handshake sent to $remote")
       handshakeSent = true
       if (handshakeGot && handshakeSent) self ! HandshakeDone
+  }
 
+  private def receivedData: Receive = {
     case Received(data) =>
       HandshakeSerializer.parseBytes(data.toArray) match {
         case Success(handshake) =>
@@ -123,10 +130,14 @@ class PeerConnectionHandler(val settings: NetworkSettings,
           //todo: blacklist?
           self ! CloseConnection
       }
+  }
 
+  private def handshakeTimeout: Receive = {
     case HandshakeTimeout =>
       self ! CloseConnection
+  }
 
+  private def handshakeDone: Receive = {
     case HandshakeDone =>
       require(receivedHandshake.isDefined)
 
@@ -137,8 +148,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading
       context become workingCycle
-  }: Receive) orElse processErrors(AwaitingHandshake.toString)
-
+  }
 
   def workingCycleLocalInterface: Receive = {
     case msg: message.Message[_] =>
@@ -185,14 +195,16 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeReading
   }
 
+  private def reportStrangeInput: Receive= {
+      case nonsense: Any =>
+        log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
+  }
+
   def workingCycle: Receive =
     workingCycleLocalInterface orElse
       workingCycleRemoteInterface orElse
-      processErrors(WorkingCycle.toString) orElse ({
-      case nonsense: Any =>
-        log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
-    }: Receive)
-
+      processErrors(WorkingCycle.toString) orElse
+      reportStrangeInput
 
   override def preStart: Unit = {
     peerManagerRef ! DoConnecting(remote, direction)
@@ -224,9 +236,6 @@ object PeerConnectionHandler {
   }
 }
 
-/*
-
-* */
 object PeerConnectionHandlerRef {
   def props(settings: NetworkSettings,
             networkControllerRef: ActorRef,

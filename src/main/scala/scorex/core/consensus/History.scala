@@ -59,7 +59,6 @@ object History {
   case object Nonsense extends HistoryComparisonResult
   case object Unknown extends HistoryComparisonResult
 
-
   /**
     * Info returned by history to nodeViewHolder after modifier application
     *

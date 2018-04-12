@@ -24,7 +24,7 @@ import scala.concurrent.duration._
   */
 object PrivateChain extends App with ScorexLogging {
 
-  val proposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
+  val proposition: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
 
   def genesisState(): (HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool)  = {
     HybridNodeViewHolder.generateGenesisState(settings, miningSettings, new NetworkTimeProvider(settings.ntp))
@@ -69,6 +69,8 @@ object PrivateChain extends App with ScorexLogging {
 
     println("Boxes set size: " + boxes.size)
 
+    // TODO: review me, could `firstId` still be null at the end of the do-while loop?
+    @SuppressWarnings(Array("org.wartremover.warts.Null"))
     var firstId: BlockId = null
 
     do {
@@ -101,9 +103,9 @@ object PrivateChain extends App with ScorexLogging {
     history.bestPosBlock.timestamp - history.modifierById(firstId).get.asInstanceOf[PowBlock].timestamp
   }
 
-  val experiments = 2
+  val experiments: Int = 2
 
-  val honestHashesPerSecond = 50
+  val honestHashesPerSecond: Int = 50
 
   val honestAvg = (1 to experiments).map { _ =>
     timeSpent(20, honestHashesPerSecond)

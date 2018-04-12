@@ -47,11 +47,11 @@ class HybridHistory(val storage: HistoryStorage,
     }
 
   val height: Long = storage.height
-  val bestPosId = storage.bestPosId
-  val bestPowId = storage.bestPowId
-  lazy val bestPosBlock = storage.bestPosBlock
-  lazy val bestPowBlock = storage.bestPowBlock
-  lazy val bestBlock = if (pairCompleted) bestPosBlock else bestPowBlock
+  val bestPosId: ModifierId = storage.bestPosId
+  val bestPowId: ModifierId = storage.bestPowId
+  lazy val bestPosBlock: PosBlock = storage.bestPosBlock
+  lazy val bestPowBlock: PowBlock = storage.bestPowBlock
+  lazy val bestBlock: HybridBlock = if (pairCompleted) bestPosBlock else bestPowBlock
 
   /**
     * Return specified number of PoW blocks, ordered back from last one
@@ -399,6 +399,7 @@ class HybridHistory(val storage: HistoryStorage,
                         until: HybridBlock => Boolean,
                         limit: Int = Int.MaxValue,
                         acc: Seq[(ModifierTypeId, ModifierId)] = Seq()): Option[Seq[(ModifierTypeId, ModifierId)]] = {
+    @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
     val sum: Seq[(ModifierTypeId, ModifierId)] = if (m.isInstanceOf[PosBlock]) (PosBlock.ModifierTypeId -> m.id) +: acc
     else (PowBlock.ModifierTypeId -> m.id) +: acc
 
@@ -478,7 +479,7 @@ class HybridHistory(val storage: HistoryStorage,
 
 
 object HybridHistory extends ScorexLogging {
-  val DifficultyRecalcPeriod = 20
+  val DifficultyRecalcPeriod: Int = 20
 
   def readOrGenerate(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider): HybridHistory = {
     readOrGenerate(settings.dataDir, settings.logDir, minerSettings, timeProvider)

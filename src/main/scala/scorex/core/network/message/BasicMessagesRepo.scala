@@ -31,7 +31,7 @@ class SyncInfoMessageSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) 
 }
 
 object InvSpec {
-  val MessageCode = 55: Byte
+  val MessageCode: Byte = 55
   val MessageName: String = "Inv"
 }
 class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
