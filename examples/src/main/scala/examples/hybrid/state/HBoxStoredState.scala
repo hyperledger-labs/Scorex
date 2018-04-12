@@ -62,7 +62,10 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
         closedBox(psb.generatorBox.id).get
         psb.transactions.foreach(tx => validate(tx).get)
     }
-  }.recoverWith{case t => log.warn(s"Not valid modifier ${mod.encodedId}", t); Failure(t)}
+  }.recoverWith{case t =>
+    log.warn(s"Not valid modifier ${mod.encodedId}", t)
+    Failure(t)
+  }
 
   override def applyChanges(changes: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox],
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {

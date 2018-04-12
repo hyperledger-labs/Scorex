@@ -207,7 +207,12 @@ MPool <: MemoryPool[TX, MPool]]
     expectMsg(10.seconds, true)
   }}
 
-
+  /**
+    * In this test we apply first a chain of 2 blocks and then a chain of 4 blocks, both started with the same
+    * common block. We are expecting to observe "switching" here, though with non-chain structures there could be no
+    * notion of switching, so what we check finally is that last block from the second chain is in "open surface"
+    * (list of open blocks which do not have successors yet, size of the list is 1 in case of blockchain)
+    */
   property("NodeViewHolder: forking - switching") { withFixture { ctx =>
     import ctx._
 

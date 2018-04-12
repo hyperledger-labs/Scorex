@@ -124,7 +124,7 @@ object HWallet {
   def readOrGenerate(settings: ScorexSettings, seed: ByteStr): HWallet = {
     val wFile = walletFile(settings)
     wFile.mkdirs()
-    val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000)
+    val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000, keepVersions = 100) //todo: configurable kV
 
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {
@@ -155,4 +155,22 @@ object HWallet {
       a.scanPersistent(b)
     }
   }
+}
+
+
+object GenesisStateGenerator extends App {
+  private val w1 = HWallet(ByteStr.decodeBase58("minerNode1").get, new LSMStore(new File("/tmp/w1")))
+  private val w2 = HWallet(ByteStr.decodeBase58("minerNode2").get, new LSMStore(new File("/tmp/w2")))
+  private val w3 = HWallet(ByteStr.decodeBase58("minerNode3").get, new LSMStore(new File("/tmp/w3")))
+
+  (1 to 20).foreach(_ => w1.generateNewSecret())
+  (1 to 20).foreach(_ => w2.generateNewSecret())
+  (1 to 10).foreach(_ => w3.generateNewSecret())
+
+  val pks =
+  w1.publicKeys.map(_.pubKeyBytes).map(Base58.encode) ++
+    w2.publicKeys.map(_.pubKeyBytes).map(Base58.encode) ++
+    w3.publicKeys.map(_.pubKeyBytes).map(Base58.encode)
+
+  println(pks.map(pk => s""""$pk",""").mkString("\n"))
 }
