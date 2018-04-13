@@ -9,6 +9,10 @@ import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
+import NetworkController.ReceivableMessages._
+import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
+import scorex.core.network.peer.PeerManager.ReceivableMessages._
+import PeerConnectionHandler.ReceivableMessages.CloseConnection
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
@@ -30,11 +34,6 @@ class NetworkController(settings: NetworkSettings,
                         peerManagerRef: ActorRef,
                         timeProvider: NetworkTimeProvider
                        ) extends Actor with ScorexLogging {
-
-  import NetworkController.ReceivableMessages._
-  import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
-  import scorex.core.network.peer.PeerManager.ReceivableMessages.{CheckPeers, FilterPeers, Disconnected}
-  import PeerConnectionHandler.ReceivableMessages.CloseConnection
 
   private implicit val system: ActorSystem = context.system
 
@@ -59,14 +58,14 @@ class NetworkController(settings: NetworkSettings,
             val extAddr = intfAddr.getAddress
             myAddrs.contains(extAddr)
           }
-        } || (settings.upnpEnabled && myAddrs.exists(_ == upnp.externalAddress))
+        } || (settings.upnpEnabled && upnp.externalAddress.forall(myAddrs.contains))
       } recover { case t: Throwable =>
         log.error("Declared address validation failed: ", t)
       }
     }
   }
 
-  lazy val localAddress = settings.bindAddress
+  lazy val localAddress: InetSocketAddress = settings.bindAddress
 
   //an address to send to peers
   lazy val externalSocketAddress: Option[InetSocketAddress] = {
@@ -126,6 +125,11 @@ class NetworkController(settings: NetworkSettings,
 
   def peerLogic: Receive = {
     case ConnectTo(remote) =>
+      peerManagerRef ! ConnectNonDuplicate(remote)
+
+    case StartConnecting(remote) =>
+      // Only PeerManager should send this message to avoid duplicate connections
+      // todo: Refactoring needed for these two actors to achieve more transparent code
       log.info(s"Connecting to: $remote")
       outgoing += remote
       tcpManager ! Connect(remote,
@@ -194,6 +198,7 @@ object NetworkController {
     case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
     case object ShutdownNetwork
     case class ConnectTo(address: InetSocketAddress)
+    case class StartConnecting(address: InetSocketAddress) // Only PeerManager should send this message
     case class DisconnectFrom(peer: ConnectedPeer)
     case class Blacklist(peer: ConnectedPeer)
   }

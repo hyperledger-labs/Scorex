@@ -6,6 +6,10 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import PeerManager.ReceivableMessages._
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
+import scorex.core.network.NetworkController.ReceivableMessages.StartConnecting
+import scorex.core.network.PeerConnectionHandler.ReceivableMessages.{StartInteraction, CloseConnection}
 
 import scala.collection.mutable
 import scala.util.Random
@@ -15,11 +19,6 @@ import scala.util.Random
   * Must be singleton
   */
 class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
-
-  import PeerManager.ReceivableMessages._
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
-  import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
-  import scorex.core.network.PeerConnectionHandler.ReceivableMessages.{StartInteraction, CloseConnection}
 
   //peers after successful handshake
   private val connectedPeers = mutable.Map[InetSocketAddress, ConnectedPeer]()
@@ -73,14 +72,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
     case GetBlacklistedPeers =>
       sender() ! peerDatabase.blacklistedPeers()
-
-//    case Subscribe(listener, events) =>
-//      events.foreach { evt =>
-//        val current = subscribers.getOrElse(evt, Seq())
-//        subscribers.put(evt, current :+ listener)
-//      }
   }
-
 
   /**
     * Given a peer's address and declared address, returns `true` iff the peer is the same is this node.
@@ -95,29 +87,33 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
 
   private var lastIdUsed = 0
 
-  private def peerCycle: Receive = connecting orElse handshaked orElse disconnected
+  private def peerCycle: Receive =
+    peerHandlerMessages orElse
+      receiveHandshaked orElse
+      receiveDisconnected
 
-  private def connecting: Receive = {
+  private def peerHandlerMessages: Receive = {
+    // Only PeerHandler should send this message
+    // todo: think about refactoring
     case DoConnecting(remote, direction) =>
       if (peerDatabase.isBlacklisted(remote)) {
         log.info(s"Got incoming connection from blacklisted $remote")
       } else {
         val peerHandlerRef = sender
         val isIncoming = direction == Incoming
-        val isAlreadyConnecting = connectingPeers.contains(remote)
-        if (isAlreadyConnecting && !isIncoming) {
-          log.info(s"Already connected peer $remote trying to connect, going to drop the duplicate connection")
-          peerHandlerRef ! CloseConnection
-        } else {
+        val isConnecting = connectingPeers.contains(remote)
+        if (isConnecting || isIncoming) {
           if (!isIncoming) log.info(s"Connecting to $remote")
           peerHandlerRef ! StartInteraction
           lastIdUsed += 1
+        } else {
+          log.info(s"Unknown peer $remote trying to connect, going to drop the connection")
+          peerHandlerRef ! CloseConnection
         }
       }
   }
 
-
-  private def handshaked: Receive = {
+  private def receiveHandshaked: Receive = {
     case Handshaked(peer) =>
       //todo: filter by an id introduced by the PeerManager
       if (peerDatabase.isBlacklisted(peer.socketAddress)) {
@@ -134,44 +130,75 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       }
   }
 
-  private def disconnected: Receive = {
+  private def receiveDisconnected: Receive = {
     case Disconnected(remote) =>
       connectedPeers -= remote
       connectingPeers -= remote
       context.system.eventStream.publish(DisconnectedPeer(remote))
   }
 
-  override def receive: Receive = ({
+  override def receive: Receive =
+    networkControllerMessages orElse
+      receiveAddToBlackList orElse
+      peerListOperations orElse
+      apiInterface orElse
+      peerCycle
+
+
+  private def networkControllerMessages: Receive = {
+    // Warning: We expect that only NetworkController should send these messages.
+    // todo: Refactoring needed for these two actors to achieve more transparent code
+    case ConnectNonDuplicate(remote) =>
+      val networkController = sender
+      if (checkNotConnected(remote)) {
+        startConnecting(remote, networkController)
+      } else {
+        log.info(s"Already connected peer $remote trying to connect, discarding")
+      }
     case CheckPeers =>
+      val networkController = sender
       if (connectedPeers.size + connectingPeers.size < settings.network.maxConnections) {
         randomPeer().foreach { address =>
           //todo: avoid picking too many peers from the same bucket, see Bitcoin ref. impl.
-          if (!connectedPeers.exists(_._1 == address) &&
-            !connectingPeers.exists(_.getHostName == address.getHostName)) {
-            connectingPeers += address
-            sender() ! ConnectTo(address)
+          if (checkNotConnected(address)) {
+            startConnecting(address, networkController)
           }
         }
       }
+  }
 
+  private def checkNotConnected(address: InetSocketAddress): Boolean = {
+    !connectedPeers.exists(_._1 == address) && !connectingPeers.exists(_.getHostName == address.getHostName)
+  }
+
+  private def startConnecting(address: InetSocketAddress, networkController: ActorRef): Unit = {
+    connectingPeers += address
+    networkController ! StartConnecting(address)
+  }
+
+  private def receiveAddToBlackList: Receive = {
     case AddToBlacklist(peer) =>
       log.info(s"Blacklist peer $peer")
       peerDatabase.blacklistPeer(peer, timeProvider.time())
-      // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
-  }: Receive) orElse peerListOperations orElse apiInterface orElse peerCycle
+    // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
+  }
+
 }
 
 object PeerManager {
 
   object ReceivableMessages {
-    case object CheckPeers
+
+    case object CheckPeers // Only NetworkController should send this
+    case class ConnectNonDuplicate(remote: InetSocketAddress) // Only NetworkController should send this
+
     case class AddToBlacklist(remote: InetSocketAddress)
 
     // peerListOperations messages
     case class AddOrUpdatePeer(address: InetSocketAddress, peerName: Option[String], direction: Option[ConnectionType])
     case object KnownPeers
     case object RandomPeer
-    case class RandomPeers(hawMany: Int)
+    case class RandomPeers(howMany: Int)
     case class FilterPeers(sendingStrategy: SendingStrategy)
 
     // apiInterface messages
@@ -180,7 +207,7 @@ object PeerManager {
     case object GetBlacklistedPeers
 
     // peerCycle messages
-    case class DoConnecting(remote: InetSocketAddress, direction: ConnectionType)
+    case class DoConnecting(remote: InetSocketAddress, direction: ConnectionType) // Only PeerHandler should send this
     case class Handshaked(peer: ConnectedPeer)
     case class Disconnected(remote: InetSocketAddress)
   }
