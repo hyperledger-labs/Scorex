@@ -109,7 +109,10 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           log.info(s"Trying to connect twice to $remote, going to drop the duplicate connection")
           peerHandlerRef ! CloseConnection
         } else {
-          if (!isIncoming) log.info(s"Connecting to $remote")
+          if (!isIncoming) {
+            log.info(s"Connecting to $remote")
+            connectingPeers += remote
+          }
           peerHandlerRef ! StartInteraction
           lastIdUsed += 1
         }
@@ -148,7 +151,6 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           //todo: avoid picking too many peers from the same bucket, see Bitcoin ref. impl.
           if (!connectedPeers.exists(_._1 == address) &&
             !connectingPeers.exists(_.getHostName == address.getHostName)) {
-            connectingPeers += address
             sender() ! ConnectTo(address)
           }
         }
