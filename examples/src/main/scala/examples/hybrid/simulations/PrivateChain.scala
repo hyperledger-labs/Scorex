@@ -62,7 +62,7 @@ object PrivateChain extends App with ScorexLogging {
 
     Path.apply(settings.dataDir).deleteRecursively()
 
-    var (history, state, wallet, _) = genesisState()
+    var (history, _, wallet, _) = genesisState()
 
     val boxes = wallet.boxes().map(_.box).take(adversarialStakePercent)
     val boxKeys = boxes.flatMap(b => wallet.secretByPublicImage(b.proposition).map(s => (b, s)))

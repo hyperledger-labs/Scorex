@@ -169,10 +169,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
   //todo: this method causes delays in a block processing as it removes transactions from mempool and checks
   //todo: validity of remaining transactions in a synchronous way. Do this job async!
-  protected def updateMemPool(progressInfo: History.ProgressInfo[PMOD], memPool: MP, state: MS): MP = {
-    val rolledBackTxs = progressInfo.toRemove.flatMap(extractTransactions)
+  protected def updateMemPool(blocksRemoved: Seq[PMOD], blocksApplied: Seq[PMOD], memPool: MP, state: MS): MP = {
+    val rolledBackTxs = blocksRemoved.flatMap(extractTransactions)
 
-    val appliedTxs = progressInfo.toApply.map(extractTransactions).getOrElse(Seq())
+    val appliedTxs = blocksApplied.flatMap(extractTransactions)
 
     memPool.putWithoutCheck(rolledBackTxs).filter { tx =>
       !appliedTxs.exists(t => t.id sameElements tx.id) && {
@@ -189,9 +189,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
       context.system.eventStream.publish(DownloadRequest(tid, id))
     }
 
-  /*
+  private def trimChainSuffix(suffix: IndexedSeq[PMOD], rollbackPoint: ModifierId): IndexedSeq[PMOD] = {
+    val idx = suffix.indexWhere(_.id.sameElements(rollbackPoint))
+    if (idx == -1) IndexedSeq() else suffix.drop(idx)
+  }
 
-    Assume history knew following blocktree:
+  /**
+
+    Assume that history knows the following blocktree:
 
            G
           / \
@@ -214,44 +219,58 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
     In this case history should be informed about the bad modifier and it should retarget state
 
-    todo: write tests for this case
-       */
+    //todo: improve the comment below
+
+    We assume that we apply modifiers sequentially (on a single modifier coming from the network or generated locally),
+    and in case of failed application of some modifier in a progressInfo, rollback point in an alternative should be not
+    earlier than a rollback point of an initial progressInfo.
+   **/
 
   @tailrec
   private def updateState(history: HIS,
                           state: MS,
-                          progressInfo: ProgressInfo[PMOD]): (HIS, Try[MS]) = {
+                          progressInfo: ProgressInfo[PMOD],
+                          suffixApplied: IndexedSeq[PMOD]): (HIS, Try[MS], Seq[PMOD]) = {
     requestDownloads(progressInfo)
 
-    val stateToApplyTry: Try[MS] = if (progressInfo.chainSwitchingNeeded) {
-      Try {
-        val branchingPoint = VersionTag @@ progressInfo.branchPoint.get
+    case class UpdateInformation(history: HIS,
+                                 state: MS,
+                                 failedMod: Option[PMOD],
+                                 alternativeProgressInfo: Option[ProgressInfo[PMOD]],
+                                 suffix: IndexedSeq[PMOD])
 
-        if (!state.version.sameElements(branchingPoint)) {
-          state.rollbackTo(branchingPoint).map { rs =>
-            rs
-          }
-        } else Success(state)
-      }.flatten
-    } else Success(state)
+    val (stateToApplyTry: Try[MS], suffixTrimmed: IndexedSeq[PMOD]) = if (progressInfo.chainSwitchingNeeded) {
+        val branchingPoint = VersionTag @@ progressInfo.branchPoint.get     //todo: .get
+        if (!state.version.sameElements(branchingPoint)){
+          state.rollbackTo(branchingPoint) -> trimChainSuffix(suffixApplied, branchingPoint)
+        } else Success(state) -> IndexedSeq()
+    } else Success(state) -> suffixApplied
 
     stateToApplyTry match {
       case Success(stateToApply) =>
-        progressInfo.toApply match {
-          case Some(modToApply) =>
-            stateToApply.applyModifier(modToApply) match {
-              case Success(stateAfterApply) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = true, modToApply.id)
-                context.system.eventStream.publish(SemanticallySuccessfulModifier(modToApply))
-                updateState(newHis, stateAfterApply, newProgressInfo)
-              case Failure(e) =>
-                val (newHis, newProgressInfo) = history.reportSemanticValidity(modToApply, valid = false, ModifierId @@ state.version)
-                context.system.eventStream.publish(SemanticallyFailedModification(modToApply, e))
-                updateState(newHis, stateToApply, newProgressInfo)
-            }
 
-          case None =>
-            history -> Success(stateToApply)
+        val u0 = UpdateInformation(history, stateToApply, None, None, suffixTrimmed)
+
+        val uf = progressInfo.toApply.foldLeft(u0) {case (u, modToApply) =>
+          if(u.failedMod.isEmpty) {
+            u.state.applyModifier(modToApply) match {
+              case Success(stateAfterApply) =>
+                val newHis = history.reportModifierIsValid(modToApply)
+                context.system.eventStream.publish(SemanticallySuccessfulModifier(modToApply))
+                //updateState(newHis, stateAfterApply, newProgressInfo, suffixTrimmed :+ modToApply)
+                UpdateInformation(newHis, stateAfterApply, None, None, u.suffix :+ modToApply)
+              case Failure(e) =>
+                val (newHis, newProgressInfo) = history.reportModifierIsInvalid(modToApply, progressInfo)
+                context.system.eventStream.publish(SemanticallyFailedModification(modToApply, e))
+                //updateState(newHis, stateToApply, newProgressInfo, suffixTrimmed)
+                UpdateInformation(newHis, u.state, Some(modToApply), Some(newProgressInfo), u.suffix)
+            }
+          } else u
+        }
+
+        uf.failedMod match {
+          case Some(mod) => updateState(uf.history, uf.state, uf.alternativeProgressInfo.get, uf.suffix)
+          case None => (uf.history, Success(uf.state), uf.suffix)
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
@@ -275,17 +294,18 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
           context.system.eventStream.publish(NewOpenSurface(historyBeforeStUpdate.openSurfaceIds()))
 
           if (progressInfo.toApply.nonEmpty) {
-            val (newHistory, newStateTry) = updateState(historyBeforeStUpdate, minimalState(), progressInfo)
+            val (newHistory, newStateTry, blocksApplied) =
+              updateState(historyBeforeStUpdate, minimalState(), progressInfo, IndexedSeq())
+
             newStateTry match {
               case Success(newMinState) =>
-                val newMemPool = updateMemPool(progressInfo, memoryPool(), newMinState)
+                val newMemPool = updateMemPool(progressInfo.toRemove, blocksApplied, memoryPool(), newMinState)
 
                 //we consider that vault always able to perform a rollback needed
                 val newVault = if (progressInfo.chainSwitchingNeeded) {
-                  vault().rollback(VersionTag @@ progressInfo.branchPoint.get).get.scanPersistent(progressInfo.toApply)
-                } else {
-                  vault().scanPersistent(progressInfo.toApply)
-                }
+                  vault().rollback(VersionTag @@ progressInfo.branchPoint.get).get
+                } else vault()
+                blocksApplied.foreach(newVault.scanPersistent)
 
                 log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
                 updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool))
@@ -392,6 +412,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 object NodeViewHolder {
 
   object ReceivableMessages {
+
     // Explicit request of NodeViewChange events of certain types.
     case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
@@ -403,7 +424,7 @@ object NodeViewHolder {
     case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
   }
-  
+
   // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages
   // fixme: Even more, ModificationApplicationStarted seems not to be sent at all
   // fixme: should we delete these messages?
