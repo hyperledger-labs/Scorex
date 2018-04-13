@@ -13,8 +13,8 @@ class UPnP(settings: NetworkSettings) extends ScorexLogging {
 
   private var gateway: Option[GatewayDevice] = None
 
-  lazy val localAddress = gateway.map(_.getLocalAddress)
-  lazy val externalAddress = gateway.map(_.getExternalIPAddress).map(InetAddress.getByName)
+  lazy val localAddress: Option[InetAddress] = gateway.map(_.getLocalAddress)
+  lazy val externalAddress: Option[InetAddress] = gateway.map(_.getExternalIPAddress).map(InetAddress.getByName)
 
   Try {
     log.info("Looking for UPnP gateway device...")

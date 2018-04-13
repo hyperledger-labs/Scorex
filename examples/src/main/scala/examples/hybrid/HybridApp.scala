@@ -29,8 +29,8 @@ class HybridApp(val settingsFilename: String) extends Application {
   override type PMOD = HybridBlock
   override type NVHT = HybridNodeViewHolder
 
-  private val hybridSettings = HybridSettings.read(Some(settingsFilename))
-  implicit override lazy val settings: ScorexSettings = HybridSettings.read(Some(settingsFilename)).scorexSettings
+  private lazy val hybridSettings = HybridSettings.read(Some(settingsFilename))
+  implicit override lazy val settings: ScorexSettings = hybridSettings.scorexSettings
 
   log.debug(s"Starting application with settings \n$settings")
 
