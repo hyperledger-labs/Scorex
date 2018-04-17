@@ -102,9 +102,9 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       if (peerDatabase.isBlacklisted(remote)) {
         log.info(s"Got incoming connection from blacklisted $remote")
       } else {
-        lazy val peerHandlerRef = sender
-        lazy val isIncoming = direction == Incoming
-        lazy val isAlreadyConnecting = connectingPeers.contains(remote)
+        val peerHandlerRef = sender
+        val isIncoming = direction == Incoming
+        val isAlreadyConnecting = connectingPeers.contains(remote)
         if (isAlreadyConnecting && !isIncoming) {
           log.info(s"Trying to connect twice to $remote, going to drop the duplicate connection")
           peerHandlerRef ! CloseConnection
