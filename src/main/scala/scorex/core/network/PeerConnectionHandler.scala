@@ -134,6 +134,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private def handshakeTimeout: Receive = {
     case HandshakeTimeout =>
+      log.info(s"Handshake timeout with $remote, going to drop the connection")
       self ! CloseConnection
   }
 
