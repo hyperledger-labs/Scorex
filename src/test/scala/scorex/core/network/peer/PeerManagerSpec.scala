@@ -53,6 +53,7 @@ class PeerManagerSpec extends TestKit(ActorSystem("PeerManager"))
     val pa2 = new InetSocketAddress("some_host.com", 27017)
 
     val h1 = Handshake("test", Version(1: Byte, 2:Byte, 3:Byte), "1", Some(pa1), System.currentTimeMillis())
+    //connected peer public cause declared address == peerAddress
     val p1 = ConnectedPeer(pa1, testActor, Incoming, h1)
 
     peerManager ! Handshaked(p1)
@@ -61,6 +62,7 @@ class PeerManagerSpec extends TestKit(ActorSystem("PeerManager"))
     receiveOne(1.second).asInstanceOf[Map[InetSocketAddress, PeerInfo]].contains(pa1) shouldBe true
 
     val h2 = Handshake("test", Version(1: Byte, 2:Byte, 3:Byte), "1", Some(pa2), System.currentTimeMillis())
+    //connected peer became non-public cause declared address != peerAddress
     val p2 = ConnectedPeer(pa1, testActor, Incoming, h2)
 
     peerManager ! Handshaked(p2)
