@@ -39,4 +39,6 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase {
   override def blacklistedPeers(): Seq[String] = blacklist.keys.toSeq
 
   override def isEmpty(): Boolean = whitelistPersistence.isEmpty
+
+  override def remove(address: InetSocketAddress): Boolean = whitelistPersistence.remove(address).nonEmpty
 }

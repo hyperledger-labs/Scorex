@@ -130,7 +130,11 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
         if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
           peer.handlerRef ! CloseConnection
         } else {
-          if (peer.publicPeer) self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
+          if (peer.publicPeer) {
+            self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
+          } else {
+            peerDatabase.remove(peer.socketAddress)
+          }
           connectedPeers += peer.socketAddress -> peer
           context.system.eventStream.publish(HandshakedPeer(peer))
         }
