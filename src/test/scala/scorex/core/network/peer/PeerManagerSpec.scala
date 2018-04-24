@@ -88,5 +88,6 @@ class PeerManagerSpec extends FlatSpec with Matchers {
     peerManager ! GetAllPeers
     val data2 = pr1.expectMsgClass(classOf[Data])
     data2.keySet should not contain pa1
+    system.terminate()
   }
 }
