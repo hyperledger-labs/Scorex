@@ -2,8 +2,8 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.actor.{ActorRef, ActorSystem}
+import akka.testkit.TestProbe
 import org.scalatest._
 import scorex.core.app.Version
 import scorex.core.network.peer.PeerManager.ReceivableMessages.Handshaked
@@ -13,78 +13,80 @@ import scorex.core.utils.NetworkTimeProvider
 
 import scala.concurrent.duration._
 
-class PeerManagerSpec extends TestKit(ActorSystem("PeerManager"))
-  with ImplicitSender
-  with FlatSpecLike
-  with Matchers
-  with BeforeAndAfterAll {
+class PeerManagerSpec extends FlatSpec with Matchers {
 
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, GetAllPeers}
 
   type Data = Map[InetSocketAddress, PeerInfo]
   private val DefaultPort = 27017
 
-  override def afterAll {
-    TestKit.shutdownActorSystem(system)
-  }
-
   it should "ignore adding self as a peer" in {
-    val p = TestProbe()
+    implicit val system = ActorSystem()
+    val p = TestProbe("p")(system)
+    implicit val defaultSender: ActorRef = p.testActor
 
     val settings = ScorexSettings.read(None)
     val timeProvider = new NetworkTimeProvider(settings.ntp)
-    val peerManager = system.actorOf(Props(new PeerManager(settings, timeProvider)))
+    val peerManager = PeerManagerRef(settings, timeProvider)(system)
     val selfAddress = settings.network.bindAddress
 
-    p.send(peerManager, AddOrUpdatePeer(selfAddress, None, None))
-    p.send(peerManager, GetAllPeers)
+    peerManager ! AddOrUpdatePeer(selfAddress, None, None)
+    peerManager ! GetAllPeers
     val data = p.expectMsgClass(classOf[Data])
 
     data.keySet should not contain selfAddress
+    system.terminate()
   }
 
   it should "added peer be returned in GetAllPeers" in {
-    val p = TestProbe()
+    implicit val system = ActorSystem()
+    val p = TestProbe("p")(system)
+    implicit val defaultSender: ActorRef = p.testActor
 
     val settings = ScorexSettings.read(None)
     val timeProvider = new NetworkTimeProvider(settings.ntp)
-    val peerManager = system.actorOf(Props(new PeerManager(settings, timeProvider)))
+    val peerManager = PeerManagerRef(settings, timeProvider)(system)
     val peerAddress = new InetSocketAddress("1.1.1.1", DefaultPort)
 
-    p.send(peerManager, AddOrUpdatePeer(peerAddress, None, None))
-    p.send(peerManager, GetAllPeers)
+    peerManager ! AddOrUpdatePeer(peerAddress, None, None)
+    peerManager ! GetAllPeers
 
     val data = p.expectMsgClass(classOf[Data])
     data.keySet should contain(peerAddress)
+    system.terminate()
   }
 
   it should "remove non public peers" in {
-    val p = TestProbe()
+    implicit val system = ActorSystem()
+    val pr1 = TestProbe("p1")(system)
+    val pr2 = TestProbe("p2")(system)
+    val testActor = pr2.testActor
+    implicit val defaultSender: ActorRef = pr1.testActor
 
     val settings = ScorexSettings.read(None)
     val timeProvider = new NetworkTimeProvider(settings.ntp)
-    val peerManager = system.actorOf(Props(new PeerManager(settings, timeProvider)))
+    val peerManager = PeerManagerRef(settings, timeProvider)(system)
     val pa1 = new InetSocketAddress("1.1.1.1", DefaultPort)
     val pa2 = new InetSocketAddress("some_host.com", DefaultPort)
 
     val h1 = Handshake("test", Version(1: Byte, 2:Byte, 3:Byte), "1", Some(pa1), System.currentTimeMillis())
-    //connected peer public cause declared address == peerAddress
+    //connected peer is public cause declared address == peerAddress
     val p1 = ConnectedPeer(pa1, testActor, Incoming, h1)
 
-    p.send(peerManager, Handshaked(p1))
-    p.expectNoMessage(1.seconds)
-    p.send(peerManager, GetAllPeers)
-    val data1 = p.expectMsgClass(classOf[Data])
+    peerManager ! Handshaked(p1)
+    pr1.expectNoMessage(1.seconds)
+    peerManager ! GetAllPeers
+    val data1 = pr1.expectMsgClass(classOf[Data])
     data1.keySet should contain(pa1)
 
     val h2 = Handshake("test", Version(1: Byte, 2:Byte, 3:Byte), "1", Some(pa2), System.currentTimeMillis())
     //connected peer became non-public cause declared address != peerAddress
     val p2 = ConnectedPeer(pa1, testActor, Incoming, h2)
 
-    p.send(peerManager, Handshaked(p2))
-    p.expectNoMessage(1.seconds)
-    p.send(peerManager, GetAllPeers)
-    val data2 = p.expectMsgClass(classOf[Data])
+    peerManager ! Handshaked(p2)
+    pr1.expectNoMessage(1.seconds)
+    peerManager ! GetAllPeers
+    val data2 = pr1.expectMsgClass(classOf[Data])
     data2.keySet should not contain pa1
   }
 }
