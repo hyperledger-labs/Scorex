@@ -10,7 +10,7 @@ import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
-import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
+import scorex.core.{ModifierId, NodeViewHolder, PersistentNodeViewModifier}
 import scorex.testkit.generators.{SemanticallyInvalidModifierProducer, SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.AkkaFixture
 
@@ -301,10 +301,11 @@ MPool <: MemoryPool[TX, MPool]]
     fork1Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
     fork2Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
 
-    // todo fix the assertion
-    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
-      v.history.openSurfaceIds().contains(fork2Mods.last.id)
+    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[ModifierId]] { v =>
+      v.history.openSurfaceIds()
     })
-    p.expectMsg(true)
+    val openSurfaceIds = p.expectMsgClass(waitDuration, classOf[Seq[ModifierId]])
+    openSurfaceIds should not contain fork2Mods.last.id
+    openSurfaceIds should contain oneOf (fork1Mods.last.id, fork2Mods.head.id)
   }}
 }
