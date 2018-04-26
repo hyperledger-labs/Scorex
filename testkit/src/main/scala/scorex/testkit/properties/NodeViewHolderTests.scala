@@ -259,4 +259,52 @@ MPool <: MemoryPool[TX, MPool]]
     })
     p.expectMsg(true)
   }}
+
+  property("NodeViewHolder: forking - switching with an invalid block") { withFixture { ctx =>
+    // todo move the comments closer to code
+    // we can apply first fork of, say, 4 blocks, and then a fork of 8 blocks where
+    // the second block is invalid. What to check in that case is whether among "open blocks" are
+    // last block of the first chain, or first block of the second chain, or both,
+    // but no any other option is possible.
+    import ctx._
+    val p = TestProbe()
+
+    val opCountBeforeFork = 10
+    val fork1OpCount = 4
+
+    val waitDuration = 10.seconds
+
+    // todo try to wrap send->expectMsgClass into a helper
+
+    //some base operations, we don't wanna have fork right from genesis
+    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+      totallyValidModifiers(v.history, v.state, opCountBeforeFork)
+    })
+    val plainMods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
+    plainMods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
+
+    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+      val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
+      assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
+      mods
+    })
+    val fork1Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
+
+    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+      // todo magic numbers
+      totallyValidModifiers(v.history, v.state, 1) ++
+        Seq(semanticallyInvalidModifier(v.state)) ++
+        totallyValidModifiers(v.history, v.state, 6)
+    })
+    val fork2Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
+
+    fork1Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
+    fork2Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
+
+    // todo fix the assertion
+    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
+      v.history.openSurfaceIds().contains(fork2Mods.last.id)
+    })
+    p.expectMsg(true)
+  }}
 }
