@@ -306,6 +306,6 @@ MPool <: MemoryPool[TX, MPool]]
     })
     val openSurfaceIds = p.expectMsgClass(waitDuration, classOf[Seq[ModifierId]])
     openSurfaceIds should not contain fork2Mods.last.id
-    openSurfaceIds should contain oneOf (fork1Mods.last.id, fork2Mods.head.id)
+    openSurfaceIds should contain atLeastOneOf (fork1Mods.last.id, fork2Mods.head.id)
   }}
 }
