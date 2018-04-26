@@ -261,11 +261,6 @@ MPool <: MemoryPool[TX, MPool]]
   }}
 
   property("NodeViewHolder: forking - switching with an invalid block") { withFixture { ctx =>
-    // todo move the comments closer to code
-    // we can apply first fork of, say, 4 blocks, and then a fork of 8 blocks where
-    // the second block is invalid. What to check in that case is whether among "open blocks" are
-    // last block of the first chain, or first block of the second chain, or both,
-    // but no any other option is possible.
     import ctx._
     val p = TestProbe()
 
@@ -283,6 +278,7 @@ MPool <: MemoryPool[TX, MPool]]
     val plainMods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
     plainMods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
 
+    // generate the first fork with valid blocks
     p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
       val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
       assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
@@ -290,6 +286,7 @@ MPool <: MemoryPool[TX, MPool]]
     })
     val fork1Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
 
+    // generate the second fork with the second invalid block
     p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
       // todo magic numbers
       totallyValidModifiers(v.history, v.state, 1) ++
@@ -298,7 +295,9 @@ MPool <: MemoryPool[TX, MPool]]
     })
     val fork2Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
 
+    // apply the first fork with valid blocks
     fork1Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
+    // apply the second fork with second invalid block
     fork2Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
 
     p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[ModifierId]] { v =>
