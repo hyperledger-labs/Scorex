@@ -266,6 +266,8 @@ MPool <: MemoryPool[TX, MPool]]
 
     val opCountBeforeFork = 10
     val fork1OpCount = 4
+    val fork2ValidPrefixOpCount = 1
+    val fork2ValidSuffixOpCount = 6
 
     val waitDuration = 10.seconds
 
@@ -286,25 +288,25 @@ MPool <: MemoryPool[TX, MPool]]
     })
     val fork1Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
 
-    // generate the second fork with the second invalid block
+    // generate the second fork with the invalid block
     p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
-      // todo magic numbers
-      totallyValidModifiers(v.history, v.state, 1) ++
+      totallyValidModifiers(v.history, v.state, fork2ValidPrefixOpCount) ++
         Seq(semanticallyInvalidModifier(v.state)) ++
-        totallyValidModifiers(v.history, v.state, 6)
+        totallyValidModifiers(v.history, v.state, fork2ValidSuffixOpCount)
     })
     val fork2Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
 
     // apply the first fork with valid blocks
     fork1Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
-    // apply the second fork with second invalid block
+    // apply the second fork with invalid block
     fork2Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
 
     p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[ModifierId]] { v =>
       v.history.openSurfaceIds()
     })
     val openSurfaceIds = p.expectMsgClass(waitDuration, classOf[Seq[ModifierId]])
+    val lastValidModInFork2Prefix = fork2Mods(fork2ValidPrefixOpCount - 1)
     openSurfaceIds should not contain fork2Mods.last.id
-    openSurfaceIds should contain atLeastOneOf (fork1Mods.last.id, fork2Mods.head.id)
+    openSurfaceIds should contain atLeastOneOf (fork1Mods.last.id, lastValidModInFork2Prefix.id)
   }}
 }
