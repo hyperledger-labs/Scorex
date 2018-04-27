@@ -303,12 +303,11 @@ MPool <: MemoryPool[TX, MPool]]
     // verify that open surface consist of last block of the first chain,
     // or first block of the second chain, or both, but no any other option
     withView(node) { v =>
-      v.history.openSurfaceIds().length match {
-        case 1 =>
-          v.history.openSurfaceIds should contain oneOf (fork1Mods.last.id, fork2Mods.head.id)
-        case 2 =>
-          v.history.openSurfaceIds should contain allOf (fork1Mods.last.id, fork2Mods.head.id)
-      }
+      v.history.openSurfaceIds should (
+        contain only fork1Mods.last.id
+          or contain only fork2Mods.head.id
+          or contain only (fork1Mods.last.id, fork2Mods.head.id)
+        )
     }
   }}
 }
