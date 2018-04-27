@@ -2,15 +2,17 @@ package scorex.testkit.properties
 
 import akka.actor._
 import akka.testkit.TestProbe
-import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
+import org.scalatest.{Matchers, PropSpec}
+import scorex.core.NodeViewHolder.CurrentView
+import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
-import scorex.core.{ModifierId, NodeViewHolder, PersistentNodeViewModifier}
+import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.testkit.generators._
 import scorex.testkit.utils.AkkaFixture
 
@@ -51,11 +53,19 @@ MPool <: MemoryPool[TX, MPool]]
     }
   }
 
+  private type CurrentViewType = CurrentView[HT, ST, Vault[P, TX, PM, _], MPool]
+  private def withView[T](node: ActorRef) (f: CurrentViewType => T)
+                         (implicit system: ActorSystem): T = {
+    val probe = TestProbe()
+    probe.send(node,
+      GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, CurrentViewType]
+        { view => view })
+    val view = probe.expectMsgClass(10.seconds, classOf[CurrentViewType])
+    f(view)
+  }
+
   import NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView, LocallyGeneratedModifier}
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SyntacticallySuccessfulModifier,
-                                                                              SyntacticallyFailedModification,
-                                                                              SemanticallySuccessfulModifier,
-                                                                              SemanticallyFailedModification}
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SemanticallyFailedModification, SemanticallySuccessfulModifier, SyntacticallyFailedModification, SyntacticallySuccessfulModifier}
 
   property("NodeViewHolder syntactically valid modifier subscription") { withFixture { ctx =>
     import ctx._
@@ -263,49 +273,37 @@ MPool <: MemoryPool[TX, MPool]]
 
   property("NodeViewHolder: forking - switching with an invalid block") { withFixture { ctx =>
     import ctx._
-    val p = TestProbe()
 
     val opCountBeforeFork = 10
     val fork1OpCount = 4
 
-    val waitDuration = 10.seconds
-
-    // todo try to wrap send->expectMsgClass into a helper
-
     //some base operations, we don't wanna have fork right from genesis
-    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+    withView(node) { v =>
       totallyValidModifiers(v.history, v.state, opCountBeforeFork)
-    })
-    val plainMods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
-    plainMods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
-
+    }.foreach {
+      mod => node ! LocallyGeneratedModifier(mod)
+    }
     // generate the first fork with valid blocks
-    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+    val fork1Mods = withView(node) { v =>
       val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
       assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
       mods
-    })
-    val fork1Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
-
+    }
     // generate the second fork with the invalid block
-    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+    val fork2Mods = withView(node) { v =>
       customModifiers(v.history, v.state,
         Seq[ModifierProducerTemplateItem](Valid,
           SynInvalid, // invalid modifier
           Valid, Valid, Valid, Valid, Valid, Valid))
-    })
-    val fork2Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
-
+    }
     // apply the first fork with valid blocks
-    fork1Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
+    fork1Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
     // apply the second fork with invalid block
-    fork2Mods.foreach { mod => p.send(node, LocallyGeneratedModifier(mod)) }
-
-    p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[ModifierId]] { v =>
-      v.history.openSurfaceIds()
-    })
-    val openSurfaceIds = p.expectMsgClass(waitDuration, classOf[Seq[ModifierId]])
-    openSurfaceIds should not contain fork2Mods.last.id
-    openSurfaceIds should contain atLeastOneOf (fork1Mods.last.id, fork2Mods.head.id)
+    fork2Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
+    // verify that invalid and subsequent blocks from the second fork are not in the history
+    withView(node) { v =>
+      v.history.openSurfaceIds should not contain fork2Mods.last.id
+      v.history.openSurfaceIds should contain atLeastOneOf (fork1Mods.last.id, fork2Mods.head.id)
+    }
   }}
 }
