@@ -300,10 +300,15 @@ MPool <: MemoryPool[TX, MPool]]
     fork1Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
     // apply the second fork with invalid block
     fork2Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
-    // verify that invalid and subsequent blocks from the second fork are not in the history
+    // verify that open surface consist of last block of the first chain,
+    // or first block of the second chain, or both, but no any other option
     withView(node) { v =>
-      v.history.openSurfaceIds should not contain fork2Mods.last.id
-      v.history.openSurfaceIds should contain atLeastOneOf (fork1Mods.last.id, fork2Mods.head.id)
+      v.history.openSurfaceIds().length match {
+        case 1 =>
+          v.history.openSurfaceIds should contain oneOf (fork1Mods.last.id, fork2Mods.head.id)
+        case 2 =>
+          v.history.openSurfaceIds should contain allOf (fork1Mods.last.id, fork2Mods.head.id)
+      }
     }
   }}
 }
