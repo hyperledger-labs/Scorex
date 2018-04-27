@@ -11,7 +11,7 @@ import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, NodeViewHolder, PersistentNodeViewModifier}
-import scorex.testkit.generators.{SemanticallyInvalidModifierProducer, SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
+import scorex.testkit.generators._
 import scorex.testkit.utils.AkkaFixture
 
 import scala.concurrent.Await
@@ -32,7 +32,8 @@ MPool <: MemoryPool[TX, MPool]]
     with ScorexLogging
     with SyntacticallyTargetedModifierProducer[PM, SI, HT]
     with TotallyValidModifierProducer[PM, ST, SI, HT]
-    with SemanticallyInvalidModifierProducer[PM, ST] {
+    with SemanticallyInvalidModifierProducer[PM, ST]
+    with CustomModifierProducer[PM, ST, SI, HT] {
 
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, TestProbe, PM, ST, HT)
 
@@ -266,8 +267,6 @@ MPool <: MemoryPool[TX, MPool]]
 
     val opCountBeforeFork = 10
     val fork1OpCount = 4
-    val fork2ValidPrefixOpCount = 1
-    val fork2ValidSuffixOpCount = 6
 
     val waitDuration = 10.seconds
 
@@ -290,9 +289,10 @@ MPool <: MemoryPool[TX, MPool]]
 
     // generate the second fork with the invalid block
     p.send(node, GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
-      totallyValidModifiers(v.history, v.state, fork2ValidPrefixOpCount) ++
-        Seq(semanticallyInvalidModifier(v.state)) ++
-        totallyValidModifiers(v.history, v.state, fork2ValidSuffixOpCount)
+      customModifiers(v.history, v.state,
+        Seq[ModifierProducerTemplateItem](Valid,
+          SynInvalid, // invalid modifier
+          Valid, Valid, Valid, Valid, Valid, Valid))
     })
     val fork2Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
 
@@ -305,8 +305,7 @@ MPool <: MemoryPool[TX, MPool]]
       v.history.openSurfaceIds()
     })
     val openSurfaceIds = p.expectMsgClass(waitDuration, classOf[Seq[ModifierId]])
-    val lastValidModInFork2Prefix = fork2Mods(fork2ValidPrefixOpCount - 1)
     openSurfaceIds should not contain fork2Mods.last.id
-    openSurfaceIds should contain atLeastOneOf (fork1Mods.last.id, lastValidModInFork2Prefix.id)
+    openSurfaceIds should contain atLeastOneOf (fork1Mods.last.id, fork2Mods.head.id)
   }}
 }

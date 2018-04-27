@@ -13,7 +13,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
-import scorex.testkit.generators.CoreGenerators
+import scorex.testkit.generators.{CoreGenerators, ModifierProducerTemplateItem, SynInvalid, Valid}
 
 import scala.collection.mutable
 
@@ -129,12 +129,13 @@ trait ModifierGenerators {
       blocks ++ Seq(syntacticallyValidModifier(curHistory, blocks))
     }
 
-  def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock = {
-    syntacticallyValidModifier(curHistory) match {
-      case pow: PowBlock => pow.copy(parentId = ModifierId @@ hf(pow.parentId))
-      case pos: PosBlock => pos.copy(parentId = ModifierId @@ hf(pos.parentId))
-    }
+  private def makeSyntacticallyInvalid(mod: HybridBlock): HybridBlock = mod match {
+    case pow: PowBlock => pow.copy(parentId = ModifierId @@ hf(pow.parentId))
+    case pos: PosBlock => pos.copy(parentId = ModifierId @@ hf(pos.parentId))
   }
+
+  def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock =
+    makeSyntacticallyInvalid(syntacticallyValidModifier(curHistory))
 
   def semanticallyInvalidModifier(state: HBoxStoredState): PosBlock = {
     val posBlock: PosBlock = semanticallyValidModifier(state)
@@ -194,4 +195,15 @@ trait ModifierGenerators {
     }
     headLinksValid && history.applicable(head)
   }
+
+  def customModifiers(history: HT,
+                      state: ST,
+                      template: Seq[ModifierProducerTemplateItem]): Seq[PM] =
+    template.zip(totallyValidModifiers(history, state, template.length))
+      .map { case (templateItem, mod) =>
+        templateItem match {
+          case Valid => mod
+          case SynInvalid => makeSyntacticallyInvalid(mod)
+        }
+      }
 }
