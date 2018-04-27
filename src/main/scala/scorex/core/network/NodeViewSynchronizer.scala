@@ -356,7 +356,8 @@ object NodeViewSynchronizer {
     case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
     //todo: consider sending info on the rollback
 
-    case object RollbackFailed extends NodeViewHolderEvent
+    case class RollbackFailed(branchPointOpt: Option[VersionTag]) extends NodeViewHolderEvent
+    case class RollbackSucceed(branchPointOpt: Option[VersionTag]) extends NodeViewHolderEvent
     case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
     case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
 

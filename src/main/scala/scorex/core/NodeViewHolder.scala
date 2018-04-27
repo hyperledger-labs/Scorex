@@ -4,7 +4,7 @@ import akka.actor.Actor
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.ConnectedPeer
-import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewHolderEvent, RollbackSucceed}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
@@ -248,6 +248,8 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
 
     stateToApplyTry match {
       case Success(stateToApply) =>
+        log.info(s"Rollback succeed: BranchPoint(${progressInfo.branchPoint.map(Base58.encode)})")
+        context.system.eventStream.publish(RollbackSucceed(progressInfo.branchPoint.map(VersionTag @@ _)))
 
         val u0 = UpdateInformation(history, stateToApply, None, None, suffixTrimmed)
 
@@ -274,7 +276,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
-        context.system.eventStream.publish(RollbackFailed)
+        context.system.eventStream.publish(RollbackFailed(progressInfo.branchPoint.map(VersionTag @@ _)))
         //todo: what to return here? the situation is totally wrong
         ???
     }
@@ -434,5 +436,4 @@ object NodeViewHolder {
   case class DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) extends NodeViewHolderEvent
 
   case class CurrentView[HIS, MS, VL, MP](history: HIS, state: MS, vault: VL, pool: MP)
-
 }
