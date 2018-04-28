@@ -14,14 +14,16 @@ case class CompositeHttpService(system: ActorSystem, routes: Seq[ApiRoute], sett
 
   val swaggerService: SwaggerConfigRoute = new SwaggerConfigRoute(swaggerConf: String, settings: RESTApiSettings)
 
-  val redirectToSwagger: Route = {
+  val redirectToSwagger: Route = path("" | "/") {
     redirect("/swagger", StatusCodes.PermanentRedirect)
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-  val compositeRoute = routes.map(_.route).reduce(_ ~ _) ~ corsHandler(swaggerService.route) ~
-    path("swagger") {
-      getFromResource("swagger-ui/index.html")
-    } ~ getFromResourceDirectory("swagger-ui") ~ redirectToSwagger
+  val compositeRoute: Route =
+    routes.map(_.route).reduce(_ ~ _) ~
+      corsHandler(swaggerService.route) ~
+      path("swagger")(getFromResource("swagger-ui/index.html")) ~
+      getFromResourceDirectory("swagger-ui") ~
+      redirectToSwagger
 
 }
