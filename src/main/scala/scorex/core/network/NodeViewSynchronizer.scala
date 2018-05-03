@@ -5,19 +5,18 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
-import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
-import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{MempoolReader, Transaction}
-import scorex.core.utils.NetworkTimeProvider
-import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.settings.NetworkSettings
+import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.StateReader
-import scorex.core.utils.ScorexLogging
+import scorex.core.transaction.{MempoolReader, Transaction}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.crypto.encode.Base58
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
@@ -43,10 +42,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
   import History._
-
   import NodeViewSynchronizer.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, CompareViews, ModifiersFromRemote}
-  import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler}
+  import scorex.core.NodeViewHolder.ReceivableMessages.{CompareViews, GetNodeViewChanges, ModifiersFromRemote}
+  import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
@@ -59,6 +57,26 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
+
+
+  override def preStart(): Unit = {
+    //register as a handler for synchronization-specific types of messages
+    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
+
+    //register as a listener for peers got connected (handshaked) or disconnected
+    context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
+    context.system.eventStream.subscribe(self, classOf[DisconnectedPeer])
+    // todo: replace the two lines above by a single line with classOf[PeerManagementEvent]
+
+
+    //subscribe for all the node view holder events involving modifiers and transactions
+    context.system.eventStream.subscribe(self, classOf[NodeViewChange])
+    context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
+    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
+
+    statusTracker.scheduleSendSyncInfo()
+  }
 
   private def readersOpt: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
@@ -92,6 +110,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case ChangedMempool(reader: MR@unchecked) if reader.isInstanceOf[MR] =>
       //TODO isInstanceOf, type erasure
       mempoolReaderOpt = Some(reader)
+
+    case _: NodeViewChange =>
+      // do nothing for vault and state modifications
   }
 
   protected def peerManagerEvents: Receive = {
@@ -285,25 +306,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         val msg = Message(ModifiersSpec, Right(m), None)
         peer.handlerRef ! msg
       }
-  }
-
-  override def preStart(): Unit = {
-    //register as a handler for synchronization-specific types of messages
-    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
-    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
-
-    //register as a listener for peers got connected (handshaked) or disconnected
-    context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
-    context.system.eventStream.subscribe(self, classOf[DisconnectedPeer])
-    // todo: replace the two lines above by a single line with classOf[PeerManagementEvent]
-
-
-    //subscribe for all the node view holder events involving modifiers and transactions
-    context.system.eventStream.subscribe(self, classOf[NodeViewChange])
-    context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
-    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
-
-    statusTracker.scheduleSendSyncInfo()
   }
 
   override def receive: Receive =
