@@ -1,14 +1,14 @@
 package scorex.core.api.http
 
 import akka.actor.ActorRefFactory
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
+import akka.http.scaladsl.model.StatusCode
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.unmarshalling.PredefinedFromEntityUnmarshallers
 import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Printer
-import io.circe.syntax._
 import scorex.core.utils.{ActorHelper, ScorexLogging}
+import scala.language.implicitConversions
 
 trait ApiRoute
   extends ApiDirectives
@@ -23,9 +23,8 @@ trait ApiRoute
   //TODO: should we move it to the settings?
   override val apiKeyHeaderName: String = "api_key"
 
-  implicit val printer: Printer = Printer.spaces2.copy(dropNullValues = true)
+  implicit def httpJsonStatus(status: StatusCode): ApiResponse = ApiResponse(status)
+  implicit val printer: Printer = ApiResponse.printer
   implicit lazy val timeout: Timeout = Timeout(settings.timeout)
-
-  def okJson: ToResponseMarshallable = "OK".asJson
 
 }

@@ -10,7 +10,7 @@ object ApiTry {
     f
   } match {
     case Success(r) => r
-    case Failure(e) => e.printStackTrace(); Directives.complete(ApiException(e))
+    case Failure(e) => e.printStackTrace(); Directives.complete(ApiResponse(e))
   }
 
 }

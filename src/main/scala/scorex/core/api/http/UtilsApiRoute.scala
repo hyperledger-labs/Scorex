@@ -3,7 +3,6 @@ package scorex.core.api.http
 import java.security.SecureRandom
 
 import akka.actor.ActorRefFactory
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import io.circe.Json
 import io.circe.syntax._
@@ -38,7 +37,7 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
       complete {
         json.asString match {
           case Some(message) => Base58.encode(Blake2b256(message)).asJson
-          case None => StatusCodes.BadRequest
+          case None => ApiResponse.badRequest
         }
       }
     }

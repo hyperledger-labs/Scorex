@@ -28,7 +28,7 @@ class HLocalInterface(viewHolderRef: ActorRef,
 
     //stop PoW miner and start PoS forger if PoW block comes
     //stop PoW forger and start PoW miner if PoS block comes
-    case sems: SemanticallySuccessfulModifier[HybridBlock] =>
+    case sems: SemanticallySuccessfulModifier[_] =>
       if (!block) {
         sems.modifier match {
           case wb: PowBlock =>

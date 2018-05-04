@@ -3,7 +3,7 @@ package scorex.core.api.http
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{ActorRef, ActorRefFactory}
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
 import io.circe.{Encoder, Json}
 import io.circe.generic.semiauto._
@@ -54,16 +54,13 @@ case class PeersApiRoute(peerManager: ActorRef,
   def connect: Route = (path("connect") & post & withAuth & entity(as[Json])) { json =>
     complete {
       val maybeAddress = json.asString.flatMap(addressAndPortRegexp.findFirstMatchIn)
-      if (maybeAddress.isDefined) {
-        val addressAndPort = maybeAddress.get
-        val address = new InetSocketAddress(
-          InetAddress.getByName(addressAndPort.group(1)),
-          addressAndPort.group(2).toInt
-        )
-        networkController ! ConnectTo(address)
-        okJson
-      } else {
-        StatusCodes.BadRequest
+      maybeAddress match {
+        case None => ApiResponse.badRequest
+        case Some(addressAndPort) =>
+          val host = InetAddress.getByName(addressAndPort.group(1))
+          val port = addressAndPort.group(2).toInt
+          networkController ! ConnectTo(new InetSocketAddress(host, port))
+          ApiResponse.ok
       }
     }
   }
