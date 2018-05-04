@@ -21,7 +21,7 @@ case class CompositeHttpService(system: ActorSystem, routes: Seq[ApiRoute], sett
 
   val compositeRoute: Route =
     routes.map(_.route).reduceOption(_ ~ _).getOrElse(RouteDirectives.reject) ~
-      swaggerService.route
+      swaggerService.route ~
       path("swagger")(getFromResource("swagger-ui/index.html")) ~
       getFromResourceDirectory("swagger-ui") ~
       redirectToSwagger
