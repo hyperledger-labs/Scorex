@@ -9,7 +9,7 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import io.circe.syntax._
 import scorex.core.ModifierId
-import scorex.core.api.http.{ApiRouteWithFullView, SuccessApiResponse}
+import scorex.core.api.http.{ApiRouteWithFullView, ApiResponse}
 import scorex.core.settings.RESTApiSettings
 import scorex.crypto.encode.Base58
 
@@ -31,7 +31,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
           id <- Base58.decode(encodedSignature)
           delay <- view.history.averageDelay(ModifierId @@ id, count)
         } yield delay.toString
-        complete(SuccessApiResponse("delay" -> result.getOrElse("Undefined")))
+        complete(ApiResponse("delay" -> result.getOrElse("Undefined")))
       }
     }
   }
@@ -43,7 +43,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
         case _ => view.history.bestBlock.asInstanceOf[PowBlock].asJson
       }
 
-      complete(SuccessApiResponse(
+      complete(ApiResponse(
         "height" -> view.history.height.toString.asJson,
         "bestPoS" -> Base58.encode(view.history.bestPosId).asJson,
         "bestPoW" -> Base58.encode(view.history.bestPowId).asJson,
@@ -70,7 +70,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
       val posCount = view.history.count(isMyPosBlock)
       val powCount = view.history.count(isMyPowBlock)
 
-      complete(SuccessApiResponse(
+      complete(ApiResponse(
         "pubkeys" -> pubkeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
         "count" -> (posCount + powCount).asJson,
         "posCount" -> posCount.asJson,
@@ -83,13 +83,13 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
     withNodeView { view =>
       val map: Map[String, Int] = view.history.generatorDistribution()
         .map(d => Base58.encode(d._1.pubKeyBytes) -> d._2)
-      complete(SuccessApiResponse(map.asJson))
+      complete(ApiResponse(map.asJson))
     }
   }
 
   def chain: Route = (get & path("chain")) {
     withNodeView { view =>
-      complete(SuccessApiResponse("history" -> view.history.toString))
+      complete(ApiResponse("history" -> view.history.toString))
     }
   }
 }
