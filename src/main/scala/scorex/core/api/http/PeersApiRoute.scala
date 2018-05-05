@@ -49,8 +49,6 @@ case class PeersApiRoute(peerManager: ActorRef,
 
   private val addressAndPortRegexp = "([\\w\\.]+):(\\d{1,5})".r
 
-  //todo: here we receive plain text string, not a json string
-  //Quote marks should be successfully parsed here to comply json
   def connect: Route = (path("connect") & post & withAuth & entity(as[Json])) { json =>
     complete {
       val maybeAddress = json.asString.flatMap(addressAndPortRegexp.findFirstMatchIn)
