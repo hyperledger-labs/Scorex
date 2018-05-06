@@ -9,7 +9,6 @@ import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
 import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.network.message.BasicMsgDataTypes.ModifiersData
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
@@ -183,7 +182,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
 
 
       pchProbe.fishForMessage(5 seconds) {
-        case _: Message[ModifiersData] => true
+        case _: Message[_] => true
         case _ => false
       }
     }
@@ -195,10 +194,10 @@ trait NodeViewSynchronizerTests[P <: Proposition,
     val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
       case m => m
     }
-    assert(!messages.exists(_ match {
+    assert(!messages.exists {
       case ModifiersFromRemote(p, _, _) if p == peer => true
       case _ => false
-    } ))
+    })
     // ncProbe.fishForMessage(3 seconds) { case m => ??? }
   }}
 

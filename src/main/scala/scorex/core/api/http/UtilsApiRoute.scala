@@ -4,6 +4,8 @@ import java.security.SecureRandom
 
 import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
+import io.circe.Json
+import io.circe.syntax._
 import scorex.core.settings.RESTApiSettings
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
@@ -18,27 +20,24 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
     Base58.encode(seed)
   }
 
-  override val route = pathPrefix("utils") {
+  override val route: Route = pathPrefix("utils") {
     seedRoute ~ length ~ hashBlake2b
   }
 
-  def seedRoute: Route = path("seed") {
-    get {
-      complete(seed(SeedSize))
-    }
+  def seedRoute: Route = (get & path("seed")) {
+    complete(seed(SeedSize).asJson)
   }
 
-  def length: Route = path("seed" / IntNumber) { case length =>
-    get {
-      complete(seed(length))
-    }
+  def length: Route = (get & path("seed" / IntNumber)) { length =>
+    complete(seed(length).asJson)
   }
 
   def hashBlake2b: Route = {
-    path("hash" / "blake2b") {
-      post {
-        entity(as[String]) { message =>
-          complete(Base58.encode(Blake2b256(message)))
+    (post & path("hash" / "blake2b") & entity(as[Json])) { json =>
+      complete {
+        json.asString match {
+          case Some(message) => Base58.encode(Blake2b256(message)).asJson
+          case None => ApiResponse.badRequest
         }
       }
     }
