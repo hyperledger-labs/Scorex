@@ -25,20 +25,18 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
   }
 
   def seedRoute: Route = (get & path("seed")) {
-    complete(seed(SeedSize).asJson)
+    ApiResponse(seed(SeedSize).asJson)
   }
 
   def length: Route = (get & path("seed" / IntNumber)) { length =>
-    complete(seed(length).asJson)
+    ApiResponse(seed(length).asJson)
   }
 
   def hashBlake2b: Route = {
     (post & path("hash" / "blake2b") & entity(as[Json])) { json =>
-      complete {
-        json.asString match {
-          case Some(message) => Base58.encode(Blake2b256(message)).asJson
-          case None => ApiResponse.badRequest
-        }
+      json.asString match {
+        case Some(message) => ApiResponse(Base58.encode(Blake2b256(message)).asJson)
+        case None => ApiError.BadRequest
       }
     }
   }
