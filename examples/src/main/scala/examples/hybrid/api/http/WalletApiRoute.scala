@@ -40,10 +40,10 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
             case Right(json) => Try {
               val wallet = view.vault
               // TODO: Can we do this extraction in a safer way (not calling head/get)?
-              @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+              @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
               val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
               // TODO: Can we do this extraction in a safer way (not calling head/get)?
-              @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+              @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
               val recipient: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ Base58.decode((json \\ "recipient").head.asString.get).get)
               val fee: Long = (json \\ "fee").headOption.flatMap(_.asNumber).flatMap(_.toLong).getOrElse(DefaultFee)
               val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, Value @@ amount)), fee).get
