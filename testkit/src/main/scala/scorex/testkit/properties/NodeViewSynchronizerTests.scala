@@ -168,6 +168,7 @@ trait NodeViewSynchronizerTests[P <: Proposition,
   property("NodeViewSynchronizer: DataFromPeer: RequestModifierSpec") {
     withFixture { ctx =>
       import ctx._
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val h = historyGen.sample.get
       val mod = syntacticallyValidModifier(h)
       val (newH, _) = h.append(mod).get
