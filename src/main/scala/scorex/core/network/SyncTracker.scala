@@ -37,7 +37,7 @@ class SyncTracker(nvsRef: ActorRef,
   private var stableSyncRegime = false
 
   def scheduleSendSyncInfo(): Unit = {
-    if (schedule.isDefined) schedule.get.cancel()
+    schedule foreach { _.cancel() }
     schedule = Some(context.system.scheduler.schedule(2.seconds, minInterval())(nvsRef ! SendLocalSyncInfo))
   }
 
