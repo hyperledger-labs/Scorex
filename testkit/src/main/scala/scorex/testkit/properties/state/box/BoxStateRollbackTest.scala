@@ -10,7 +10,7 @@ import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.SemanticallyValidTransactionsCarryingModifier
 
-
+@SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 trait BoxStateRollbackTest[P <: Proposition,
                             TX <: BoxTransaction[P, B],
                             PM <: PersistentNodeViewModifier,

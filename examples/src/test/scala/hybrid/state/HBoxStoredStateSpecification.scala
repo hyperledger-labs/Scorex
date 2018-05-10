@@ -8,6 +8,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.state.{Insertion, Removal}
 import scorex.testkit.properties.state.StateTests
 
+@SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 class HBoxStoredStateSpecification extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks

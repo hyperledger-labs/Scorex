@@ -26,6 +26,8 @@ trait Simulators {
     val changes = PersistentAuthenticatedUtxo.changes(txs).get
     val updUtxo = currentUtxo.applyChanges(changes, VersionTag @@ scorex.utils.Random.randomBytes()).get
 
+    // TODO: review me - .get.get
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val h = Algos.pow(defaultId, txsHash, StateRoot @@ currentUtxo.rootHash, minerPubKey.pubKeyBytes,
       miningUtxos, Constants.Difficulty, 10000).get.get
 

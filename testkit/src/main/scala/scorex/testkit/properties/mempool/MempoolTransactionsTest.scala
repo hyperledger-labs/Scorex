@@ -6,6 +6,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MemoryPool, Transaction}
 
+@SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 trait MempoolTransactionsTest[P <: Proposition, TX <: Transaction[P], MPool <: MemoryPool[TX, MPool]]
   extends PropSpec
     with GeneratorDrivenPropertyChecks

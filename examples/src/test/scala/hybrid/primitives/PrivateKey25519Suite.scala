@@ -6,7 +6,7 @@ import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import scorex.core.transaction.state.PrivateKey25519Companion
 
-
+@SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 class PrivateKey25519Suite extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks
