@@ -142,6 +142,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     case HandshakeDone =>
       require(receivedHandshake.isDefined)
 
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val peer = ConnectedPeer(remote, self, direction, receivedHandshake.get)
       selfPeer = Some(peer)
 
@@ -180,7 +181,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       chunksBuffer = t._2
 
       t._1.find { packet =>
-        messagesHandler.parseBytes(packet.toByteBuffer, Some(selfPeer.get)) match {   //todo: .get
+        messagesHandler.parseBytes(packet.toByteBuffer, selfPeer) match {
           case Success(message) =>
             log.info("Received message " + message.spec + " from " + remote)
             networkControllerRef ! message

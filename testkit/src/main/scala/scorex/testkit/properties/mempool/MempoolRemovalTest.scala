@@ -34,6 +34,7 @@ SI <: SyncInfo] extends PropSpec
     val max = 10
     forAll(Gen.choose(min, max)) { noOfTransactionsFromMempool: Int =>
       var m: MPool = memPool
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       var h: HT = historyGen.sample.get
       forAll(transactionGenerator) { tx: TX =>
         m = m.put(tx).get

@@ -32,6 +32,8 @@ class DifficultyBlockValidator(settings: HybridMiningSettings, storage: HistoryS
   //PoS consensus rules checks, throws exception if anything wrong
   private def checkPoSConsensusRules(posBlock: PosBlock, miningSettings: HybridMiningSettings): Try[Unit] = Try {
     if (!storage.isGenesis(posBlock)) {
+      // TODO: review me - .get
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val parentPoW: PowBlock = storage.modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
       val hit = PosForger.hit(parentPoW)(posBlock.generatorBox)
       val posDifficulty = storage.getPoSDifficulty(parentPoW.prevPosId)

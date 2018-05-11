@@ -10,6 +10,7 @@ import scorex.mid.state.BoxMinimalState
 
 import scala.util.Random
 
+@SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 trait BoxStateApplyChangesTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier,

@@ -240,6 +240,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                                  suffix: IndexedSeq[PMOD])
 
     val (stateToApplyTry: Try[MS], suffixTrimmed: IndexedSeq[PMOD]) = if (progressInfo.chainSwitchingNeeded) {
+        @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
         val branchingPoint = VersionTag @@ progressInfo.branchPoint.get     //todo: .get
         if (!state.version.sameElements(branchingPoint)){
           state.rollbackTo(branchingPoint) -> trimChainSuffix(suffixApplied, branchingPoint)
@@ -271,7 +272,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
         }
 
         uf.failedMod match {
-          case Some(mod) => updateState(uf.history, uf.state, uf.alternativeProgressInfo.get, uf.suffix)
+          case Some(mod) =>
+            @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
+            val alternativeProgressInfo = uf.alternativeProgressInfo.get
+            updateState(uf.history, uf.state, alternativeProgressInfo, uf.suffix)
           case None => (uf.history, Success(uf.state), uf.suffix)
         }
       case Failure(e) =>
@@ -304,6 +308,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
                 val newMemPool = updateMemPool(progressInfo.toRemove, blocksApplied, memoryPool(), newMinState)
 
                 //we consider that vault always able to perform a rollback needed
+                @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
                 val newVault = if (progressInfo.chainSwitchingNeeded) {
                   vault().rollback(VersionTag @@ progressInfo.branchPoint.get).get
                 } else vault()

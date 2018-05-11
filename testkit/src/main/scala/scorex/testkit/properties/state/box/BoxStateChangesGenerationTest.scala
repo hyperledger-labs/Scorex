@@ -9,7 +9,6 @@ import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.SemanticallyValidModifierProducer
 
-
 trait BoxStateChangesGenerationTest[P <: Proposition,
 TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier,
@@ -22,6 +21,7 @@ ST <: BoxMinimalState[P, B, TX, PM, ST]]
 
   property("State should be able to generate changes from block and apply them") {
     check(checksToMake) { _ =>
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val state1 = stateGen.sample.get
       val block = semanticallyValidModifier(state1)
       val blockChanges = state1.changes(block).get
