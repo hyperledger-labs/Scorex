@@ -28,11 +28,15 @@ class HistoryStorage(storage: LSMStore,
   def bestPosId: ModifierId = storage.get(bestPosIdKey).map(d => ModifierId @@ d.data)
     .getOrElse(settings.GenesisParentId)
 
+  // TODO: review me .get
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def bestPowBlock: PowBlock = {
     require(height > 0, "History is empty")
     modifierById(bestPowId).get.asInstanceOf[PowBlock]
   }
 
+  // TODO: review me .get
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def bestPosBlock: PosBlock = {
     require(height > 0, "History is empty")
     modifierById(bestPosId).get.asInstanceOf[PosBlock]
@@ -106,6 +110,8 @@ class HistoryStorage(storage: LSMStore,
         Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
   }
 
+  // TODO: review me .get
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def getPoWDifficulty(idOpt: Option[ModifierId]): BigInt = {
     idOpt match {
       case Some(id) if id sameElements settings.GenesisParentId =>
@@ -119,6 +125,8 @@ class HistoryStorage(storage: LSMStore,
     }
   }
 
+  // TODO: review me .get
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def getPoSDifficulty(id: ModifierId): BigInt = if (id sameElements settings.GenesisParentId) {
     PosForger.InitialDifficuly
   } else {

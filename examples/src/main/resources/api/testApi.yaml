@@ -209,7 +209,7 @@ paths:
         200:
           description: Base58-encoded 32 byte seed
           content:
-            text/plain:
+            application/json:
               schema:
                 type: string
                 example: 7yaASMijGEGTbttYHg1MrXnWB8EbzjJnFLSWvmNoHrXV
@@ -231,7 +231,7 @@ paths:
         200:
           description: Base58-encoded N byte seed
           content:
-            text/plain:
+            application/json:
               schema:
                 type: string
                 example: 7yaASMijGEGTbttYHg1MrXnWB8EbzjJnFLSWvmNoHrXV
@@ -245,7 +245,7 @@ paths:
       requestBody:
         required: true
         content:
-          text/plain:
+          application/json:
             schema:
               type: string
               example: 7yaASMijGEGTbttYHg1MrXnWB8EbzjJnFLSWvmNoHrXV
@@ -253,7 +253,7 @@ paths:
         200:
           description: Base58-encoded 32 byte hash
           content:
-            text/plain:
+            application/json:
               schema:
                 type: string
                 example: 6QLZkR1RdHvF7gUw7oms1XdQM6kc9kxpmyHRADN5x7uQ

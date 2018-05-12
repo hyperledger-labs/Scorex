@@ -25,7 +25,9 @@ trait NodeViewSynchronizerGenerators {
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
   (ActorRef, HSI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val h = historyGen.sample.get
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
     sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
@@ -38,7 +40,9 @@ trait NodeViewSynchronizerGenerators {
 
     val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref))
     val m = totallyValidModifier(h, s)
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val tx = simpleBoxTransactionGen.sample.get
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref, Outgoing,
       Handshake("", Version(0,1,2), "", None, 0L))
 

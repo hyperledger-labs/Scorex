@@ -3,25 +3,24 @@ package scorex.core.api.http
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{ActorRef, ActorRefFactory}
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
-import io.circe.Encoder
+import io.circe.{Encoder, Json}
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse}
 import scorex.core.network.Handshake
 import scorex.core.network.peer.PeerInfo
+import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers, GetConnectedPeers}
+import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
 import scorex.core.settings.RESTApiSettings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class PeersApiRoute(peerManager: ActorRef,
                          networkController: ActorRef,
-                         override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
-  extends ApiRoute {
-
-  import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetConnectedPeers, GetBlacklistedPeers}
-  import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
+                         override val settings: RESTApiSettings)
+                        (implicit val context: ActorRefFactory) extends ApiRoute {
 
   override lazy val route: Route = pathPrefix("peers") { allPeers ~ connectedPeers ~ blacklistedPeers ~ connect }
 
@@ -48,19 +47,18 @@ case class PeersApiRoute(peerManager: ActorRef,
     onSuccess(result) { r => complete(r) }
   }
 
-  private val addressAndPortRegexp = "\\w+:\\d{1,5}".r
+  private val addressAndPortRegexp = "([\\w\\.]+):(\\d{1,5})".r
 
-  //todo: here we receive plain text string, not a json string
-  //Quote marks should be successfully parsed here to comply json
-  def connect: Route = (path("connect") & post & withAuth & entity(as[String])) { body =>
+  def connect: Route = (path("connect") & post & withAuth & entity(as[Json])) { json =>
     complete {
-      if (addressAndPortRegexp.findFirstMatchIn(body).isDefined) {
-        val Array(host, port) = body.split(":")
-        val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port.toInt)
-        networkController ! ConnectTo(add)
-        StatusCodes.OK
-      } else {
-        StatusCodes.BadRequest
+      val maybeAddress = json.asString.flatMap(addressAndPortRegexp.findFirstMatchIn)
+      maybeAddress match {
+        case None => ApiResponse.badRequest
+        case Some(addressAndPort) =>
+          val host = InetAddress.getByName(addressAndPort.group(1))
+          val port = addressAndPort.group(2).toInt
+          networkController ! ConnectTo(new InetSocketAddress(host, port))
+          ApiResponse.ok
       }
     }
   }

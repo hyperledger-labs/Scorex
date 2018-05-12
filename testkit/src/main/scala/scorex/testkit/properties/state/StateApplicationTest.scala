@@ -62,6 +62,7 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
 
   property(propertyNameGenerator("application after rollback is possible (within maxRollbackDepth)")) {
     forAll(stateGen) { s =>
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val rollbackDepth = Gen.chooseNum(1, s.maxRollbackDepth).sample.get
       val buf = new ListBuffer[PM]()
       val ver = s.version
