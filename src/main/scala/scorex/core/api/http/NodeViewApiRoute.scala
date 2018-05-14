@@ -17,7 +17,7 @@ import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 
 case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
@@ -54,7 +54,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 
   def withPersistentModifier(encodedId: String)(fn: PM => Route): Route = {
     Base58.decode(encodedId) match {
-      case Failure(e) => complete(ApiResponse.notExists)
+      case Failure(_) => ApiError.NotExists
       case Success(rawId) =>
         val id = ModifierId @@ rawId
 
@@ -63,8 +63,8 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
         val futurePersistentModifier = (nodeViewHolderRef ? GetDataFromCurrentView[HIS, MS, VL, MP, Option[PM]](f)).mapTo[Option[PM]]
         onComplete(futurePersistentModifier) {
           case Success(Some(tx)) => fn(tx)
-          case Success(None) => complete(ApiResponse.notExists)
-          case Failure(_) => complete(ApiResponse.notExists)
+          case Success(None) => ApiError.NotExists
+          case Failure(_) => ApiError.NotExists
         }
     }
   }
@@ -79,25 +79,25 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 
       val serializationErrors = txAsJson.filter(_.isLeft).toList
       if (serializationErrors.nonEmpty)
-        complete(ApiResponse.fromErrors(serializationErrors.map(_.left.get)))
+        ApiError(serializationErrors.map(_.left.get))
       else
-        complete(ApiResponse(
+        ApiResponse(
           "size" -> mpd.size.asJson,
           "transactions" -> txAsJson.map(_.right.get).asJson
-        ))
+        )
     }
   }
 
   def openSurface: Route = (get & path("openSurface")) {
     withOpenSurface { os =>
-      complete(ApiResponse(os.ids.map(Base58.encode).asJson))
+      ApiResponse(os.ids.map(Base58.encode).asJson)
     }
   }
 
   def persistentModifierById: Route = (get & path("persistentModifier" / Segment)) { encodedId =>
     withPersistentModifier(encodedId) { tx =>
       val clazz = ClassTag(tx.getClass).runtimeClass
-      complete(ApiResponse(serializerReg.toJson(clazz, tx)))
+      ApiResponse(serializerReg.toJson(clazz, tx))
     }
   }
 

@@ -20,7 +20,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
                         (implicit val context: ActorRefFactory)
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
 
-  override val route = (pathPrefix("debug") & withCors) {
+  override val route: Route = (pathPrefix("debug") & withCors) {
     infoRoute ~ chain ~ delay ~ myblocks ~ generators
   }
 
@@ -31,7 +31,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
           id <- Base58.decode(encodedSignature)
           delay <- view.history.averageDelay(ModifierId @@ id, count)
         } yield delay.toString
-        complete(ApiResponse("delay" -> result.getOrElse("Undefined")))
+        ApiResponse("delay" -> result.getOrElse("Undefined"))
       }
     }
   }
@@ -43,13 +43,13 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
         case _ => view.history.bestBlock.asInstanceOf[PowBlock].asJson
       }
 
-      complete(ApiResponse(
+      ApiResponse(
         "height" -> view.history.height.toString.asJson,
         "bestPoS" -> Base58.encode(view.history.bestPosId).asJson,
         "bestPoW" -> Base58.encode(view.history.bestPowId).asJson,
         "bestBlock" -> bestBlockJson,
         "stateVersion" -> Base58.encode(view.state.version).asJson
-      ))
+      )
     }
   }
 
@@ -70,12 +70,12 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
       val posCount = view.history.count(isMyPosBlock)
       val powCount = view.history.count(isMyPowBlock)
 
-      complete(ApiResponse(
+      ApiResponse(
         "pubkeys" -> pubkeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
         "count" -> (posCount + powCount).asJson,
         "posCount" -> posCount.asJson,
         "powCount" -> powCount.asJson
-      ))
+      )
     }
   }
 
@@ -83,13 +83,13 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
     withNodeView { view =>
       val map: Map[String, Int] = view.history.generatorDistribution()
         .map(d => Base58.encode(d._1.pubKeyBytes) -> d._2)
-      complete(ApiResponse(map.asJson))
+      ApiResponse(map.asJson)
     }
   }
 
   def chain: Route = (get & path("chain")) {
     withNodeView { view =>
-      complete(ApiResponse("history" -> view.history.toString))
+      ApiResponse("history" -> view.history.toString)
     }
   }
 }

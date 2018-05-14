@@ -9,7 +9,7 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HWallet
 import io.circe.parser._
 import io.circe.syntax._
-import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView}
+import scorex.core.api.http.{ApiError, ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
@@ -36,7 +36,7 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
       withAuth {
         withNodeView { view =>
           parse(body) match {
-            case Left(failure) => complete(ApiResponse(failure.getCause))
+            case Left(failure) => ApiError(failure.getCause)
             case Right(json) => Try {
               val wallet = view.vault
               // TODO: Can we do this extraction in a safer way (not calling head/get)?
@@ -50,8 +50,8 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
               nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
               tx.asJson
             } match {
-              case Success(resp) => complete(ApiResponse(resp))
-              case Failure(e) => complete(ApiResponse(e))
+              case Success(resp) => ApiResponse(resp)
+              case Failure(e) => ApiError(e)
             }
           }
         }
@@ -62,12 +62,12 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
   def balances: Route = (get & path("balances")) {
     withNodeView { view =>
       val wallet = view.vault
-      val boxes = wallet.boxes()
-      complete(ApiResponse(
-        "totalBalance" -> boxes.map(_.box.value.toLong).sum.toString.asJson,
+      val boxes = wallet.boxes().map(_.box)
+      ApiResponse(
+        "totalBalance" -> boxes.map(_.value.toLong).sum.toString.asJson,
         "publicKeys" -> wallet.publicKeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
-        "boxes" -> boxes.map(_.box.asJson).asJson
-      ))
+        "boxes" -> boxes.asJson
+      )
     }
   }
 

@@ -3,7 +3,6 @@ package scorex.core.api.http
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{ActorRef, ActorRefFactory}
-import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
 import io.circe.{Encoder, Json}
 import io.circe.generic.semiauto._
@@ -28,9 +27,9 @@ case class PeersApiRoute(peerManager: ActorRef,
     val result = askActor[Map[InetSocketAddress, PeerInfo]](peerManager, GetAllPeers).map {
       _.map { case (address, peerInfo) =>
         PeerInfoResponse.fromAddressAndInfo(address, peerInfo)
-      }
+      }.asJson
     }
-    onSuccess(result) { r => complete(r) }
+    ApiResponse(result)
   }
 
   def connectedPeers: Route = (path("connected") & get) {
@@ -42,30 +41,28 @@ case class PeersApiRoute(peerManager: ActorRef,
           lastSeen = now,
           name = Some(handshake.nodeName),
           connectionType = None)
-      }
+      }.asJson
     }
-    onSuccess(result) { r => complete(r) }
+    ApiResponse(result)
   }
 
   private val addressAndPortRegexp = "([\\w\\.]+):(\\d{1,5})".r
 
   def connect: Route = (path("connect") & post & withAuth & entity(as[Json])) { json =>
-    complete {
-      val maybeAddress = json.asString.flatMap(addressAndPortRegexp.findFirstMatchIn)
-      maybeAddress match {
-        case None => ApiResponse.badRequest
-        case Some(addressAndPort) =>
-          val host = InetAddress.getByName(addressAndPort.group(1))
-          val port = addressAndPort.group(2).toInt
-          networkController ! ConnectTo(new InetSocketAddress(host, port))
-          ApiResponse.ok
-      }
+    val maybeAddress = json.asString.flatMap(addressAndPortRegexp.findFirstMatchIn)
+    maybeAddress match {
+      case None => ApiError.BadRequest
+      case Some(addressAndPort) =>
+        val host = InetAddress.getByName(addressAndPort.group(1))
+        val port = addressAndPort.group(2).toInt
+        networkController ! ConnectTo(new InetSocketAddress(host, port))
+        ApiResponse.OK
     }
   }
 
   def blacklistedPeers: Route = (path("blacklisted") & get) {
-    val result = askActor[Seq[String]](peerManager, GetBlacklistedPeers).map { BlacklistedPeers }
-    onSuccess(result) { v => complete(v.asJson) }
+    val result = askActor[Seq[String]](peerManager, GetBlacklistedPeers).map(BlacklistedPeers(_).asJson)
+    ApiResponse(result)
   }
 }
 

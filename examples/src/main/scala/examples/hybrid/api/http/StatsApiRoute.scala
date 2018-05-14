@@ -26,7 +26,7 @@ case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
     withNodeView { view =>
       val lastBlockIds = view.history.lastBlockIds(view.history.bestBlock, count)
       val tail = lastBlockIds.map(id => Base58.encode(id).asJson)
-      complete(ApiResponse("count" -> count.asJson, "tail" -> tail.asJson))
+      ApiResponse("count" -> count.asJson, "tail" -> tail.asJson)
     }
   }
 
@@ -37,10 +37,10 @@ case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
         val ids: Seq[ModifierId] = view.history.lastBlockIds(view.history.bestBlock, count).take(end - start)
         val posDiff = ids.flatMap(id => Try(view.history.storage.getPoSDifficulty(id)).toOption)
         val powDiff = ids.flatMap(id => Try(view.history.storage.getPoWDifficulty(Some(id))).toOption)
-        complete(ApiResponse(
+        ApiResponse(
           "posDiff" -> (posDiff.sum / posDiff.length).asJson,
           "powDiff" -> (powDiff.sum / powDiff.length).asJson
-        ))
+        )
       }
     }
   }
