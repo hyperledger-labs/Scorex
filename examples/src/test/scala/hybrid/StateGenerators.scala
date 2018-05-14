@@ -15,6 +15,7 @@ trait StateGenerators extends StoreGenerators { this: HybridGenerators with Core
 
   private val valueSeed = 5000000
 
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   val stateGen: Gen[HBoxStoredState] =
     for {
       dir <- tempDirGen

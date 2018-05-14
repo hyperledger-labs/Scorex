@@ -17,7 +17,9 @@ import scorex.testkit.generators.{CoreGenerators, ModifierProducerTemplateItem, 
 
 import scala.collection.mutable
 
-@SuppressWarnings(Array("org.wartremover.warts.TraversableOps","org.wartremover.warts.IsInstanceOf"))
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps",
+                        "org.wartremover.warts.IsInstanceOf",
+                        "org.wartremover.warts.OptionPartial"))
 trait ModifierGenerators {
   this: HybridGenerators with CoreGenerators =>
 

@@ -57,6 +57,7 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
   /**
     * Average delay in milliseconds between last blockNum blocks starting from block
     */
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def averageDelay(blockId: ModifierId, blockNum: Int): Try[Long] = Try {
     val block = modifierById(blockId).get
     (block.timestamp - parent(block, blockNum).get.timestamp) / blockNum
@@ -81,6 +82,8 @@ trait BlockChain[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX], SI <
 
   def children(blockId: ModifierId): Seq[B]
 
+  // TODO: Would it be better to give `genesisBlock` type Option[B]?
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   lazy val genesisBlock: B = blockAt(1).get
 
   /**

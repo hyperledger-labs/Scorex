@@ -100,7 +100,11 @@ object PrivateChain extends App with ScorexLogging {
       }
     } while (!(history.height == 10 && history.pairCompleted))
 
-    history.bestPosBlock.timestamp - history.modifierById(firstId).get.asInstanceOf[PowBlock].timestamp
+    // TODO: review me - .get
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
+    val timestampDifference =
+      history.bestPosBlock.timestamp - history.modifierById(firstId).get.asInstanceOf[PowBlock].timestamp
+    timestampDifference
   }
 
   val experiments: Int = 2

@@ -47,6 +47,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HBoxStoredState.changes(mod)
 
   //Validate transactions in block and generator box
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   override def validate(mod: HPMOD): Try[Unit] = Try {
     mod match {
       case pwb: PowBlock =>
@@ -59,6 +60,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       case psb: PosBlock =>
         require(psb.parentId sameElements version, s"Incorrect state version!: ${Base58.encode(psb.parentId)} found, " +
           s"${Base58.encode(version)} expected")
+        //TODO/review this: if the get below is removed, some of hybrid.HybridSanity and hybrid.NodeViewHolderSpec tests fail
         closedBox(psb.generatorBox.id).get
         psb.transactions.foreach(tx => validate(tx).get)
     }

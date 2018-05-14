@@ -25,6 +25,7 @@ import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration._
 import scala.util.Random
 
+@SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 trait HybridGenerators extends ExamplesCommonGenerators
   with StoreGenerators
   with HistoryGenerators
@@ -183,6 +184,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
       attach: Array[Byte] <- genBoundedBytes(0, 4096)
     } yield (id, timestamp, box, attach, generator)).apply(Gen.Parameters.default, Seed.random()).get
 
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val txs = memoryPoolOpt.map { memPool =>
       val toTake = Random.nextInt(memPool.size)
       Random.shuffle(memPool.take(memPool.size).toSeq).take(toTake)
