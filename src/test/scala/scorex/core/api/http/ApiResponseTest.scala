@@ -35,6 +35,13 @@ class ApiResponseTest extends FlatSpec with Matchers with ScalatestRouteTest {
     }
   }
 
+  it should "return 404 for None" in {
+    val route = ApiResponse(None)
+    request ~> route ~> check {
+      status shouldBe StatusCodes.NotFound
+    }
+  }
+
   it should "support future json" in {
     val route = ApiResponse(Future.successful(Map("msg" -> "OK").asJson))
     request ~> route ~> check {
@@ -53,6 +60,13 @@ class ApiResponseTest extends FlatSpec with Matchers with ScalatestRouteTest {
 
   it should "return 404 for Null future json" in {
     val route = ApiResponse(Future.successful(None.asJson))
+    request ~> route ~> check {
+      status shouldBe StatusCodes.NotFound
+    }
+  }
+
+  it should "return 404 for future None" in {
+    val route = ApiResponse(Future.successful(None))
     request ~> route ~> check {
       status shouldBe StatusCodes.NotFound
     }

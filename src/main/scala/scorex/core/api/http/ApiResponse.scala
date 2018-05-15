@@ -37,8 +37,8 @@ object ApiResponse {
   def apply[R: Encoder](result: R): Route = OK(result)
   def apply[R: Encoder](result: Future[R]): Route = OK(result)
   def apply(result: Either[Throwable, Json]): Route = result.fold(ApiError.apply, OK.apply)
-  def apply(keyValues: (String, Json)*): Route = apply(Map(keyValues: _*).asJson)
-  def apply(keyValue: (String, String)): Route = apply(Map(keyValue).asJson)
+  def apply(keyValues: (String, Json)*): Route = apply(Map(keyValues: _*))
+  def apply(keyValue: (String, String)): Route = apply(Map(keyValue))
 
   object OK extends ApiResponse(StatusCodes.OK)
 }
