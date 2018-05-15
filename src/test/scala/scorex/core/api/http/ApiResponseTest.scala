@@ -2,6 +2,7 @@ package scorex.core.api.http
 
 import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import io.circe.Json
 import io.circe.syntax._
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -13,6 +14,14 @@ class ApiResponseTest extends FlatSpec with Matchers with ScalatestRouteTest {
 
   "ApiResponse" should "support json objects" in {
     val route = ApiResponse(Map("msg" -> "OK").asJson)
+    request ~> route ~> check {
+      status shouldBe StatusCodes.OK
+      responseAs[String] should include("\"OK\"")
+    }
+  }
+
+  it should "wrap objects to json" in {
+    val route = ApiResponse(Map("msg" -> "OK"))
     request ~> route ~> check {
       status shouldBe StatusCodes.OK
       responseAs[String] should include("\"OK\"")
@@ -34,7 +43,15 @@ class ApiResponseTest extends FlatSpec with Matchers with ScalatestRouteTest {
     }
   }
 
-  it should "return 404 for future json" in {
+  it should "wrap future objects to json" in {
+    val route = ApiResponse(Future.successful(Map("msg" -> "OK")))
+    request ~> route ~> check {
+      status shouldBe StatusCodes.OK
+      responseAs[String] should include("\"OK\"")
+    }
+  }
+
+  it should "return 404 for Null future json" in {
     val route = ApiResponse(Future.successful(None.asJson))
     request ~> route ~> check {
       status shouldBe StatusCodes.NotFound
@@ -42,7 +59,7 @@ class ApiResponseTest extends FlatSpec with Matchers with ScalatestRouteTest {
   }
 
   it should "return 500 for failure" in {
-    val route = ApiResponse(Future.failed(new Exception))
+    val route = ApiResponse(Future.failed[Json](new Exception))
     request ~> route ~> check {
       status shouldBe StatusCodes.InternalServerError
     }
