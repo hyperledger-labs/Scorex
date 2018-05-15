@@ -2,12 +2,12 @@ package scorex.core.validation
 
 
 import scorex.core.consensus.ModifierSemanticValidity
-import ValidationResult._
+import scorex.core.validation.ValidationResult._
 import scorex.crypto.encode.Base58
 
 /** Base trait for the modifier validation process
   */
-trait ModifierValidation {
+trait ModifierValidator {
 
   /** Start validation in Fail-Fast mode */
   def failFast: ValidationState = ValidationState(Valid, ValidationStrategy.FailFast)
@@ -30,27 +30,47 @@ trait ModifierValidation {
 
 case class ValidationState(result: ValidationResult, strategy: ValidationStrategy) {
 
+  /** Reverse condition: Validate the condition is `false` or else return the `error` given */
   def validateNot(condition: => Boolean)(error: => Invalid): ValidationState = {
     validate(!condition)(error)
   }
 
-  def validateEquals(given: => Array[Byte], expected: Array[Byte])(error: String => Invalid): ValidationState = {
+  /** Validate the first argument equals the second. This should not be used with `Id` of type `Array[Byte]`.
+    * The `error` callback will be provided with detail on argument values for better reporting
+    */
+  def validateEquals[T](given: => T)(expected: => T)(error: String => Invalid): ValidationState = {
+    (given, expected) match {
+      case (a: Array[_], b: Array[_]) if a sameElements b =>
+        pass(Valid)
+      case (_: Array[_], _) =>
+        pass(error(s"Given: $given, expected: $expected. Use validateEqualIds when comparing Arrays"))
+      case _ =>
+        validate(given == expected)(error(s"Given: $given, expected $expected"))
+    }
+  }
+
+  /** Validate the `id`s are equal. The `error` callback will be provided with detail on argument values */
+  def validateEqualIds(given: => Array[Byte], expected: => Array[Byte])(error: String => Invalid): ValidationState = {
     validate(given sameElements expected)(error(s"Given: ${Base58.encode(given)}, expected ${Base58.encode(expected)}"))
   }
 
-  def validateEquals[T](given: => T, expected: => T)(error: String => Invalid): ValidationState = {
-    validate(given == expected)(error(s"Given: $given, expected $expected"))
-  }
 
+  /** Wrap semantic validity to the validation state: if semantic validity was not Valid, then return the `error` given
+    */
   def validateSemantics(validity: => ModifierSemanticValidity)(error: => Invalid): ValidationState = {
     validate(validity == ModifierSemanticValidity.Valid)(error)
   }
 
+  /** Validate the condition is `true` or else return the `error` given */
   def validate(condition: => Boolean)(error: => Invalid): ValidationState = {
-    validate(if (condition) Valid else error)
+    pass(if (condition) Valid else error)
   }
 
-  def validate(operation: => ValidationResult): ValidationState = {
+  /** This is for nested validations that allow mixing fail-fast and accumulate-errors validation strategies */
+  def validate(operation: => ValidationResult): ValidationState = pass(operation)
+
+  /** Create the next validation state as the result of given `operation` */
+  def pass(operation: => ValidationResult): ValidationState = {
     result match {
       case Valid => copy(result = operation)
       case Invalid(_) if strategy.isFailFast => this

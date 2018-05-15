@@ -1,5 +1,9 @@
 package scorex.core.validation
 
+import akka.http.scaladsl.server.Route
+import scorex.core.api.http.ApiError
+import scorex.core.validation.ValidationResult.{Invalid, Valid}
+
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
@@ -9,11 +13,20 @@ sealed trait ValidationResult {
 
   def isValid: Boolean
 
+  def message: String
+
+  def errors: Seq[ModifierError]
+
   def ++(next: ValidationResult): ValidationResult
 
   def toTry: Try[Unit]
 
   def toFuture: Future[Unit] = Future.fromTry(toTry)
+
+  def toApi(onSuccess: => Route): Route = this match {
+    case Valid => onSuccess
+    case Invalid(_) => ApiError.BadRequest(message)
+  }
 
 }
 
@@ -25,6 +38,8 @@ object ValidationResult {
     */
   final case object Valid extends ValidationResult {
     def isValid: Boolean = true
+    def message: String = "OK"
+    def errors: Seq[ModifierError] = Seq.empty
     def ++(next: ValidationResult): ValidationResult = next
     def toTry: Try[Unit] = Success(())
   }
@@ -34,6 +49,7 @@ object ValidationResult {
   final case class Invalid(errors: Seq[ModifierError]) extends ValidationResult {
     def isValid: Boolean = false
     def isFatal: Boolean = errors.exists(_.isFatal)
+    def message: String = "Validation errors: " + errors.mkString(" | ")
 
     def ++(next: ValidationResult): ValidationResult = {
       next match {

@@ -5,7 +5,7 @@ import scorex.core.ModifierId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.validation.ValidationResult._
 
-class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
+class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
 
   "ModifierValidation" should "be able to succeed when failing fast" in {
     val result = failFast
@@ -23,6 +23,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
         fatal("Should never happen")
       }
       .result
+
     result.isValid shouldBe true
     result shouldBe a[Valid]
   }
@@ -37,8 +38,9 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
       }
       .result
 
+    result.isValid shouldBe false
     result shouldBe an[Invalid]
-    result.asInstanceOf[Invalid].errors should have size 1
+    result.errors should have size 1
   }
 
   it should "support error accumulation" in {
@@ -51,8 +53,9 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
       }
       .result
 
+    result.isValid shouldBe false
     result shouldBe an[Invalid]
-    result.asInstanceOf[Invalid].errors should have size 2
+    result.errors should have size 2
   }
 
   it should "be lazy" in {
@@ -66,7 +69,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
         fatal(s"This should be skipped")
       }
       .result
-
+    result.isValid shouldBe false
     result shouldBe an[Invalid]
     i shouldBe 0
   }
@@ -77,11 +80,11 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
         error("Could be recovered")
       }
       .result
+
     result shouldBe an[Invalid]
-    val invalid = result.asInstanceOf[Invalid]
-    invalid.isFatal shouldBe false
-    invalid.errors should have size 1
-    all(invalid.errors) shouldBe a[RecoverableModifierError]
+    result.errors should have size 1
+    all(result.errors) shouldBe a[RecoverableModifierError]
+    result.asInstanceOf[Invalid].isFatal shouldBe false
   }
 
   it should "support fatal errors" in {
@@ -93,11 +96,12 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
         fatal("Could not be recovered")
       }
       .result
+
+    result.isValid shouldBe false
     result shouldBe an[Invalid]
-    val invalid = result.asInstanceOf[Invalid]
-    invalid.isFatal shouldBe true
-    invalid.errors should have size 2
-    exactly(1, invalid.errors) shouldBe a[MalformedModifierError]
+    result.errors should have size 2
+    exactly(1, result.errors) shouldBe a[MalformedModifierError]
+    result.asInstanceOf[Invalid].isFatal shouldBe true
   }
 
   it should "support accumulating nesting" in {
@@ -119,8 +123,9 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
           .result
       }
       .result
-    result shouldBe an[Invalid]
-    result.asInstanceOf[Invalid].errors should have size 2
+
+    result.isValid shouldBe false
+    result.errors should have size 2
   }
 
   it should "support fail fast nesting" in {
@@ -142,8 +147,9 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
           .result
       }
       .result
-    result shouldBe an[Invalid]
-    result.asInstanceOf[Invalid].errors should have size 2
+
+    result.isValid shouldBe false
+    result.errors should have size 2
   }
 
   it should "fail fast while nesting" in {
@@ -163,9 +169,9 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
           .result
       }
       .result
-    result shouldBe an[Invalid]
-    val invalid = result.asInstanceOf[Invalid]
-    invalid.errors.map(_.message) shouldBe Seq(errMessage)
+
+    result.isValid shouldBe false
+    result.errors.map(_.message) shouldBe Seq(errMessage)
   }
 
   it should "correctly check byte array equality" in {
@@ -176,37 +182,38 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
     val differentBytesMsg = "Different bytes"
     val differentLengthMsg = s"Different length"
     val result = accumulateErrors
-      .validateEquals(id, ModifierId @@ Array.fill(len)(byte1)) { detail =>
+      .validateEqualIds(id, Array.fill(len)(byte1)) { detail =>
         fatal(s"Should never happen. $detail")
       }
-      .validateEquals(id, ModifierId @@ Array.fill(len)(byte2)) { _ =>
+      .validateEqualIds(id, Array.fill(len)(byte2)) { _ =>
         fatal(differentBytesMsg)
       }
-      .validateEquals(id, ModifierId @@ Array.fill(len + 1)(byte1)) { _ =>
+      .validateEqualIds(id, Array.fill(len + 1)(byte1)) { _ =>
         fatal(differentLengthMsg)
       }
       .result
+
+    result.isValid shouldBe false
     result shouldBe an[Invalid]
-    val invalid = result.asInstanceOf[Invalid]
-    invalid.errors should have size 2
-    invalid.errors.map(_.message) should contain only(differentBytesMsg, differentLengthMsg)
+    result.errors should have size 2
+    result.errors.map(_.message) should contain only(differentBytesMsg, differentLengthMsg)
   }
 
   it should "correctly check equality" in {
     val errMsg = "Error"
     val result = accumulateErrors
-      .validateEquals("123", "12" + "3") { detail =>
+      .validateEquals("123")("12" + "3") { detail =>
         fatal(s"Should never happen. $detail")
       }
-      .validateEquals("123", "122") { _ =>
+      .validateEquals("123")("122") { _ =>
         fatal(errMsg)
       }
       .result
 
+    result.isValid shouldBe false
     result shouldBe an[Invalid]
-    val invalid = result.asInstanceOf[Invalid]
-    invalid.errors should have size 1
-    invalid.errors.map(_.message) should contain only errMsg
+    result.errors should have size 1
+    result.errors.map(_.message) should contain only errMsg
   }
 
   it should "correctly check semantic validity" in {
@@ -225,12 +232,12 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
       }
       .result
 
+    result.isValid shouldBe false
     result shouldBe an[Invalid]
-    val invalid = result.asInstanceOf[Invalid]
-    invalid.errors should have size 3
-    invalid.errors.map(_.message) should contain only(ModifierSemanticValidity.Invalid.toString,
-                                                      ModifierSemanticValidity.Absent.toString,
-                                                      ModifierSemanticValidity.Unknown.toString)
+    result.errors should have size 3
+    result.errors.map(_.message) should contain only(ModifierSemanticValidity.Invalid.toString,
+                                                     ModifierSemanticValidity.Absent.toString,
+                                                     ModifierSemanticValidity.Unknown.toString)
   }
 
   it should "support `not` condition" in {
@@ -244,10 +251,10 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidation {
       }
       .result
 
+    result.isValid shouldBe false
     result shouldBe an[Invalid]
-    val invalid = result.asInstanceOf[Invalid]
-    invalid.errors should have size 1
-    invalid.errors.map(_.message) should contain only errMsg
+    result.errors should have size 1
+    result.errors.map(_.message) should contain only errMsg
   }
 
 }
