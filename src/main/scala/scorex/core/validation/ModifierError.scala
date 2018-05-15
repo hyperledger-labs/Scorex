@@ -21,3 +21,13 @@ case class RecoverableModifierError(message: String) extends Exception(message) 
   def isFatal: Boolean = false
   def toThrowable: Throwable = this
 }
+
+
+/** Composite error class that can hold more than one modifier error inside. This was not made a `ModifierError` instance
+  * intentionally to prevent nesting `MultipleErrors` to `MultipleErrors`
+  */
+@SuppressWarnings(Array("org.wartremover.warts.Null"))
+case class MultipleErrors(errors: Seq[ModifierError])
+     extends Exception(errors.mkString(" | "), errors.headOption.map(_.toThrowable).orNull) {
+  def isFatal: Boolean = errors.exists(_.isFatal)
+}

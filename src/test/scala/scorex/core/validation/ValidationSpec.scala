@@ -221,23 +221,21 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
       .validateSemantics(ModifierSemanticValidity.Valid) {
         fatal("Should never happen")
       }
-      .validateSemantics(ModifierSemanticValidity.Invalid) {
-        fatal(ModifierSemanticValidity.Invalid.toString)
-      }
       .validateSemantics(ModifierSemanticValidity.Absent) {
         fatal(ModifierSemanticValidity.Absent.toString)
       }
       .validateSemantics(ModifierSemanticValidity.Unknown) {
         fatal(ModifierSemanticValidity.Unknown.toString)
       }
+      .validateSemantics(ModifierSemanticValidity.Invalid) {
+        fatal(ModifierSemanticValidity.Invalid.toString)
+      }
       .result
 
     result.isValid shouldBe false
     result shouldBe an[Invalid]
-    result.errors should have size 3
-    result.errors.map(_.message) should contain only(ModifierSemanticValidity.Invalid.toString,
-                                                     ModifierSemanticValidity.Absent.toString,
-                                                     ModifierSemanticValidity.Unknown.toString)
+    result.errors should have size 1
+    result.errors.map(_.message) should contain only(ModifierSemanticValidity.Invalid.toString)
   }
 
   it should "support `not` condition" in {

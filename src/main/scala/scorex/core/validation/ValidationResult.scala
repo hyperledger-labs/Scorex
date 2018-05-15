@@ -58,13 +58,11 @@ object ValidationResult {
       }
     }
 
-    lazy val toTry: Try[Unit] = Failure(ValidationErrors(errors))
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    lazy val toTry: Try[Unit] = {
+      if (errors.size == 1) Failure(errors.head.toThrowable) else Failure(MultipleErrors(errors))
+    }
   }
 
 }
 
-@SuppressWarnings(Array("org.wartremover.warts.Null"))
-case class ValidationErrors(errors: Seq[ModifierError])
-  extends Exception(errors.mkString(" | "), errors.headOption.map(_.toThrowable).orNull) {
-  def isFatal: Boolean = errors.exists(_.isFatal)
-}

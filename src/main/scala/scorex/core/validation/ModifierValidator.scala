@@ -58,7 +58,7 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
   /** Wrap semantic validity to the validation state: if semantic validity was not Valid, then return the `error` given
     */
   def validateSemantics(validity: => ModifierSemanticValidity)(error: => Invalid): ValidationState = {
-    validate(validity == ModifierSemanticValidity.Valid)(error)
+    validateNot(validity == ModifierSemanticValidity.Invalid)(error)
   }
 
   /** Validate the condition is `true` or else return the `error` given */
