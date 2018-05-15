@@ -8,7 +8,11 @@ import io.circe.syntax._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 
+/** Bunch of methods to wrap json result to route with the given status code, completing it.
+  * When receiving `Null` json, then complete route with `404 not found` status code.
+  */
 class ApiResponse(statusCode: StatusCode) {
+
   def apply(result: Future[Json]): Route = Directives.onSuccess(result)(complete)
   def apply(result: Json): Route = withJson(result)
 
@@ -16,10 +20,12 @@ class ApiResponse(statusCode: StatusCode) {
   def defaultMessage: String = statusCode.reason
 
   def withString(s: String): Route = complete(s.asJson)
+
   def withJson(result: Json): Route = complete(result)
 
-  def complete(result: Json): Route = {
-    Directives.complete(statusCode.intValue() -> HttpEntity(ContentTypes.`application/json`, result.spaces2))
+  def complete(result: Json): Route = result match {
+    case json if json.isNull => ApiError.NotExists
+    case _ => Directives.complete(statusCode.intValue() -> HttpEntity(ContentTypes.`application/json`, result.spaces2))
   }
 }
 
