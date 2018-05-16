@@ -12,19 +12,19 @@ object ModifierSemanticValidity {
     else Absent
 
   case object Absent extends ModifierSemanticValidity {
-    override val code = 0.toByte
+    override val code: Byte = 0
   }
 
   case object Unknown extends ModifierSemanticValidity {
-    override val code = 1.toByte
+    override val code: Byte = 1
   }
 
   case object Valid extends ModifierSemanticValidity {
-    override val code = 2.toByte
+    override val code: Byte = 2
   }
 
   case object Invalid extends ModifierSemanticValidity {
-    override val code = 3.toByte
+    override val code: Byte = 3
   }
 
 }
