@@ -2,8 +2,8 @@ package scorex.core.api.http
 
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCode, StatusCodes}
 import akka.http.scaladsl.server.{Directives, Route}
-import io.circe.{Encoder, Json}
 import io.circe.syntax._
+import io.circe.{Encoder, Json}
 
 import scala.concurrent.Future
 import scala.language.implicitConversions
@@ -25,9 +25,13 @@ class ApiResponse(statusCode: StatusCode) {
 
   def withJson[R](result: R)(implicit encoder: Encoder[R]): Route = complete(encoder(result))
 
-  def complete(result: Json): Route = result match {
-    case json if json.isNull => ApiError.NotExists
-    case _ => Directives.complete(statusCode.intValue() -> HttpEntity(ContentTypes.`application/json`, result.spaces2))
+  def complete(result: Json): Route = {
+    if (result.isNull) {
+      ApiError.NotExists
+    } else {
+      val httpEntity = HttpEntity(ContentTypes.`application/json`, result.spaces2)
+      Directives.complete(statusCode.intValue() -> httpEntity)
+    }
   }
 }
 
