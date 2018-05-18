@@ -5,7 +5,20 @@ import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.validation.ValidationResult._
 import scorex.crypto.encode.Base58
 
-/** Base trait for the modifier validation process
+/** Base trait for the modifier validation process.
+  *
+  * This code was pretty much inspired by cats `Validated` facility. There is a reason why don't we use the original
+  * cats facility in our code. It doesn't suit well for modifier validation in Ergo as being supposed mostly
+  * for the web from validation. It's really good in accumulating all the validated fields and constructing
+  * a composite object from all these fields.
+  *
+  * We have a pretty different case, because we need to perform multiple checks for the same object without
+  * any transformation. This looks too messy when we try to achieve this via cats `Validated`. See the example of that
+  * kind of validation in Ergo `org.ergoplatform.nodeView.history.storage.modifierprocessors.HeadersProcessor.HeaderValidator`.
+  * Some other examples could also be found in `scorex.core.validation.ValidationSpec`.
+  *
+  * The second distinction from cats `Validated` is that we do support both fail-fast and error-accumulating validation
+  * while cats `Validated` supports only accumulative approach.
   */
 trait ModifierValidator {
 
@@ -18,7 +31,7 @@ trait ModifierValidator {
   /** report recoverable modifier error that could be fixed by later retries */
   def error(errorMessage: String): Invalid = invalid(RecoverableModifierError(errorMessage))
 
-  /** report non-recoverable modifier error that could be fixed by later and requires modifier change */
+  /** report non-recoverable modifier error that could be fixed by retries and requires modifier change */
   def fatal(errorMessage: String): Invalid = invalid(MalformedModifierError(errorMessage))
 
   /** unsuccessful validation with a given error*/
@@ -28,6 +41,7 @@ trait ModifierValidator {
   def success: Valid = Valid
 }
 
+/** This is the place where all the validation DSL lives */
 case class ValidationState(result: ValidationResult, strategy: ValidationStrategy) {
 
   /** Reverse condition: Validate the condition is `false` or else return the `error` given */
@@ -79,6 +93,9 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
   }
 }
 
+/** The strategy indicates are we going to perform fail-fast or error-accumulative validation.
+  * These two could be also mixed by nested validations.
+  */
 sealed abstract class ValidationStrategy(val isFailFast: Boolean)
 
 object ValidationStrategy {
