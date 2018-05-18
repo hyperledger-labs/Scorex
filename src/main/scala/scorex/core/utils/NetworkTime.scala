@@ -19,9 +19,9 @@ object NetworkTime {
 
 case class NetworkTimeProviderSettings(server: String, updateEvery: FiniteDuration, timeout: FiniteDuration)
 
-class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings) extends ScorexLogging {
+class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings)(implicit ec: ExecutionContext)
+  extends ScorexLogging {
 
-  private implicit val ec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor)
   private val lastUpdate = new AtomicLong(0)
   private var offset = new AtomicLong(0)
   private val client = new NTPUDPClient()
@@ -47,11 +47,11 @@ class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings) extends Scor
           lastUpdate.set(time)
         case Failure(e) =>
           log.warn("Problems with NTP: ", e)
-          lastUpdate.compareAndSet(time,lu)
+          lastUpdate.compareAndSet(time, lu)
       }
     } else {
       // No update required. Set lastUpdate back to it's initial value
-      lastUpdate.compareAndSet(time,lu)
+      lastUpdate.compareAndSet(time, lu)
     }
   }
 
