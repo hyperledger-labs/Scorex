@@ -11,6 +11,7 @@ import io.iohk.iodb.LSMStore
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.History._
 import scorex.core.consensus._
+import scorex.core.consensus.ModifierSemanticValidity._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}

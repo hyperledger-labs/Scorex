@@ -5,7 +5,8 @@ import examples.hybrid.blocks._
 import examples.hybrid.mining.{HybridMiningSettings, PosForger}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.ModifierId
-import scorex.core.consensus.{Absent, ModifierSemanticValidity, Unknown}
+import scorex.core.consensus.ModifierSemanticValidity
+import scorex.core.consensus.ModifierSemanticValidity.{Absent, Unknown}
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Sha256
 

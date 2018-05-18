@@ -10,20 +10,21 @@ object ModifierSemanticValidity {
     else if (code == Unknown.code) Unknown
     else if (code == Invalid.code) Invalid
     else Absent
-}
 
-case object Absent extends ModifierSemanticValidity {
-  override val code = 0
-}
+  case object Absent extends ModifierSemanticValidity {
+    override val code: Byte = 0
+  }
 
-case object Unknown extends ModifierSemanticValidity {
-  override val code = 1
-}
+  case object Unknown extends ModifierSemanticValidity {
+    override val code: Byte = 1
+  }
 
-case object Valid extends ModifierSemanticValidity {
-  override val code = 2
-}
+  case object Valid extends ModifierSemanticValidity {
+    override val code: Byte = 2
+  }
 
-case object Invalid extends ModifierSemanticValidity {
-  override val code = 3
+  case object Invalid extends ModifierSemanticValidity {
+    override val code: Byte = 3
+  }
+
 }
