@@ -23,7 +23,7 @@ class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings) extends Scor
 
   private implicit val ec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor)
   private val lastUpdate = new AtomicLong(0)
-  private var offset = 0L
+  private var offset = new AtomicLong(0)
   private val client = new NTPUDPClient()
   client.setDefaultTimeout(ntpSettings.timeout.toMillis.toInt)
   client.open()
@@ -35,29 +35,29 @@ class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings) extends Scor
   }
 
   private def checkUpdateRequired(): Unit = {
-    val time = NetworkTime.localWithOffset(offset)
+    val time = NetworkTime.localWithOffset(offset.get())
     // set lastUpdate to current time so other threads won't start to update it
     val lu = lastUpdate.getAndSet(time)
     if (time > lu + ntpSettings.updateEvery.toMillis) {
       // time to update offset
       updateOffset().onComplete {
         case Success(newOffset) =>
-          offset = newOffset
+          offset.set(newOffset)
           log.info("New offset adjusted: " + offset)
           lastUpdate.set(time)
         case Failure(e) =>
           log.warn("Problems with NTP: ", e)
-          lastUpdate.set(lu)
+          lastUpdate.compareAndSet(time,lu)
       }
     } else {
       // No update required. Set lastUpdate back to it's initial value
-      lastUpdate.set(lu)
+      lastUpdate.compareAndSet(time,lu)
     }
   }
 
 
   def time(): NetworkTime.Time = {
     checkUpdateRequired()
-    NetworkTime.localWithOffset(offset)
+    NetworkTime.localWithOffset(offset.get())
   }
 }
