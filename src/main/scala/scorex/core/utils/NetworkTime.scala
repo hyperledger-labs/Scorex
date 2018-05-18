@@ -1,13 +1,14 @@
 package scorex.core.utils
 
 import java.net.InetAddress
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicLong
 
 import org.apache.commons.net.ntp.NTPUDPClient
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
-import scala.util.Left
+import scala.util.{Failure, Success}
 
 object NetworkTime {
   def localWithOffset(offset: Long): Long = System.currentTimeMillis() + offset
@@ -16,60 +17,47 @@ object NetworkTime {
   type Time = Long
 }
 
-protected case class NetworkTime(offset: NetworkTime.Offset, lastUpdate: NetworkTime.Time)
-
 case class NetworkTimeProviderSettings(server: String, updateEvery: FiniteDuration, timeout: FiniteDuration)
 
 class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings) extends ScorexLogging {
 
-  private type State = Either[(NetworkTime, Future[NetworkTime]), NetworkTime]
+  private implicit val ec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor)
+  private val lastUpdate = new AtomicLong(0)
+  private var offset = 0L
+  private val client = new NTPUDPClient()
+  client.setDefaultTimeout(ntpSettings.timeout.toMillis.toInt)
+  client.open()
 
-  private def updateOffSet(): Option[NetworkTime.Offset] = {
-    val client = new NTPUDPClient()
-    client.setDefaultTimeout(ntpSettings.timeout.toMillis.toInt)
-    try {
-      client.open()
+  private def updateOffSet(): Future[NetworkTime.Offset] = Future {
+    val info = client.getTime(InetAddress.getByName(ntpSettings.server))
+    info.computeDetails()
+    info.getOffset
+  }
 
-      val info = client.getTime(InetAddress.getByName(ntpSettings.server))
-      info.computeDetails()
-      Option(info.getOffset)
-    } catch {
-      case t: Throwable =>
-        log.warn("Problems with NTP: ", t)
-        None
-    } finally {
-      client.close()
+  private def checkUpdateRequired(): Unit = {
+    val time = NetworkTime.localWithOffset(offset)
+    // set lastUpdate to current time so other threads won't start to update it
+    val lu = lastUpdate.getAndSet(time)
+    if (time > lu + ntpSettings.updateEvery.toMillis) {
+      // time to update offset
+      updateOffSet().onComplete {
+        case Success(newOffset) =>
+          offset = newOffset
+          log.info("New offset adjusted: " + offset)
+          lastUpdate.set(time)
+        case Failure(e) =>
+          log.warn("Problems with NTP: ", e)
+          lastUpdate.set(lu)
+      }
+    } else {
+      // No update required. Set lastUpdate back to it's initial value
+      lastUpdate.set(lu)
     }
   }
 
-  private def timeAndState(currentState: State): (NetworkTime.Time, State) = {
-    currentState match {
-      case Right(nt) =>
-        val time = NetworkTime.localWithOffset(nt.offset)
-        val state = if (time > nt.lastUpdate + ntpSettings.updateEvery.toMillis) {
-          Left(nt -> Future(updateOffSet()).map { mbOffset =>
-            log.info("New offset adjusted: " + mbOffset)
-            val offset = mbOffset.getOrElse(nt.offset)
-            NetworkTime(offset, NetworkTime.localWithOffset(offset))
-          })
-        } else {
-          Right(nt)
-        }
-        (time, state)
-
-      case Left((nt, f)) =>
-        if (f.isCompleted) {
-          val nnt = Await.result(f, 10.seconds)
-          NetworkTime.localWithOffset(nnt.offset) -> Right(nnt)
-        } else NetworkTime.localWithOffset(nt.offset) -> Left(nt -> f)
-    }
-  }
-
-  private var state: State = Right(NetworkTime(0L, 0L))
 
   def time(): NetworkTime.Time = {
-    val t = timeAndState(state)
-    state = t._2
-    t._1
+    checkUpdateRequired()
+    NetworkTime.localWithOffset(offset)
   }
 }
