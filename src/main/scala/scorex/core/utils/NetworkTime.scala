@@ -28,7 +28,7 @@ class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings) extends Scor
   client.setDefaultTimeout(ntpSettings.timeout.toMillis.toInt)
   client.open()
 
-  private def updateOffSet(): Future[NetworkTime.Offset] = Future {
+  private def updateOffset(): Future[NetworkTime.Offset] = Future {
     val info = client.getTime(InetAddress.getByName(ntpSettings.server))
     info.computeDetails()
     info.getOffset
@@ -40,7 +40,7 @@ class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings) extends Scor
     val lu = lastUpdate.getAndSet(time)
     if (time > lu + ntpSettings.updateEvery.toMillis) {
       // time to update offset
-      updateOffSet().onComplete {
+      updateOffset().onComplete {
         case Success(newOffset) =>
           offset = newOffset
           log.info("New offset adjusted: " + offset)
