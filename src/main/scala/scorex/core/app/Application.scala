@@ -64,7 +64,7 @@ trait Application extends ScorexLogging {
     */
   val swaggerConfig: String
 
-  val timeProvider = new NetworkTimeProvider(settings.ntp)(executionContext)
+  val timeProvider = new NetworkTimeProvider(settings.ntp)
 
 
   val peerManagerRef = PeerManagerRef(settings, timeProvider)
