@@ -13,7 +13,7 @@ import scorex.core.network.message.MessageHandler
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
 
@@ -52,7 +52,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
                             direction: ConnectionType,
                             ownSocketAddress: Option[InetSocketAddress],
                             remote: InetSocketAddress,
-                            timeProvider: NetworkTimeProvider) extends Actor with Buffering with ScorexLogging {
+                            timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext)
+  extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler.ReceivableMessages._
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Handshaked, Disconnected, DoConnecting}
@@ -247,7 +248,7 @@ object PeerConnectionHandlerRef {
             direction: ConnectionType,
             ownSocketAddress: Option[InetSocketAddress],
             remote: InetSocketAddress,
-            timeProvider: NetworkTimeProvider): Props =
+            timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, messagesHandler,
                                     connection, direction, ownSocketAddress, remote, timeProvider))
 
@@ -260,7 +261,7 @@ object PeerConnectionHandlerRef {
             ownSocketAddress: Option[InetSocketAddress],
             remote: InetSocketAddress,
             timeProvider: NetworkTimeProvider)
-           (implicit system: ActorSystem): ActorRef =
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
                          connection, direction, ownSocketAddress, remote, timeProvider))
 
@@ -274,7 +275,7 @@ object PeerConnectionHandlerRef {
             ownSocketAddress: Option[InetSocketAddress],
             remote: InetSocketAddress,
             timeProvider: NetworkTimeProvider)
-           (implicit system: ActorSystem): ActorRef =
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
                          connection, direction, ownSocketAddress, remote, timeProvider), name)
 }

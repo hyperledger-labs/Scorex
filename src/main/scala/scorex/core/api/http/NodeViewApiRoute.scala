@@ -15,14 +15,14 @@ import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.{ModifierId, PersistentNodeViewModifier}
 import scorex.crypto.encode.Base58
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
 
 
 case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
 (override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
-(implicit val context: ActorRefFactory, val serializerReg: SerializerRegistry) extends ApiRoute {
+(implicit val context: ActorRefFactory, val serializerReg: SerializerRegistry, val ec: ExecutionContext) extends ApiRoute {
 
   import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 

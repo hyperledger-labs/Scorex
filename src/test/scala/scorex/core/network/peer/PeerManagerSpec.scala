@@ -11,6 +11,7 @@ import scorex.core.network.{ConnectedPeer, Handshake, Incoming}
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.NetworkTimeProvider
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class PeerManagerSpec extends FlatSpec with Matchers {
@@ -69,7 +70,7 @@ class PeerManagerSpec extends FlatSpec with Matchers {
     val pa1 = new InetSocketAddress("1.1.1.1", DefaultPort)
     val pa2 = new InetSocketAddress("some_host.com", DefaultPort)
 
-    val h1 = Handshake("test", Version(1: Byte, 2:Byte, 3:Byte), "1", Some(pa1), System.currentTimeMillis())
+    val h1 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", Some(pa1), System.currentTimeMillis())
     //connected peer is public cause declared address == peerAddress
     val p1 = ConnectedPeer(pa1, testActor, Incoming, h1)
 
@@ -79,7 +80,7 @@ class PeerManagerSpec extends FlatSpec with Matchers {
     val data1 = pr1.expectMsgClass(classOf[Data])
     data1.keySet should contain(pa1)
 
-    val h2 = Handshake("test", Version(1: Byte, 2:Byte, 3:Byte), "1", Some(pa2), System.currentTimeMillis())
+    val h2 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", Some(pa2), System.currentTimeMillis())
     //connected peer became non-public cause declared address != peerAddress
     val p2 = ConnectedPeer(pa1, testActor, Incoming, h2)
 
