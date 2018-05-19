@@ -10,6 +10,7 @@ import examples.hybrid.history.HybridSyncInfoMessageSpec
 import scorex.core.app.Version
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
+import scala.concurrent.ExecutionContext.Implicits.global
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 trait NodeViewSynchronizerGenerators {

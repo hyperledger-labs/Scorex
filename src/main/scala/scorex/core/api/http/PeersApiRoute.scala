@@ -14,12 +14,12 @@ import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, Get
 import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
 import scorex.core.settings.RESTApiSettings
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 case class PeersApiRoute(peerManager: ActorRef,
                          networkController: ActorRef,
                          override val settings: RESTApiSettings)
-                        (implicit val context: ActorRefFactory) extends ApiRoute {
+                        (implicit val context: ActorRefFactory, val ec: ExecutionContext) extends ApiRoute {
 
   override lazy val route: Route = pathPrefix("peers") { allPeers ~ connectedPeers ~ blacklistedPeers ~ connect }
 

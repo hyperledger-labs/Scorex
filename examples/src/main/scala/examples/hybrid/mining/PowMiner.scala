@@ -15,7 +15,6 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util.Random
@@ -25,7 +24,8 @@ import scala.util.Random
   * currently it is starting to work on getting a (PoW; PoS) block references
   * and stops on a new PoW block found (when PoS ref is unknown)
   */
-class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends Actor with ScorexLogging {
+class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings)(implicit ec: ExecutionContext)
+  extends Actor with ScorexLogging {
 
   import PowMiner._
   import PowMiner.ReceivableMessages._
@@ -145,10 +145,15 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
 }
 
 object PowMiner extends App {
+
   object ReceivableMessages {
+
     case object StartMining
+
     case object StopMining
+
     case object MineBlock
+
     case class PowMiningInfo(pairCompleted: Boolean,
                              powDifficulty: BigInt,
                              bestPowBlock: PowBlock,
@@ -186,12 +191,14 @@ object PowMiner extends App {
 }
 
 object PowMinerRef {
-  def props(viewHolderRef: ActorRef, settings: HybridMiningSettings): Props =
+  def props(viewHolderRef: ActorRef, settings: HybridMiningSettings)(implicit ec: ExecutionContext): Props =
     Props(new PowMiner(viewHolderRef, settings))
 
   def apply(viewHolderRef: ActorRef, settings: HybridMiningSettings)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef, settings))
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+    system.actorOf(props(viewHolderRef, settings))
 
   def apply(name: String, viewHolderRef: ActorRef, settings: HybridMiningSettings)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef, settings), name)
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+    system.actorOf(props(viewHolderRef, settings), name)
 }

@@ -7,6 +7,7 @@ import org.scalacheck.Gen
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.NetworkTimeProvider
 import scorex.crypto.signatures.PublicKey
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait HistoryGenerators {
   this: StoreGenerators =>
