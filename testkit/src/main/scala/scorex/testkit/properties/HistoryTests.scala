@@ -4,7 +4,8 @@ import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.PersistentNodeViewModifier
-import scorex.core.consensus.{History, Valid, SyncInfo}
+import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.consensus.ModifierSemanticValidity.Valid
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
