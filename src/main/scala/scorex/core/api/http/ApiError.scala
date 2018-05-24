@@ -1,26 +1,34 @@
 package scorex.core.api.http
 
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.{StatusCode, StatusCodes}
-import io.circe._
-import io.circe.syntax._
+import akka.http.scaladsl.server.{Directives, Route}
 
 import scala.language.implicitConversions
 
-case class ApiError(message: String, code: StatusCode) extends ScorexApiResponse {
-  override val data: Json = message.asJson
-  def asHttpResponse: ToResponseMarshallable = code -> message
-}
+case class ApiError(statusCode: StatusCode, reason: String = "") {
 
-case class ApiException(e: Throwable) extends ScorexApiResponse {
-  override val code: StatusCode = StatusCodes.InternalServerError
-  override val data: Json = e.getMessage.asJson
-  def asHttpResponse: ToResponseMarshallable = StatusCodes.InternalServerError -> e.getMessage
+  def apply(detail: String): Route = complete(detail)
+  def defaultRoute: Route = complete()
+
+  def complete(detail: String = ""): Route = {
+    val nonEmptyReason = if (reason.isEmpty) statusCode.reason else reason
+    val body = if (detail.isEmpty) nonEmptyReason else s"$nonEmptyReason $detail"
+    Directives.complete(statusCode.intValue() -> body)
+  }
 }
 
 object ApiError {
-  val unknown: ApiError = ApiError("unknown", StatusCodes.InternalServerError)
-  val wrongJson: ApiError = ApiError("invalid.json", StatusCodes.BadRequest)
-  val apiKeyNotValid: ApiError = ApiError("invalid.api-key", StatusCodes.Forbidden)
-  val notExists: ApiError = ApiError("not-found", StatusCodes.NotFound)
+  def apply(s: String): Route = InternalError(s)
+  def apply(e: Throwable): Route = InternalError(e.getMessage)
+  def apply(causes: Seq[Throwable]): Route = InternalError(mkString(causes))
+  def mkString(causes: Seq[Throwable]): String = causes.map(_.getMessage).mkString(", ")
+
+  implicit def toRoute(error: ApiError): Route = error.defaultRoute
+
+  object InternalError extends ApiError(StatusCodes.InternalServerError, "internal.error")
+  object InvalidJson extends ApiError(StatusCodes.BadRequest, "invalid.json")
+  object BadRequest extends ApiError(StatusCodes.BadRequest, "bad.request")
+  object ApiKeyNotValid extends ApiError(StatusCodes.Forbidden, "invalid.api-key")
+  object NotExists extends ApiError(StatusCodes.NotFound, "not-found")
+
 }

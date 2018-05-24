@@ -9,7 +9,7 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.parser._
 import io.circe.syntax._
-import scorex.core.api.http.{ApiException, ApiRouteWithFullView, ScorexApiResponse, SuccessApiResponse}
+import scorex.core.api.http.{ApiError, ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.encode.Base58
@@ -36,22 +36,22 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
       withAuth {
         withNodeView { view =>
           parse(body) match {
-            case Left(failure) => complete(ApiException(failure.getCause))
+            case Left(failure) => ApiError(failure.getCause)
             case Right(json) => Try {
               val wallet = view.vault
               // TODO: Can we do this extraction in a safer way (not calling head/get)?
-              @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+              @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
               val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
               // TODO: Can we do this extraction in a safer way (not calling head/get)?
-              @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+              @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
               val recipient: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ Base58.decode((json \\ "recipient").head.asString.get).get)
               val fee: Long = (json \\ "fee").headOption.flatMap(_.asNumber).flatMap(_.toLong).getOrElse(DefaultFee)
               val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, Value @@ amount)), fee).get
               nodeViewHolderRef ! LocallyGeneratedTransaction[SimpleBoxTransaction](tx)
               tx.asJson
             } match {
-              case Success(resp) => complete(SuccessApiResponse(resp))
-              case Failure(e) => complete(ApiException(e))
+              case Success(resp) => ApiResponse(resp)
+              case Failure(e) => ApiError(e)
             }
           }
         }
@@ -62,12 +62,12 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
   def balances: Route = (get & path("balances")) {
     withNodeView { view =>
       val wallet = view.vault
-      val boxes = wallet.boxes()
-      complete(SuccessApiResponse(
-        "totalBalance" -> boxes.map(_.box.value.toLong).sum.toString.asJson,
+      val boxes = wallet.boxes().map(_.box)
+      ApiResponse(
+        "totalBalance" -> boxes.map(_.value.toLong).sum.toString.asJson,
         "publicKeys" -> wallet.publicKeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
-        "boxes" -> boxes.map(_.box.asJson).asJson
-      ))
+        "boxes" -> boxes.asJson
+      )
     }
   }
 

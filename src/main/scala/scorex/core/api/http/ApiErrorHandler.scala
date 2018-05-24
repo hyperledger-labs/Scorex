@@ -7,7 +7,7 @@ import scala.util.control.NonFatal
 object ApiErrorHandler {
 
   implicit val exceptionHandler: ExceptionHandler = ExceptionHandler {
-    case NonFatal(e) => Directives.complete(ApiException(e))
+    case NonFatal(e) => ApiError(e)
   }
 
 }

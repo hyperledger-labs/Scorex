@@ -14,7 +14,7 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 trait Application extends ScorexLogging {
 
@@ -36,6 +36,7 @@ trait Application extends ScorexLogging {
   implicit def exceptionHandler: ExceptionHandler = ApiErrorHandler.exceptionHandler
 
   protected implicit lazy val actorSystem = ActorSystem(settings.network.agentName)
+  implicit val executionContext: ExecutionContext = actorSystem.dispatchers.lookup("scorex.executionContext")
 
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 

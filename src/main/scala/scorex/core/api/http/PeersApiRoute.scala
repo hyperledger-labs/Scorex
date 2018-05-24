@@ -3,25 +3,23 @@ package scorex.core.api.http
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{ActorRef, ActorRefFactory}
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
-import io.circe.Encoder
+import io.circe.{Encoder, Json}
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse}
 import scorex.core.network.Handshake
 import scorex.core.network.peer.PeerInfo
+import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers, GetConnectedPeers}
+import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
 import scorex.core.settings.RESTApiSettings
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 case class PeersApiRoute(peerManager: ActorRef,
                          networkController: ActorRef,
-                         override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
-  extends ApiRoute {
-
-  import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetConnectedPeers, GetBlacklistedPeers}
-  import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
+                         override val settings: RESTApiSettings)
+                        (implicit val context: ActorRefFactory, val ec: ExecutionContext) extends ApiRoute {
 
   override lazy val route: Route = pathPrefix("peers") { allPeers ~ connectedPeers ~ blacklistedPeers ~ connect }
 
@@ -29,9 +27,9 @@ case class PeersApiRoute(peerManager: ActorRef,
     val result = askActor[Map[InetSocketAddress, PeerInfo]](peerManager, GetAllPeers).map {
       _.map { case (address, peerInfo) =>
         PeerInfoResponse.fromAddressAndInfo(address, peerInfo)
-      }
+      }.asJson
     }
-    onSuccess(result) { r => complete(r) }
+    ApiResponse(result)
   }
 
   def connectedPeers: Route = (path("connected") & get) {
@@ -43,31 +41,28 @@ case class PeersApiRoute(peerManager: ActorRef,
           lastSeen = now,
           name = Some(handshake.nodeName),
           connectionType = None)
-      }
+      }.asJson
     }
-    onSuccess(result) { r => complete(r) }
+    ApiResponse(result)
   }
 
-  private val addressAndPortRegexp = "\\w+:\\d{1,5}".r
+  private val addressAndPortRegexp = "([\\w\\.]+):(\\d{1,5})".r
 
-  //todo: here we receive plain text string, not a json string
-  //Quote marks should be successfully parsed here to comply json
-  def connect: Route = (path("connect") & post & withAuth & entity(as[String])) { body =>
-    complete {
-      if (addressAndPortRegexp.findFirstMatchIn(body).isDefined) {
-        val Array(host, port) = body.split(":")
-        val add: InetSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port.toInt)
-        networkController ! ConnectTo(add)
-        StatusCodes.OK
-      } else {
-        StatusCodes.BadRequest
-      }
+  def connect: Route = (path("connect") & post & withAuth & entity(as[Json])) { json =>
+    val maybeAddress = json.asString.flatMap(addressAndPortRegexp.findFirstMatchIn)
+    maybeAddress match {
+      case None => ApiError.BadRequest
+      case Some(addressAndPort) =>
+        val host = InetAddress.getByName(addressAndPort.group(1))
+        val port = addressAndPort.group(2).toInt
+        networkController ! ConnectTo(new InetSocketAddress(host, port))
+        ApiResponse.OK
     }
   }
 
   def blacklistedPeers: Route = (path("blacklisted") & get) {
-    val result = askActor[Seq[String]](peerManager, GetBlacklistedPeers).map { BlacklistedPeers }
-    onSuccess(result) { v => complete(v.asJson) }
+    val result = askActor[Seq[String]](peerManager, GetBlacklistedPeers).map(BlacklistedPeers(_).asJson)
+    ApiResponse(result)
   }
 }
 

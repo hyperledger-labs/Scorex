@@ -6,18 +6,18 @@ import examples.commons.Value
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import scorex.core.NodeViewHolder.CurrentView
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Random, Success, Try}
 
 /**
   * Generator of SimpleBoxTransaction inside a wallet
   */
-class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor with ScorexLogging {
+class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef)(implicit ec: ExecutionContext) extends Actor
+  with ScorexLogging {
 
   import SimpleBoxTransactionGenerator.ReceivableMessages._
   import scorex.core.NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView, LocallyGeneratedTransaction}
@@ -70,16 +70,24 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor with 
 }
 
 object SimpleBoxTransactionGenerator {
+
   object ReceivableMessages {
+
     case class StartGeneration(delay: FiniteDuration)
+
     case class GeneratorInfo(tx: Try[SimpleBoxTransaction])
+
   }
+
 }
 
 object SimpleBoxTransactionGeneratorRef {
-  def props(viewHolderRef: ActorRef): Props = Props(new SimpleBoxTransactionGenerator(viewHolderRef))
+  def props(viewHolderRef: ActorRef)(implicit ec: ExecutionContext): Props =
+    Props(new SimpleBoxTransactionGenerator(viewHolderRef))
+
   def apply(viewHolderRef: ActorRef)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef))
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef = system.actorOf(props(viewHolderRef))
+
   def apply(name: String, viewHolderRef: ActorRef)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(viewHolderRef), name)
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef = system.actorOf(props(viewHolderRef), name)
 }

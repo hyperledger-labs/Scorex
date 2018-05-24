@@ -8,7 +8,7 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.syntax._
 import scorex.core.ModifierId
-import scorex.core.api.http.{ApiRouteWithFullView, ApiTry, SuccessApiResponse}
+import scorex.core.api.http.{ApiRouteWithFullView, ApiTry, ApiResponse}
 import scorex.core.settings.RESTApiSettings
 import scorex.crypto.encode.Base58
 
@@ -18,7 +18,7 @@ case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
                         (implicit val context: ActorRefFactory)
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] {
 
-  override val route = (pathPrefix("stats") & withCors) {
+  override val route: Route = (pathPrefix("stats") & withCors) {
     tail ~ meanDifficulty
   }
 
@@ -26,7 +26,7 @@ case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
     withNodeView { view =>
       val lastBlockIds = view.history.lastBlockIds(view.history.bestBlock, count)
       val tail = lastBlockIds.map(id => Base58.encode(id).asJson)
-      complete(SuccessApiResponse("count" -> count.asJson, "tail" -> tail.asJson))
+      ApiResponse("count" -> count.asJson, "tail" -> tail.asJson)
     }
   }
 
@@ -37,10 +37,10 @@ case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
         val ids: Seq[ModifierId] = view.history.lastBlockIds(view.history.bestBlock, count).take(end - start)
         val posDiff = ids.flatMap(id => Try(view.history.storage.getPoSDifficulty(id)).toOption)
         val powDiff = ids.flatMap(id => Try(view.history.storage.getPoWDifficulty(Some(id))).toOption)
-        complete(SuccessApiResponse(
+        ApiResponse(
           "posDiff" -> (posDiff.sum / posDiff.length).asJson,
           "powDiff" -> (powDiff.sum / powDiff.length).asJson
-        ))
+        )
       }
     }
   }

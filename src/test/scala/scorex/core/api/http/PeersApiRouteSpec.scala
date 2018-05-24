@@ -54,7 +54,8 @@ class PeersApiRouteSpec extends FlatSpec
   }
 
   it should "connect to peer" in {
-    Post(prefix + "/connect", HttpEntity("localhost:8080").withContentType(ContentTypes.`text/plain(UTF-8)`)) ~> routes ~> check {
+    val body = HttpEntity("localhost:8080".asJson.toString).withContentType(ContentTypes.`application/json`)
+    Post(prefix + "/connect", body) ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
   }

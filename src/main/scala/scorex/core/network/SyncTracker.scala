@@ -3,17 +3,15 @@ package scorex.core.network
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorContext, ActorRef, Cancellable}
-import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.consensus.History
-import scorex.core.consensus.History.HistoryComparisonResult
+import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.SendLocalSyncInfo
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
 import scala.collection.mutable
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{FiniteDuration, _}
 
 
 /**
@@ -22,7 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class SyncTracker(nvsRef: ActorRef,
                   context: ActorContext,
                   networkSettings: NetworkSettings,
-                  timeProvider: NetworkTimeProvider) extends ScorexLogging {
+                  timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends ScorexLogging {
 
   import History._
   import scorex.core.utils.NetworkTime.Time
@@ -37,7 +35,9 @@ class SyncTracker(nvsRef: ActorRef,
   private var stableSyncRegime = false
 
   def scheduleSendSyncInfo(): Unit = {
-    if (schedule.isDefined) schedule.get.cancel()
+    schedule foreach {
+      _.cancel()
+    }
     schedule = Some(context.system.scheduler.schedule(2.seconds, minInterval())(nvsRef ! SendLocalSyncInfo))
   }
 
@@ -104,7 +104,7 @@ class SyncTracker(nvsRef: ActorRef,
     lazy val nonOutdated = if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
 
     val peers = if (outdated.nonEmpty) outdated
-      else nonOutdated.filter(p => (timeProvider.time() - lastSyncSentTime.getOrElse(p, 0L)).millis >= minInterval)
+    else nonOutdated.filter(p => (timeProvider.time() - lastSyncSentTime.getOrElse(p, 0L)).millis >= minInterval)
 
     peers.foreach(updateLastSyncSentTime)
     peers

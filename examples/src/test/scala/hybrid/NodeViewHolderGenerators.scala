@@ -8,6 +8,7 @@ import examples.hybrid.wallet.HBoxWallet
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
 import scorex.core.utils.{ByteStr, NetworkTimeProvider}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes =>
@@ -15,6 +16,7 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
   class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings.scorexSettings, settings.mining, new NetworkTimeProvider(settings.scorexSettings.ntp)) {
 
     override protected def genesisState: (HIS, MS, VL, MP) = {
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val store = lsmStoreGen.sample.get
       val byteStr = ByteStr(Array.fill(10)(1:Byte))
       val gw = new HBoxWallet(byteStr, store)
@@ -29,7 +31,9 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
   }
 
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, TestProbe, PM, ST, HT) = {
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val h = historyGen.sample.get
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
     sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())

@@ -20,5 +20,7 @@ trait PeerDatabase {
   def blacklistedPeers(): Seq[String]
 
   def isBlacklisted(address: InetSocketAddress): Boolean
+
+  def remove(address: InetSocketAddress): Boolean
 }
 

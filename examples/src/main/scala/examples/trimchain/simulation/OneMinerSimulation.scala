@@ -84,6 +84,8 @@ object OneMinerSimulation extends App with Simulators {
     val newMiningHeight = Algos.chooseSnapshots(currentHeight, minerPubKey.pubKeyBytes).head
 
     if (newMiningHeight > miningHeight) {
+      // TODO: review me - .get
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val mb = fullBlocksStore.get(ByteArrayWrapper(Ints.toByteArray(newMiningHeight))).get
       miningUtxo = miningUtxo.applyModifier(mb).get
       miningHeight = newMiningHeight

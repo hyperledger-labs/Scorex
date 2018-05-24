@@ -42,6 +42,7 @@ trait MempoolFilterPerformanceTest[TX <: Transaction, MPool <: MemoryPool[TX, MP
   }
 
   property("Mempool filter of non-existing transaction should be fast") {
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val m = initializedMempool.get
     forAll(transactionGenerator) { tx: TX =>
       val (time, _) = profile(m.filter(Seq(tx)))
@@ -50,6 +51,7 @@ trait MempoolFilterPerformanceTest[TX <: Transaction, MPool <: MemoryPool[TX, MP
   }
 
   property("Mempool filter of existing transaction should be fast") {
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     var m = initializedMempool.get
     forAll(transactionGenerator) { tx: TX =>
       m = m.put(tx).get

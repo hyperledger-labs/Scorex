@@ -106,10 +106,13 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
         val isIncoming = direction == Incoming
         val isAlreadyConnecting = connectingPeers.contains(remote)
         if (isAlreadyConnecting && !isIncoming) {
-          log.info(s"Already connected peer $remote trying to connect, going to drop the duplicate connection")
+          log.info(s"Trying to connect twice to $remote, going to drop the duplicate connection")
           peerHandlerRef ! CloseConnection
         } else {
-          if (!isIncoming) log.info(s"Connecting to $remote")
+          if (!isIncoming) {
+            log.info(s"Connecting to $remote")
+            connectingPeers += remote
+          }
           peerHandlerRef ! StartInteraction
           lastIdUsed += 1
         }
@@ -127,7 +130,11 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
         if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
           peer.handlerRef ! CloseConnection
         } else {
-          if (peer.publicPeer) self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
+          if (peer.publicPeer) {
+            self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
+          } else {
+            peerDatabase.remove(peer.socketAddress)
+          }
           connectedPeers += peer.socketAddress -> peer
           context.system.eventStream.publish(HandshakedPeer(peer))
         }
@@ -148,7 +155,6 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           //todo: avoid picking too many peers from the same bucket, see Bitcoin ref. impl.
           if (!connectedPeers.exists(_._1 == address) &&
             !connectingPeers.exists(_.getHostName == address.getHostName)) {
-            connectingPeers += address
             sender() ! ConnectTo(address)
           }
         }

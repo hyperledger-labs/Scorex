@@ -69,4 +69,18 @@ class PeerDatabaseImplSpec extends FlatSpec
 
     db.knownPeers() shouldBe Map(peerAddress1 -> peerInfo1)
   }
+
+  it should "remove peers from db correctly" in {
+      val db = new PeerDatabaseImpl(None)
+
+      db.remove(peerAddress1) shouldBe false
+
+      db.addOrUpdateKnownPeer(peerAddress1, PeerInfo(currentTime()))
+      db.isEmpty() shouldBe false
+      db.blacklistedPeers().isEmpty shouldBe true
+      db.knownPeers().isEmpty shouldBe false
+
+      db.remove(peerAddress1) shouldBe true
+      db.isEmpty() shouldBe true
+  }
 }

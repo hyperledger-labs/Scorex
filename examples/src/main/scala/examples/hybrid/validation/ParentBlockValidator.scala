@@ -16,6 +16,8 @@ class ParentBlockValidator(storage: HistoryStorage)
         //check PoW parent id ???
         require(storage.modifierById(powBlock.parentId).isDefined, s"Parent ${Base58.encode(powBlock.parentId)} missed")
         //check referenced PoS block exists as well
+        // TODO: review me - .get
+        @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
         val posBlock = storage.modifierById(powBlock.prevPosId).get
 
         //check referenced PoS block points to parent PoW block

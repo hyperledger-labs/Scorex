@@ -10,12 +10,13 @@ import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import shapeless.syntax.typeable._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 
-class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings) extends Actor with ScorexLogging {
+class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
+                      (implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{RandomPeers, AddOrUpdatePeer}
@@ -58,14 +59,15 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 }
 
 object PeerSynchronizerRef {
-  def props(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings): Props =
+  def props(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
+           (implicit ec: ExecutionContext): Props =
     Props(new PeerSynchronizer(networkControllerRef, peerManager, settings))
 
   def apply(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
-           (implicit system: ActorSystem): ActorRef =
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(networkControllerRef, peerManager, settings))
 
   def apply(name: String, networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
-           (implicit system: ActorSystem): ActorRef =
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(networkControllerRef, peerManager, settings), name)
 }

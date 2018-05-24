@@ -9,7 +9,7 @@ import scorex.core.consensus.History.{HistoryComparisonResult, Equal, Older, You
 import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.crypto.encode.Base58
 
-@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps","org.wartremover.warts.OptionPartial"))
 class HybridHistorySpecification extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks

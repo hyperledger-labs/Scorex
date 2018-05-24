@@ -14,7 +14,7 @@ import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.existentials
 import scala.util.{Failure, Success, Try}
@@ -29,7 +29,7 @@ class NetworkController(settings: NetworkSettings,
                         upnp: UPnP,
                         peerManagerRef: ActorRef,
                         timeProvider: NetworkTimeProvider
-                       ) extends Actor with ScorexLogging {
+                       )(implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
   import NetworkController.ReceivableMessages._
   import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
@@ -204,7 +204,7 @@ object NetworkControllerRef {
             messageHandler: MessageHandler,
             upnp: UPnP,
             peerManagerRef: ActorRef,
-            timeProvider: NetworkTimeProvider): Props =
+            timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new NetworkController(settings, messageHandler, upnp, peerManagerRef, timeProvider))
 
   def apply(settings: NetworkSettings,
@@ -212,7 +212,7 @@ object NetworkControllerRef {
             upnp: UPnP,
             peerManagerRef: ActorRef,
             timeProvider: NetworkTimeProvider)
-           (implicit system: ActorSystem): ActorRef =
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider))
 
   def apply(name: String,
@@ -221,6 +221,6 @@ object NetworkControllerRef {
             upnp: UPnP,
             peerManagerRef: ActorRef,
             timeProvider: NetworkTimeProvider)
-           (implicit system: ActorSystem): ActorRef =
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider), name)
 }

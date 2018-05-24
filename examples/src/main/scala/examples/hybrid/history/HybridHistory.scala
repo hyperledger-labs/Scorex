@@ -11,6 +11,7 @@ import io.iohk.iodb.LSMStore
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.History._
 import scorex.core.consensus._
+import scorex.core.consensus.ModifierSemanticValidity._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -75,6 +76,8 @@ class HybridHistory(val storage: HistoryStorage,
     loop(startBlock)
   }
 
+  // TODO: review me .get
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def lastBlockIds(startBlock: HybridBlock, count: Int): Seq[ModifierId] = {
     chainBack(startBlock, isGenesis, count - 1).get.map(_._2)
   }
@@ -137,6 +140,8 @@ class HybridHistory(val storage: HistoryStorage,
 
   private def posBlockAppend(posBlock: PosBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
     val difficulties = calcDifficultiesForNewBlock(posBlock)
+    // TODO: review me .get and asInstanceOf
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val parent = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
     val isBest = storage.height == storage.parentHeight(posBlock)
 
@@ -185,6 +190,8 @@ class HybridHistory(val storage: HistoryStorage,
     res
   }
 
+  // TODO: review me .get
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def bestForkChanges(block: HybridBlock): ProgressInfo[HybridBlock] = {
     val parentId = storage.parentId(block)
     val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(parentId).get)
@@ -197,11 +204,11 @@ class HybridHistory(val storage: HistoryStorage,
     val newSuffixValid = !newSuffix.drop(1).map(storage.semanticValidity).contains(Invalid)
 
     if(newSuffixValid) {
-      // TODO: fixme, What should we do if `oldSuffix` is empty?
-      @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+      // TODO: fixme, What should we do if `oldSuffix` is empty? and .get
+      @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
       val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
-      // TODO: fixme, What should we do if `newSuffix` is empty?
-      @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+      // TODO: fixme, What should we do if `newSuffix` is empty? and .get
+      @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
       val applyBlocks = newSuffix.tail.map(id => modifierById(id).get) ++ Seq(block)
       require(applyBlocks.nonEmpty)
       require(throwBlocks.nonEmpty)
@@ -221,6 +228,8 @@ class HybridHistory(val storage: HistoryStorage,
 
       //recalc difficulties
 
+      // TODO: review me .get and asInstanceOf
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val lastPow = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock]
       val powBlocks = lastPowBlocks(DifficultyRecalcPeriod, lastPow) //.ensuring(_.length == DifficultyRecalcPeriod)
 
@@ -244,6 +253,8 @@ class HybridHistory(val storage: HistoryStorage,
     } else {
       //Same difficulty as in previous block
       assert(modifierById(posBlock.parentId).isDefined, "Parent should always be in history")
+      // TODO: review me .get and asInstanceOf
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val parentPoSId: ModifierId = modifierById(posBlock.parentId).get.asInstanceOf[PowBlock].prevPosId
       (storage.getPoWDifficulty(Some(parentPoSId)), storage.getPoSDifficulty(parentPoSId))
     }
@@ -336,7 +347,7 @@ class HybridHistory(val storage: HistoryStorage,
       case _ =>
         // +1 to include common block
         // TODO: What would be a default value for `localSuffixLength` in order to remove the unsafe calls to get and tail?
-        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+        @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
         val localSuffixLength = storage.heightOf(bestPowId).get - storage.heightOf(dSuffix.last).get
         val otherSuffixLength = dSuffix.length
 
@@ -421,10 +432,14 @@ class HybridHistory(val storage: HistoryStorage,
     */
   final def commonBlockThenSuffixes(forkBlock: HybridBlock,
                                     limit: Int = Int.MaxValue): (Seq[ModifierId], Seq[ModifierId]) = {
+    // TODO: Review me .get
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val loserChain = chainBack(bestBlock, isGenesis, limit).get.map(_._2)
 
     def in(m: HybridBlock): Boolean = loserChain.exists(s => s sameElements m.id)
 
+    // TODO: Review me .get
+    @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val winnerChain = chainBack(forkBlock, in, limit).get.map(_._2)
     val i = loserChain.indexWhere { id =>
       winnerChain.headOption match {
@@ -445,7 +460,7 @@ class HybridHistory(val storage: HistoryStorage,
     * Average delay in milliseconds between last $blockNum blocks starting from $block
     * Debug only
     */
-  @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+  @SuppressWarnings(Array("org.wartremover.warts.TraversableOps","org.wartremover.warts.OptionPartial"))
   def averageDelay(id: ModifierId, blockNum: Int): Try[Long] = Try {
     val block = modifierById(id).get
     val c = chainBack(block, isGenesis, blockNum).get.map(_._2)
@@ -453,6 +468,8 @@ class HybridHistory(val storage: HistoryStorage,
   }
 
   //chain without brothers
+  // TODO: review me .get
+  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   override def toString: String = {
     chainBack(storage.bestPosBlock, isGenesis).get.map(_._2).map(Base58.encode).mkString(",")
   }

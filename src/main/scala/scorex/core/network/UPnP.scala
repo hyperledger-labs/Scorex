@@ -9,6 +9,7 @@ import scorex.core.utils.ScorexLogging
 import scala.collection.JavaConverters._
 import scala.util.Try
 
+@SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 class UPnP(settings: NetworkSettings) extends ScorexLogging {
 
   private var gateway: Option[GatewayDevice] = None

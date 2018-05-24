@@ -6,7 +6,6 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{PersistentNodeViewModifier, _}
@@ -16,8 +15,8 @@ import scorex.core.transaction.state.StateReader
 import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 /**
@@ -39,7 +38,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          viewHolderRef: ActorRef,
                          syncInfoSpec: SIS,
                          networkSettings: NetworkSettings,
-                         timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
+                         timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
+  with ScorexLogging {
 
   import History._
 
@@ -381,7 +381,7 @@ object NodeViewSynchronizerRef {
                              viewHolderRef: ActorRef,
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
-                             timeProvider: NetworkTimeProvider): Props =
+                             timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new NodeViewSynchronizer[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
                                                                  networkSettings, timeProvider))
 
@@ -396,7 +396,7 @@ object NodeViewSynchronizerRef {
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
-                            (implicit system: ActorSystem): ActorRef =
+                            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
                                                        syncInfoSpec, networkSettings, timeProvider))
 
@@ -412,7 +412,7 @@ object NodeViewSynchronizerRef {
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
-                            (implicit system: ActorSystem): ActorRef =
+                            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
                                                        syncInfoSpec, networkSettings, timeProvider), name)
 }
