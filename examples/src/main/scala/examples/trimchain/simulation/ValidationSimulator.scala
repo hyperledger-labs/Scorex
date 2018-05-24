@@ -1,8 +1,7 @@
 package examples.trimchain.simulation
 
 import com.google.common.primitives.{Ints, Longs}
-import examples.commons.PublicKey25519NoncedBox
-import examples.commons.{Nonce, Value}
+import examples.commons.{Nonce, PublicKey25519NoncedBox, Value}
 import examples.trimchain.core.Constants._
 import examples.trimchain.core.{Algos, Constants}
 import scorex.core.VersionTag

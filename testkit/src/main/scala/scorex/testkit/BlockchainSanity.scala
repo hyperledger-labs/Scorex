@@ -18,7 +18,7 @@ import scorex.testkit.properties.state.box.{BoxStateApplyChangesTest, BoxStateCh
 trait BlockchainSanity[P <: Proposition,
 TX <: BoxTransaction[P, B],
 PM <: PersistentNodeViewModifier,
-CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[P, TX],
+CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[TX],
 SI <: SyncInfo,
 B <: Box[P],
 MPool <: MemoryPool[TX, MPool],
@@ -27,14 +27,14 @@ HT <: History[PM, SI, HT]]
   extends
     BoxStateChangesGenerationTest[P, TX, PM, B, ST]
     with StateApplicationTest[PM, ST]
-    with HistoryTests[P, TX, PM, SI, HT]
+    with HistoryTests[TX, PM, SI, HT]
     with BoxStateApplyChangesTest[P, TX, PM, B, ST]
     with WalletSecretsTest[P, TX, PM]
     with BoxStateRollbackTest[P, TX, PM, CTM, B, ST]
-    with MempoolTransactionsTest[P, TX, MPool]
-    with MempoolFilterPerformanceTest[P, TX, MPool]
-    with MempoolRemovalTest[P, TX, MPool, PM, CTM, HT, SI]
-    with AllModifierProducers[P, TX, MPool, PM, CTM, ST, SI, HT]
-    with NodeViewHolderTests[P, TX, PM, ST, SI, HT, MPool]
-    with NodeViewSynchronizerTests[P, TX, PM, ST, SI, HT, MPool] {
+    with MempoolTransactionsTest[TX, MPool]
+    with MempoolFilterPerformanceTest[TX, MPool]
+    with MempoolRemovalTest[TX, MPool, PM, CTM, HT, SI]
+    with AllModifierProducers[TX, MPool, PM, CTM, ST, SI, HT]
+    with NodeViewHolderTests[TX, PM, ST, SI, HT, MPool]
+    with NodeViewSynchronizerTests[TX, PM, ST, SI, HT, MPool] {
 }

@@ -3,7 +3,6 @@ package scorex.core
 import com.typesafe.config.ConfigFactory
 import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
@@ -42,7 +41,7 @@ trait PersistentNodeViewModifier extends NodeViewModifier {
 }
 
 
-trait TransactionsCarryingPersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]]
+trait TransactionsCarryingPersistentNodeViewModifier[TX <: Transaction]
   extends PersistentNodeViewModifier {
 
   def transactions: Seq[TX]

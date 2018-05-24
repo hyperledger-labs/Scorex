@@ -7,7 +7,6 @@ import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
@@ -25,27 +24,21 @@ import scala.util.{Failure, Success, Try}
   * The instances are read-only for external world.
   * Updates of the composite view(the instances are to be performed atomically.
   *
-  * @tparam P
   * @tparam TX
   * @tparam PMOD
   */
-trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
+trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
 
-  import NodeViewHolder._
   import NodeViewHolder.ReceivableMessages._
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
-                                                                      ChangedMempool, ChangedVault,
-                                                                      SuccessfulTransaction, FailedTransaction,
-                                                                      SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                      SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                      ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
+  import NodeViewHolder._
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
   //import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
   type HIS <: History[PMOD, SI, HIS]
   type MS <: MinimalState[PMOD, MS]
-  type VL <: Vault[P, TX, PMOD, VL]
+  type VL <: Vault[TX, PMOD, VL]
   type MP <: MemoryPool[TX, MP]
 
 
@@ -104,7 +97,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   protected def txModify(tx: TX): Unit = {
     //todo: async validation?
     val errorOpt: Option[Throwable] = minimalState() match {
-      case txValidator: TransactionValidation[P, TX] =>
+      case txValidator: TransactionValidation[TX] =>
         txValidator.validate(tx) match {
           case Success(_) => None
           case Failure(e) => Some(e)
@@ -119,14 +112,14 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             log.debug(s"Unconfirmed transaction $tx added to the memory pool")
             val newVault = vault().scanOffchain(tx)
             updateNodeView(updatedVault = Some(newVault), updatedMempool = Some(newPool))
-            context.system.eventStream.publish(SuccessfulTransaction[P, TX](tx))
+            context.system.eventStream.publish(SuccessfulTransaction[TX](tx))
 
           case Failure(e) =>
-            context.system.eventStream.publish(FailedTransaction[P, TX](tx, e))
+            context.system.eventStream.publish(FailedTransaction[TX](tx, e))
         }
 
       case Some(e) =>
-        context.system.eventStream.publish(FailedTransaction[P, TX](tx, e))
+        context.system.eventStream.publish(FailedTransaction[TX](tx, e))
     }
   }
 
@@ -162,7 +155,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   protected def extractTransactions(mod: PMOD): Seq[TX] = mod match {
-    case tcm: TransactionsCarryingPersistentNodeViewModifier[P, TX] => tcm.transactions
+    case tcm: TransactionsCarryingPersistentNodeViewModifier[TX] => tcm.transactions
     case _ => Seq()
   }
 
@@ -177,7 +170,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
     memPool.putWithoutCheck(rolledBackTxs).filter { tx =>
       !appliedTxs.exists(t => t.id sameElements tx.id) && {
         state match {
-          case v: TransactionValidation[P, TX] => v.validate(tx).isSuccess
+          case v: TransactionValidation[TX] => v.validate(tx).isSuccess
           case _ => true
         }
       }
@@ -382,7 +375,7 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
   }
 
   protected def processLocallyGeneratedModifiers: Receive = {
-    case lt: LocallyGeneratedTransaction[P, TX] =>
+    case lt: LocallyGeneratedTransaction[TX] =>
       txModify(lt.tx)
 
     case lm: LocallyGeneratedModifier[PMOD] =>
@@ -426,7 +419,7 @@ object NodeViewHolder {
     case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
     case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
 
-    case class LocallyGeneratedTransaction[P <: Proposition, TX <: Transaction[P]](tx: TX)
+    case class LocallyGeneratedTransaction[TX <: Transaction](tx: TX)
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
   }
 

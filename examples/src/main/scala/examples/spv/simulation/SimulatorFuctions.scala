@@ -1,15 +1,14 @@
 package examples.spv.simulation
 
 import com.google.common.primitives.{Ints, Longs}
-import examples.commons.PublicKey25519NoncedBox
-import examples.commons.{Nonce, Value}
+import examples.commons.{Nonce, PublicKey25519NoncedBox, Value}
 import examples.spv.{Header, SpvAlgos}
 import examples.trimchain.core.Constants._
 import examples.trimchain.simulation.InMemoryAuthenticatedUtxo
-import scorex.core.{ModifierId, VersionTag}
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
+import scorex.core.{ModifierId, VersionTag}
 
 import scala.annotation.tailrec
 import scala.util.Random

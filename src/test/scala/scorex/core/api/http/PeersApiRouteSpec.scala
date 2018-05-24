@@ -11,8 +11,8 @@ import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.api.http.PeersApiRoute.PeerInfoResponse
 import scorex.core.settings.RESTApiSettings
 
-import scala.language.postfixOps
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class PeersApiRouteSpec extends FlatSpec
   with Matchers

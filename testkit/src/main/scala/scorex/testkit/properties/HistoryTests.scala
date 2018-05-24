@@ -13,11 +13,7 @@ import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.SyntacticallyTargetedModifierProducer
 
 
-trait HistoryTests[P <: Proposition,
-                              TX <: Transaction[P],
-                              PM <: PersistentNodeViewModifier,
-                              SI <: SyncInfo,
-                              HT <: History[PM, SI, HT]]
+trait HistoryTests[TX <: Transaction, PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]]
   extends PropSpec
     with GeneratorDrivenPropertyChecks
     with Matchers

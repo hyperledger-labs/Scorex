@@ -45,7 +45,7 @@ class HybridApp(val settingsFilename: String) extends Application {
     WalletApiRoute(settings.restApi, nodeViewHolderRef),
     StatsApiRoute(settings.restApi, nodeViewHolderRef),
     UtilsApiRoute(settings.restApi),
-    NodeViewApiRoute[P, TX](settings.restApi, nodeViewHolderRef),
+    NodeViewApiRoute[TX](settings.restApi, nodeViewHolderRef),
     PeersApiRoute(peerManagerRef, networkControllerRef, settings.restApi)
   )
 
@@ -57,7 +57,7 @@ class HybridApp(val settingsFilename: String) extends Application {
   val localInterface: ActorRef = HLocalInterfaceRef(nodeViewHolderRef, miner, forger, hybridSettings.mining)
 
   override val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(NodeViewSynchronizerRef.props[P, TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type,
+    actorSystem.actorOf(NodeViewSynchronizerRef.props[TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type,
                                                       PMOD, HybridHistory, SimpleBoxTransactionMemPool]
                                                      (networkControllerRef, nodeViewHolderRef,
                                                       HybridSyncInfoMessageSpec, settings.network, timeProvider))

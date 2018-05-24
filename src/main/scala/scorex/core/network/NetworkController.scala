@@ -16,9 +16,8 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.language.existentials
+import scala.language.{existentials, postfixOps}
 import scala.util.{Failure, Success, Try}
-import scala.language.postfixOps
 
 /**
   * Control all network interaction
@@ -33,8 +32,8 @@ class NetworkController(settings: NetworkSettings,
 
   import NetworkController.ReceivableMessages._
   import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
-  import scorex.core.network.peer.PeerManager.ReceivableMessages.{CheckPeers, FilterPeers, Disconnected}
   import PeerConnectionHandler.ReceivableMessages.CloseConnection
+  import scorex.core.network.peer.PeerManager.ReceivableMessages.{CheckPeers, Disconnected, FilterPeers}
 
   private implicit val system: ActorSystem = context.system
 

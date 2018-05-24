@@ -1,13 +1,12 @@
 package examples.hybrid
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction, SimpleBoxTransactionCompanion, SimpleBoxTransactionMemPool}
-import examples.commons.{Nonce, Value}
+import examples.commons._
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mining.HybridMiningSettings
 import examples.hybrid.state.HBoxStoredState
-import examples.hybrid.wallet.HWallet
+import examples.hybrid.wallet.HBoxWallet
 import scorex.core.serialization.Serializer
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
@@ -22,7 +21,7 @@ import scorex.crypto.signatures.PublicKey
 class HybridNodeViewHolder(settings: ScorexSettings,
                            minerSettings: HybridMiningSettings,
                            timeProvider: NetworkTimeProvider)
-  extends NodeViewHolder[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock] {
+  extends NodeViewHolder[SimpleBoxTransaction, HybridBlock] {
 
   override val networkChunkSize: Int = settings.network.networkChunkSize
 
@@ -30,7 +29,7 @@ class HybridNodeViewHolder(settings: ScorexSettings,
 
   override type HIS = HybridHistory
   override type MS = HBoxStoredState
-  override type VL = HWallet
+  override type VL = HBoxWallet
   override type MP = SimpleBoxTransactionMemPool
 
   override val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
@@ -56,11 +55,11 @@ class HybridNodeViewHolder(settings: ScorexSettings,
     * (e.g. if it is a first launch of a node) None is to be returned
     */
   override def restoreState(): Option[(HIS, MS, VL, MP)] = {
-    if (HWallet.exists(settings)) {
+    if (HBoxWallet.exists(settings)) {
       Some((
         HybridHistory.readOrGenerate(settings, minerSettings, timeProvider),
         HBoxStoredState.readOrGenerate(settings),
-        HWallet.readOrGenerate(settings, 1),
+        HBoxWallet.readOrGenerate(settings, 1),
         SimpleBoxTransactionMemPool.emptyPool))
     } else None
   }
@@ -68,7 +67,7 @@ class HybridNodeViewHolder(settings: ScorexSettings,
 
 object HybridNodeViewHolder extends ScorexLogging {
   def generateGenesisState(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider):
-                          (HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool) = {
+                          (HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool) = {
     val GenesisAccountsNum = 50
     val GenesisBalance = Value @@ 100000000L
 
@@ -151,7 +150,7 @@ object HybridNodeViewHolder extends ScorexLogging {
     history = history.append(posGenesis).get._1
 
     val gs = HBoxStoredState.genesisState(settings, Seq[HybridBlock](posGenesis, powGenesis))
-    val gw = HWallet.genesisWallet(settings, Seq[HybridBlock](posGenesis, powGenesis))
+    val gw = HBoxWallet.genesisWallet(settings, Seq[HybridBlock](posGenesis, powGenesis))
       .ensuring(_.boxes().map(_.box.value.toLong).sum >= GenesisBalance  || !Base58.encode(settings.wallet.seed.arr).startsWith("genesis"))
       .ensuring(_.boxes().forall(b => gs.closedBox(b.box.id).isDefined))
 

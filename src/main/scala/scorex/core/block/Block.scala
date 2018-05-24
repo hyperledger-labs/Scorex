@@ -23,8 +23,8 @@ import scorex.core.{ModifierId, NodeViewModifier, TransactionsCarryingPersistent
   * - additional data: block structure version no, timestamp etc
   */
 
-trait Block[P <: Proposition, TX <: Transaction[P]]
-  extends TransactionsCarryingPersistentNodeViewModifier[P, TX] {
+trait Block[TX <: Transaction]
+  extends TransactionsCarryingPersistentNodeViewModifier[TX] {
 
   def version: Version
 
@@ -40,7 +40,7 @@ object Block {
 
 }
 
-trait BlockCompanion[P <: Proposition, TX <: Transaction[P], B <: Block[P, TX]]
+trait BlockCompanion[P <: Proposition, TX <: Transaction, B <: Block[TX]]
   extends Serializer[B] {
 
   def isValid(block: B): Boolean

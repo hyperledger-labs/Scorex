@@ -3,8 +3,8 @@ package hybrid.transaction
 import examples.commons.SimpleBoxTransaction
 import hybrid.HybridGenerators
 import io.iohk.iodb.ByteArrayWrapper
-import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
+import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.state.PrivateKey25519Companion
 
 

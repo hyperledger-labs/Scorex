@@ -3,9 +3,8 @@ package examples.trimchain.core
 import java.io.File
 
 import com.google.common.primitives.{Ints, Longs}
-import examples.commons.PublicKey25519NoncedBox
-import examples.commons.{Nonce, Value}
 import examples.commons.PublicKey25519NoncedBox._
+import examples.commons.{Nonce, PublicKey25519NoncedBox, Value}
 import examples.trimchain.modifiers.BlockHeader
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import io.iohk.iodb.LSMStore

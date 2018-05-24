@@ -1,7 +1,7 @@
 package examples.commons
 
 import com.google.common.primitives.Longs
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.account.PublicKeyNoncedBox

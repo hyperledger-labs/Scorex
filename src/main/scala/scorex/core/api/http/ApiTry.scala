@@ -1,6 +1,6 @@
 package scorex.core.api.http
 
-import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.server.Route
 
 import scala.util.{Failure, Success, Try}
 

@@ -1,7 +1,6 @@
 package examples.trimchain.simulation
 
 import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction}
-import examples.commons.PublicKey25519NoncedBoxSerializer
 import examples.trimchain.modifiers.{TBlock, TModifier, UtxoSnapshot}
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
@@ -9,8 +8,8 @@ import scorex.core.VersionTag
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.authds.{ADKey, ADValue}
 import scorex.crypto.authds.avltree.batch.{Insert, Remove}
+import scorex.crypto.authds.{ADKey, ADValue}
 import scorex.mid.state.BoxMinimalState
 
 import scala.util.Try

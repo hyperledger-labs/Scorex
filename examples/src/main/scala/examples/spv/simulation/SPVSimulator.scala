@@ -1,10 +1,8 @@
 package examples.spv.simulation
 
 import examples.spv.{Header, KMZProofSerializer, SpvAlgos}
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
+import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.hash
 import scorex.crypto.hash.Blake2b256
 
 object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
