@@ -2,8 +2,6 @@ package scorex.core.transaction
 
 import scorex.core.{ModifierId, NodeViewComponent}
 
-import scala.util.Try
-
 /**
   * Unconfirmed transactions pool
   *

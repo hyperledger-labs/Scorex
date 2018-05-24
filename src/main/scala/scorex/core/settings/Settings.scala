@@ -4,11 +4,11 @@ import java.io.File
 import java.net.InetSocketAddress
 
 import com.typesafe.config.{Config, ConfigFactory}
-import scorex.core.utils.{ByteStr, NetworkTimeProviderSettings, ScorexLogging}
 import net.ceedubs.ficus.Ficus._
+import net.ceedubs.ficus.readers.ArbitraryTypeReader._
+import scorex.core.utils.{ByteStr, NetworkTimeProviderSettings, ScorexLogging}
 
 import scala.concurrent.duration._
-import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 
 case class RESTApiSettings(bindAddress: InetSocketAddress,
                            apiKeyHash: Option[String],

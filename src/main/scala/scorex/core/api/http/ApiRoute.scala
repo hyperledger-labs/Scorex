@@ -7,6 +7,7 @@ import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Printer
 import scorex.core.utils.{ActorHelper, ScorexLogging}
+
 import scala.language.implicitConversions
 
 trait ApiRoute

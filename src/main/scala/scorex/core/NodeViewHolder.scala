@@ -7,7 +7,6 @@ import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
@@ -31,14 +30,9 @@ import scala.util.{Failure, Success, Try}
 trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
 
-  import NodeViewHolder._
   import NodeViewHolder.ReceivableMessages._
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
-                                                                      ChangedMempool, ChangedVault,
-                                                                      SuccessfulTransaction, FailedTransaction,
-                                                                      SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                      SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                      ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
+  import NodeViewHolder._
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
   //import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo

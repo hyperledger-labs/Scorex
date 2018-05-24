@@ -27,8 +27,8 @@ import scala.util.Random
 class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings)(implicit ec: ExecutionContext)
   extends Actor with ScorexLogging {
 
-  import PowMiner._
   import PowMiner.ReceivableMessages._
+  import PowMiner._
   import scorex.core.NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView, LocallyGeneratedModifier}
 
 

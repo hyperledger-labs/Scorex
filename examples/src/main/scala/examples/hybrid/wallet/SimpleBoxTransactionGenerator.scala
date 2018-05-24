@@ -1,8 +1,7 @@
 package examples.hybrid.wallet
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
-import examples.commons.Value
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool, Value}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import scorex.core.NodeViewHolder.CurrentView

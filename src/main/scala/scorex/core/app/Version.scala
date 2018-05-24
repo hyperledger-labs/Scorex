@@ -1,6 +1,7 @@
 package scorex.core.app
 
 import scorex.core.serialization.{BytesSerializable, Serializer}
+
 import scala.util.Try
 
 object Version {

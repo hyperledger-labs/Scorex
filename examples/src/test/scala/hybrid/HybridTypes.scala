@@ -7,7 +7,6 @@ import examples.hybrid.history.{HybridHistory, HybridSyncInfo, HybridSyncInfoMes
 import examples.hybrid.state.HBoxStoredState
 import scorex.core.consensus.SyncInfo
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.network.message.SyncInfoMessageSpec
 
 trait HybridTypes {
 

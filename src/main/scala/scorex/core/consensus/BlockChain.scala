@@ -1,11 +1,9 @@
 package scorex.core.consensus
 
-import scorex.core.{ModifierId, ModifierTypeId}
-import scorex.core.NodeViewModifier._
 import scorex.core.block.Block
 import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexLogging
+import scorex.core.{ModifierId, ModifierTypeId}
 
 import scala.util.Try
 

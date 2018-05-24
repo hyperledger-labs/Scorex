@@ -1,7 +1,6 @@
 package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import com.google.common.primitives.Longs
 import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
@@ -16,8 +15,8 @@ import scorex.utils.Random
 
 class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
-  import PosForger._
   import PosForger.ReceivableMessages._
+  import PosForger._
   import scorex.core.NodeViewHolder.ReceivableMessages.LocallyGeneratedModifier
 
 

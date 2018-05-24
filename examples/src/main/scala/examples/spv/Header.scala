@@ -1,15 +1,13 @@
 package examples.spv
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
-import examples.commons.SimpleBoxTransaction
 import examples.spv.Constants._
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier}
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec

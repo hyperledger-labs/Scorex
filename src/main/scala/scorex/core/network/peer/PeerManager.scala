@@ -17,9 +17,9 @@ import scala.util.Random
 class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
 
   import PeerManager.ReceivableMessages._
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
   import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
-  import scorex.core.network.PeerConnectionHandler.ReceivableMessages.{StartInteraction, CloseConnection}
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
+  import scorex.core.network.PeerConnectionHandler.ReceivableMessages.{CloseConnection, StartInteraction}
 
   //peers after successful handshake
   private val connectedPeers = mutable.Map[InetSocketAddress, ConnectedPeer]()

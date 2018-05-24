@@ -9,7 +9,7 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.syntax._
 import scorex.core.ModifierId
-import scorex.core.api.http.{ApiRouteWithFullView, ApiResponse}
+import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
 import scorex.crypto.encode.Base58
 

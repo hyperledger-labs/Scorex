@@ -56,7 +56,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler.ReceivableMessages._
-  import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Handshaked, Disconnected, DoConnecting}
+  import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Disconnected, DoConnecting, Handshaked}
 
   context watch connection
 

@@ -1,7 +1,6 @@
 package hybrid.state
 
-import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction}
-import examples.commons.{Nonce, Value}
+import examples.commons.{Nonce, PublicKey25519NoncedBox, SimpleBoxTransaction, Value}
 import examples.hybrid.state.HBoxStoredState
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}

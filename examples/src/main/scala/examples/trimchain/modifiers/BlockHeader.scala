@@ -2,10 +2,10 @@ package examples.trimchain.modifiers
 
 import com.google.common.primitives.Longs
 import examples.trimchain.core._
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.serialization.Serializer
+import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.crypto.encode.Base58
 
 import scala.util.Try

@@ -1,6 +1,6 @@
 package scorex.core.network
 
-import java.net.{InetAddress, InetSocketAddress}
+import java.net.InetSocketAddress
 
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}

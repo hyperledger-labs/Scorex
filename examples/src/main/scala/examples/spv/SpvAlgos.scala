@@ -1,7 +1,6 @@
 package examples.spv
 
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.block.Block._
 import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec

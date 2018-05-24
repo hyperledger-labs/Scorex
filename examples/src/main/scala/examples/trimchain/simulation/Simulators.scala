@@ -1,8 +1,8 @@
 package examples.trimchain.simulation
 
 import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction}
-import examples.trimchain.core.{Algos, Constants, StateRoot, TransactionsRoot}
 import examples.trimchain.core.Constants._
+import examples.trimchain.core.{Algos, Constants, StateRoot, TransactionsRoot}
 import examples.trimchain.modifiers.TBlock
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo
 import scorex.core._

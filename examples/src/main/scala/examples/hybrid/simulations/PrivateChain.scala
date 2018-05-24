@@ -15,10 +15,10 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 import scala.annotation.tailrec
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 import scala.reflect.io.Path
 import scala.util.Try
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * Private chain attack simulation

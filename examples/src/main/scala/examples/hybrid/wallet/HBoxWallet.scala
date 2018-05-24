@@ -11,7 +11,7 @@ import scorex.core.VersionTag
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
-import scorex.core.transaction.wallet.{BoxWallet, WalletBox, WalletBoxSerializer, BoxWalletTransaction}
+import scorex.core.transaction.wallet.{BoxWallet, BoxWalletTransaction, WalletBox, WalletBoxSerializer}
 import scorex.core.utils.{ByteStr, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256

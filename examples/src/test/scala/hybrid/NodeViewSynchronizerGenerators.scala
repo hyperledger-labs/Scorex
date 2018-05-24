@@ -3,13 +3,14 @@ package hybrid
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
+import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
-import scorex.core.network._
-import examples.hybrid.history.HybridSyncInfoMessageSpec
 import scorex.core.app.Version
+import scorex.core.network._
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))

@@ -4,8 +4,8 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.app.Version
-import scorex.core.network.{Handshake, Incoming, Outgoing}
 import scorex.core.network.peer.PeerInfo
+import scorex.core.network.{Handshake, Incoming, Outgoing}
 
 trait Stubs {
 
@@ -31,7 +31,7 @@ trait Stubs {
   val blacklistedPeers = Seq("4.4.4.4:1111", "8.8.8.8:2222")
 
   class PeersManagerStub extends Actor {
-    import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetConnectedPeers, GetAllPeers, GetBlacklistedPeers}
+    import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers, GetConnectedPeers}
 
     def receive = {
       case GetConnectedPeers => sender() ! connectedPeers

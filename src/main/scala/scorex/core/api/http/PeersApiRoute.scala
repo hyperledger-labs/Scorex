@@ -4,14 +4,14 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{ActorRef, ActorRefFactory}
 import akka.http.scaladsl.server.Route
-import io.circe.{Encoder, Json}
 import io.circe.generic.semiauto._
 import io.circe.syntax._
+import io.circe.{Encoder, Json}
 import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse}
 import scorex.core.network.Handshake
+import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers, GetConnectedPeers}
-import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
 import scorex.core.settings.RESTApiSettings
 
 import scala.concurrent.ExecutionContext

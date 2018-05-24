@@ -1,6 +1,6 @@
 package scorex.core.api.http
 
-import akka.http.scaladsl.server.{Directives, ExceptionHandler}
+import akka.http.scaladsl.server.ExceptionHandler
 
 import scala.util.control.NonFatal
 

@@ -2,12 +2,11 @@ package examples.trimchain.modifiers
 
 import com.google.common.primitives.{Longs, Shorts}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.block.Block
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.serialization.Serializer
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.{ModifierId, ModifierTypeId}
 
 import scala.annotation.tailrec

@@ -1,8 +1,7 @@
 package scorex.core.transaction.wallet
 
-import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier, VersionTag}
 import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.{NodeViewComponent, PersistentNodeViewModifier, VersionTag}
 
 import scala.util.Try
 

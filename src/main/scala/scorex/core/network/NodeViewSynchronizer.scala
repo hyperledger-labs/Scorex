@@ -5,14 +5,13 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
-import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
-import scorex.core.transaction.{MempoolReader, Transaction}
-import scorex.core.utils.NetworkTimeProvider
-import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.state.StateReader
-import scorex.core.utils.ScorexLogging
+import scorex.core.transaction.{MempoolReader, Transaction}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext
@@ -42,10 +41,9 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   with ScorexLogging {
 
   import History._
-
   import NodeViewSynchronizer.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, CompareViews, ModifiersFromRemote}
-  import scorex.core.network.NetworkController.ReceivableMessages.{SendToNetwork, RegisterMessagesHandler}
+  import scorex.core.NodeViewHolder.ReceivableMessages.{CompareViews, GetNodeViewChanges, ModifiersFromRemote}
+  import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout

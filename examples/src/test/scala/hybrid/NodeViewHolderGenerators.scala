@@ -8,6 +8,7 @@ import examples.hybrid.wallet.HBoxWallet
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
 import scorex.core.utils.{ByteStr, NetworkTimeProvider}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))

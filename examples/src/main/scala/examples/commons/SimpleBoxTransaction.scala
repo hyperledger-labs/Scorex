@@ -3,7 +3,7 @@ package examples.commons
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.SimpleBoxTransaction._
 import examples.hybrid.wallet.HBoxWallet
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.ModifierId
