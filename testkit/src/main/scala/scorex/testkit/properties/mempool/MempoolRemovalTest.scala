@@ -11,11 +11,11 @@ import scorex.core.utils.ScorexLogging
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.ArbitraryTransactionsCarryingModifierProducer
 
-trait MempoolRemovalTest[P <: Proposition,
-TX <: Transaction[P],
+trait MempoolRemovalTest[
+TX <: Transaction,
 MPool <: MemoryPool[TX, MPool],
 PM <: PersistentNodeViewModifier,
-CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[P, TX],
+CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[TX],
 HT <: History[PM, SI, HT],
 SI <: SyncInfo] extends PropSpec
   with GeneratorDrivenPropertyChecks
@@ -23,8 +23,8 @@ SI <: SyncInfo] extends PropSpec
   with PropertyChecks
   with ScorexLogging
   with TestkitHelpers
-  with MemoryPoolTest[P, TX, MPool]
-  with ArbitraryTransactionsCarryingModifierProducer[P, TX, MPool, PM, CTM] {
+  with MemoryPoolTest[TX, MPool]
+  with ArbitraryTransactionsCarryingModifierProducer[TX, MPool, PM, CTM] {
 
   val historyGen: Gen[HT]
 

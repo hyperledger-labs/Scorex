@@ -14,7 +14,7 @@ trait BoxMinimalState[P <: Proposition,
   BTX <: BoxTransaction[P, BX],
   M <: PersistentNodeViewModifier,
   BMS <: BoxMinimalState[P, BX, BTX, M, BMS]]
-  extends MinimalState[M, BMS] with TransactionValidation[P, BTX] with ModifierValidation[M] {
+  extends MinimalState[M, BMS] with TransactionValidation[BTX] with ModifierValidation[M] {
   self: BMS =>
 
   def closedBox(boxId: Array[Byte]): Option[BX]

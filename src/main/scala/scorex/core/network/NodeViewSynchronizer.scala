@@ -26,12 +26,11 @@ import scala.language.postfixOps
   * @param networkControllerRef reference to network controller actor
   * @param viewHolderRef        reference to node view holder actor
   * @param syncInfoSpec         SyncInfo specification
-  * @tparam P   proposition
   * @tparam TX  transaction
   * @tparam SIS SyncInfoMessage specification
   */
-class NodeViewSynchronizer[P <: Proposition,
-TX <: Transaction[P],
+class NodeViewSynchronizer[
+TX <: Transaction,
 SI <: SyncInfo,
 SIS <: SyncInfoMessageSpec[SI],
 PMOD <: PersistentNodeViewModifier,
@@ -349,7 +348,7 @@ object NodeViewSynchronizer {
     trait NodeViewChange extends NodeViewHolderEvent
     case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
     //TODO: return mempool reader
-    case class ChangedMempool[MR <: MempoolReader[_ <: Transaction[_]]](mempool: MR) extends NodeViewChange
+    case class ChangedMempool[MR <: MempoolReader[_ <: Transaction]](mempool: MR) extends NodeViewChange
     //TODO: return Vault reader
     //FIXME: No actor process this message explicitly, it seems to be sent to NodeViewSynchcronizer
     case class ChangedVault() extends NodeViewChange
@@ -362,8 +361,8 @@ object NodeViewSynchronizer {
 
     //hierarchy of events regarding modifiers application outcome
     trait ModificationOutcome extends NodeViewHolderEvent
-    case class FailedTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX, error: Throwable) extends ModificationOutcome
-    case class SuccessfulTransaction[P <: Proposition, TX <: Transaction[P]](transaction: TX) extends ModificationOutcome
+    case class FailedTransaction[TX <: Transaction](transaction: TX, error: Throwable) extends ModificationOutcome
+    case class SuccessfulTransaction[TX <: Transaction](transaction: TX) extends ModificationOutcome
     case class SyntacticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
     case class SemanticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
     case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
@@ -372,8 +371,8 @@ object NodeViewSynchronizer {
 }
 
 object NodeViewSynchronizerRef {
-  def props[P <: Proposition,
-    TX <: Transaction[P],
+  def props[
+    TX <: Transaction,
     SI <: SyncInfo,
     SIS <: SyncInfoMessageSpec[SI],
     PMOD <: PersistentNodeViewModifier,
@@ -383,11 +382,11 @@ object NodeViewSynchronizerRef {
                              syncInfoSpec: SIS,
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider): Props =
-    Props(new NodeViewSynchronizer[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
+    Props(new NodeViewSynchronizer[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
                                                                  networkSettings, timeProvider))
 
-  def apply[P <: Proposition,
-    TX <: Transaction[P],
+  def apply[
+    TX <: Transaction,
     SI <: SyncInfo,
     SIS <: SyncInfoMessageSpec[SI],
     PMOD <: PersistentNodeViewModifier,
@@ -398,11 +397,11 @@ object NodeViewSynchronizerRef {
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
                             (implicit system: ActorSystem): ActorRef =
-    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
+    system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
                                                        syncInfoSpec, networkSettings, timeProvider))
 
-  def apply[P <: Proposition,
-    TX <: Transaction[P],
+  def apply[
+    TX <: Transaction,
     SI <: SyncInfo,
     SIS <: SyncInfoMessageSpec[SI],
     PMOD <: PersistentNodeViewModifier,
@@ -414,6 +413,6 @@ object NodeViewSynchronizerRef {
                              networkSettings: NetworkSettings,
                              timeProvider: NetworkTimeProvider)
                             (implicit system: ActorSystem): ActorRef =
-    system.actorOf(props[P, TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
+    system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
                                                        syncInfoSpec, networkSettings, timeProvider), name)
 }

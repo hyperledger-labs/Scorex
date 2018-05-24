@@ -10,8 +10,8 @@ import scala.util.Try
   * Abstract interface for Vault, a storage for node-specific information
   */
 
-trait Vault[P <: Proposition, TX <: Transaction[P],
-            PMOD <: PersistentNodeViewModifier, V <: Vault[P, TX, PMOD, V]] extends NodeViewComponent {
+trait Vault[TX <: Transaction,
+            PMOD <: PersistentNodeViewModifier, V <: Vault[TX, PMOD, V]] extends NodeViewComponent {
   self: V =>
 
   def scanOffchain(tx: TX): V

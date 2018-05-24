@@ -24,16 +24,16 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor with 
 
   private val getRequiredData: GetDataFromCurrentView[HybridHistory,
     HBoxStoredState,
-    HWallet,
+    HBoxWallet,
     SimpleBoxTransactionMemPool,
     GeneratorInfo] = {
-    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => GeneratorInfo = {
-      view: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] =>
+    val f: CurrentView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] => GeneratorInfo = {
+      view: CurrentView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] =>
         GeneratorInfo(generate(view.vault))
     }
     GetDataFromCurrentView[HybridHistory,
       HBoxStoredState,
-      HWallet,
+      HBoxWallet,
       SimpleBoxTransactionMemPool,
       GeneratorInfo](f)
   }
@@ -48,7 +48,7 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor with 
       gi.tx match {
         case Success(tx) =>
           log.info(s"Local tx with with ${tx.from.size} inputs, ${tx.to.size} outputs. Valid: ${tx.semanticValidity}")
-          viewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
+          viewHolderRef ! LocallyGeneratedTransaction[SimpleBoxTransaction](tx)
         case Failure(e) =>
           e.printStackTrace()
       }
@@ -56,7 +56,7 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef) extends Actor with 
 
   private val ex: ArrayBuffer[Array[Byte]] = ArrayBuffer()
 
-  def generate(wallet: HWallet): Try[SimpleBoxTransaction] = {
+  def generate(wallet: HBoxWallet): Try[SimpleBoxTransaction] = {
     if (Random.nextInt(100) == 1) ex.clear()
 
     val pubkeys = wallet.publicKeys.toSeq

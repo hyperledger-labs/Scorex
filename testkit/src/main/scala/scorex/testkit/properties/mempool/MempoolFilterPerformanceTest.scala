@@ -7,12 +7,12 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils._
 
-trait MempoolFilterPerformanceTest[P <: Proposition, TX <: Transaction[P], MPool <: MemoryPool[TX, MPool]]
+trait MempoolFilterPerformanceTest[TX <: Transaction, MPool <: MemoryPool[TX, MPool]]
   extends PropSpec
     with GeneratorDrivenPropertyChecks
     with Matchers
     with PropertyChecks
-    with MemoryPoolTest[P, TX, MPool] {
+    with MemoryPoolTest[TX, MPool] {
 
   var initializedMempool: Option[MPool] = None
 

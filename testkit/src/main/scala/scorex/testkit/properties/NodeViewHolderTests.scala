@@ -19,8 +19,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-trait NodeViewHolderTests[P <: Proposition,
-TX <: Transaction[P],
+trait NodeViewHolderTests[TX <: Transaction,
 PM <: PersistentNodeViewModifier,
 ST <: MinimalState[PM, ST],
 SI <: SyncInfo,
@@ -60,7 +59,7 @@ MPool <: MemoryPool[TX, MPool]]
     import ctx._
 
     system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
     eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
@@ -80,7 +79,7 @@ MPool <: MemoryPool[TX, MPool]]
 
     system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
     system.eventStream.subscribe(eventListener.ref, classOf[SemanticallySuccessfulModifier[PM]])
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
     eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
@@ -93,7 +92,7 @@ MPool <: MemoryPool[TX, MPool]]
 
     system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
     system.eventStream.subscribe(eventListener.ref, classOf[SemanticallyFailedModification[PM]])
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v => semanticallyInvalidModifier(v.state) }
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, PM] { v => semanticallyInvalidModifier(v.state) }
     val invalid = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(invalid)
     eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
@@ -106,7 +105,7 @@ MPool <: MemoryPool[TX, MPool]]
 
     system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
     system.eventStream.subscribe(eventListener.ref, classOf[SemanticallySuccessfulModifier[PM]])
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, PM] { v => totallyValidModifiers(v.history, v.state, 2).head }
     val mod = receiveOne(5 seconds).asInstanceOf[PM]
     node ! LocallyGeneratedModifier(mod)
     eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
@@ -115,7 +114,7 @@ MPool <: MemoryPool[TX, MPool]]
 
   property("NodeViewHolder: check state after creation") { withFixture { ctx =>
     import ctx._
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
       v.state.version.sameElements(s.version)
     }
     expectMsg(true)
@@ -123,7 +122,7 @@ MPool <: MemoryPool[TX, MPool]]
 
   property("NodeViewHolder: check that a valid modifier is applicable") { withFixture { ctx =>
     import ctx._
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
       v.history.applicable(mod)
     }
     expectMsg(true)
@@ -134,7 +133,7 @@ MPool <: MemoryPool[TX, MPool]]
 
     system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
     system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallyFailedModification[PM]])
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Seq[PM]] { v =>
       totallyValidModifiers(v.history, v.state, 10) //todo: fix magic number
     }
     val mods = receiveOne(5 seconds).asInstanceOf[Seq[PM]]
@@ -162,7 +161,7 @@ MPool <: MemoryPool[TX, MPool]]
 
     eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
       v.state.version.sameElements(s.version) && v.history.contains(mod.id)
     }
 
@@ -177,19 +176,19 @@ MPool <: MemoryPool[TX, MPool]]
     system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallySuccessfulModifier[PM]])
     system.eventStream.subscribe(eventListener.ref, classOf[SyntacticallyFailedModification[PM]])
 
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v => totallyValidModifiers(v.history, v.state, 2) }
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Seq[PM]] { v => totallyValidModifiers(v.history, v.state, 2) }
     val initMods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
     initMods.foreach { mod =>
       node ! LocallyGeneratedModifier(mod)
       eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
     }
 
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, PM] { v =>
       totallyValidModifiers(v.history, v.state, 2).head
     }
     val fork1Mod = receiveOne(waitDuration).asInstanceOf[PM]
 
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, PM] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, PM] { v =>
       totallyValidModifiers(v.history, v.state, 2).head
     }
     val fork2Mod = receiveOne(waitDuration).asInstanceOf[PM]
@@ -199,7 +198,7 @@ MPool <: MemoryPool[TX, MPool]]
     eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
     eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
       v.history.contains(fork1Mod.id) || v.history.contains(fork2Mod.id)
     }
 
@@ -223,20 +222,20 @@ MPool <: MemoryPool[TX, MPool]]
     val waitDuration = 10.seconds
 
     //some base operations, we don't wanna have fork right from genesis
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Seq[PM]] { v =>
       totallyValidModifiers(v.history, v.state, opCountBeforeFork)
     }
     val plainMods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
     plainMods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
 
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Seq[PM]] { v =>
       val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
       assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
       mods
     }
     val fork1Mods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
 
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Seq[PM]] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Seq[PM]] { v =>
       totallyValidModifiers(v.history, v.state, fork2OpCount)
     }
     val fork2Mods = receiveOne(waitDuration).asInstanceOf[Seq[PM]]
@@ -244,7 +243,7 @@ MPool <: MemoryPool[TX, MPool]]
     fork1Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
     fork2Mods.foreach { mod => node ! LocallyGeneratedModifier(mod) }
 
-    node ! GetDataFromCurrentView[HT, ST, Vault[P, TX, PM, _], MPool, Boolean] { v =>
+    node ! GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
       v.history.openSurfaceIds().contains(fork2Mods.last.id)
     }
     expectMsg(true)

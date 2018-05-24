@@ -6,7 +6,7 @@ import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.commons.Value
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
-import examples.hybrid.wallet.HWallet
+import examples.hybrid.wallet.HBoxWallet
 import io.circe.parser._
 import io.circe.syntax._
 import scorex.core.api.http.{ApiException, ApiRouteWithFullView, ScorexApiResponse, SuccessApiResponse}
@@ -20,7 +20,7 @@ import scala.util.{Failure, Success, Try}
 
 case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                          (implicit val context: ActorRefFactory)
-  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
+  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] {
 
   import scorex.core.NodeViewHolder.ReceivableMessages.LocallyGeneratedTransaction
 
@@ -47,7 +47,7 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
               val recipient: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ Base58.decode((json \\ "recipient").head.asString.get).get)
               val fee: Long = (json \\ "fee").headOption.flatMap(_.asNumber).flatMap(_.toLong).getOrElse(DefaultFee)
               val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, Value @@ amount)), fee).get
-              nodeViewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
+              nodeViewHolderRef ! LocallyGeneratedTransaction[SimpleBoxTransaction](tx)
               tx.asJson
             } match {
               case Success(resp) => complete(SuccessApiResponse(resp))

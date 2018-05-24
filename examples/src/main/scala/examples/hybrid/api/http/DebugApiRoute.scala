@@ -6,7 +6,7 @@ import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
-import examples.hybrid.wallet.HWallet
+import examples.hybrid.wallet.HBoxWallet
 import io.circe.syntax._
 import scorex.core.ModifierId
 import scorex.core.api.http.{ApiRouteWithFullView, SuccessApiResponse}
@@ -18,7 +18,7 @@ import scala.util.Try
 
 case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                         (implicit val context: ActorRefFactory)
-  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] {
+  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] {
 
   override val route = (pathPrefix("debug") & withCors) {
     infoRoute ~ chain ~ delay ~ myblocks ~ generators

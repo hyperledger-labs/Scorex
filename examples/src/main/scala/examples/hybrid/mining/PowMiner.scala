@@ -6,7 +6,7 @@ import examples.hybrid.blocks.{HybridBlock, PowBlock, PowBlockCompanion, PowBloc
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.Cancellable
-import examples.hybrid.wallet.HWallet
+import examples.hybrid.wallet.HBoxWallet
 import scorex.core.ModifierId
 import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.block.Block.BlockId
@@ -36,11 +36,11 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
   private var mining = false
   private val getRequiredData: GetDataFromCurrentView[HybridHistory,
     HBoxStoredState,
-    HWallet,
+    HBoxWallet,
     SimpleBoxTransactionMemPool,
     PowMiningInfo] = {
-    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => PowMiningInfo = {
-      view: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] =>
+    val f: CurrentView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] => PowMiningInfo = {
+      view: CurrentView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] =>
 
         val difficulty = view.history.powDifficulty
         val pairCompleted = view.history.pairCompleted
@@ -53,7 +53,7 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings) extends 
     }
     GetDataFromCurrentView[HybridHistory,
       HBoxStoredState,
-      HWallet,
+      HBoxWallet,
       SimpleBoxTransactionMemPool,
       PowMiningInfo](f)
   }

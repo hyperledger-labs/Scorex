@@ -2,7 +2,7 @@ package examples.commons
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.SimpleBoxTransaction._
-import examples.hybrid.wallet.HWallet
+import examples.hybrid.wallet.HBoxWallet
 import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
@@ -115,7 +115,7 @@ object SimpleBoxTransaction {
     new SimpleBoxTransaction(fromPub, to, sigs, fee, timestamp)
   }
 
-  def create(w: HWallet,
+  def create(w: HBoxWallet,
              to: Seq[(PublicKey25519Proposition, Value)],
              fee: Long,
              boxesIdsToExclude: Seq[Array[Byte]] = Seq()): Try[SimpleBoxTransaction] = Try {

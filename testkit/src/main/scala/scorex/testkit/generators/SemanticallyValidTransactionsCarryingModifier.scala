@@ -6,10 +6,9 @@ import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 
 
-trait SemanticallyValidTransactionsCarryingModifier[P <: Proposition,
-                                                    TX <: Transaction[P],
+trait SemanticallyValidTransactionsCarryingModifier[TX <: Transaction,
                                                     PM <: PersistentNodeViewModifier,
-                                                    CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[P, TX],
+                                                    CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[TX],
                                                     ST <: MinimalState[PM, ST]] {
 
   def semanticallyValidModifier(state: ST): CTM

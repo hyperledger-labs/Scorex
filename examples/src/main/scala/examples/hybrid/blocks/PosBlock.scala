@@ -24,7 +24,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
                     attachment: Array[Byte],
                     signature: Signature25519
                    ) extends HybridBlock
-  with TransactionsCarryingPersistentNodeViewModifier[PublicKey25519Proposition, SimpleBoxTransaction] {
+  with TransactionsCarryingPersistentNodeViewModifier[SimpleBoxTransaction] {
   override type M = PosBlock
 
   override lazy val serializer = PosBlockCompanion

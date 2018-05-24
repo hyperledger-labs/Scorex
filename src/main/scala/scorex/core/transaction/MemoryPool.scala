@@ -9,7 +9,7 @@ import scala.util.Try
   *
   * @tparam TX -type of transaction the pool contains
   */
-trait MemoryPool[TX <: Transaction[_], M <: MemoryPool[TX, M]] extends MempoolReader[TX] {
+trait MemoryPool[TX <: Transaction, M <: MemoryPool[TX, M]] extends MempoolReader[TX] {
 
 
   /**

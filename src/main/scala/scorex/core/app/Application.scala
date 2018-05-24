@@ -21,9 +21,9 @@ trait Application extends ScorexLogging {
   import scorex.core.network.NetworkController.ReceivableMessages.ShutdownNetwork
 
   type P <: Proposition
-  type TX <: Transaction[P]
+  type TX <: Transaction
   type PMOD <: PersistentNodeViewModifier
-  type NVHT <: NodeViewHolder[P, TX, PMOD]
+  type NVHT <: NodeViewHolder[TX, PMOD]
 
   val ApplicationNameLimit = 50
 

@@ -18,7 +18,7 @@ trait NodeViewSynchronizerGenerators {
   object NodeViewSynchronizerForTests {
     def props(networkControllerRef: ActorRef,
               viewHolderRef: ActorRef): Props =
-      NodeViewSynchronizerRef.props[P, TX, HSI, SIS, PM, HT, MP](networkControllerRef, viewHolderRef, HybridSyncInfoMessageSpec,
+      NodeViewSynchronizerRef.props[TX, HSI, SIS, PM, HT, MP](networkControllerRef, viewHolderRef, HybridSyncInfoMessageSpec,
                                                                  settings.scorexSettings.network,
                                                                  new NetworkTimeProvider(settings.scorexSettings.ntp))
   }

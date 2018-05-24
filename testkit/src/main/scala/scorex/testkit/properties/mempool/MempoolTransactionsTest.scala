@@ -6,12 +6,12 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MemoryPool, Transaction}
 
-trait MempoolTransactionsTest[P <: Proposition, TX <: Transaction[P], MPool <: MemoryPool[TX, MPool]]
+trait MempoolTransactionsTest[TX <: Transaction, MPool <: MemoryPool[TX, MPool]]
   extends PropSpec
     with GeneratorDrivenPropertyChecks
     with Matchers
     with PropertyChecks
-    with MemoryPoolTest[P, TX, MPool] {
+    with MemoryPoolTest[TX, MPool] {
 
   val transactionSeqGenerator: Gen[Seq[TX]] = Gen.nonEmptyContainerOf[Seq, TX](transactionGenerator)
 

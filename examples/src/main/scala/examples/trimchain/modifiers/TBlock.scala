@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 import scala.util.Try
 
 case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestamp: Timestamp)
-  extends TModifier with Block[PublicKey25519Proposition, SimpleBoxTransaction] {
+  extends TModifier with Block[SimpleBoxTransaction] {
 
   override def version: Version = 0: Version
 

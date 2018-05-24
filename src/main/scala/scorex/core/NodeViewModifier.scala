@@ -42,7 +42,7 @@ trait PersistentNodeViewModifier extends NodeViewModifier {
 }
 
 
-trait TransactionsCarryingPersistentNodeViewModifier[P <: Proposition, TX <: Transaction[P]]
+trait TransactionsCarryingPersistentNodeViewModifier[TX <: Transaction]
   extends PersistentNodeViewModifier {
 
   def transactions: Seq[TX]

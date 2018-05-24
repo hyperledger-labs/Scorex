@@ -87,7 +87,7 @@ class HybridHistory(val storage: HistoryStorage,
   override def isEmpty: Boolean = height <= 0
 
   override def modifierById(id: ModifierId): Option[HybridBlock with
-    Block[PublicKey25519Proposition, SimpleBoxTransaction]] = storage.modifierById(id)
+    Block[SimpleBoxTransaction]] = storage.modifierById(id)
 
   override def contains(id: ModifierId): Boolean =
     if (id sameElements settings.GenesisParentId) true else modifierById(id).isDefined
