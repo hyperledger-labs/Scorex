@@ -14,11 +14,11 @@ import scorex.testkit.generators.SemanticallyValidTransactionsCarryingModifier
 trait BoxStateRollbackTest[P <: Proposition,
                             TX <: BoxTransaction[P, B],
                             PM <: PersistentNodeViewModifier,
-                            CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[P, TX],
+                            CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[TX],
                             B <: Box[P],
                             ST <: BoxMinimalState[P, B, TX, PM, ST]]
   extends BoxStateTests[P, B, TX, PM, ST]
-    with SemanticallyValidTransactionsCarryingModifier[P, TX, PM, CTM, ST]
+    with SemanticallyValidTransactionsCarryingModifier[TX, PM, CTM, ST]
     with TestkitHelpers {
 
   def stateChangesGenerator(state: ST): Gen[BoxStateChanges[P, B]]

@@ -1,7 +1,7 @@
 package examples.trimchain.core
 
 import com.google.common.primitives.{Bytes, Shorts}
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.serialization.Serializer
 import scorex.crypto.authds.SerializedAdProof

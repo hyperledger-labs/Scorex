@@ -1,12 +1,10 @@
 package examples.hybrid.wallet
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
-import examples.commons.Value
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool, Value}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import scorex.core.NodeViewHolder.CurrentView
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexLogging
 
 import scala.collection.mutable.ArrayBuffer
@@ -25,16 +23,16 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef)(implicit ec: Execut
 
   private val getRequiredData: GetDataFromCurrentView[HybridHistory,
     HBoxStoredState,
-    HWallet,
+    HBoxWallet,
     SimpleBoxTransactionMemPool,
     GeneratorInfo] = {
-    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => GeneratorInfo = {
-      view: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] =>
+    val f: CurrentView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] => GeneratorInfo = {
+      view: CurrentView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] =>
         GeneratorInfo(generate(view.vault))
     }
     GetDataFromCurrentView[HybridHistory,
       HBoxStoredState,
-      HWallet,
+      HBoxWallet,
       SimpleBoxTransactionMemPool,
       GeneratorInfo](f)
   }
@@ -49,7 +47,7 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef)(implicit ec: Execut
       gi.tx match {
         case Success(tx) =>
           log.info(s"Local tx with with ${tx.from.size} inputs, ${tx.to.size} outputs. Valid: ${tx.semanticValidity}")
-          viewHolderRef ! LocallyGeneratedTransaction[PublicKey25519Proposition, SimpleBoxTransaction](tx)
+          viewHolderRef ! LocallyGeneratedTransaction[SimpleBoxTransaction](tx)
         case Failure(e) =>
           e.printStackTrace()
       }
@@ -57,7 +55,7 @@ class SimpleBoxTransactionGenerator(viewHolderRef: ActorRef)(implicit ec: Execut
 
   private val ex: ArrayBuffer[Array[Byte]] = ArrayBuffer()
 
-  def generate(wallet: HWallet): Try[SimpleBoxTransaction] = {
+  def generate(wallet: HBoxWallet): Try[SimpleBoxTransaction] = {
     if (Random.nextInt(100) == 1) ex.clear()
 
     val pubkeys = wallet.publicKeys.toSeq

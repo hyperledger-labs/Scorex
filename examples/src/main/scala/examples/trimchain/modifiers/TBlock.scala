@@ -2,19 +2,18 @@ package examples.trimchain.modifiers
 
 import com.google.common.primitives.{Longs, Shorts}
 import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.block.Block
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.serialization.Serializer
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.{ModifierId, ModifierTypeId}
 
 import scala.annotation.tailrec
 import scala.util.Try
 
 case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestamp: Timestamp)
-  extends TModifier with Block[PublicKey25519Proposition, SimpleBoxTransaction] {
+  extends TModifier with Block[SimpleBoxTransaction] {
 
   override def version: Version = 0: Version
 

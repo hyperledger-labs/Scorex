@@ -1,6 +1,7 @@
 package scorex.core.network
 
 import scorex.core.network.message.MessageSpec
+
 import scala.reflect.runtime.universe.TypeTag
 
 // Messages shared by NetworkController, PeerSynchronizer and NodeViewSynchronizer

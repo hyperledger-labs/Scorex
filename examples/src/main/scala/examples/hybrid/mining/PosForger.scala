@@ -1,12 +1,11 @@
 package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import com.google.common.primitives.Longs
 import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction, SimpleBoxTransactionMemPool}
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
-import examples.hybrid.wallet.HWallet
+import examples.hybrid.wallet.HBoxWallet
 import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
@@ -16,8 +15,8 @@ import scorex.utils.Random
 
 class PosForger(settings: HybridSettings, viewHolderRef: ActorRef) extends Actor with ScorexLogging {
 
-  import PosForger._
   import PosForger.ReceivableMessages._
+  import PosForger._
   import scorex.core.NodeViewHolder.ReceivableMessages.LocallyGeneratedModifier
 
 
@@ -106,11 +105,11 @@ object PosForger extends ScorexLogging {
 
   val getRequiredData: GetDataFromCurrentView[HybridHistory,
     HBoxStoredState,
-    HWallet,
+    HBoxWallet,
     SimpleBoxTransactionMemPool,
     PosForgingInfo] = {
-    val f: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] => PosForgingInfo = {
-      view: CurrentView[HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool] =>
+    val f: CurrentView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] => PosForgingInfo = {
+      view: CurrentView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] =>
 
         val diff = view.history.posDifficulty
         val pairCompleted = view.history.pairCompleted
@@ -129,7 +128,7 @@ object PosForger extends ScorexLogging {
     }
     GetDataFromCurrentView[HybridHistory,
       HBoxStoredState,
-      HWallet,
+      HBoxWallet,
       SimpleBoxTransactionMemPool,
       PosForgingInfo](f)
 

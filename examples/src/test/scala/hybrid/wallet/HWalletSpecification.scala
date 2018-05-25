@@ -2,7 +2,7 @@ package hybrid.wallet
 
 import examples.commons.Value
 import examples.hybrid.blocks.PosBlock
-import examples.hybrid.wallet.HWallet
+import examples.hybrid.wallet.HBoxWallet
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
@@ -26,7 +26,7 @@ class HWalletSpecification extends PropSpec
   val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
   private val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
-  val w: HWallet = HWallet.readOrGenerate(settings.scorexSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()
+  val w: HBoxWallet = HBoxWallet.readOrGenerate(settings.scorexSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()
   w.secrets.size should be >= 2
   val fs: PrivateKey25519 = w.secrets.head
   val ss: PrivateKey25519 = w.secrets.tail.head
@@ -35,7 +35,7 @@ class HWalletSpecification extends PropSpec
   ignore("Wallet should generate same keys") {
     val KeysToGenerate = 5
     @tailrec
-    def wallet(oldW: HWallet): HWallet = if (oldW.publicKeys.size >= KeysToGenerate) oldW
+    def wallet(oldW: HBoxWallet): HBoxWallet = if (oldW.publicKeys.size >= KeysToGenerate) oldW
     else wallet(oldW.generateNewSecret())
 
     val keys = wallet(w).publicKeys

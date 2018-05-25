@@ -10,8 +10,8 @@ import examples.hybrid.validation.{DifficultyBlockValidator, ParentBlockValidato
 import io.iohk.iodb.LSMStore
 import scorex.core.block.{Block, BlockValidator}
 import scorex.core.consensus.History._
-import scorex.core.consensus._
 import scorex.core.consensus.ModifierSemanticValidity._
+import scorex.core.consensus._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -90,7 +90,7 @@ class HybridHistory(val storage: HistoryStorage,
   override def isEmpty: Boolean = height <= 0
 
   override def modifierById(id: ModifierId): Option[HybridBlock with
-    Block[PublicKey25519Proposition, SimpleBoxTransaction]] = storage.modifierById(id)
+    Block[SimpleBoxTransaction]] = storage.modifierById(id)
 
   override def contains(id: ModifierId): Boolean =
     if (id sameElements settings.GenesisParentId) true else modifierById(id).isDefined

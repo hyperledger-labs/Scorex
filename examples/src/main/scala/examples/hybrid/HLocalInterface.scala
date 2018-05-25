@@ -1,7 +1,7 @@
 package examples.hybrid
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
+import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.mining.HybridMiningSettings
 import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewHolderEvent, RollbackFailed, SemanticallySuccessfulModifier}

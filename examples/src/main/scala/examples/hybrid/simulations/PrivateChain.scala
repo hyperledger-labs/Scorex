@@ -7,7 +7,7 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.mining.{HybridSettings, PosForger, PowMiner}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.FileFunctions
-import examples.hybrid.wallet.HWallet
+import examples.hybrid.wallet.HBoxWallet
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
@@ -15,10 +15,10 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 import scala.annotation.tailrec
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 import scala.reflect.io.Path
 import scala.util.Try
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * Private chain attack simulation
@@ -27,7 +27,7 @@ object PrivateChain extends App with ScorexLogging {
 
   val proposition: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
 
-  def genesisState(): (HybridHistory, HBoxStoredState, HWallet, SimpleBoxTransactionMemPool)  = {
+  def genesisState(): (HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool)  = {
     HybridNodeViewHolder.generateGenesisState(settings, miningSettings, new NetworkTimeProvider(settings.ntp))
   }
 

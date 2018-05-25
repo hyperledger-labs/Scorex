@@ -10,10 +10,10 @@ import scorex.testkit.properties.mempool.MempoolFilterPerformanceTest
 /**
   * Performance test for implementations
   */
-trait BlockchainPerformance[P <: Proposition,
-TX <: Transaction[P],
+trait BlockchainPerformance[
+TX <: Transaction,
 PM <: PersistentNodeViewModifier,
 SI <: SyncInfo,
 MPool <: MemoryPool[TX, MPool],
 ST <: MinimalState[PM, ST],
-HT <: History[PM, SI, HT]] extends MempoolFilterPerformanceTest[P, TX, MPool]
+HT <: History[PM, SI, HT]] extends MempoolFilterPerformanceTest[TX, MPool]

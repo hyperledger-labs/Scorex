@@ -1,8 +1,7 @@
 package scorex.core.transaction.wallet
 
-import scorex.core.{NodeViewComponent, NodeViewModifier, PersistentNodeViewModifier, VersionTag}
 import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.{NodeViewComponent, PersistentNodeViewModifier, VersionTag}
 
 import scala.util.Try
 
@@ -10,8 +9,8 @@ import scala.util.Try
   * Abstract interface for Vault, a storage for node-specific information
   */
 
-trait Vault[P <: Proposition, TX <: Transaction[P],
-            PMOD <: PersistentNodeViewModifier, V <: Vault[P, TX, PMOD, V]] extends NodeViewComponent {
+trait Vault[TX <: Transaction,
+            PMOD <: PersistentNodeViewModifier, V <: Vault[TX, PMOD, V]] extends NodeViewComponent {
   self: V =>
 
   def scanOffchain(tx: TX): V

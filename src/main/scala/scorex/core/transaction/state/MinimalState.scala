@@ -26,7 +26,7 @@ trait MinimalState[M <: PersistentNodeViewModifier, MS <: MinimalState[M, MS]] e
 
 trait StateFeature
 
-trait TransactionValidation[P <: Proposition, TX <: Transaction[P]] extends StateFeature {
+trait TransactionValidation[TX <: Transaction] extends StateFeature {
   def isValid(tx: TX): Boolean = validate(tx).isSuccess
 
   def filterValid(txs: Seq[TX]): Seq[TX] = txs.filter(isValid)
@@ -42,6 +42,6 @@ trait BalanceSheet[P <: Proposition] extends StateFeature {
   def balance(id: P, height: Option[Int] = None): Long
 }
 
-trait AccountTransactionsHistory[P <: Proposition, TX <: Transaction[P]] extends StateFeature {
+trait AccountTransactionsHistory[P <: Proposition, TX <: Transaction] extends StateFeature {
   def accountTransactions(id: P): Array[TX]
 }

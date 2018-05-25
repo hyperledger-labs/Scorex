@@ -3,7 +3,7 @@ package examples.hybrid.blocks
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.SimpleBoxTransaction
 import examples.hybrid.mining.HybridMiningSettings
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core._
 import scorex.core.block.Block

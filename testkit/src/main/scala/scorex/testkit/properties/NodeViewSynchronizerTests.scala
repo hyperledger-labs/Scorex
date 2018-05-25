@@ -29,8 +29,8 @@ import scala.language.postfixOps
 import scala.util.Failure
 
 @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
-trait NodeViewSynchronizerTests[P <: Proposition,
-  TX <: Transaction[P],
+trait NodeViewSynchronizerTests[
+  TX <: Transaction,
   PM <: PersistentNodeViewModifier,
   ST <: MinimalState[PM, ST],
   SI <: SyncInfo,
@@ -67,13 +67,13 @@ trait NodeViewSynchronizerTests[P <: Proposition,
 
   property("NodeViewSynchronizer: SuccessfulTransaction") { withFixture { ctx =>
     import ctx._
-    node ! SuccessfulTransaction[P, TX](tx)
+    node ! SuccessfulTransaction[TX](tx)
     ncProbe.fishForMessage(3 seconds) { case m => m.isInstanceOf[SendToNetwork] }
   }}
 
   property("NodeViewSynchronizer: FailedTransaction") { withFixture { ctx =>
     import ctx._
-    node ! FailedTransaction[P, TX](tx, new Exception)
+    node ! FailedTransaction[TX](tx, new Exception)
     // todo: NVS currently does nothing in this case. Should check banning.
   }}
 

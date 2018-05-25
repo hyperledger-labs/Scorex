@@ -4,10 +4,11 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
 import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.HybridNodeViewHolder
-import examples.hybrid.wallet.HWallet
+import examples.hybrid.wallet.HBoxWallet
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
 import scorex.core.utils.{ByteStr, NetworkTimeProvider}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
@@ -19,7 +20,7 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
       @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val store = lsmStoreGen.sample.get
       val byteStr = ByteStr(Array.fill(10)(1:Byte))
-      val gw = new HWallet(byteStr, store)
+      val gw = new HBoxWallet(byteStr, store)
       (h, s, gw, SimpleBoxTransactionMemPool.emptyPool)
     }
 

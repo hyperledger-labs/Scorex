@@ -3,7 +3,7 @@ package scorex.core.network
 import java.net.{InetAddress, InetSocketAddress}
 
 import com.google.common.primitives.{Ints, Longs}
-import scorex.core.app.{Version, ApplicationVersionSerializer}
+import scorex.core.app.{ApplicationVersionSerializer, Version}
 import scorex.core.serialization.{BytesSerializable, Serializer}
 
 import scala.util.Try

@@ -5,7 +5,7 @@ import hybrid.HybridGenerators
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.consensus.History.{HistoryComparisonResult, Equal, Older, Younger}
+import scorex.core.consensus.History.{Equal, HistoryComparisonResult, Older, Younger}
 import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.crypto.encode.Base58
 

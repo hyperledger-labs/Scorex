@@ -8,7 +8,6 @@ import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.consensus.History
 import scorex.core.serialization.SerializerRegistry
 import scorex.core.settings.RESTApiSettings
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
@@ -20,7 +19,7 @@ import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
 
 
-case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
+case class NodeViewApiRoute[TX <: Transaction]
 (override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
 (implicit val context: ActorRefFactory, val serializerReg: SerializerRegistry, val ec: ExecutionContext) extends ApiRoute {
 
@@ -34,7 +33,7 @@ case class NodeViewApiRoute[P <: Proposition, TX <: Transaction[P]]
   type HIS <: History[PM, _, _ <: History[PM, _, _]]
   type MP <: MemoryPool[TX, _ <: MemoryPool[TX, _]]
   type MS <: MinimalState[PM, _ <: MinimalState[_, _]]
-  type VL <: Vault[P, TX, PM, _ <: Vault[P, TX, PM, _]]
+  type VL <: Vault[TX, PM, _ <: Vault[TX, PM, _]]
 
   case class OpenSurface(ids: Seq[ModifierId])
 

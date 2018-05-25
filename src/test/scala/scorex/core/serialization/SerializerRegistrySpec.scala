@@ -1,6 +1,6 @@
 package scorex.core.serialization
 
-import io.circe.{Encoder, Json}
+import io.circe.Encoder
 import io.circe.syntax._
 import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.serialization.SerializerRegistry.SerializerRecord
