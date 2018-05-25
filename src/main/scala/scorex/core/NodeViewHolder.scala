@@ -32,14 +32,9 @@ import scala.util.{Failure, Success, Try}
 trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentNodeViewModifier]
   extends Actor with ScorexLogging {
 
-  import NodeViewHolder._
   import NodeViewHolder.ReceivableMessages._
-  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{RequestFromLocal, ChangedHistory,
-                                                                      ChangedMempool, ChangedVault,
-                                                                      SuccessfulTransaction, FailedTransaction,
-                                                                      SyntacticallySuccessfulModifier, SyntacticallyFailedModification,
-                                                                      SemanticallySuccessfulModifier, SemanticallyFailedModification,
-                                                                      ChangedState, RollbackFailed, NewOpenSurface, StartingPersistentModifierApplication}
+  import NodeViewHolder._
+  import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
   //import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
@@ -354,8 +349,10 @@ trait NodeViewHolder[P <: Proposition, TX <: Transaction[P], PMOD <: PersistentN
             txModify(tx)
 
           case pmod: PMOD@unchecked =>
-            if (history().contains(pmod) || modifiersCache.contains(key(pmod.id))) {
+            if (history().contains(pmod)) {
               log.warn(s"Received modifier ${pmod.encodedId} that is already in history")
+            } else if (modifiersCache.contains(key(pmod.id))) {
+              log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
             } else {
               modifiersCache.put(key(pmod.id), pmod)
             }

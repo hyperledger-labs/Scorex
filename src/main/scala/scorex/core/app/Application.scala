@@ -4,15 +4,15 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.ExceptionHandler
 import akka.stream.ActorMaterializer
-import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.core.api.http.{ApiErrorHandler, ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.network.peer.PeerManagerRef
 import scorex.core.settings.ScorexSettings
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.Transaction
+import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 
 import scala.concurrent.ExecutionContext
 
@@ -67,10 +67,10 @@ trait Application extends ScorexLogging {
   val timeProvider = new NetworkTimeProvider(settings.ntp)
 
 
-  val peerManagerRef = PeerManagerRef(settings, timeProvider)
+  val peerManagerRef = PeerManagerRef("PeerManager", settings, timeProvider)
 
-  val networkControllerRef: ActorRef = NetworkControllerRef("networkController",settings.network,
-                                                            messagesHandler, upnp, peerManagerRef, timeProvider)
+  val networkControllerRef: ActorRef = NetworkControllerRef("NetworkController", settings.network,
+    messagesHandler, upnp, peerManagerRef, timeProvider)
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 
