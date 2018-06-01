@@ -1,6 +1,7 @@
 package scorex.core.validation
 
 import akka.http.scaladsl.server.Route
+import io.circe.{ACursor, Decoder, DecodingFailure}
 import scorex.core.api.http.ApiError
 import scorex.core.validation.ValidationResult.{Invalid, Valid}
 
@@ -22,6 +23,11 @@ sealed trait ValidationResult {
   def toTry: Try[Unit]
 
   def toFuture: Future[Unit] = Future.fromTry(toTry)
+
+  def toDecoderResult[T](value: T)(implicit cursor: ACursor): Decoder.Result[T] = this match {
+    case Valid => Right(value)
+    case Invalid(_) => Left(DecodingFailure(message, cursor.history))
+  }
 
   def toApi(onSuccess: => Route): Route = this match {
     case Valid => onSuccess

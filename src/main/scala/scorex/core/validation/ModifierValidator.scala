@@ -39,7 +39,32 @@ trait ModifierValidator {
 
   /** successful validation */
   def success: Valid = Valid
+
+  /** Shortcut method for the simple single-check validation.
+    * If you need to validate against multiple checks, which is usual,
+    * then use [[failFast]] and [[accumulateErrors]] to start the validation
+    */
+  def validate(condition: Boolean)(error: => Invalid): ValidationResult = {
+    accumulateErrors.validate(condition)(error).result
+  }
+
+
+  /** Shortcut `require`-like method for the simple single-check validation with fatal error.
+    * If you need to validate against multiple checks then use [[failFast]] and [[accumulateErrors]]
+    */
+  def demand(condition: Boolean, fatalError: => String): ValidationResult = {
+    validate(condition)(fatal(fatalError))
+  }
+
+  /** Shortcut `require`-like method for the simple single-check validation with recoverable error.
+    * If you need to validate against multiple checks then use [[failFast]] and [[accumulateErrors]]
+    */
+  def recoverable(condition: Boolean, recoverableError: => String): ValidationResult = {
+    validate(condition)(error(recoverableError))
+  }
 }
+
+object ModifierValidator extends ModifierValidator
 
 /** This is the place where all the validation DSL lives */
 case class ValidationState(result: ValidationResult, strategy: ValidationStrategy) {
@@ -90,6 +115,20 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
       case Invalid(_) if strategy.isFailFast => this
       case Invalid(_) => copy(result = result ++ operation)
     }
+  }
+
+  /** Shortcut `require`-like method for the simple validation with fatal error.
+    * If you need more convenient checks, use `validate` methods.
+    */
+  def demand(condition: => Boolean, fatalError: => String): ValidationState = {
+    validate(condition)(ModifierValidator.fatal(fatalError))
+  }
+
+  /** Shortcut `require`-like method for the simple validation with recoverable error.
+    * If you need more convenient checks, use `validate` methods.
+    */
+  def recoverable(condition: => Boolean, recoverableError: => String): ValidationState = {
+    validate(condition)(ModifierValidator.error(recoverableError))
   }
 }
 
