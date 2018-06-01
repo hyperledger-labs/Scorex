@@ -39,6 +39,14 @@ trait ModifierValidator {
 
   /** successful validation */
   def success: Valid = Valid
+
+  /** Shortcut method for the simple single-check validation.
+    * If you need to validate against multiple checks, which is usual,
+    * then use [[failFast]] and [[accumulateErrors]] to start the validation
+    */
+  def validate(condition: Boolean)(error: => Invalid): ValidationResult = {
+    accumulateErrors.validate(condition)(error).result
+  }
 }
 
 /** This is the place where all the validation DSL lives */
@@ -90,6 +98,13 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
       case Invalid(_) if strategy.isFailFast => this
       case Invalid(_) => copy(result = result ++ operation)
     }
+  }
+
+  /** Shortcut `require`-like method for the simple validation with fatal error.
+    * If you need recoverable error, or more convenient checks, use `validate` methods.
+    */
+  def require(condition: => Boolean, fatalError: => String): ValidationState = {
+    validate(condition)(Invalid(Seq(MalformedModifierError((fatalError)))))
   }
 }
 
