@@ -14,7 +14,7 @@ import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
 import scorex.crypto.authds.{ADKey, ADValue, SerializedAdProof}
 import scorex.crypto.encode.Base58
-import scorex.crypto.hash.{Blake2b256Unsafe, Digest32}
+import scorex.crypto.hash.{Blake2b256, Digest32}
 import scorex.mid.state.BoxMinimalState
 
 import scala.util.{Random, Success, Try}
@@ -134,7 +134,9 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
     PersistentAuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
       .ensuring(newSt => boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
-  } ensuring { _.toOption.forall(_.version sameElements newVersion) }
+  } ensuring {
+    _.toOption.forall(_.version sameElements newVersion)
+  }
 
   override def maxRollbackDepth: Int = store.keepVersions
 
@@ -160,7 +162,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
 object PersistentAuthenticatedUtxo {
 
-  type ProverType = BatchAVLProver[Digest32, Blake2b256Unsafe]
+  type ProverType = BatchAVLProver[Digest32, Blake2b256.type]
 
   def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
     require(tx.from.size == tx.signatures.size)
@@ -174,22 +176,22 @@ object PersistentAuthenticatedUtxo {
 
   //todo: fees
   def changes(txs: Seq[SimpleBoxTransaction]): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
-  Try {
-    type SC = Seq[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
+    Try {
+      type SC = Seq[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]]
 
-    val initial = (Seq(): SC, 0L) //no reward additional to tx fees
+      val initial = (Seq(): SC, 0L) //no reward additional to tx fees
 
-    //todo: reward is not used
-    val (ops, reward) =
-    txs.foldLeft(initial) { case ((os, f), tx) =>
-      (os ++
-        (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](ADKey @@ id)): SC)
-        ++ tx.newBoxes.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
-        f + tx.fee)
+      //todo: reward is not used
+      val (ops, reward) =
+        txs.foldLeft(initial) { case ((os, f), tx) =>
+          (os ++
+            (tx.boxIdsToOpen.map(id => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](ADKey @@ id)): SC)
+            ++ tx.newBoxes.map(b => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](b)): SC,
+            f + tx.fee)
+        }
+
+      BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
     }
-
-    BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](ops)
-  }
 
   def changes(mod: TModifier): Try[BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox]] = {
 
