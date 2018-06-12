@@ -192,7 +192,7 @@ trait ModifierGenerators {
       case pwb: PowBlock =>
         history.bestPowId.sameElements(pwb.parentId) && history.bestPosId.sameElements(pwb.prevPosId)
     }
-    headLinksValid && history.applicable(head)
+    headLinksValid && history.applicableTry(head).isSuccess
   }
 
   def customModifiers(history: HT,

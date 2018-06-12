@@ -15,12 +15,13 @@ import scorex.core.consensus._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.validation.{MalformedModifierError, RecoverableModifierError}
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 /**
   * History storage
@@ -265,12 +266,14 @@ class HybridHistory(val storage: HistoryStorage,
     else if (pairCompleted) Seq(bestPowId, bestPosId)
     else Seq(bestPowId)
 
-  override def applicable(block: HybridBlock): Boolean = {
+  override def applicableTry(block: HybridBlock): Try[Unit] = {
     block match {
-      case pwb: PowBlock =>
-        contains(pwb.parentId) && contains(pwb.prevPosId)
-      case psb: PosBlock =>
-        contains(psb.parentId)
+      case pwb: PowBlock if !contains(pwb.parentId) || !contains(pwb.prevPosId) =>
+        Failure(RecoverableModifierError("Parent block or previous PoS block is not in history yet"))
+      case psb: PosBlock if !contains(psb.parentId) =>
+        Failure(RecoverableModifierError("Parent block is not in history yet"))
+      case _ =>
+        Success()
     }
   }
 

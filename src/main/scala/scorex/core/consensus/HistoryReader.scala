@@ -2,6 +2,8 @@ package scorex.core.consensus
 
 import scorex.core._
 
+import scala.util.Try
+
 
 trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends NodeViewComponent {
 
@@ -31,12 +33,13 @@ trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends No
   /**
     * Whether a modifier could be applied to the history
     *
-    * @param modifier - modifier to apply
-    * @return
+    * @param modifier  - modifier to apply
+    * @return `Success` if modifier can be applied, `Failure(ModifierError)` if can not
     */
-  def applicable(modifier: PM): Boolean = openSurfaceIds().exists(_ sameElements modifier.parentId)
+  def applicableTry(modifier: PM): Try[Unit]
 
-  /**
+
+    /**
     * Return modifier of type PM with id == modifierId
     *
     * @param modifierId - modifier id to get from history

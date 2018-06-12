@@ -140,7 +140,7 @@ MPool <: MemoryPool[TX, MPool]]
     val p = TestProbe()
 
     p.send(node, GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
-      v.history.applicable(mod)
+      v.history.applicableTry(mod).isSuccess
     })
     p.expectMsg(true)
   }}

@@ -30,7 +30,7 @@ trait HistoryTests[TX <: Transaction, PM <: PersistentNodeViewModifier, SI <: Sy
   private def propertyNameGenerator(propName: String): String = s"HistoryTests: $propName"
 
   property(propertyNameGenerator("applicable with valid modifier")) {
-    forAll(generatorWithValidModifier) { case (h, m) => h.applicable(m) shouldBe true}
+    forAll(generatorWithValidModifier) { case (h, m) => h.applicableTry(m) shouldBe 'success}
   }
 
   property(propertyNameGenerator("append valid modifier")) {
@@ -60,7 +60,7 @@ trait HistoryTests[TX <: Transaction, PM <: PersistentNodeViewModifier, SI <: Sy
   }
 
   property(propertyNameGenerator("not applicable with invalid modifier")) {
-    forAll(generatorWithInvalidModifier) { case (h, m) => h.applicable(m) shouldBe false}
+    forAll(generatorWithInvalidModifier) { case (h, m) => h.applicableTry(m) shouldBe 'failure}
   }
 
   property(propertyNameGenerator("not append invalid modifier")) {
