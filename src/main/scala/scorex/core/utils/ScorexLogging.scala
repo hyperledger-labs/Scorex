@@ -1,8 +1,11 @@
 package scorex.core.utils
 
+import com.typesafe.scalalogging.StrictLogging
 import scorex.crypto.encode.{Base16, BytesEncoder}
-import scorex.utils.ScryptoLogging
 
-trait ScorexLogging extends ScryptoLogging {
-  override implicit val encoder: BytesEncoder = Base16
+// TODO just extend from scrypto logging after the next release
+trait ScorexLogging  extends StrictLogging {
+  @inline protected def log = logger
+
+  implicit val encoder: BytesEncoder = Base16
 }
