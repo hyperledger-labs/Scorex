@@ -152,9 +152,8 @@ class NetworkController(settings: NetworkSettings,
       }
       log.info(logMsg)
       val connection = sender()
-      val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
-        messageHandler, connection, direction, externalSocketAddress, remote, timeProvider)
-      context.actorOf(handlerProps) // launch connection handler
+      PeerConnectionHandlerRef(s"PeerConnectionHandler-${remote.getAddress.getHostAddress}", settings, self,
+        peerManagerRef, messageHandler, connection, direction, externalSocketAddress, remote, timeProvider)
       outgoing -= remote
 
     case CommandFailed(c: Connect) =>

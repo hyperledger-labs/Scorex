@@ -67,10 +67,10 @@ trait Application extends ScorexLogging {
   val timeProvider = new NetworkTimeProvider(settings.ntp)
 
 
-  val peerManagerRef = PeerManagerRef(settings, timeProvider)
+  val peerManagerRef = PeerManagerRef("PeerManager", settings, timeProvider)
 
-  val networkControllerRef: ActorRef = NetworkControllerRef("networkController",settings.network,
-                                                            messagesHandler, upnp, peerManagerRef, timeProvider)
+  val networkControllerRef: ActorRef = NetworkControllerRef("NetworkController", settings.network,
+    messagesHandler, upnp, peerManagerRef, timeProvider)
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 

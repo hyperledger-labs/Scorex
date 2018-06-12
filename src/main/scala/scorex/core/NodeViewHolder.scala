@@ -347,8 +347,10 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
             txModify(tx)
 
           case pmod: PMOD@unchecked =>
-            if (history().contains(pmod) || modifiersCache.contains(key(pmod.id))) {
+            if (history().contains(pmod)) {
               log.warn(s"Received modifier ${pmod.encodedId} that is already in history")
+            } else if (modifiersCache.contains(key(pmod.id))) {
+              log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
             } else {
               modifiersCache.put(key(pmod.id), pmod)
             }
