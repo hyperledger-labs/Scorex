@@ -1,7 +1,5 @@
 package scorex.core.utils
 
-import com.typesafe.scalalogging.StrictLogging
+import scorex.utils.ScryptoLogging
 
-trait ScorexLogging extends StrictLogging {
-  @inline protected def log = logger
-}
+trait ScorexLogging extends ScryptoLogging
