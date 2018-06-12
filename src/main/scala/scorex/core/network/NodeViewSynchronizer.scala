@@ -56,6 +56,26 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
 
+  override def preStart(): Unit = {
+    //register as a handler for synchronization-specific types of messages
+    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
+
+    //register as a listener for peers got connected (handshaked) or disconnected
+    context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
+    context.system.eventStream.subscribe(self, classOf[DisconnectedPeer])
+    // todo: replace the two lines above by a single line with classOf[PeerManagementEvent]
+
+
+    //subscribe for all the node view holder events involving modifiers and transactions
+    context.system.eventStream.subscribe(self, classOf[ChangedHistory[HR]])
+    context.system.eventStream.subscribe(self, classOf[ChangedMempool[MR]])
+    context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
+    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
+
+    statusTracker.scheduleSendSyncInfo()
+  }
+
   private def readersOpt: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
@@ -281,25 +301,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         val msg = Message(ModifiersSpec, Right(m), None)
         peer.handlerRef ! msg
       }
-  }
-
-  override def preStart(): Unit = {
-    //register as a handler for synchronization-specific types of messages
-    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
-    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
-
-    //register as a listener for peers got connected (handshaked) or disconnected
-    context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
-    context.system.eventStream.subscribe(self, classOf[DisconnectedPeer])
-    // todo: replace the two lines above by a single line with classOf[PeerManagementEvent]
-
-
-    //subscribe for all the node view holder events involving modifiers and transactions
-    context.system.eventStream.subscribe(self, classOf[NodeViewChange])
-    context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
-    viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
-
-    statusTracker.scheduleSendSyncInfo()
   }
 
   override def receive: Receive =
