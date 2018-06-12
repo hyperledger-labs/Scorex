@@ -1,7 +1,6 @@
 package examples.commons
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
-import examples.commons.SimpleBoxTransaction._
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.Encoder
 import io.circe.syntax._
@@ -14,7 +13,7 @@ import scorex.core.transaction.box.BoxUnlocker
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
 
@@ -53,7 +52,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
   )
 
   override lazy val newBoxes: Traversable[PublicKey25519NoncedBox] = to.zipWithIndex.map { case ((prop, value), idx) =>
-    val nonce = nonceFromDigest(Blake2b256(prop.pubKeyBytes ++ hashNoNonces ++ Ints.toByteArray(idx)))
+    val nonce = SimpleBoxTransaction.nonceFromDigest(Blake2b256(prop.pubKeyBytes ++ hashNoNonces ++ Ints.toByteArray(idx)))
     PublicKey25519NoncedBox(prop, nonce, value)
   }
 
@@ -74,26 +73,26 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 }
 
 
-object SimpleBoxTransaction {
+object SimpleBoxTransaction extends ScorexLogging {
 
   implicit val simpleBoxEncoder: Encoder[SimpleBoxTransaction] = (sbe: SimpleBoxTransaction) =>
     Map(
-      "id" -> Base58.encode(sbe.id).asJson,
-      "newBoxes" -> sbe.newBoxes.map(b => Base58.encode(b.id).asJson).toSeq.asJson,
-      "boxesToRemove" -> sbe.boxIdsToOpen.map(id => Base58.encode(id).asJson).asJson,
+      "id" -> encoder.encode(sbe.id).asJson,
+      "newBoxes" -> sbe.newBoxes.map(b => encoder.encode(b.id).asJson).toSeq.asJson,
+      "boxesToRemove" -> sbe.boxIdsToOpen.map(id => encoder.encode(id).asJson).asJson,
       "from" -> sbe.from.map { s =>
         Map(
-          "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
+          "proposition" -> encoder.encode(s._1.pubKeyBytes).asJson,
           "nonce" -> s._2.toLong.asJson
         ).asJson
       }.asJson,
       "to" -> sbe.to.map { s =>
         Map(
-          "proposition" -> Base58.encode(s._1.pubKeyBytes).asJson,
+          "proposition" -> encoder.encode(s._1.pubKeyBytes).asJson,
           "value" -> s._2.toLong.asJson
         ).asJson
       }.asJson,
-      "signatures" -> sbe.signatures.map(s => Base58.encode(s.signature).asJson).asJson,
+      "signatures" -> sbe.signatures.map(s => encoder.encode(s.signature).asJson).asJson,
       "fee" -> sbe.fee.asJson,
       "timestamp" -> sbe.timestamp.asJson
     ).asJson

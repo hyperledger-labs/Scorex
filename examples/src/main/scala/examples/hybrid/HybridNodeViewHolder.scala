@@ -14,7 +14,6 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.core.{ModifierTypeId, NodeViewHolder, NodeViewModifier}
-import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 
@@ -123,7 +122,7 @@ object HybridNodeViewHolder extends ScorexLogging {
       "GXkCiK2P7khngAtfhG8TSqm4nfPbpMDNFBiG8CF41ZtP",
       "8etCeR343fg5gktxMh5j64zofFvWuyNTwmHAzWbsptoC",
       "AnwYrjV3yb9NuYWz31C758TZGTUCLD7zZdSYubbewygt"
-    ).map(s => PublicKey25519Proposition(PublicKey @@ Base58.decode(s).get))
+    ).map(s => PublicKey25519Proposition(PublicKey @@ encoder.decode(s).get))
       .ensuring(_.length == GenesisAccountsNum)
 
     val genesisAccount = PrivateKey25519Companion.generateKeys("genesis".getBytes)
@@ -151,7 +150,7 @@ object HybridNodeViewHolder extends ScorexLogging {
 
     val gs = HBoxStoredState.genesisState(settings, Seq[HybridBlock](posGenesis, powGenesis))
     val gw = HBoxWallet.genesisWallet(settings, Seq[HybridBlock](posGenesis, powGenesis))
-      .ensuring(_.boxes().map(_.box.value.toLong).sum >= GenesisBalance  || !Base58.encode(settings.wallet.seed.arr).startsWith("genesis"))
+      .ensuring(_.boxes().map(_.box.value.toLong).sum >= GenesisBalance  || !encoder.encode(settings.wallet.seed.arr).startsWith("genesis"))
       .ensuring(_.boxes().forall(b => gs.closedBox(b.box.id).isDefined))
 
     (history, gs, gw, SimpleBoxTransactionMemPool.emptyPool)

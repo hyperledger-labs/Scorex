@@ -3,18 +3,19 @@ package examples.hybrid.validation
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HistoryStorage
 import scorex.core.block.BlockValidator
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
 class ParentBlockValidator(storage: HistoryStorage)
-  extends BlockValidator[HybridBlock] {
+  extends BlockValidator[HybridBlock] with ScorexLogging {
 
   def validate(block: HybridBlock): Try[Unit] = Try {
     block match {
       case powBlock: PowBlock => if (!storage.isGenesis(powBlock)) {
         //check PoW parent id ???
-        require(storage.modifierById(powBlock.parentId).isDefined, s"Parent ${Base58.encode(powBlock.parentId)} missed")
+        require(storage.modifierById(powBlock.parentId).isDefined, s"Parent ${encoder.encode(powBlock.parentId)} missed")
         //check referenced PoS block exists as well
         // TODO: review me - .get
         @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))

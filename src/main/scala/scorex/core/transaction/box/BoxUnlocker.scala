@@ -2,11 +2,11 @@ package scorex.core.transaction.box
 
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.proof.Proof
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexLogging
 
-trait BoxUnlocker[P <: Proposition] {
+trait BoxUnlocker[P <: Proposition] extends ScorexLogging {
   val closedBoxId: Array[Byte]
   val boxKey: Proof[P]
 
-  override def toString: String = s"BoxUnlocker(id: ${Base58.encode(closedBoxId)}, boxKey: $boxKey)"
+  override def toString: String = s"BoxUnlocker(id: ${encoder.encode(closedBoxId)}, boxKey: $boxKey)"
 }

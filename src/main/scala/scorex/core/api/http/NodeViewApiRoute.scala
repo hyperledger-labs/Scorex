@@ -11,8 +11,8 @@ import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
+import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, PersistentNodeViewModifier}
-import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
@@ -21,7 +21,8 @@ import scala.util.{Failure, Success}
 
 case class NodeViewApiRoute[TX <: Transaction]
 (override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
-(implicit val context: ActorRefFactory, val serializerReg: SerializerRegistry, val ec: ExecutionContext) extends ApiRoute {
+(implicit val context: ActorRefFactory, val serializerReg: SerializerRegistry, val ec: ExecutionContext)
+  extends ApiRoute with ScorexLogging {
 
   import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 
@@ -39,6 +40,7 @@ case class NodeViewApiRoute[TX <: Transaction]
 
   def withOpenSurface(fn: OpenSurface => Route): Route = {
     def f(v: CurrentView[HIS, MS, VL, MP]): OpenSurface = OpenSurface(v.history.openSurfaceIds())
+
     val futureOpenSurface = (nodeViewHolderRef ? GetDataFromCurrentView(f)).map(_.asInstanceOf[OpenSurface])
     onSuccess(futureOpenSurface)(fn)
   }
@@ -47,12 +49,13 @@ case class NodeViewApiRoute[TX <: Transaction]
 
   def withMempool(fn: MempoolData => Route): Route = {
     def f(v: CurrentView[HIS, MS, VL, MP]): MempoolData = MempoolData(v.pool.size, v.pool.take(1000))
+
     val futureMempoolData = (nodeViewHolderRef ? GetDataFromCurrentView(f)).map(_.asInstanceOf[MempoolData])
     onSuccess(futureMempoolData)(fn)
   }
 
   def withPersistentModifier(encodedId: String)(fn: PM => Route): Route = {
-    Base58.decode(encodedId) match {
+    encoder.decode(encodedId) match {
       case Failure(_) => ApiError.NotExists
       case Success(rawId) =>
         val id = ModifierId @@ rawId
@@ -89,7 +92,7 @@ case class NodeViewApiRoute[TX <: Transaction]
 
   def openSurface: Route = (get & path("openSurface")) {
     withOpenSurface { os =>
-      ApiResponse(os.ids.map(Base58.encode).asJson)
+      ApiResponse(os.ids.map(encoder.encode).asJson)
     }
   }
 

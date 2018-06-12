@@ -2,13 +2,14 @@ package scorex.core.transaction.box.proposition
 
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.state.PrivateKey25519
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
 
 import scala.util.{Failure, Success, Try}
 
-case class PublicKey25519Proposition(pubKeyBytes: PublicKey) extends ProofOfKnowledgeProposition[PrivateKey25519] {
+case class PublicKey25519Proposition(pubKeyBytes: PublicKey)
+  extends ProofOfKnowledgeProposition[PrivateKey25519] with ScorexLogging {
 
   require(pubKeyBytes.length == Curve25519.KeyLength,
     s"Incorrect pubKey length, ${Curve25519.KeyLength} expected, ${pubKeyBytes.length} found")
@@ -17,7 +18,7 @@ case class PublicKey25519Proposition(pubKeyBytes: PublicKey) extends ProofOfKnow
 
   private def bytesWithVersion: Array[Byte] = AddressVersion +: pubKeyBytes
 
-  lazy val address: String = Base58.encode(bytesWithVersion ++ calcCheckSum(bytesWithVersion))
+  lazy val address: String = encoder.encode(bytesWithVersion ++ calcCheckSum(bytesWithVersion))
 
   override def toString: String = address
 
@@ -43,7 +44,7 @@ object PublicKey25519PropositionSerializer extends Serializer[PublicKey25519Prop
     Try(PublicKey25519Proposition(PublicKey @@ bytes))
 }
 
-object PublicKey25519Proposition {
+object PublicKey25519Proposition extends ScorexLogging {
   val AddressVersion: Byte = 1
   val ChecksumLength: Int = 4
   val AddressLength: Int = 1 + Constants25519.PubKeyLength + ChecksumLength
@@ -51,7 +52,7 @@ object PublicKey25519Proposition {
   def calcCheckSum(bytes: Array[Byte]): Array[Byte] = Blake2b256.hash(bytes).take(ChecksumLength)
 
   def validPubKey(address: String): Try[PublicKey25519Proposition] =
-    Base58.decode(address).flatMap { addressBytes =>
+    encoder.decode(address).flatMap { addressBytes =>
       if (addressBytes.length != AddressLength)
         Failure(new Exception("Wrong address length"))
       else {

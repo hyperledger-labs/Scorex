@@ -3,7 +3,7 @@ package scorex.core.validation
 
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.validation.ValidationResult._
-import scorex.crypto.encode.Base58
+import scorex.crypto.encode.{Base58, BytesEncoder}
 
 /** Base trait for the modifier validation process.
   *
@@ -21,6 +21,9 @@ import scorex.crypto.encode.Base58
   * while cats `Validated` supports only accumulative approach.
   */
 trait ModifierValidator {
+
+  /** Encoder from bytes to string and back for logging */
+  implicit val encoder: BytesEncoder
 
   /** Start validation in Fail-Fast mode */
   def failFast: ValidationState = ValidationState(Valid, ValidationStrategy.FailFast)
@@ -64,10 +67,11 @@ trait ModifierValidator {
   }
 }
 
-object ModifierValidator extends ModifierValidator
-
 /** This is the place where all the validation DSL lives */
-case class ValidationState(result: ValidationResult, strategy: ValidationStrategy) {
+case class ValidationState(result: ValidationResult, strategy: ValidationStrategy)(implicit e: BytesEncoder) {
+  private val modifierValidator: ModifierValidator = new ModifierValidator {
+    override implicit val encoder: BytesEncoder = e
+  }
 
   /** Reverse condition: Validate the condition is `false` or else return the `error` given */
   def validateNot(condition: => Boolean)(error: => Invalid): ValidationState = {
@@ -90,7 +94,7 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
 
   /** Validate the `id`s are equal. The `error` callback will be provided with detail on argument values */
   def validateEqualIds(given: => Array[Byte], expected: => Array[Byte])(error: String => Invalid): ValidationState = {
-    validate(given sameElements expected)(error(s"Given: ${Base58.encode(given)}, expected ${Base58.encode(expected)}"))
+    validate(given sameElements expected)(error(s"Given: ${e.encode(given)}, expected ${e.encode(expected)}"))
   }
 
 
@@ -121,14 +125,14 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
     * If you need more convenient checks, use `validate` methods.
     */
   def demand(condition: => Boolean, fatalError: => String): ValidationState = {
-    validate(condition)(ModifierValidator.fatal(fatalError))
+    validate(condition)(modifierValidator.fatal(fatalError))
   }
 
   /** Shortcut `require`-like method for the simple validation with recoverable error.
     * If you need more convenient checks, use `validate` methods.
     */
   def recoverable(condition: => Boolean, recoverableError: => String): ValidationState = {
-    validate(condition)(ModifierValidator.error(recoverableError))
+    validate(condition)(modifierValidator.error(recoverableError))
   }
 }
 

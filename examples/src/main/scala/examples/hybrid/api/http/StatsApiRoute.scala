@@ -10,13 +10,14 @@ import io.circe.syntax._
 import scorex.core.ModifierId
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView, ApiTry}
 import scorex.core.settings.RESTApiSettings
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexLogging
 
 import scala.util.Try
 
 case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                         (implicit val context: ActorRefFactory)
-  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] {
+  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool]
+    with ScorexLogging {
 
   override val route: Route = (pathPrefix("stats") & withCors) {
     tail ~ meanDifficulty
@@ -25,7 +26,7 @@ case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
   def tail: Route = (get & path("tail" / IntNumber)) { count =>
     withNodeView { view =>
       val lastBlockIds = view.history.lastBlockIds(view.history.bestBlock, count)
-      val tail = lastBlockIds.map(id => Base58.encode(id).asJson)
+      val tail = lastBlockIds.map(id => encoder.encode(id).asJson)
       ApiResponse("count" -> count.asJson, "tail" -> tail.asJson)
     }
   }

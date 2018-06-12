@@ -8,6 +8,7 @@ import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, Outcome, fixture}
 import scorex.core.ModifierId
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.testkit.utils.FileUtils
 
@@ -16,7 +17,8 @@ class IODBSpecification extends fixture.PropSpec
   with GeneratorDrivenPropertyChecks
   with Matchers
   with HybridGenerators
-  with FileUtils {
+  with FileUtils
+  with ScorexLogging {
 
   type FixtureParam = LSMStore
 
@@ -79,7 +81,7 @@ class IODBSpecification extends fixture.PropSpec
     ids.foreach { id =>
       blocksStorage.get(ByteArrayWrapper(id)) match {
         case None =>
-          throw new Error(s"Id ${Base58.encode(id)} not found")
+          throw new Error(s"Id ${encoder.encode(id)} not found")
         case Some(_) => ()
       }
     }

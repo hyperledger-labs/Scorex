@@ -4,8 +4,12 @@ import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.ModifierId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.validation.ValidationResult._
+import scorex.crypto.encode.{Base16, BytesEncoder}
 
 class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
+
+  override implicit val encoder: BytesEncoder = Base16
+
 
   "ModifierValidation" should "be able to succeed when failing fast" in {
     val result = failFast
@@ -235,7 +239,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     result.isValid shouldBe false
     result shouldBe an[Invalid]
     result.errors should have size 1
-    result.errors.map(_.message) should contain only(ModifierSemanticValidity.Invalid.toString)
+    result.errors.map(_.message) should contain only (ModifierSemanticValidity.Invalid.toString)
   }
 
   it should "support `not` condition" in {
@@ -254,5 +258,4 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     result.errors should have size 1
     result.errors.map(_.message) should contain only errMsg
   }
-
 }

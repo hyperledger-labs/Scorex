@@ -5,6 +5,7 @@ import examples.trimchain.core._
 import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.serialization.Serializer
+import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.crypto.encode.Base58
 
@@ -31,13 +32,13 @@ case class BlockHeader(override val parentId: ModifierId,
   override lazy val serializer = BlockHeaderSerializer
 }
 
-object BlockHeader {
+object BlockHeader extends ScorexLogging {
   implicit val blockHeaderEncoder: Encoder[BlockHeader] = (bh: BlockHeader) =>
     Map(
-      "id" -> Base58.encode(bh.id).asJson,
-      "parentId" -> Base58.encode(bh.parentId).asJson,
-      "stateRoot" -> Base58.encode(bh.stateRoot).asJson,
-      "txRoot" -> Base58.encode(bh.txRoot).asJson,
+      "id" -> encoder.encode(bh.id).asJson,
+      "parentId" -> encoder.encode(bh.parentId).asJson,
+      "stateRoot" -> encoder.encode(bh.stateRoot).asJson,
+      "txRoot" -> encoder.encode(bh.txRoot).asJson,
       "ticket" -> bh.ticket.asJson,
       "powNonce" -> bh.powNonce.asJson
     ).asJson

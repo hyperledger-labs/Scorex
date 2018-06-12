@@ -76,7 +76,7 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
   override def scanOffchain(txs: Seq[SimpleBoxTransaction]): HBoxWallet = this
 
   override def scanPersistent(modifier: HybridBlock): HBoxWallet = {
-    log.debug(s"Applying modifier to wallet: ${Base58.encode(modifier.id)}")
+    log.debug(s"Applying modifier to wallet: ${encoder.encode(modifier.id)}")
     val changes = HBoxStoredState.changes(modifier).get
 
     val newBoxes = changes.toAppend.filter(s => secretByPublicImage(s.box.proposition).isDefined).map(_.box).map { box =>
@@ -91,7 +91,7 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
     val newBoxIds: ByteArrayWrapper = ByteArrayWrapper(newBoxes.toArray.flatMap(_._1.data) ++
       boxIds.filter(bi => !boxIdsToRemove.exists(_.data sameElements bi)).flatten)
     store.update(ByteArrayWrapper(modifier.id), boxIdsToRemove, Seq(BoxIdsKey -> newBoxIds) ++ newBoxes)
-    log.debug(s"Successfully applied modifier to wallet: ${Base58.encode(modifier.id)}")
+    log.debug(s"Successfully applied modifier to wallet: ${encoder.encode(modifier.id)}")
 
     HBoxWallet(seed, store)
   }
@@ -100,9 +100,9 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
     if (store.lastVersionID.exists(_.data sameElements to)) {
       this
     } else {
-      log.debug(s"Rolling back wallet to: ${Base58.encode(to)}")
+      log.debug(s"Rolling back wallet to: ${encoder.encode(to)}")
       store.rollback(ByteArrayWrapper(to))
-      log.debug(s"Successfully rolled back wallet to: ${Base58.encode(to)}")
+      log.debug(s"Successfully rolled back wallet to: ${encoder.encode(to)}")
       HBoxWallet(seed, store)
     }
   }
@@ -158,7 +158,7 @@ object HBoxWallet {
 }
 
 
-object GenesisStateGenerator extends App {
+object GenesisStateGenerator extends App with ScorexLogging {
   private val w1 = HBoxWallet(ByteStr.decodeBase58("minerNode1").get, new LSMStore(new File("/tmp/w1")))
   private val w2 = HBoxWallet(ByteStr.decodeBase58("minerNode2").get, new LSMStore(new File("/tmp/w2")))
   private val w3 = HBoxWallet(ByteStr.decodeBase58("minerNode3").get, new LSMStore(new File("/tmp/w3")))
@@ -168,9 +168,9 @@ object GenesisStateGenerator extends App {
   (1 to 10).foreach(_ => w3.generateNewSecret())
 
   val pks =
-  w1.publicKeys.map(_.pubKeyBytes).map(Base58.encode) ++
-    w2.publicKeys.map(_.pubKeyBytes).map(Base58.encode) ++
-    w3.publicKeys.map(_.pubKeyBytes).map(Base58.encode)
+  w1.publicKeys.map(_.pubKeyBytes).map(encoder.encode) ++
+    w2.publicKeys.map(_.pubKeyBytes).map(encoder.encode) ++
+    w3.publicKeys.map(_.pubKeyBytes).map(encoder.encode)
 
   println(pks.map(pk => s""""$pk",""").mkString("\n"))
 }

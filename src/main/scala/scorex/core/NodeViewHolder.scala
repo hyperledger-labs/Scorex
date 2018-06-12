@@ -10,7 +10,6 @@ import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -354,7 +353,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
             }
         }
 
-        log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(encoder.encode).mkString(",")}")
 
         var t: Option[PMOD] = None
         do {
@@ -370,7 +369,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
           t.foreach(pmodModify)
         } while (t.isDefined)
 
-        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(Base58.encode).mkString(",")}")
+        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(encoder.encode).mkString(",")}")
       }
   }
 

@@ -2,7 +2,7 @@ package scorex.core.consensus
 
 import scorex.core._
 import scorex.core.consensus.History.ProgressInfo
-import scorex.crypto.encode.Base58
+import scorex.crypto.encode.BytesEncoder
 
 import scala.util.Try
 
@@ -18,7 +18,8 @@ import scala.util.Try
   * function has been used instead.
   */
 
-trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]] extends HistoryReader[PM, SI] {
+trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]]
+  extends HistoryReader[PM, SI] {
 
   /**
     * @return append modifier to history
@@ -27,6 +28,7 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
 
   /**
     * Report that modifier is valid from point of view of the state component
+    *
     * @param modifier - valid modifier
     * @return modified history
     */
@@ -34,7 +36,8 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
 
   /**
     * Report that modifier is invalid from other nodeViewHolder components point of view
-    * @param modifier - invalid modifier
+    *
+    * @param modifier     - invalid modifier
     * @param progressInfo - what suffix failed to be applied because of an invalid modifier
     * @return modified history and new progress info
     */
@@ -53,10 +56,15 @@ object History {
   type ModifierIds = Seq[(ModifierTypeId, ModifierId)]
 
   sealed trait HistoryComparisonResult
+
   case object Equal extends HistoryComparisonResult
+
   case object Younger extends HistoryComparisonResult
+
   case object Older extends HistoryComparisonResult
+
   case object Nonsense extends HistoryComparisonResult
+
   case object Unknown extends HistoryComparisonResult
 
   /**
@@ -71,8 +79,8 @@ object History {
   case class ProgressInfo[PM <: PersistentNodeViewModifier](branchPoint: Option[ModifierId],
                                                             toRemove: Seq[PM],
                                                             toApply: Seq[PM],
-                                                            toDownload: Seq[(ModifierTypeId, ModifierId)]
-                                                           ) {
+                                                            toDownload: Seq[(ModifierTypeId, ModifierId)])
+                                                           (implicit encoder: BytesEncoder) {
 
     require(branchPoint.isDefined == toRemove.nonEmpty, s"Branch point should be defined for non-empty toRemove," +
       s" ${branchPoint.isDefined} == ${toRemove.nonEmpty} given")
@@ -80,7 +88,7 @@ object History {
     lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
 
     override def toString: String = {
-      s"ProgressInfo(BranchPoint: ${branchPoint.map(Base58.encode)}, " +
+      s"ProgressInfo(BranchPoint: ${branchPoint.map(encoder.encode)}, " +
         s" to remove: ${toRemove.map(_.encodedId)}, to apply: ${toApply.map(_.encodedId)})"
     }
   }

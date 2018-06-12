@@ -11,6 +11,7 @@ import io.circe.syntax._
 import scorex.core.api.http.{ApiError, ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
@@ -19,7 +20,8 @@ import scala.util.{Failure, Success, Try}
 
 case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                          (implicit val context: ActorRefFactory)
-  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] {
+  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool]
+    with ScorexLogging {
 
   import scorex.core.NodeViewHolder.ReceivableMessages.LocallyGeneratedTransaction
 
@@ -43,7 +45,7 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
               val amount: Long = (json \\ "amount").head.asNumber.get.toLong.get
               // TODO: Can we do this extraction in a safer way (not calling head/get)?
               @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
-              val recipient: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ Base58.decode((json \\ "recipient").head.asString.get).get)
+              val recipient: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ encoder.decode((json \\ "recipient").head.asString.get).get)
               val fee: Long = (json \\ "fee").headOption.flatMap(_.asNumber).flatMap(_.toLong).getOrElse(DefaultFee)
               val tx = SimpleBoxTransaction.create(wallet, Seq((recipient, Value @@ amount)), fee).get
               nodeViewHolderRef ! LocallyGeneratedTransaction[SimpleBoxTransaction](tx)
@@ -64,7 +66,7 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
       val boxes = wallet.boxes().map(_.box)
       ApiResponse(
         "totalBalance" -> boxes.map(_.value.toLong).sum.toString.asJson,
-        "publicKeys" -> wallet.publicKeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
+        "publicKeys" -> wallet.publicKeys.map(pk => encoder.encode(pk.pubKeyBytes)).asJson,
         "boxes" -> boxes.asJson
       )
     }

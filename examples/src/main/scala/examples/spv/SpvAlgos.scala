@@ -1,12 +1,12 @@
 package examples.spv
 
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexLogging
 
 import scala.annotation.tailrec
 import scala.util.Try
 
-object SpvAlgos {
+object SpvAlgos extends ScorexLogging {
 
   def blockIdDifficulty(id: Array[Byte]): BigInt = {
     val blockTarget = BigInt(1, id)
@@ -148,6 +148,6 @@ object SpvAlgos {
   }
 
   //debug method
-  def stringChain(c: Seq[Header]): String = c.map(h => h.realDifficulty + "-" + Base58.encode(h.id).take(4)).mkString(",")
+  def stringChain(c: Seq[Header]): String = c.map(h => h.realDifficulty + "-" + encoder.encode(h.id).take(4)).mkString(",")
 
 }

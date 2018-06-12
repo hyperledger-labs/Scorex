@@ -6,7 +6,8 @@ import io.circe.syntax._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.crypto.encode.{Base16, Base58}
+import scorex.core.utils.ScorexLogging
+import scorex.crypto.encode.Base16
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey}
 
@@ -24,15 +25,15 @@ case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Propo
     s"PublicKey25519NoncedBox(id: ${Base16.encode(id)}, proposition: $proposition, nonce: $nonce, value: $value)"
 }
 
-object PublicKey25519NoncedBox {
+object PublicKey25519NoncedBox extends ScorexLogging {
   val BoxKeyLength: Int = Blake2b256.DigestSize
   val BoxLength: Int = Curve25519.KeyLength + 2 * 8
 
   implicit val publicKey25519NoncedBoxEncoder: Encoder[PublicKey25519NoncedBox] = (pknb: PublicKey25519NoncedBox) =>
     Map(
-      "id" -> Base58.encode(pknb.id).asJson,
+      "id" -> encoder.encode(pknb.id).asJson,
       "address" -> pknb.proposition.address.asJson,
-      "publicKey" -> Base58.encode(pknb.proposition.pubKeyBytes).asJson,
+      "publicKey" -> encoder.encode(pknb.proposition.pubKeyBytes).asJson,
       "nonce" -> pknb.nonce.toLong.asJson,
       "value" -> pknb.value.toLong.asJson
     ).asJson

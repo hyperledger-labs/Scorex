@@ -3,11 +3,11 @@ package scorex.core
 import com.typesafe.config.ConfigFactory
 import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.Transaction
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexLogging
 
 import scala.util.Try
 
-sealed trait NodeViewModifier extends BytesSerializable {
+sealed trait NodeViewModifier extends BytesSerializable with ScorexLogging {
   self =>
 
   val modifierTypeId: ModifierTypeId
@@ -15,7 +15,7 @@ sealed trait NodeViewModifier extends BytesSerializable {
   //todo: check statically or dynamically output size
   def id: ModifierId
 
-  def encodedId: String = Base58.encode(id)
+  def encodedId: String = encoder.encode(id)
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case that: NodeViewModifier => (that.id sameElements id) && (that.modifierTypeId == modifierTypeId)
