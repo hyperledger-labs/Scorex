@@ -9,8 +9,8 @@ import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
+import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier}
-import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, Signature}
 
@@ -23,7 +23,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
                     attachment: Array[Byte],
                     signature: Signature25519
                    ) extends HybridBlock
-  with TransactionsCarryingPersistentNodeViewModifier[SimpleBoxTransaction] {
+  with TransactionsCarryingPersistentNodeViewModifier[SimpleBoxTransaction] with ScorexLogging {
   override type M = PosBlock
 
   override lazy val serializer = PosBlockCompanion
@@ -38,9 +38,9 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override def toString: String = s"PoSBlock(${this.asJson.noSpaces})"
 }
 
-object PosBlockCompanion extends Serializer[PosBlock] {
+object PosBlockCompanion extends Serializer[PosBlock] with ScorexLogging {
   override def toBytes(b: PosBlock): Array[Byte] = {
-    val txsBytes = b.transactions.sortBy(t => Base58.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
+    val txsBytes = b.transactions.sortBy(t => encoder.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }
     Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes,
@@ -77,19 +77,19 @@ object PosBlockCompanion extends Serializer[PosBlock] {
   }
 }
 
-object PosBlock {
-  val MaxBlockSize = 512 * 1024  //512K
+object PosBlock extends ScorexLogging {
+  val MaxBlockSize = 512 * 1024 //512K
   val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 4.toByte
 
   implicit val posBlockEncoder: Encoder[PosBlock] = (psb: PosBlock) => {
     Map(
-      "id" -> Base58.encode(psb.id).asJson,
-      "parentId" -> Base58.encode(psb.parentId).asJson,
-      "attachment" -> Base58.encode(psb.attachment).asJson,
+      "id" -> encoder.encode(psb.id).asJson,
+      "parentId" -> encoder.encode(psb.parentId).asJson,
+      "attachment" -> encoder.encode(psb.attachment).asJson,
       "timestamp" -> psb.timestamp.asJson,
       "transactions" -> psb.transactions.map(_.asJson).asJson,
       "generatorBox" -> psb.generatorBox.asJson,
-      "signature" -> Base58.encode(psb.signature.bytes).asJson
+      "signature" -> encoder.encode(psb.signature.bytes).asJson
     ).asJson
   }
 

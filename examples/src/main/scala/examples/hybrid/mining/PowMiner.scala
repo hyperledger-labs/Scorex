@@ -97,11 +97,11 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings)(implicit
 
         val (parentId, prevPosId, brothers) = if (!pmi.pairCompleted) {
           //brother
-          log.info(s"Starting brother mining for ${Base58.encode(bestPowBlock.parentId)}:${Base58.encode(bestPowBlock.prevPosId)}")
+          log.info(s"Starting brother mining for ${encoder.encode(bestPowBlock.parentId)}:${encoder.encode(bestPowBlock.prevPosId)}")
           val bs = bestPowBlock.brothers :+ bestPowBlock.header
           (bestPowBlock.parentId, bestPowBlock.prevPosId, bs)
         } else {
-          log.info(s"Starting new block mining for ${bestPowBlock.encodedId}:${Base58.encode(pmi.bestPosId)}")
+          log.info(s"Starting new block mining for ${bestPowBlock.encodedId}:${encoder.encode(pmi.bestPosId)}")
           (bestPowBlock.id, pmi.bestPosId, Seq()) //new step
         }
         val pubkey = pmi.pubkey

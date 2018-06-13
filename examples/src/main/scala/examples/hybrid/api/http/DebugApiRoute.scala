@@ -11,14 +11,15 @@ import io.circe.syntax._
 import scorex.core.ModifierId
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexLogging
 
 import scala.util.Try
 
 
 case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                         (implicit val context: ActorRefFactory)
-  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] {
+  extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] 
+    with ScorexLogging {
 
   override val route: Route = (pathPrefix("debug") & withCors) {
     infoRoute ~ chain ~ delay ~ myblocks ~ generators
@@ -28,7 +29,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
     (get & path("delay" / Segment / IntNumber)) { case (encodedSignature, count) =>
       withNodeView { view =>
         val result: Try[String] = for {
-          id <- Base58.decode(encodedSignature)
+          id <- encoder.decode(encodedSignature)
           delay <- view.history.averageDelay(ModifierId @@ id, count)
         } yield delay.toString
         ApiResponse("delay" -> result.getOrElse("Undefined"))
@@ -45,10 +46,10 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
 
       ApiResponse(
         "height" -> view.history.height.toString.asJson,
-        "bestPoS" -> Base58.encode(view.history.bestPosId).asJson,
-        "bestPoW" -> Base58.encode(view.history.bestPowId).asJson,
+        "bestPoS" -> encoder.encode(view.history.bestPosId).asJson,
+        "bestPoW" -> encoder.encode(view.history.bestPowId).asJson,
         "bestBlock" -> bestBlockJson,
-        "stateVersion" -> Base58.encode(view.state.version).asJson
+        "stateVersion" -> encoder.encode(view.state.version).asJson
       )
     }
   }
@@ -71,7 +72,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
       val powCount = view.history.count(isMyPowBlock)
 
       ApiResponse(
-        "pubkeys" -> pubkeys.map(pk => Base58.encode(pk.pubKeyBytes)).asJson,
+        "pubkeys" -> pubkeys.map(pk => encoder.encode(pk.pubKeyBytes)).asJson,
         "count" -> (posCount + powCount).asJson,
         "posCount" -> posCount.asJson,
         "powCount" -> powCount.asJson
@@ -82,7 +83,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
   def generators: Route = (get & path("generators")) {
     withNodeView { view =>
       val map: Map[String, Int] = view.history.generatorDistribution()
-        .map(d => Base58.encode(d._1.pubKeyBytes) -> d._2)
+        .map(d => encoder.encode(d._1.pubKeyBytes) -> d._2)
       ApiResponse(map.asJson)
     }
   }

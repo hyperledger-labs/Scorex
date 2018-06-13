@@ -7,17 +7,19 @@ import akka.http.scaladsl.server.Route
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.settings.RESTApiSettings
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
 
 
-case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val context: ActorRefFactory) extends ApiRoute {
+case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
+  extends ApiRoute with ScorexLogging {
+
   private val SeedSize = 32
 
   private def seed(length: Int): String = {
     val seed = new Array[Byte](length)
     new SecureRandom().nextBytes(seed) //seed mutated here!
-    Base58.encode(seed)
+    encoder.encode(seed)
   }
 
   override val route: Route = pathPrefix("utils") {
@@ -35,7 +37,7 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
   def hashBlake2b: Route = {
     (post & path("hash" / "blake2b") & entity(as[Json])) { json =>
       json.asString match {
-        case Some(message) => ApiResponse(Base58.encode(Blake2b256(message)).asJson)
+        case Some(message) => ApiResponse(encoder.encode(Blake2b256(message)).asJson)
         case None => ApiError.BadRequest
       }
     }

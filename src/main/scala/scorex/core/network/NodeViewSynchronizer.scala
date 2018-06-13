@@ -12,7 +12,6 @@ import scorex.core.transaction.state.StateReader
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
-import scorex.crypto.encode.Base58
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -209,7 +208,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       val modifiers = data._2
 
       log.info(s"Got modifiers of type $typeId from remote connected peer: $remote")
-      log.trace(s"Received modifier ids ${data._2.keySet.map(Base58.encode).mkString(",")}")
+      log.trace(s"Received modifier ids ${data._2.keySet.map(encoder.encode).mkString(",")}")
 
       for ((id, _) <- modifiers) deliveryTracker.receive(typeId, id, remote)
 
@@ -217,7 +216,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
       if (spam.nonEmpty) {
         log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
-          s": ${spam.keys.map(Base58.encode)}")
+          s": ${spam.keys.map(encoder.encode)}")
         penalizeSpammingPeer(remote)
         val mids = spam.keys.toSeq
         deliveryTracker.deleteSpam(mids)
@@ -251,7 +250,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         deliveryTracker.delete(modifierId)
       }
       else {
-        log.info(s"Peer $peer has not delivered asked modifier ${Base58.encode(modifierId)} on time")
+        log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
         penalizeNonDeliveringPeer(peer)
         deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
       }

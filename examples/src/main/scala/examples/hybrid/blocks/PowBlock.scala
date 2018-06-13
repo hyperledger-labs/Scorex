@@ -10,7 +10,7 @@ import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey}
 
@@ -23,7 +23,7 @@ class PowBlockHeader(
                       val nonce: Long,
                       val brothersCount: Int,
                       val brothersHash: Array[Byte],
-                      val generatorProposition: PublicKey25519Proposition) {
+                      val generatorProposition: PublicKey25519Proposition) extends ScorexLogging {
 
 
   import PowBlockHeader._
@@ -41,8 +41,8 @@ class PowBlockHeader(
 
   lazy val id = ModifierId @@ Blake2b256(headerBytes)
 
-  override lazy val toString = s"PowBlockHeader(id: ${Base58.encode(id)})" +
-    s"(parentId: ${Base58.encode(parentId)}, posParentId: ${Base58.encode(prevPosId)}, time: $timestamp, " +
+  override lazy val toString = s"PowBlockHeader(id: ${encoder.encode(id)})" +
+    s"(parentId: ${encoder.encode(parentId)}, posParentId: ${encoder.encode(prevPosId)}, time: $timestamp, " +
     s"nonce: $nonce)"
 }
 
@@ -135,18 +135,18 @@ object PowBlockCompanion extends Serializer[PowBlock] {
   }
 }
 
-object PowBlock {
+object PowBlock extends ScorexLogging {
   val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 3.toByte
 
   implicit val powBlockEncoder: Encoder[PowBlock] = (pb: PowBlock) => {
     Map(
-      "id" -> Base58.encode(pb.id).asJson,
-      "parentId" -> Base58.encode(pb.parentId).asJson,
-      "prevPosId" -> Base58.encode(pb.prevPosId).asJson,
+      "id" -> encoder.encode(pb.id).asJson,
+      "parentId" -> encoder.encode(pb.parentId).asJson,
+      "prevPosId" -> encoder.encode(pb.prevPosId).asJson,
       "timestamp" -> pb.timestamp.asJson,
       "nonce" -> pb.nonce.asJson,
-      "brothersHash" -> Base58.encode(pb.brothersHash).asJson,
-      "brothers" -> pb.brothers.map(b => Base58.encode(b.id).asJson).asJson
+      "brothersHash" -> encoder.encode(pb.brothersHash).asJson,
+      "brothers" -> pb.brothers.map(b => encoder.encode(b.id).asJson).asJson
     ).asJson
   }
 }

@@ -4,12 +4,13 @@ import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HistoryStorage
 import examples.hybrid.mining.{HybridMiningSettings, PosForger}
 import scorex.core.block.BlockValidator
+import scorex.core.utils.ScorexLogging
 import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
 class DifficultyBlockValidator(settings: HybridMiningSettings, storage: HistoryStorage)
-  extends BlockValidator[HybridBlock] {
+  extends BlockValidator[HybridBlock] with ScorexLogging {
 
   def validate(block: HybridBlock): Try[Unit] = block match {
     case b: PowBlock => checkPoWConsensusRules(b)
@@ -22,7 +23,7 @@ class DifficultyBlockValidator(settings: HybridMiningSettings, storage: HistoryS
     val powDifficulty = storage.getPoWDifficulty(Some(powBlock.prevPosId))
     //check work
     require(powBlock.correctWork(powDifficulty, settings),
-      s"Work done is incorrect for block ${Base58.encode(powBlock.id)} and difficulty $powDifficulty")
+      s"Work done is incorrect for block ${encoder.encode(powBlock.id)} and difficulty $powDifficulty")
 
     //some brothers work
     require(powBlock.brothers.forall(_.correctWork(powDifficulty, settings)))

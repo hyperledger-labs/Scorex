@@ -6,15 +6,16 @@ import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.consensus.History.{Equal, HistoryComparisonResult, Older, Younger}
+import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, ModifierTypeId}
-import scorex.crypto.encode.Base58
 
-@SuppressWarnings(Array("org.wartremover.warts.TraversableOps","org.wartremover.warts.OptionPartial"))
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
 class HybridHistorySpecification extends PropSpec
   with PropertyChecks
   with GeneratorDrivenPropertyChecks
   with Matchers
-  with HybridGenerators {
+  with HybridGenerators
+  with ScorexLogging {
 
   var history: HybridHistory = historyGen.sample.get
 
@@ -40,7 +41,7 @@ class HybridHistorySpecification extends PropSpec
 
     val startFrom = Seq((ModifierTypeId @@ 2.toByte, ModifierId @@ ids.head))
 
-    history.continuationIds(startFrom, ids.length).get.map(_._2).map(Base58.encode) shouldEqual ids.map(Base58.encode)
+    history.continuationIds(startFrom, ids.length).get.map(_._2).map(encoder.encode) shouldEqual ids.map(encoder.encode)
 
     ids.length shouldBe HybridHistory.DifficultyRecalcPeriod
 
@@ -48,10 +49,10 @@ class HybridHistorySpecification extends PropSpec
     forAll(Gen.choose(0, ids.length - 1)) { startIndex: Int =>
       val startFrom = Seq((ModifierTypeId @@ 2.toByte, ids(startIndex)))
       val startList = ids.take(startIndex + 1).map(a => (ModifierTypeId @@ 2.toByte, a))
-      val restIds = ids.zipWithIndex.filter { case (datum, index) => index >= startIndex }.map(_._1).map(Base58.encode)
+      val restIds = ids.zipWithIndex.filter { case (datum, index) => index >= startIndex }.map(_._1).map(encoder.encode)
 
-      history.continuationIds(startFrom, ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
-      history.continuationIds(startList, ids.length).get.map(_._2).map(Base58.encode) shouldEqual restIds
+      history.continuationIds(startFrom, ids.length).get.map(_._2).map(encoder.encode) shouldEqual restIds
+      history.continuationIds(startList, ids.length).get.map(_._2).map(encoder.encode) shouldEqual restIds
 
       val limit = 5
       val continuation = history.continuationIds(startList, limit).get
