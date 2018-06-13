@@ -239,7 +239,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     result.isValid shouldBe false
     result shouldBe an[Invalid]
     result.errors should have size 1
-    result.errors.map(_.message) should contain only (ModifierSemanticValidity.Invalid.toString)
+    result.errors.map(_.message) should contain only ModifierSemanticValidity.Invalid.toString
   }
 
   it should "support `not` condition" in {

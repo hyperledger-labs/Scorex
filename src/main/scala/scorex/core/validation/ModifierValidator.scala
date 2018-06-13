@@ -2,13 +2,14 @@ package scorex.core.validation
 
 
 import scorex.core.consensus.ModifierSemanticValidity
+import scorex.core.utils.ScorexLogging
 import scorex.core.validation.ValidationResult._
 import scorex.crypto.encode.{Base58, BytesEncoder}
 
 /** Base trait for the modifier validation process.
   *
-  * This code was pretty much inspired by cats `Validated` facility. There is a reason why don't we use the original
-  * cats facility in our code. It doesn't suit well for modifier validation in Ergo as being supposed mostly
+  * This code was pretty much inspired by cats `Validated` facility. There is a reason for the original cats facility
+  * not to suite well for our code. It doesn't suit well for modifier validation in Ergo as being supposed mostly
   * for the web from validation. It's really good in accumulating all the validated fields and constructing
   * a composite object from all these fields.
   *
@@ -26,22 +27,22 @@ trait ModifierValidator {
   implicit val encoder: BytesEncoder
 
   /** Start validation in Fail-Fast mode */
-  def failFast: ValidationState = ValidationState(Valid, ValidationStrategy.FailFast)
+  def failFast: ValidationState = ModifierValidator.failFast
 
   /** Start validation accumulating all the errors */
-  def accumulateErrors: ValidationState = ValidationState(Valid, ValidationStrategy.AccumulateErrors)
+  def accumulateErrors: ValidationState = ModifierValidator.accumulateErrors
 
   /** report recoverable modifier error that could be fixed by later retries */
-  def error(errorMessage: String): Invalid = invalid(RecoverableModifierError(errorMessage))
+  def error(errorMessage: String): Invalid = ModifierValidator.error(errorMessage)
 
   /** report non-recoverable modifier error that could be fixed by retries and requires modifier change */
-  def fatal(errorMessage: String): Invalid = invalid(MalformedModifierError(errorMessage))
+  def fatal(errorMessage: String): Invalid = ModifierValidator.fatal(errorMessage)
 
   /** unsuccessful validation with a given error*/
-  def invalid(error: ModifierError): Invalid = Invalid(Seq(error))
+  def invalid(error: ModifierError): Invalid = ModifierValidator.invalid(error)
 
   /** successful validation */
-  def success: Valid = Valid
+  def success: Valid = ModifierValidator.success
 
   /** Shortcut method for the simple single-check validation.
     * If you need to validate against multiple checks, which is usual,
@@ -50,7 +51,6 @@ trait ModifierValidator {
   def validate(condition: Boolean)(error: => Invalid): ValidationResult = {
     accumulateErrors.validate(condition)(error).result
   }
-
 
   /** Shortcut `require`-like method for the simple single-check validation with fatal error.
     * If you need to validate against multiple checks then use [[failFast]] and [[accumulateErrors]]
@@ -67,11 +67,36 @@ trait ModifierValidator {
   }
 }
 
+object ModifierValidator extends ScorexLogging  {
+
+  /** Start validation in Fail-Fast mode */
+  def failFast(implicit e: BytesEncoder): ValidationState = {
+    ValidationState(Valid, ValidationStrategy.FailFast)(e)
+  }
+
+  /** Start validation accumulating all the errors */
+  def accumulateErrors(implicit e: BytesEncoder): ValidationState = {
+    ValidationState(Valid, ValidationStrategy.AccumulateErrors)(e)
+  }
+
+  /** report recoverable modifier error that could be fixed by later retries */
+  def error(errorMessage: String): Invalid = invalid(RecoverableModifierError(errorMessage))
+
+  /** report non-recoverable modifier error that could be fixed by retries and requires modifier change */
+  def fatal(errorMessage: String): Invalid = invalid(MalformedModifierError(errorMessage))
+
+  /** unsuccessful validation with a given error*/
+  def invalid(error: ModifierError): Invalid = {
+    log.info(error.description)
+    Invalid(Seq(error))
+  }
+
+  /** successful validation */
+  def success: Valid = Valid
+}
+
 /** This is the place where all the validation DSL lives */
 case class ValidationState(result: ValidationResult, strategy: ValidationStrategy)(implicit e: BytesEncoder) {
-  private val modifierValidator: ModifierValidator = new ModifierValidator {
-    override implicit val encoder: BytesEncoder = e
-  }
 
   /** Reverse condition: Validate the condition is `false` or else return the `error` given */
   def validateNot(condition: => Boolean)(error: => Invalid): ValidationState = {
@@ -124,14 +149,14 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
     * If you need more convenient checks, use `validate` methods.
     */
   def demand(condition: => Boolean, fatalError: => String): ValidationState = {
-    validate(condition)(modifierValidator.fatal(fatalError))
+    validate(condition)(ModifierValidator.fatal(fatalError))
   }
 
   /** Shortcut `require`-like method for the simple validation with recoverable error.
     * If you need more convenient checks, use `validate` methods.
     */
   def recoverable(condition: => Boolean, recoverableError: => String): ValidationState = {
-    validate(condition)(modifierValidator.error(recoverableError))
+    validate(condition)(ModifierValidator.error(recoverableError))
   }
 }
 

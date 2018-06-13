@@ -17,25 +17,16 @@ components:
     # Objects
     ModifierId:
       description: Base16-encoded 32 byte modifier id
-      type: object
-      required:
-        - modifierId
-      properties:
-        modifierId:
-          type: string
-          format: base16
-          example: 3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
+      type: string
+      format: base16
+      example: 3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
 
     Digest32:
       description: Base16-encoded 32 byte digest
-      type: object
-      required:
-        - digest
-      properties:
-        digest:
-          type: string
-          format: base16
-          example: 4ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
+      type: string
+      format: base16
+      example: e15a5bb0a1ad2f341a50c4f3fdcb01a516f39069baf66977e7e026a69e9a080d
+
     Peer:
       type: object
       required:
@@ -86,9 +77,13 @@ paths:
                 type: array
                 example: ["3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117"]
                 items:
-                  type: string
-                  format: base16
-                  example: 3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
+                  $ref: '#/components/schemas/ModifierId'
+        default:
+          description: Error
+          content:
+            text/plain; charset=UTF-8:
+              schema:
+                type: string
 
   /nodeView/persistentModifier/{modifierId}:
     get:
@@ -102,9 +97,7 @@ paths:
           required: true
           description: ID of a requested modifier
           schema:
-            type: string
-            format: base16
-            example: 3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
+            $ref: '#/components/schemas/ModifierId'
       responses:
         200:
           description: Node view modifier
@@ -114,6 +107,12 @@ paths:
                 type: object
                 required:
                   - id
+        default:
+          description: Error
+          content:
+            text/plain; charset=UTF-8:
+              schema:
+                type: string
 
   /nodeView/pool:
     get:
@@ -131,6 +130,12 @@ paths:
                 required:
                   - size
                   - transactions
+        default:
+          description: Error
+          content:
+            text/plain; charset=UTF-8:
+              schema:
+                type: string
 
   /peers/all:
     get:
@@ -147,6 +152,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Peer'
+        default:
+          description: Error
+          content:
+            text/plain; charset=UTF-8:
+              schema:
+                type: string
 
   /peers/connected:
     get:
@@ -163,6 +174,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Peer'
+        default:
+          description: Error
+          content:
+            text/plain; charset=UTF-8:
+              schema:
+                type: string
 
   /peers/connect:
     post:
@@ -183,12 +200,10 @@ paths:
         default:
           description: Error
           content:
-            application/json:
+            text/plain; charset=UTF-8:
               schema:
                 type: string
-                enum:
-                  - invalid.peer.address
-                  - invalid.json
+                example: invalid.peer.address | invalid.json
 
   /peers/blacklisted:
     get:
@@ -203,6 +218,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlacklistedPeers'
+        default:
+          description: Error
+          content:
+            text/plain; charset=UTF-8:
+              schema:
+                type: string
+
 
   /utils/seed:
     get:
@@ -212,12 +234,18 @@ paths:
         - utils
       responses:
         200:
-          description: Base58-encoded 32 byte seed
+          description: Base15-encoded 32 byte seed
           content:
             application/json:
               schema:
+                $ref: '#/components/schemas/Digest32'
+        default:
+          description: Error
+          content:
+            text/plain; charset=UTF-8:
+              schema:
                 type: string
-                example: 7yaASMijGEGTbttYHg1MrXnWB8EbzjJnFLSWvmNoHrXV
+
 
   /utils/seed/{length}:
     get:
@@ -240,7 +268,13 @@ paths:
               schema:
                 type: string
                 format: base16
-                example: 4ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
+                example: 4e4ddea9ac11c7f55cf98c7af28166e9e7ecfac9ca1079ca7d04c3d66251a7d8
+        default:
+          description: Error
+          content:
+            text/plain; charset=UTF-8:
+              schema:
+                type: string
 
   /utils/hash/blake2b:
     post:
@@ -255,13 +289,17 @@ paths:
             schema:
               type: string
               format: base16
-              example: 4ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
+              example: 27cda3fa0526ffcfff754baa7886c30a05a21c9b01e4b91b5627a5c578f0bd16
       responses:
         200:
           description: Base16-encoded 32 byte hash
           content:
             application/json:
               schema:
+                $ref: '#/components/schemas/Digest32'
+        default:
+          description: Error
+          content:
+            text/plain; charset=UTF-8:
+              schema:
                 type: string
-                format: base16
-                example: 3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
