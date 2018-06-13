@@ -2,7 +2,7 @@ package examples.spv
 
 import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core.serialization.Serializer
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -19,7 +19,7 @@ case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[
   }
 }
 
-object KMZProofSerializer extends Serializer[KMZProof] with ScorexLogging {
+object KMZProofSerializer extends Serializer[KMZProof] with ScorexEncoding {
 
   override def toBytes(obj: KMZProof): Array[Byte] = {
     // TODO: fixme, What should we do if `obj.suffix` is empty?

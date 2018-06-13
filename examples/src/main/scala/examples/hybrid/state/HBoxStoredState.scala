@@ -10,7 +10,7 @@ import scorex.core.VersionTag
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 import scorex.crypto.authds._
 import scorex.crypto.encode.Base58
 import scorex.mid.state.BoxMinimalState
@@ -23,7 +23,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
     HybridBlock,
-    HBoxStoredState] with ScorexLogging {
+    HBoxStoredState] with ScorexLogging with ScorexEncoding {
 
   require(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
     s"${encoder.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${encoder.encode(version)}")

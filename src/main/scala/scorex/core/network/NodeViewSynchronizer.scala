@@ -10,7 +10,7 @@ import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.state.StateReader
 import scorex.core.transaction.{MempoolReader, Transaction}
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
 
 import scala.concurrent.ExecutionContext
@@ -37,7 +37,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
                          syncInfoSpec: SIS,
                          networkSettings: NetworkSettings,
                          timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
-  with ScorexLogging {
+  with ScorexLogging with ScorexEncoding {
 
   import History._
   import NodeViewSynchronizer.ReceivableMessages._

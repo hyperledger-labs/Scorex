@@ -9,7 +9,7 @@ import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 import scorex.core.{ModifierId, ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, Signature}
@@ -38,7 +38,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override def toString: String = s"PoSBlock(${this.asJson.noSpaces})"
 }
 
-object PosBlockCompanion extends Serializer[PosBlock] with ScorexLogging {
+object PosBlockCompanion extends Serializer[PosBlock] with ScorexEncoding {
   override def toBytes(b: PosBlock): Array[Byte] = {
     val txsBytes = b.transactions.sortBy(t => encoder.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
@@ -77,7 +77,7 @@ object PosBlockCompanion extends Serializer[PosBlock] with ScorexLogging {
   }
 }
 
-object PosBlock extends ScorexLogging {
+object PosBlock extends ScorexEncoding {
   val MaxBlockSize = 512 * 1024 //512K
   val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 4.toByte
 

@@ -2,14 +2,14 @@ package scorex.core.transaction.box.proposition
 
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.state.PrivateKey25519
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
 
 import scala.util.{Failure, Success, Try}
 
 case class PublicKey25519Proposition(pubKeyBytes: PublicKey)
-  extends ProofOfKnowledgeProposition[PrivateKey25519] with ScorexLogging {
+  extends ProofOfKnowledgeProposition[PrivateKey25519] with ScorexEncoding {
 
   require(pubKeyBytes.length == Curve25519.KeyLength,
     s"Incorrect pubKey length, ${Curve25519.KeyLength} expected, ${pubKeyBytes.length} found")
@@ -44,7 +44,7 @@ object PublicKey25519PropositionSerializer extends Serializer[PublicKey25519Prop
     Try(PublicKey25519Proposition(PublicKey @@ bytes))
 }
 
-object PublicKey25519Proposition extends ScorexLogging {
+object PublicKey25519Proposition extends ScorexEncoding {
   val AddressVersion: Byte = 1
   val ChecksumLength: Int = 4
   val AddressLength: Int = 1 + Constants25519.PubKeyLength + ChecksumLength

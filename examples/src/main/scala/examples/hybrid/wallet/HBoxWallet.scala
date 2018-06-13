@@ -12,8 +12,7 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
 import scorex.core.transaction.wallet.{BoxWallet, BoxWalletTransaction, WalletBox, WalletBoxSerializer}
-import scorex.core.utils.{ByteStr, ScorexLogging}
-import scorex.crypto.encode.Base58
+import scorex.core.utils.{ByteStr, ScorexEncoding, ScorexLogging}
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
@@ -21,7 +20,7 @@ import scala.util.Try
 
 case class HBoxWallet(seed: ByteStr, store: LSMStore)
   extends BoxWallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock, HBoxWallet]
-    with ScorexLogging {
+    with ScorexLogging with ScorexEncoding {
 
   override type S = PrivateKey25519
   override type PI = PublicKey25519Proposition
@@ -158,7 +157,7 @@ object HBoxWallet {
 }
 
 
-object GenesisStateGenerator extends App with ScorexLogging {
+object GenesisStateGenerator extends App with ScorexEncoding {
   private val w1 = HBoxWallet(ByteStr.decodeBase58("minerNode1").get, new LSMStore(new File("/tmp/w1")))
   private val w2 = HBoxWallet(ByteStr.decodeBase58("minerNode2").get, new LSMStore(new File("/tmp/w2")))
   private val w3 = HBoxWallet(ByteStr.decodeBase58("minerNode3").get, new LSMStore(new File("/tmp/w3")))
@@ -168,9 +167,9 @@ object GenesisStateGenerator extends App with ScorexLogging {
   (1 to 10).foreach(_ => w3.generateNewSecret())
 
   val pks =
-  w1.publicKeys.map(_.pubKeyBytes).map(encoder.encode) ++
-    w2.publicKeys.map(_.pubKeyBytes).map(encoder.encode) ++
-    w3.publicKeys.map(_.pubKeyBytes).map(encoder.encode)
+    w1.publicKeys.map(_.pubKeyBytes).map(encoder.encode) ++
+      w2.publicKeys.map(_.pubKeyBytes).map(encoder.encode) ++
+      w3.publicKeys.map(_.pubKeyBytes).map(encoder.encode)
 
   println(pks.map(pk => s""""$pk",""").mkString("\n"))
 }

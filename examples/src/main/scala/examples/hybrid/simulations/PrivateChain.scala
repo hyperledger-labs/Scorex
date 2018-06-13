@@ -10,7 +10,7 @@ import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HBoxWallet
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
@@ -23,7 +23,7 @@ import scala.util.Try
 /**
   * Private chain attack simulation
   */
-object PrivateChain extends App with ScorexLogging {
+object PrivateChain extends App with ScorexLogging with ScorexEncoding {
 
   val proposition: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
 

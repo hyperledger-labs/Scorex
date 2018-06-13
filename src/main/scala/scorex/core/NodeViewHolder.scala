@@ -9,8 +9,8 @@ import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
-import scorex.core.utils.ScorexLogging
-import scorex.core.validation.{MalformedModifierError, RecoverableModifierError}
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core.validation.RecoverableModifierError
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -28,7 +28,7 @@ import scala.util.{Failure, Success, Try}
   * @tparam PMOD
   */
 trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
-  extends Actor with ScorexLogging {
+  extends Actor with ScorexLogging with ScorexEncoding {
 
   import NodeViewHolder.ReceivableMessages._
   import NodeViewHolder._

@@ -7,12 +7,12 @@ import akka.http.scaladsl.server.Route
 import io.circe.Json
 import io.circe.syntax._
 import scorex.core.settings.RESTApiSettings
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
 import scorex.crypto.hash.Blake2b256
 
 
 case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val context: ActorRefFactory)
-  extends ApiRoute with ScorexLogging {
+  extends ApiRoute with ScorexEncoding {
 
   private val SeedSize = 32
 

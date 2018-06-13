@@ -4,7 +4,7 @@ import com.google.common.primitives.{Bytes, Shorts}
 import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.serialization.Serializer
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
 import scorex.crypto.authds.SerializedAdProof
 import scorex.crypto.signatures.Curve25519
 
@@ -16,7 +16,7 @@ case class Ticket(minerKey: Array[Byte], partialProofs: Seq[SerializedAdProof]) 
   override def toString: String = this.asJson.noSpaces
 }
 
-object Ticket extends ScorexLogging {
+object Ticket extends ScorexEncoding {
   implicit val ticketEncoder: Encoder[Ticket] = (t: Ticket) =>
     Map(
       "minerKey" -> encoder.encode(t.minerKey).asJson,

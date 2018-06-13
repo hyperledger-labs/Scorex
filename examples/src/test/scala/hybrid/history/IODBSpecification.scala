@@ -8,8 +8,7 @@ import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, Outcome, fixture}
 import scorex.core.ModifierId
-import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexEncoding
 import scorex.testkit.utils.FileUtils
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
@@ -18,7 +17,7 @@ class IODBSpecification extends fixture.PropSpec
   with Matchers
   with HybridGenerators
   with FileUtils
-  with ScorexLogging {
+  with ScorexEncoding {
 
   type FixtureParam = LSMStore
 

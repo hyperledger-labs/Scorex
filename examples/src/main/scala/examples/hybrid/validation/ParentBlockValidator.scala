@@ -3,13 +3,12 @@ package examples.hybrid.validation
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HistoryStorage
 import scorex.core.block.BlockValidator
-import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexEncoding
 
 import scala.util.Try
 
 class ParentBlockValidator(storage: HistoryStorage)
-  extends BlockValidator[HybridBlock] with ScorexLogging {
+  extends BlockValidator[HybridBlock] with ScorexEncoding {
 
   def validate(block: HybridBlock): Try[Unit] = Try {
     block match {

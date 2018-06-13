@@ -5,12 +5,12 @@ import examples.commons.SimpleBoxTransaction
 import examples.hybrid.mining.HybridMiningSettings
 import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core.{ModifierId, _}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
+import scorex.core.{ModifierId, _}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey}
 
@@ -23,7 +23,7 @@ class PowBlockHeader(
                       val nonce: Long,
                       val brothersCount: Int,
                       val brothersHash: Array[Byte],
-                      val generatorProposition: PublicKey25519Proposition) extends ScorexLogging {
+                      val generatorProposition: PublicKey25519Proposition) extends ScorexEncoding {
 
 
   import PowBlockHeader._
@@ -135,7 +135,7 @@ object PowBlockCompanion extends Serializer[PowBlock] {
   }
 }
 
-object PowBlock extends ScorexLogging {
+object PowBlock extends ScorexEncoding {
   val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 3.toByte
 
   implicit val powBlockEncoder: Encoder[PowBlock] = (pb: PowBlock) => {

@@ -3,11 +3,11 @@ package scorex.core
 import com.typesafe.config.ConfigFactory
 import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.Transaction
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
 
 import scala.util.Try
 
-sealed trait NodeViewModifier extends BytesSerializable with ScorexLogging {
+sealed trait NodeViewModifier extends BytesSerializable with ScorexEncoding {
   self =>
 
   val modifierTypeId: ModifierTypeId

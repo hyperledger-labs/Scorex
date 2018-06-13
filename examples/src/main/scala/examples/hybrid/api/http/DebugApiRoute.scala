@@ -11,7 +11,7 @@ import io.circe.syntax._
 import scorex.core.ModifierId
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 
 import scala.util.Try
 
@@ -19,7 +19,7 @@ import scala.util.Try
 case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                         (implicit val context: ActorRefFactory)
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] 
-    with ScorexLogging {
+    with ScorexEncoding {
 
   override val route: Route = (pathPrefix("debug") & withCors) {
     infoRoute ~ chain ~ delay ~ myblocks ~ generators
