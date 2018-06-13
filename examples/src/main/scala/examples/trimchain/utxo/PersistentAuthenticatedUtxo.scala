@@ -10,7 +10,7 @@ import scorex.core.VersionTag
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
 import scorex.crypto.authds.{ADKey, ADValue, SerializedAdProof}
 import scorex.crypto.encode.Base58
@@ -54,7 +54,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     PublicKey25519NoncedBox,
     SimpleBoxTransaction,
     TModifier,
-    PersistentAuthenticatedUtxo] with AuthenticatedUtxo with ScorexLogging {
+    PersistentAuthenticatedUtxo] with AuthenticatedUtxo with ScorexLogging with ScorexEncoding {
 
   import PublicKey25519NoncedBox.{BoxKeyLength, BoxLength}
 

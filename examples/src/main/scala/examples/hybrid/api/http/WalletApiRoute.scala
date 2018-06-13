@@ -11,8 +11,7 @@ import io.circe.syntax._
 import scorex.core.api.http.{ApiError, ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.ScorexLogging
-import scorex.crypto.encode.Base58
+import scorex.core.utils.ScorexEncoding
 import scorex.crypto.signatures.PublicKey
 
 import scala.util.{Failure, Success, Try}
@@ -21,7 +20,7 @@ import scala.util.{Failure, Success, Try}
 case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
                          (implicit val context: ActorRefFactory)
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool]
-    with ScorexLogging {
+    with ScorexEncoding {
 
   import scorex.core.NodeViewHolder.ReceivableMessages.LocallyGeneratedTransaction
 

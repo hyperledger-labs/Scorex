@@ -13,7 +13,7 @@ import scorex.core.transaction.box.BoxUnlocker
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
 
@@ -73,7 +73,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 }
 
 
-object SimpleBoxTransaction extends ScorexLogging {
+object SimpleBoxTransaction extends ScorexEncoding {
 
   implicit val simpleBoxEncoder: Encoder[SimpleBoxTransaction] = (sbe: SimpleBoxTransaction) =>
     Map(

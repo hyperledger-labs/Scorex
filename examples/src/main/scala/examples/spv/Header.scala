@@ -7,7 +7,7 @@ import io.circe.syntax._
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
 import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier}
 
 import scala.annotation.tailrec
@@ -33,7 +33,7 @@ case class Header(parentId: BlockId,
   override def serializer: Serializer[Header] = HeaderSerializer
 }
 
-object Header extends ScorexLogging {
+object Header extends ScorexEncoding {
   implicit val headerEncoder: Encoder[Header] = (h: Header) =>
     Map(
       "id" -> encoder.encode(h.id).asJson,

@@ -9,7 +9,8 @@ import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core.validation.RecoverableModifierError
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -27,7 +28,7 @@ import scala.util.{Failure, Success, Try}
   * @tparam PMOD
   */
 trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
-  extends Actor with ScorexLogging {
+  extends Actor with ScorexLogging with ScorexEncoding {
 
   import NodeViewHolder.ReceivableMessages._
   import NodeViewHolder._
@@ -338,6 +339,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       sender() ! RequestFromLocal(peer, modifierTypeId, ids)
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
       modifierSerializers.get(modifierTypeId) foreach { companion =>
@@ -355,19 +357,25 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
         log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(encoder.encode).mkString(",")}")
 
-        var t: Option[PMOD] = None
+        var applied: Boolean = false
         do {
-          t = {
-            modifiersCache.find { case (_, pmod) =>
-              history().applicable(pmod)
-            }.map { t =>
-              val res = t._2
-              modifiersCache.remove(t._1)
-              res
+          modifiersCache foreach { kv =>
+            history().applicableTry(kv._2) match {
+              case Failure(e) if e.isInstanceOf[RecoverableModifierError] =>
+                // do nothing - modifier may be applied in future
+              case Failure(e) =>
+                // non-recoverable error - remove modifier from cache
+                // TODO blaklist peer who sent it
+                log.warn(s"Modifier ${kv._2.encodedId} is permanently invalid and will be removed from cache", e)
+                modifiersCache.remove(kv._1)
+              case Success(_) =>
+                applied = true
+                pmodModify(kv._2)
+                modifiersCache.remove(kv._1)
             }
           }
-          t.foreach(pmodModify)
-        } while (t.isDefined)
+        } while (applied)
+
 
         log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(encoder.encode).mkString(",")}")
       }

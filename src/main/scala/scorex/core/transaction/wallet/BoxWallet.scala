@@ -6,16 +6,15 @@ import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
 import scorex.core.{ModifierId, NodeViewModifier, PersistentNodeViewModifier}
-import scorex.crypto.encode.Base58
 
 import scala.util.Try
 
 //TODO why do we need transactionId and createdAt
 case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
                                                    (subclassDeser: Serializer[B]) extends BytesSerializable
-  with ScorexLogging {
+  with ScorexEncoding {
 
   override type M = WalletBox[P, B]
 

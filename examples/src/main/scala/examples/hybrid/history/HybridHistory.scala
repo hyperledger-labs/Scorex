@@ -14,13 +14,13 @@ import scorex.core.consensus.ModifierSemanticValidity._
 import scorex.core.consensus._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
+import scorex.core.validation.RecoverableModifierError
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
-import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 /**
   * History storage
@@ -31,7 +31,7 @@ class HybridHistory(val storage: HistoryStorage,
                     validators: Seq[BlockValidator[HybridBlock]],
                     statsLogger: Option[FileLogger],
                     timeProvider: NetworkTimeProvider)
-  extends History[HybridBlock, HybridSyncInfo, HybridHistory] with ScorexLogging {
+  extends History[HybridBlock, HybridSyncInfo, HybridHistory] with ScorexLogging with ScorexEncoding {
 
   import HybridHistory._
 
@@ -203,7 +203,7 @@ class HybridHistory(val storage: HistoryStorage,
 
     val newSuffixValid = !newSuffix.drop(1).map(storage.semanticValidity).contains(Invalid)
 
-    if(newSuffixValid) {
+    if (newSuffixValid) {
       // TODO: fixme, What should we do if `oldSuffix` is empty? and .get
       @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
       val throwBlocks = oldSuffix.tail.map(id => modifierById(id).get)
@@ -265,12 +265,14 @@ class HybridHistory(val storage: HistoryStorage,
     else if (pairCompleted) Seq(bestPowId, bestPosId)
     else Seq(bestPowId)
 
-  override def applicable(block: HybridBlock): Boolean = {
+  override def applicableTry(block: HybridBlock): Try[Unit] = {
     block match {
-      case pwb: PowBlock =>
-        contains(pwb.parentId) && contains(pwb.prevPosId)
-      case psb: PosBlock =>
-        contains(psb.parentId)
+      case pwb: PowBlock if !contains(pwb.parentId) || !contains(pwb.prevPosId) =>
+        Failure(RecoverableModifierError("Parent block or previous PoS block is not in history yet"))
+      case psb: PosBlock if !contains(psb.parentId) =>
+        Failure(RecoverableModifierError("Parent block is not in history yet"))
+      case _ =>
+        Success()
     }
   }
 
@@ -460,7 +462,7 @@ class HybridHistory(val storage: HistoryStorage,
     * Average delay in milliseconds between last $blockNum blocks starting from $block
     * Debug only
     */
-  @SuppressWarnings(Array("org.wartremover.warts.TraversableOps","org.wartremover.warts.OptionPartial"))
+  @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
   def averageDelay(id: ModifierId, blockNum: Int): Try[Long] = Try {
     val block = modifierById(id).get
     val c = chainBack(block, isGenesis, blockNum).get.map(_._2)
@@ -483,7 +485,7 @@ class HybridHistory(val storage: HistoryStorage,
 
   override def reportModifierIsInvalid(modifier: HybridBlock,
                                        progressInfo: ProgressInfo[HybridBlock]): (HybridHistory,
-                                                                                  ProgressInfo[HybridBlock]) = {
+    ProgressInfo[HybridBlock]) = {
     storage.updateValidity(modifier, Invalid)
 
     new HybridHistory(storage, settings, validators, statsLogger, timeProvider) ->

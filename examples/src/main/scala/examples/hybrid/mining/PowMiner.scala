@@ -11,7 +11,7 @@ import scorex.core.ModifierId
 import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
@@ -25,7 +25,7 @@ import scala.util.Random
   * and stops on a new PoW block found (when PoS ref is unknown)
   */
 class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings)(implicit ec: ExecutionContext)
-  extends Actor with ScorexLogging {
+  extends Actor with ScorexLogging with ScorexEncoding {
 
   import PowMiner.ReceivableMessages._
   import PowMiner._

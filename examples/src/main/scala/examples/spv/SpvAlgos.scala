@@ -1,12 +1,12 @@
 package examples.spv
 
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 
 import scala.annotation.tailrec
 import scala.util.Try
 
-object SpvAlgos extends ScorexLogging {
+object SpvAlgos extends ScorexEncoding {
 
   def blockIdDifficulty(id: Array[Byte]): BigInt = {
     val blockTarget = BigInt(1, id)

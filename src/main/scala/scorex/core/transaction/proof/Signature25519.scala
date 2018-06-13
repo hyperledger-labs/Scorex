@@ -3,7 +3,7 @@ package scorex.core.transaction.proof
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
 import scorex.crypto.signatures.{Curve25519, Signature}
 
 import scala.util.Try
@@ -12,7 +12,7 @@ import scala.util.Try
   * @param signature 25519 signature
   */
 case class Signature25519(signature: Signature) extends ProofOfKnowledge[PrivateKey25519, PublicKey25519Proposition]
-  with ScorexLogging {
+  with ScorexEncoding {
 
   require(signature.isEmpty || signature.length == Curve25519.SignatureLength,
     s"${signature.length} != ${Curve25519.SignatureLength}")

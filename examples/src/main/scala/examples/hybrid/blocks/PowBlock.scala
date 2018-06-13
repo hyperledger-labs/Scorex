@@ -5,12 +5,12 @@ import examples.commons.SimpleBoxTransaction
 import examples.hybrid.mining.HybridMiningSettings
 import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core._
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
+import scorex.core.{ModifierId, _}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey}
 
@@ -23,12 +23,12 @@ class PowBlockHeader(
                       val nonce: Long,
                       val brothersCount: Int,
                       val brothersHash: Array[Byte],
-                      val generatorProposition: PublicKey25519Proposition) extends ScorexLogging {
+                      val generatorProposition: PublicKey25519Proposition) extends ScorexEncoding {
 
 
   import PowBlockHeader._
 
-  lazy val headerBytes =
+  lazy val headerBytes: Array[Byte] =
     parentId ++
       prevPosId ++
       Longs.toByteArray(timestamp) ++
@@ -39,9 +39,9 @@ class PowBlockHeader(
 
   def correctWork(difficulty: BigInt, s: HybridMiningSettings): Boolean = correctWorkDone(id, difficulty, s)
 
-  lazy val id = ModifierId @@ Blake2b256(headerBytes)
+  lazy val id: ModifierId = ModifierId @@ Blake2b256(headerBytes)
 
-  override lazy val toString = s"PowBlockHeader(id: ${encoder.encode(id)})" +
+  override lazy val toString: String = s"PowBlockHeader(id: ${encoder.encode(id)})" +
     s"(parentId: ${encoder.encode(parentId)}, posParentId: ${encoder.encode(prevPosId)}, time: $timestamp, " +
     s"nonce: $nonce)"
 }
@@ -135,7 +135,7 @@ object PowBlockCompanion extends Serializer[PowBlock] {
   }
 }
 
-object PowBlock extends ScorexLogging {
+object PowBlock extends ScorexEncoding {
   val ModifierTypeId: ModifierTypeId = scorex.core.ModifierTypeId @@ 3.toByte
 
   implicit val powBlockEncoder: Encoder[PowBlock] = (pb: PowBlock) => {

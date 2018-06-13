@@ -12,8 +12,9 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519Companion
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
 import scorex.core.{ModifierTypeId, NodeViewHolder, NodeViewModifier}
+import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 
@@ -64,7 +65,7 @@ class HybridNodeViewHolder(settings: ScorexSettings,
   }
 }
 
-object HybridNodeViewHolder extends ScorexLogging {
+object HybridNodeViewHolder extends ScorexLogging with ScorexEncoding {
   def generateGenesisState(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider):
                           (HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool) = {
     val GenesisAccountsNum = 50
@@ -122,7 +123,7 @@ object HybridNodeViewHolder extends ScorexLogging {
       "GXkCiK2P7khngAtfhG8TSqm4nfPbpMDNFBiG8CF41ZtP",
       "8etCeR343fg5gktxMh5j64zofFvWuyNTwmHAzWbsptoC",
       "AnwYrjV3yb9NuYWz31C758TZGTUCLD7zZdSYubbewygt"
-    ).map(s => PublicKey25519Proposition(PublicKey @@ encoder.decode(s).get))
+    ).map(s => PublicKey25519Proposition(PublicKey @@ Base58.decode(s).get))
       .ensuring(_.length == GenesisAccountsNum)
 
     val genesisAccount = PrivateKey25519Companion.generateKeys("genesis".getBytes)

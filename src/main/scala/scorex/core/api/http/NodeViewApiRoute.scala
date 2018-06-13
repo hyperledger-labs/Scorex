@@ -11,7 +11,7 @@ import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.ScorexEncoding
 import scorex.core.{ModifierId, PersistentNodeViewModifier}
 
 import scala.concurrent.ExecutionContext
@@ -22,7 +22,7 @@ import scala.util.{Failure, Success}
 case class NodeViewApiRoute[TX <: Transaction]
 (override val settings: RESTApiSettings, nodeViewHolderRef: ActorRef)
 (implicit val context: ActorRefFactory, val serializerReg: SerializerRegistry, val ec: ExecutionContext)
-  extends ApiRoute with ScorexLogging {
+  extends ApiRoute with ScorexEncoding {
 
   import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 
