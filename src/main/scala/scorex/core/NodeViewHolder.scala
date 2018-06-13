@@ -359,6 +359,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
         var applied: Boolean = false
         do {
+          applied = false
           modifiersCache foreach { kv =>
             history().applicableTry(kv._2) match {
               case Failure(e) if e.isInstanceOf[RecoverableModifierError] =>
