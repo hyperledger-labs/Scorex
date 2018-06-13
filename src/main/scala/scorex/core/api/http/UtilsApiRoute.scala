@@ -5,7 +5,6 @@ import java.security.SecureRandom
 import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
 import io.circe.Json
-import io.circe.syntax._
 import scorex.core.settings.RESTApiSettings
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.hash.Blake2b256
@@ -27,11 +26,11 @@ case class UtilsApiRoute(override val settings: RESTApiSettings)(implicit val co
   }
 
   def seedRoute: Route = (get & path("seed")) {
-    ApiResponse(seed(SeedSize).asJson)
+    ApiResponse(seed(SeedSize))
   }
 
   def length: Route = (get & path("seed" / IntNumber)) { length =>
-    ApiResponse(seed(length).asJson)
+    ApiResponse(seed(length))
   }
 
   def hashBlake2b: Route = {

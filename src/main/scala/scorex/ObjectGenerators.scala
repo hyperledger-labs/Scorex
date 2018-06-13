@@ -25,7 +25,7 @@ trait ObjectGenerators {
     Gen.choose(minSize, maxSize) flatMap { sz => Gen.listOfN(sz, Arbitrary.arbitrary[Byte]).map(_.toArray) }
   }
 
-  def genBytesList(size: Int): Gen[Array[Byte]] = genBoundedBytes(size, size)
+  def genBytes(size: Int): Gen[Array[Byte]] = genBoundedBytes(size, size)
 
   lazy val positiveLongGen: Gen[Long] = Gen.choose(1, Long.MaxValue)
 
@@ -68,7 +68,7 @@ trait ObjectGenerators {
     port <- Gen.choose(0, MaxPort)
   } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
 
-  lazy val key25519Gen: Gen[(PrivateKey25519, PublicKey25519Proposition)] = genBytesList(Curve25519.KeyLength)
+  lazy val key25519Gen: Gen[(PrivateKey25519, PublicKey25519Proposition)] = genBytes(Curve25519.KeyLength)
     .map(s => PrivateKey25519Companion.generateKeys(s))
 
   lazy val propositionGen: Gen[PublicKey25519Proposition] = key25519Gen.map(_._2)

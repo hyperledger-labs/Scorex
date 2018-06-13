@@ -97,7 +97,6 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
     validate(given sameElements expected)(error(s"Given: ${e.encode(given)}, expected ${e.encode(expected)}"))
   }
 
-
   /** Wrap semantic validity to the validation state: if semantic validity was not Valid, then return the `error` given
     */
   def validateSemantics(validity: => ModifierSemanticValidity)(error: => Invalid): ValidationState = {

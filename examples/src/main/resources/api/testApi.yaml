@@ -16,24 +16,26 @@ components:
   schemas:
     # Objects
     ModifierId:
-      description: Base58-encoded 32 byte modifier id
+      description: Base16-encoded 32 byte modifier id
       type: object
       required:
         - modifierId
       properties:
         modifierId:
           type: string
-          example: D2bXMwWN8P9nWJ9qqwZJLauAdcZHX9n6s91QQ9vK6Zu4
+          format: base16
+          example: 3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
 
     Digest32:
-      description: Base58-encoded 32 byte digest
+      description: Base16-encoded 32 byte digest
       type: object
       required:
         - digest
       properties:
         digest:
           type: string
-          example: FjX5cPuwMc2ocDLPWzt6jq29BXjvU6d5w5XURDJ6dmoM
+          format: base16
+          example: 4ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
     Peer:
       type: object
       required:
@@ -82,10 +84,11 @@ paths:
             application/json:
               schema:
                 type: array
-                example: ["D2bXMwWN8P9nWJ9qqwZJLauAdcZHX9n6s91QQ9vK6Zu4"]
+                example: ["3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117"]
                 items:
                   type: string
-                  example: D2bXMwWN8P9nWJ9qqwZJLauAdcZHX9n6s91QQ9vK6Zu4
+                  format: base16
+                  example: 3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
 
   /nodeView/persistentModifier/{modifierId}:
     get:
@@ -100,6 +103,8 @@ paths:
           description: ID of a requested modifier
           schema:
             type: string
+            format: base16
+            example: 3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
       responses:
         200:
           description: Node view modifier
@@ -229,12 +234,13 @@ paths:
             type: string
       responses:
         200:
-          description: Base58-encoded N byte seed
+          description: Base16-encoded N byte seed
           content:
             application/json:
               schema:
                 type: string
-                example: 7yaASMijGEGTbttYHg1MrXnWB8EbzjJnFLSWvmNoHrXV
+                format: base16
+                example: 4ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
 
   /utils/hash/blake2b:
     post:
@@ -248,12 +254,14 @@ paths:
           application/json:
             schema:
               type: string
-              example: 7yaASMijGEGTbttYHg1MrXnWB8EbzjJnFLSWvmNoHrXV
+              format: base16
+              example: 4ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
       responses:
         200:
-          description: Base58-encoded 32 byte hash
+          description: Base16-encoded 32 byte hash
           content:
             application/json:
               schema:
                 type: string
-                example: 6QLZkR1RdHvF7gUw7oms1XdQM6kc9kxpmyHRADN5x7uQ
+                format: base16
+                example: 3ab9da11fc216660e974842cc3b7705e62ebb9e0bf5ff78e53f9cd40abadd117
