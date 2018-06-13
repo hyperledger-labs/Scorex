@@ -87,7 +87,7 @@ object ModifierValidator extends ScorexLogging  {
 
   /** unsuccessful validation with a given error*/
   def invalid(error: ModifierError): Invalid = {
-    log.info(error.description)
+    log.info(error.info)
     Invalid(Seq(error))
   }
 

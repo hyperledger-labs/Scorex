@@ -7,8 +7,8 @@ trait ModifierError {
   def isFatal: Boolean
   def toThrowable: Throwable
 
-  def description: String = {
-    val fatality = if (isFatal) "fatally" else "non-fatal"
+  def info: String = {
+    val fatality = if (isFatal) "fatally" else "recoverably"
     s"Modifier Validation failed $fatality: $message"
   }
 }
