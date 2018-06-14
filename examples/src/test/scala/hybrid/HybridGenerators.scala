@@ -47,7 +47,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
     pows <- Gen.nonEmptyListOf(pow).map(_.take(HybridSyncInfo.MaxLastPowBlocks))
   } yield HybridSyncInfo(answer, pows, pos)
 
-  lazy val signatureGen: Gen[Signature25519] = genBytesList(Signature25519.SignatureSize)
+  lazy val signatureGen: Gen[Signature25519] = genBytes(Signature25519.SignatureSize)
     .map(g => Signature25519(Signature @@ g))
 
   lazy val blockIdGen: Gen[BlockId] = modifierIdGen
@@ -71,7 +71,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
     timestamp: Long <- positiveLongGen
     nonce: Long <- positiveLongGen
     brothersCount: Byte <- positiveByteGen
-    brothersHash: Array[Byte] <- genBytesList(Blake2b256.DigestSize)
+    brothersHash: Array[Byte] <- genBytes(Blake2b256.DigestSize)
     prop: PublicKey25519Proposition <- propositionGen
   } yield new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, prop)
 
@@ -115,7 +115,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
 
   lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
     createdAt <- positiveLongGen
-    txId <- genBytesList(NodeViewModifier.ModifierIdSize)
+    txId <- genBytes(NodeViewModifier.ModifierIdSize)
     box: PublicKey25519NoncedBox <- noncedBoxGen
   } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
 

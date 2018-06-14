@@ -27,7 +27,7 @@ case class PeersApiRoute(peerManager: ActorRef,
     val result = askActor[Map[InetSocketAddress, PeerInfo]](peerManager, GetAllPeers).map {
       _.map { case (address, peerInfo) =>
         PeerInfoResponse.fromAddressAndInfo(address, peerInfo)
-      }.asJson
+      }
     }
     ApiResponse(result)
   }
@@ -41,7 +41,7 @@ case class PeersApiRoute(peerManager: ActorRef,
           lastSeen = now,
           name = Some(handshake.nodeName),
           connectionType = None)
-      }.asJson
+      }
     }
     ApiResponse(result)
   }

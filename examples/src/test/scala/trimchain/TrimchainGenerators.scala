@@ -10,11 +10,11 @@ import scorex.crypto.authds.SerializedAdProof
 
 trait TrimchainGenerators extends ExamplesCommonGenerators {
 
-  lazy val stateRootGen: Gen[StateRoot] = genBytesList(Constants.StateRootLength).map(r => StateRoot @@ r)
-  lazy val txRootGen: Gen[TransactionsRoot] = genBytesList(Constants.TxRootLength).map(r => TransactionsRoot @@ r)
+  lazy val stateRootGen: Gen[StateRoot] = genBytes(Constants.StateRootLength).map(r => StateRoot @@ r)
+  lazy val txRootGen: Gen[TransactionsRoot] = genBytes(Constants.TxRootLength).map(r => TransactionsRoot @@ r)
 
   val ticketGen: Gen[Ticket] = for {
-    minerKey: Array[Byte] <- genBytesList(TicketSerializer.MinerKeySize)
+    minerKey: Array[Byte] <- genBytes(TicketSerializer.MinerKeySize)
     partialProofs: Seq[SerializedAdProof] <- Gen.nonEmptyListOf(nonEmptyBytesGen).map(b => SerializedAdProof @@ b)
   } yield Ticket(minerKey, partialProofs)
 

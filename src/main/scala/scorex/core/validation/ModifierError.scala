@@ -6,6 +6,11 @@ trait ModifierError {
   def message: String
   def isFatal: Boolean
   def toThrowable: Throwable
+
+  def info: String = {
+    val fatality = if (isFatal) "fatally" else "recoverably"
+    s"Modifier Validation failed $fatality: $message"
+  }
 }
 
 /** Permanent modifier error that could not be recovered in future even after any history updates
