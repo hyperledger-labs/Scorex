@@ -23,7 +23,7 @@ class HWalletSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
+  private val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
   private val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
   val w: HBoxWallet = HBoxWallet.readOrGenerate(settings.scorexSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()
