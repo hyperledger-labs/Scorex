@@ -33,7 +33,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   import NodeViewHolder.ReceivableMessages._
   import NodeViewHolder._
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
-  //import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
   type HIS <: History[PMOD, SI, HIS]
@@ -41,8 +40,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   type VL <: Vault[TX, PMOD, VL]
   type MP <: MemoryPool[TX, MP]
 
-
   type NodeView = (HIS, MS, VL, MP)
+
   /**
     * The main data structure a node software is taking care about, a node view consists
     * of four elements to be updated atomically: history (log of persistent modifiers),
@@ -77,11 +76,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     */
   val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
 
-  //todo: write desc
-  /**
-    *
-    */
-  val networkChunkSize: Int
 
 
   protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
