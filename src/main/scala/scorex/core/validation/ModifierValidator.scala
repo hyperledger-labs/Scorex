@@ -4,7 +4,7 @@ package scorex.core.validation
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.utils.ScorexLogging
 import scorex.core.validation.ValidationResult._
-import scorex.crypto.encode.{Base58, BytesEncoder}
+import scorex.core.crypto.encode.{Base58, BytesEncoder}
 
 /** Base trait for the modifier validation process.
   *

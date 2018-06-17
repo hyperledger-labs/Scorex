@@ -11,8 +11,8 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
-import scorex.crypto.authds._
-import scorex.crypto.encode.Base58
+import scorex.core.crypto.authds._
+import scorex.core.crypto.encode.Base58
 import scorex.mid.state.BoxMinimalState
 
 import scala.util.{Failure, Success, Try}

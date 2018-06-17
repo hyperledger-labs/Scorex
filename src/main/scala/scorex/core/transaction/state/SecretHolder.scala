@@ -5,7 +5,7 @@ import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.box._
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, PublicKey25519Proposition}
 import scorex.core.transaction.proof.{ProofOfKnowledge, Signature25519}
-import scorex.crypto.signatures.{Curve25519, PrivateKey, PublicKey}
+import scorex.core.crypto.signatures.{Curve25519, PrivateKey, PublicKey}
 
 import scala.util.Try
 

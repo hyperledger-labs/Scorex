@@ -3,7 +3,7 @@ package scorex.core.network.message
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.network.ConnectedPeer
 import scorex.core.serialization.{BytesSerializable, Serializer}
-import scorex.crypto.hash.Blake2b256
+import scorex.core.crypto.hash.Blake2b256
 
 import scala.util.{Success, Try}
 

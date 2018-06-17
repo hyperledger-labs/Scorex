@@ -2,7 +2,7 @@ package scorex.core.transaction.box
 
 import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.crypto.authds._
+import scorex.core.crypto.authds._
 
 /**
   * Box is a state element locked by some proposition.

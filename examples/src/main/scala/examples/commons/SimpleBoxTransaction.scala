@@ -14,8 +14,8 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.ScorexEncoding
-import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
+import scorex.core.crypto.hash.Blake2b256
+import scorex.core.crypto.signatures.{Curve25519, PublicKey, Signature}
 
 import scala.util.Try
 

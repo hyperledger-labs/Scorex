@@ -4,8 +4,8 @@ import com.google.common.primitives.Longs
 import scorex.core.ModifierId
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.crypto.authds._
-import scorex.crypto.hash.Blake2b256
+import scorex.core.crypto.authds._
+import scorex.core.crypto.hash.Blake2b256
 
 trait PublicKeyNoncedBox[PKP <: PublicKey25519Proposition] extends Box[PKP] {
   val nonce: Long

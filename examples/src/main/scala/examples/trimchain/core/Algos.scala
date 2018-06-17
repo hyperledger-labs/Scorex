@@ -11,10 +11,10 @@ import io.iohk.iodb.LSMStore
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
 import scorex.core.{ModifierId, VersionTag}
-import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
-import scorex.crypto.authds.{ADDigest, ADKey}
-import scorex.crypto.hash.{Blake2b256, Digest32}
-import scorex.crypto.signatures.{Curve25519, PublicKey}
+import scorex.core.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
+import scorex.core.crypto.authds.{ADDigest, ADKey}
+import scorex.core.crypto.hash.{Blake2b256, Digest32}
+import scorex.core.crypto.signatures.{Curve25519, PublicKey}
 
 import scala.util.{Failure, Random, Success, Try}
 
@@ -90,7 +90,7 @@ object Algos extends App {
       val ids = (0 until NElementsInProof) map (elementIndex => hashfn(seed ++ minerKey ++
         Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
 
-      val v = new BatchAVLVerifier[Digest32, Blake2b256.type](ADDigest @@ sroot, pp, keyLength = BoxKeyLength,
+      val v = new BatchAVLVerifier[Digest32, scorex.crypto.hash.Blake2b256.type](ADDigest @@ sroot, pp, keyLength = BoxKeyLength,
         valueLengthOpt = Some(BoxLength))
 
       ids.foreach(id => v.performOneOperation(Lookup(ADKey @@ id)).get)

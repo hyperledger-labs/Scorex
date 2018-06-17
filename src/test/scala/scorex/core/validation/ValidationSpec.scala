@@ -4,7 +4,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.ModifierId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.validation.ValidationResult._
-import scorex.crypto.encode.{Base16, BytesEncoder}
+import scorex.core.crypto.encode.{Base16, BytesEncoder}
 
 class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
 
