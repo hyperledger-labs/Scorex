@@ -85,8 +85,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
-  //todo: make configurable limited size
-  private val modifiersCache = mutable.Map[MapKey, PMOD]()
+  private val modifiersCache = new DefaultModifiersCache[PMOD, HIS](100) // todo: move magic number to the config
 
   protected def txModify(tx: TX): Unit = {
     //todo: async validation?
@@ -349,30 +348,21 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
             }
         }
 
-        log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(encoder.encode).mkString(",")}")
+        log.debug(s"Cache size before: ${modifiersCache.size}")
 
         var applied: Boolean = false
         do {
-          applied = false
-          modifiersCache foreach { kv =>
-            history().applicableTry(kv._2) match {
-              case Failure(e) if e.isInstanceOf[RecoverableModifierError] =>
-                // do nothing - modifier may be applied in future
-              case Failure(e) =>
-                // non-recoverable error - remove modifier from cache
-                // TODO blaklist peer who sent it
-                log.warn(s"Modifier ${kv._2.encodedId} is permanently invalid and will be removed from cache", e)
-                modifiersCache.remove(kv._1)
-              case Success(_) =>
-                applied = true
-                pmodModify(kv._2)
-                modifiersCache.remove(kv._1)
-            }
+          modifiersCache.popCandidate(history()) match {
+            case Some(mod) =>
+              pmodModify(mod)
+              applied = true
+            case None =>
+              applied = false
           }
         } while (applied)
 
 
-        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(encoder.encode).mkString(",")}")
+        log.debug(s"Cache size after: ${modifiersCache.size}")
       }
   }
 

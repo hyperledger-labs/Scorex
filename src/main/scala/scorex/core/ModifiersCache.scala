@@ -86,8 +86,10 @@ trait LRUCache[PMOD <: PersistentNodeViewModifier] extends ModifiersCache[PMOD] 
   }
 }
 
-class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]]
+class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]]
   (override val maxSize: Int) extends ModifiersCache[PMOD] with LRUCache[PMOD] with ScorexLogging {
+
+  override type H = HR
 
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   override def findCandidateKey(history: H): Option[K] = {
