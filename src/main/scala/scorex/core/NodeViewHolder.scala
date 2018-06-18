@@ -78,7 +78,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     * Serializers for modifiers, to be provided by a concrete instantiation
     */
   val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
-  
+
   protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
 
   protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
