@@ -59,6 +59,13 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier] {
     if (currentCacheSize > maxSize) remove(keyToRemove())
   }
 
+  /**
+    * Remove an element from the cache.
+    * @param key - modifier's key
+    * @param rememberKey - whether to remember the key as belonging to cache. E.g. invalid modifiers are
+    *                    to be remembered (for not to be requested from the network again).
+    * @return
+    */
   def remove(key: K, rememberKey: Boolean = false): Option[V] = synchronized {
     onRemove(key, rememberKey)
     currentCacheSize = currentCacheSize - 1
@@ -100,6 +107,13 @@ class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryRea
 
   override type H = HR
 
+  /**
+    * Default implementation is just about to scan. Not efficient at all and should be probably rewritten in a
+    * concrete application.
+    *
+    * @param history - an interface to history which could be needed to define a candiate
+    * @return - candidate if it is found
+    */
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   override def findCandidateKey(history: H): Option[K] = {
 
