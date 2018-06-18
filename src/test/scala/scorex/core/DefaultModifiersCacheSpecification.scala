@@ -99,17 +99,22 @@ class DefaultModifiersCacheSpecification extends PropSpec
 
     val cache = new DefaultModifiersCache[FakeModifier, FakeHr](3)
 
+    cache.maxSize shouldBe 3
+
     cache.put(v1, new FakeModifier)
     cache.put(v2, new FakeModifier)
     cache.put(v3, new FakeModifier)
 
     cache.contains(v1) shouldBe true
+    cache.size shouldBe 3
 
     cache.put(v4, new FakeModifier)
-
     cache.contains(v1) shouldBe false
+    cache.size shouldBe 3
 
     cache.put(v1, new FakeModifier)
     cache.contains(v1) shouldBe true
+    cache.size shouldBe 3
+    cache.contains(v2) shouldBe false
   }
 }
