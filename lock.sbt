@@ -11,9 +11,9 @@ dependencyOverrides in ThisBuild ++= Seq(
   "com.typesafe" % "config" % "1.3.2",
   "com.typesafe" % "ssl-config-core_2.12" % "0.2.3",
   "com.typesafe.akka" % "akka-actor_2.12" % "2.5.13",
-  "com.typesafe.akka" % "akka-http-core_2.12" % "10.1.2",
-  "com.typesafe.akka" % "akka-http_2.12" % "10.1.2",
-  "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.2",
+  "com.typesafe.akka" % "akka-http-core_2.12" % "10.1.3",
+  "com.typesafe.akka" % "akka-http_2.12" % "10.1.3",
+  "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.3",
   "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.13",
   "com.typesafe.akka" % "akka-stream_2.12" % "2.5.13",
   "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.9.0",
@@ -33,7 +33,7 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.scala-lang.modules" % "scala-parser-combinators_2.12" % "1.1.0",
   "org.scala-sbt" % "test-interface" % "1.0",
   "org.scalacheck" % "scalacheck_2.12" % "1.13.5",
-  "org.scorexfoundation" % "scrypto_2.12" % "2.1.1",
+  "org.scorexfoundation" % "scrypto_2.12" % "2.1.2",
   "org.slf4j" % "slf4j-api" % "1.8.0-beta1",
   "org.spire-math" % "jawn-parser_2.12" % "0.11.0",
   "org.typelevel" % "cats-core_2.12" % "1.0.1",
@@ -41,6 +41,6 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.typelevel" % "cats-macros_2.12" % "1.0.1",
   "org.typelevel" % "machinist_2.12" % "0.6.2",
   "org.typelevel" % "macro-compat_2.12" % "1.1.1",
-  "org.whispersystems" % "curve25519-java" % "0.4.1"
+  "org.whispersystems" % "curve25519-java" % "0.5.0"
 )
 // LIBRARY_DEPENDENCIES_HASH e7ba0232e9c21b5b9111a127fc992f8784af3365

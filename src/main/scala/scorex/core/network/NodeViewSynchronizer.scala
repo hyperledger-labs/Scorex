@@ -125,14 +125,15 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         //TODO should never reach this point
         log.debug("Trying to send sync info too often")
       } else {
-        historyReaderOpt.foreach(r => sendSync(r.syncInfo))
+        historyReaderOpt.foreach(r => sendSync(statusTracker, r))
       }
   }
 
-  protected def sendSync(syncInfo: SI): Unit = {
+  protected def sendSync(syncTracker: SyncTracker, history: HR): Unit = {
     val peers = statusTracker.peersToSyncWith()
-    if (peers.nonEmpty)
-      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
+    if (peers.nonEmpty) {
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(history.syncInfo), None), SendToPeers(peers))
+    }
   }
 
   //sync info is coming from another node
