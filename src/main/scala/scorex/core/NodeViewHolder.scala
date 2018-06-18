@@ -6,6 +6,7 @@ import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.serialization.Serializer
+import scorex.core.settings.ScorexSettings
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
@@ -42,6 +43,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
   type NodeView = (HIS, MS, VL, MP)
 
+  val scorexSettings: ScorexSettings
+
   /**
     * The main data structure a node software is taking care about, a node view consists
     * of four elements to be updated atomically: history (log of persistent modifiers),
@@ -75,9 +78,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     * Serializers for modifiers, to be provided by a concrete instantiation
     */
   val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
-
-
-
+  
   protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
 
   protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
@@ -85,7 +86,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
-  private val modifiersCache = new DefaultModifiersCache[PMOD, HIS](100) // todo: move magic number to the config
+  private val modifiersCache = new DefaultModifiersCache[PMOD, HIS](scorexSettings.network.maxModifiersCacheSize)
 
   protected def txModify(tx: TX): Unit = {
     //todo: async validation?

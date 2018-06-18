@@ -39,8 +39,8 @@ case class NetworkSettings(nodeName: String,
                            syncIntervalStable: FiniteDuration,
                            syncStatusRefreshStable: FiniteDuration,
                            syncTimeout: Option[FiniteDuration],
-                           controllerTimeout: Option[FiniteDuration]
-                          )
+                           controllerTimeout: Option[FiniteDuration],
+                           maxModifiersCacheSize: Int)
 
 case class WalletSettings(seed: ByteStr,
                           password: String,
