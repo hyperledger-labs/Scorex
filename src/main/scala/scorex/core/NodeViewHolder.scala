@@ -86,7 +86,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
-  private val modifiersCache = new DefaultModifiersCache[PMOD, HIS](scorexSettings.network.maxModifiersCacheSize)
+  protected val modifiersCache = new DefaultModifiersCache[PMOD, HIS](scorexSettings.network.maxModifiersCacheSize)
 
   protected def txModify(tx: TX): Unit = {
     //todo: async validation?
