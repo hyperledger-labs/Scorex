@@ -8,9 +8,19 @@ import scorex.core.validation.RecoverableModifierError
 import scala.collection.mutable
 import scala.util.{Failure, Success}
 
-
+/**
+  * A cache which is storing persistent modifiers not applied to history yet.
+  * @tparam PMOD - type of a persistent node view modifier (or a family of modifiers).
+  */
 trait ModifiersCache[PMOD <: PersistentNodeViewModifier] {
   require(maxSize >= 1)
+
+  def size: Int = currentCacheSize
+
+  /**
+    * How many elements are to be stored in the cache
+    */
+  def maxSize: Int
 
   type H <: HistoryReader[PMOD, _]
 
@@ -23,10 +33,19 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier] {
 
   protected val rememberedKeys = mutable.HashSet[K]()
 
+  /**
+    * Defines a best (and application-specific) candidate to be applied.
+    * @param history - an interface to history which could be needed to define a candiate
+    * @return - candidate if it is found
+    */
   def findCandidateKey(history: H): Option[K]
 
   protected def onPut(key: K): Unit = {}
   protected def onRemove(key: K, rememberKey: Boolean): Unit = {}
+
+  /**
+    * A cache element replacement strategy method, which defines a key to remove from cache when it is overfull
+    */
   protected def keyToRemove(): K
 
 
@@ -40,8 +59,6 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier] {
     if (currentCacheSize > maxSize) remove(keyToRemove())
   }
 
-  // def get(key: K): Option[V] = cache.get(key)
-
   def remove(key: K, rememberKey: Boolean = false): Option[V] = synchronized {
     onRemove(key, rememberKey)
     currentCacheSize = currentCacheSize - 1
@@ -52,10 +69,6 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier] {
   def popCandidate(history: H): Option[V] = synchronized {
     findCandidateKey(history).flatMap(k => remove(k))
   }
-
-  def size: Int = currentCacheSize
-
-  def maxSize: Int
 }
 
 trait LRUCache[PMOD <: PersistentNodeViewModifier] extends ModifiersCache[PMOD] {
