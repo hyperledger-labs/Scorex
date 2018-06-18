@@ -12,7 +12,7 @@ import scala.util.{Failure, Success}
   * A cache which is storing persistent modifiers not applied to history yet.
   * @tparam PMOD - type of a persistent node view modifier (or a family of modifiers).
   */
-trait ModifiersCache[PMOD <: PersistentNodeViewModifier] {
+trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]] {
   require(maxSize >= 1)
 
   def size: Int = currentCacheSize
@@ -21,8 +21,6 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier] {
     * How many elements are to be stored in the cache
     */
   def maxSize: Int
-
-  type H <: HistoryReader[PMOD, _]
 
   type K = mutable.WrappedArray[Byte]
   type V = PMOD
@@ -78,7 +76,7 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier] {
   }
 }
 
-trait LRUCache[PMOD <: PersistentNodeViewModifier] extends ModifiersCache[PMOD] {
+trait LRUCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]] extends ModifiersCache[PMOD, HR] {
 
   type Counter = Long
 
@@ -103,9 +101,7 @@ trait LRUCache[PMOD <: PersistentNodeViewModifier] extends ModifiersCache[PMOD] 
 }
 
 class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]]
-  (override val maxSize: Int) extends ModifiersCache[PMOD] with LRUCache[PMOD] with ScorexLogging {
-
-  override type H = HR
+  (override val maxSize: Int) extends ModifiersCache[PMOD, HR] with LRUCache[PMOD, HR] with ScorexLogging {
 
   /**
     * Default implementation is just about to scan. Not efficient at all and should be probably rewritten in a
@@ -115,7 +111,7 @@ class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryRea
     * @return - candidate if it is found
     */
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
-  override def findCandidateKey(history: H): Option[K] = {
+  override def findCandidateKey(history: HR): Option[K] = {
 
     cache.find { case (k, v) =>
       history.applicableTry(v) match {
