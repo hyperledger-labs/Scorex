@@ -1,15 +1,12 @@
 package scorex.core
 
 
-import scorex.core.consensus.History.ModifierIds
-import scorex.core.consensus.{History, HistoryReader, ModifierSemanticValidity, SyncInfo}
-import scorex.core.serialization.Serializer
+import scorex.core.consensus.HistoryReader
 import scorex.core.utils.ScorexLogging
 import scorex.core.validation.RecoverableModifierError
-import scorex.crypto.hash.Blake2b256
 
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 
 trait ModifiersCache[PMOD <: PersistentNodeViewModifier] {
