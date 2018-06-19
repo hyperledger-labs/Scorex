@@ -86,10 +86,7 @@ object ModifierValidator extends ScorexLogging  {
   def fatal(errorMessage: String): Invalid = invalid(MalformedModifierError(errorMessage))
 
   /** unsuccessful validation with a given error*/
-  def invalid(error: ModifierError): Invalid = {
-    log.info(error.info)
-    Invalid(Seq(error))
-  }
+  def invalid(error: ModifierError): Invalid = Invalid(Seq(error))
 
   /** successful validation */
   def success: Valid = Valid
