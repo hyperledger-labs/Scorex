@@ -29,6 +29,13 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
 
   protected val cache = mutable.Map[K, V]()
 
+  /**
+    * Keys to simulate objects residing a cache. So if key is stored here,
+    * the membership check (contains()) shows that the key is in the cache,
+    * but the value corresponding to the key is not stored. The motivation
+    * to have this structure is to avoid repeatedly downloading modifiers
+    * which are unquestionably invalid.
+    */
   protected val rememberedKeys = mutable.HashSet[K]()
 
   /**
@@ -111,7 +118,7 @@ class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryRea
     * Default implementation is just about to scan. Not efficient at all and should be probably rewritten in a
     * concrete application.
     *
-    * @param history - an interface to history which could be needed to define a candiate
+    * @param history - an interface to history which could be needed to define a candidate
     * @return - candidate if it is found
     */
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
