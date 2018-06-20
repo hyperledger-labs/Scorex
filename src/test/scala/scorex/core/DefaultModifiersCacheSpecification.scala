@@ -14,7 +14,7 @@ class DefaultModifiersCacheSpecification extends PropSpec
   with GeneratorDrivenPropertyChecks
   with Matchers {
 
-  property("ignore adding self as a peer") {
+  property("cache has limits") {
     class FakeModifier extends PersistentNodeViewModifier {
       override def parentId: ModifierId = ???
 

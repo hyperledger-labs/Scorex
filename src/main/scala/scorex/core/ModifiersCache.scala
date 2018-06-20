@@ -50,11 +50,13 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
   def contains(key: K): Boolean = cache.contains(key) || rememberedKeys.contains(key)
 
   def put(key: K, value: V): Unit = synchronized {
-    onPut(key)
-    cache.put(key, value)
-    currentCacheSize = currentCacheSize + 1
+    if(!contains(key)) {
+      onPut(key)
+      cache.put(key, value)
+      currentCacheSize = currentCacheSize + 1
 
-    if (currentCacheSize > maxSize) remove(keyToRemove())
+      if (currentCacheSize > maxSize) remove(keyToRemove())
+    }
   }
 
   /**
@@ -65,10 +67,12 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
     * @return
     */
   def remove(key: K, rememberKey: Boolean = false): Option[V] = synchronized {
-    onRemove(key, rememberKey)
-    currentCacheSize = currentCacheSize - 1
-    if (rememberKey) rememberedKeys += key
-    cache.remove(key)
+    cache.remove(key).map {removed =>
+      onRemove(key, rememberKey)
+      currentCacheSize = currentCacheSize - 1
+      if (rememberKey) rememberedKeys += key
+      removed
+    }
   }
 
   def popCandidate(history: H): Option[V] = synchronized {
