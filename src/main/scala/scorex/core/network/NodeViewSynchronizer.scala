@@ -62,10 +62,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
-    context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
-    context.system.eventStream.subscribe(self, classOf[DisconnectedPeer])
-    // todo: replace the two lines above by a single line with classOf[PeerManagementEvent]
-
+    context.system.eventStream.subscribe(self, classOf[PeerManagerEvent])
 
     //subscribe for all the node view holder events involving modifiers and transactions
     context.system.eventStream.subscribe(self, classOf[ChangedHistory[HR]])
@@ -120,13 +117,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      //todo: why this condition?
-      if (statusTracker.elapsedTimeSinceLastSync() < (networkSettings.syncInterval.toMillis / 2)) {
-        //TODO should never reach this point
-        log.debug("Trying to send sync info too often")
-      } else {
-        historyReaderOpt.foreach(r => sendSync(statusTracker, r))
-      }
+      historyReaderOpt.foreach(r => sendSync(statusTracker, r))
   }
 
   protected def sendSync(syncTracker: SyncTracker, history: HR): Unit = {
