@@ -15,6 +15,8 @@ import scala.util.{Failure, Success}
 trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]] {
   require(maxSize >= 1)
 
+  type K = mutable.WrappedArray[Byte]
+  type V = PMOD
 
   protected val cache = mutable.Map[K, V]()
 
@@ -24,9 +26,6 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
     * How many elements are to be stored in the cache
     */
   def maxSize: Int
-
-  type K = mutable.WrappedArray[Byte]
-  type V = PMOD
 
   /**
     * Keys to simulate objects residing a cache. So if key is stored here,
