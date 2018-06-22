@@ -89,7 +89,7 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
 
 trait LRUCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]] extends ModifiersCache[PMOD, HR] {
 
-  type Counter = Long
+  type Counter = BigInt
 
   private var cnt = 0: Counter
 
