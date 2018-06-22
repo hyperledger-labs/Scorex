@@ -25,8 +25,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 
   private implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
 
-  // TODO: Could this val be private?
-  val messageSpecs: Seq[MessageSpec[_]] = Seq(GetPeersSpec, PeersSpec)
+  private val messageSpecs: Seq[MessageSpec[_]] = Seq(GetPeersSpec, PeersSpec)
 
   override def preStart: Unit = {
     super.preStart()
