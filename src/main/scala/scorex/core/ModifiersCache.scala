@@ -15,7 +15,10 @@ import scala.util.{Failure, Success}
 trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]] {
   require(maxSize >= 1)
 
-  def size: Int = currentCacheSize
+
+  protected val cache = mutable.Map[K, V]()
+
+  def size: Int = cache.size
 
   /**
     * How many elements are to be stored in the cache
@@ -24,10 +27,6 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
 
   type K = mutable.WrappedArray[Byte]
   type V = PMOD
-
-  protected var currentCacheSize: Int = 0
-
-  protected val cache = mutable.Map[K, V]()
 
   /**
     * Keys to simulate objects residing a cache. So if key is stored here,
@@ -60,9 +59,7 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
     if(!contains(key)) {
       onPut(key)
       cache.put(key, value)
-      currentCacheSize = currentCacheSize + 1
-
-      if (currentCacheSize > maxSize) remove(keyToRemove())
+      if (size > maxSize) remove(keyToRemove())
     }
   }
 
@@ -76,7 +73,6 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
   def remove(key: K, rememberKey: Boolean = false): Option[V] = synchronized {
     cache.remove(key).map {removed =>
       onRemove(key, rememberKey)
-      currentCacheSize = currentCacheSize - 1
       if (rememberKey) rememberedKeys += key
       removed
     }
