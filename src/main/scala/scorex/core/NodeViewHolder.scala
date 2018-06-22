@@ -146,7 +146,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       context.system.eventStream.publish(ChangedState(newNodeView._2.getReader))
     }
     if (updatedVault.nonEmpty) {
-      context.system.eventStream.publish(ChangedVault())
+      context.system.eventStream.publish(ChangedVault(newNodeView._3.getReader))
     }
     if (updatedMempool.nonEmpty) {
       context.system.eventStream.publish(ChangedMempool(newNodeView._4.getReader))
@@ -400,7 +400,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     case GetNodeViewChanges(history, state, vault, mempool) =>
       if (history) sender() ! ChangedHistory(nodeView._1.getReader)
       if (state) sender() ! ChangedState(nodeView._2.getReader)
-      if (vault) sender() ! ChangedVault()
+      if (vault) sender() ! ChangedVault(nodeView._3.getReader)
       if (mempool) sender() ! ChangedMempool(nodeView._4.getReader)
   }
 

@@ -9,6 +9,7 @@ import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.state.StateReader
+import scorex.core.transaction.wallet.VaultReader
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
@@ -337,11 +338,8 @@ object NodeViewSynchronizer {
 
     trait NodeViewChange extends NodeViewHolderEvent
     case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
-    //TODO: return mempool reader
     case class ChangedMempool[MR <: MempoolReader[_ <: Transaction]](mempool: MR) extends NodeViewChange
-    //TODO: return Vault reader
-    //FIXME: No actor process this message explicitly, it seems to be sent to NodeViewSynchcronizer
-    case class ChangedVault() extends NodeViewChange
+    case class ChangedVault[VR <: VaultReader](reader: VR) extends NodeViewChange
     case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
     //todo: consider sending info on the rollback
 
