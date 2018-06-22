@@ -5,6 +5,7 @@ import java.io.File
 import com.google.common.primitives.Ints
 import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction}
 import examples.hybrid.blocks.HybridBlock
+import examples.hybrid.mining.WalletSettings
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.VersionTag
@@ -110,15 +111,15 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
 
 object HBoxWallet {
 
-  def walletFile(settings: ScorexSettings): File = {
-    settings.wallet.walletDir.mkdirs()
+  def walletFile(settings: WalletSettings): File = {
+    settings.walletDir.mkdirs()
 
-    new File(s"${settings.wallet.walletDir.getAbsolutePath}/wallet.dat")
+    new File(s"${settings.walletDir.getAbsolutePath}/wallet.dat")
   }
 
-  def exists(settings: ScorexSettings): Boolean = walletFile(settings).exists()
+  def exists(settings: WalletSettings): Boolean = walletFile(settings).exists()
 
-  def readOrGenerate(settings: ScorexSettings, seed: ByteStr): HBoxWallet = {
+  def readOrGenerate(settings: WalletSettings, seed: ByteStr): HBoxWallet = {
     val wFile = walletFile(settings)
     wFile.mkdirs()
     val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000, keepVersions = 100) //todo: configurable kV
@@ -132,22 +133,22 @@ object HBoxWallet {
     HBoxWallet(seed, boxesStorage)
   }
 
-  def readOrGenerate(settings: ScorexSettings): HBoxWallet = {
-    readOrGenerate(settings, settings.wallet.seed)
+  def readOrGenerate(settings: WalletSettings): HBoxWallet = {
+    readOrGenerate(settings, settings.seed)
   }
 
-  def readOrGenerate(settings: ScorexSettings, seed: ByteStr, accounts: Int): HBoxWallet =
+  def readOrGenerate(settings: WalletSettings, seed: ByteStr, accounts: Int): HBoxWallet =
     (1 to accounts).foldLeft(readOrGenerate(settings, seed)) { case (w, _) =>
       w.generateNewSecret()
     }
 
-  def readOrGenerate(settings: ScorexSettings, accounts: Int): HBoxWallet =
+  def readOrGenerate(settings: WalletSettings, accounts: Int): HBoxWallet =
     (1 to accounts).foldLeft(readOrGenerate(settings)) { case (w, _) =>
       w.generateNewSecret()
     }
 
   //wallet with applied initialBlocks
-  def genesisWallet(settings: ScorexSettings, initialBlocks: Seq[HybridBlock]): HBoxWallet = {
+  def genesisWallet(settings: WalletSettings, initialBlocks: Seq[HybridBlock]): HBoxWallet = {
     initialBlocks.foldLeft(readOrGenerate(settings).generateNewSecret()) { (a, b) =>
       a.scanPersistent(b)
     }

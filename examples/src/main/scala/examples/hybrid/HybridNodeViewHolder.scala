@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import examples.commons._
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
-import examples.hybrid.mining.HybridMiningSettings
+import examples.hybrid.mining.{HybridMiningSettings, HybridSettings}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import scorex.core.serialization.Serializer
@@ -18,11 +18,12 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 
-class HybridNodeViewHolder(settings: ScorexSettings,
-                           minerSettings: HybridMiningSettings,
+class HybridNodeViewHolder(hybridSettings: HybridSettings,
                            timeProvider: NetworkTimeProvider)
   extends NodeViewHolder[SimpleBoxTransaction, HybridBlock] {
 
+  private val settings: ScorexSettings = hybridSettings.scorexSettings
+  private val minerSettings: HybridMiningSettings = hybridSettings.mining
   override val networkChunkSize: Int = settings.network.networkChunkSize
 
   override type SI = HybridSyncInfo
@@ -48,26 +49,30 @@ class HybridNodeViewHolder(settings: ScorexSettings,
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
   override protected def genesisState: (HIS, MS, VL, MP) =
-    HybridNodeViewHolder.generateGenesisState(settings, minerSettings, timeProvider)
+    HybridNodeViewHolder.generateGenesisState(hybridSettings, timeProvider)
 
   /**
     * Restore a local view during a node startup. If no any stored view found
     * (e.g. if it is a first launch of a node) None is to be returned
     */
   override def restoreState(): Option[(HIS, MS, VL, MP)] = {
-    if (HBoxWallet.exists(settings)) {
+    if (HBoxWallet.exists(hybridSettings.walletSettings)) {
       Some((
         HybridHistory.readOrGenerate(settings, minerSettings, timeProvider),
         HBoxStoredState.readOrGenerate(settings),
-        HBoxWallet.readOrGenerate(settings, 1),
+        HBoxWallet.readOrGenerate(hybridSettings.walletSettings, 1),
         SimpleBoxTransactionMemPool.emptyPool))
     } else None
   }
 }
 
 object HybridNodeViewHolder extends ScorexLogging with ScorexEncoding {
-  def generateGenesisState(settings: ScorexSettings, minerSettings: HybridMiningSettings, timeProvider: NetworkTimeProvider):
-                          (HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool) = {
+  def generateGenesisState(hybridSettings: HybridSettings,
+                           timeProvider: NetworkTimeProvider):
+  (HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool) = {
+    val settings: ScorexSettings = hybridSettings.scorexSettings
+    val minerSettings: HybridMiningSettings = hybridSettings.mining
+
     val GenesisAccountsNum = 50
     val GenesisBalance = Value @@ 100000000L
 
@@ -137,7 +142,7 @@ object HybridNodeViewHolder extends ScorexLogging with ScorexEncoding {
       icoMembers.map(_ -> GenesisBalance),
       0L,
       0L))
-      
+
 
     log.debug(s"Initialize state with transaction ${genesisTxs.headOption} with boxes ${genesisTxs.headOption.map(_.newBoxes)}")
 
@@ -150,8 +155,9 @@ object HybridNodeViewHolder extends ScorexLogging with ScorexEncoding {
     history = history.append(posGenesis).get._1
 
     val gs = HBoxStoredState.genesisState(settings, Seq[HybridBlock](posGenesis, powGenesis))
-    val gw = HBoxWallet.genesisWallet(settings, Seq[HybridBlock](posGenesis, powGenesis))
-      .ensuring(_.boxes().map(_.box.value.toLong).sum >= GenesisBalance  || !encoder.encode(settings.wallet.seed.arr).startsWith("genesis"))
+    val gw = HBoxWallet.genesisWallet(hybridSettings.walletSettings, Seq[HybridBlock](posGenesis, powGenesis))
+      .ensuring(_.boxes().map(_.box.value.toLong).sum >= GenesisBalance ||
+        !encoder.encode(hybridSettings.walletSettings.seed.arr).startsWith("genesis"))
       .ensuring(_.boxes().forall(b => gs.closedBox(b.box.id).isDefined))
 
     (history, gs, gw, SimpleBoxTransactionMemPool.emptyPool)
@@ -159,21 +165,18 @@ object HybridNodeViewHolder extends ScorexLogging with ScorexEncoding {
 }
 
 object HybridNodeViewHolderRef {
-  def props(settings: ScorexSettings,
-            minerSettings: HybridMiningSettings,
+  def props(settings: HybridSettings,
             timeProvider: NetworkTimeProvider): Props =
-    Props(new HybridNodeViewHolder(settings, minerSettings, timeProvider))
+    Props(new HybridNodeViewHolder(settings, timeProvider))
 
-  def apply(settings: ScorexSettings,
-            minerSettings: HybridMiningSettings,
+  def apply(settings: HybridSettings,
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem): ActorRef =
-    system.actorOf(props(settings, minerSettings, timeProvider))
+    system.actorOf(props(settings, timeProvider))
 
   def apply(name: String,
-            settings: ScorexSettings,
-            minerSettings: HybridMiningSettings,
+            settings: HybridSettings,
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem): ActorRef =
-    system.actorOf(props(settings, minerSettings, timeProvider), name)
+    system.actorOf(props(settings, timeProvider), name)
 }

@@ -38,7 +38,7 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoMessageSpec)
 
-  override val nodeViewHolderRef: ActorRef = HybridNodeViewHolderRef(settings, hybridSettings.mining, timeProvider)
+  override val nodeViewHolderRef: ActorRef = HybridNodeViewHolderRef(hybridSettings, timeProvider)
 
   override val apiRoutes: Seq[ApiRoute] = Seq[ApiRoute](
     DebugApiRoute(settings.restApi, nodeViewHolderRef),

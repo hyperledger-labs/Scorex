@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators with HistoryGenerators with HybridTypes =>
 
-  class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings.scorexSettings, settings.mining, new NetworkTimeProvider(settings.scorexSettings.ntp)) {
+  class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings, new NetworkTimeProvider(settings.scorexSettings.ntp)) {
 
     override protected def genesisState: (HIS, MS, VL, MP) = {
       @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))

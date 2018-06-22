@@ -26,7 +26,7 @@ class HWalletSpecification extends PropSpec
   val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
   private val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
-  val w: HBoxWallet = HBoxWallet.readOrGenerate(settings.scorexSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()
+  val w: HBoxWallet = HBoxWallet.readOrGenerate(settings.walletSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()
   w.secrets.size should be >= 2
   val fs: PrivateKey25519 = w.secrets.head
   val ss: PrivateKey25519 = w.secrets.tail.head
