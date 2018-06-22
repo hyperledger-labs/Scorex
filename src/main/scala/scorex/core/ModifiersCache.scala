@@ -39,7 +39,7 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
 
   /**
     * Defines a best (and application-specific) candidate to be applied.
-    * @param history - an interface to history which could be needed to define a candiate
+    * @param history - an interface to history which could be needed to define a candidate
     * @return - candidate if it is found
     */
   def findCandidateKey(history: H): Option[K]
