@@ -37,6 +37,8 @@ object NodeViewModifier {
 
 
 trait PersistentNodeViewModifier extends NodeViewModifier {
+  // TODO remove. parentId is not nessesary for persistent modifiers, e.g. most of persistent modifiers in Ergo
+  // TODO (BlockTransactions, ADProofs, PoPoWProofs, ...) does not have parent id
   def parentId: ModifierId
 }
 
