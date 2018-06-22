@@ -90,7 +90,7 @@ libraryDependencies ++= Seq(
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 
-scalacOptions ++= Seq("-feature", "-deprecation")
+scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-deprecation")
 
 javaOptions ++= Seq(
   "-server"
