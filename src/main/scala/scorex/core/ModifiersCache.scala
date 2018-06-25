@@ -1,6 +1,7 @@
 package scorex.core
 
 
+import com.google.common.cache.CacheBuilder
 import scorex.core.consensus.HistoryReader
 import scorex.core.utils.ScorexLogging
 import scorex.core.validation.RecoverableModifierError
