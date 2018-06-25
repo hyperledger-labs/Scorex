@@ -1,7 +1,5 @@
 package scorex.core
 
-
-import com.google.common.cache.CacheBuilder
 import scorex.core.consensus.HistoryReader
 import scorex.core.utils.ScorexLogging
 import scorex.core.validation.RecoverableModifierError
@@ -19,7 +17,7 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
   type K = mutable.WrappedArray[Byte]
   type V = PMOD
 
-  protected val cache = mutable.Map[K, V]()
+  protected val cache: mutable.Map[K, V] = mutable.Map[K, V]()
 
   def size: Int = cache.size
 
@@ -35,7 +33,7 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
     * to have this structure is to avoid repeatedly downloading modifiers
     * which are unquestionably invalid.
     */
-  protected val rememberedKeys = mutable.HashSet[K]()
+  protected val rememberedKeys: mutable.HashSet[K] = mutable.HashSet[K]()
 
   /**
     * Defines a best (and application-specific) candidate to be applied.
