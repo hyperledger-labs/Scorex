@@ -4,6 +4,7 @@ import scorex.core.consensus.HistoryReader
 import scorex.core.utils.ScorexLogging
 import scorex.core.validation.RecoverableModifierError
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.{Failure, Success}
 
@@ -83,25 +84,32 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
 
 trait LRUCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]] extends ModifiersCache[PMOD, HR] {
 
-  type Counter = BigInt
+  private val evictionQueue = mutable.Queue[K]()
 
-  private var cnt = 0: Counter
+  // The eviction queue can contain elements already removed, as we're not removing a key from it when
+  // the key is got removed from the cache. When size of eviction queue exceeds maximum size of the cache by
+  // the value below(so the queue contains at least "cleaningThreshold" keys aleady removed from the cache),
+  // complete scan and cleaning of removed keys happen.
+  private val cleaningThreshold = 50
 
-  private val keyIndex = mutable.Map[K, Counter]()
+  @tailrec
+  private def evictionCandidate(): K = {
+    val k = evictionQueue.dequeue()
+    if(cache.contains(k)) k else evictionCandidate()
+  }
 
   override protected def onPut(key: K): Unit = {
-    keyIndex.put(key, cnt)
-    cnt = cnt + 1
+    evictionQueue.enqueue(key)
+    if(evictionQueue.size > maxSize + cleaningThreshold){
+      evictionQueue.dequeueAll(k => !cache.contains(k))
+    }
   }
 
   override protected def onRemove(key: K, rememberKey: Boolean): Unit = {
-    keyIndex.remove(key)
   }
 
   def keyToRemove(): K = {
-    val (key, _) = keyIndex.minBy(_._2)  //todo: can we do faster search?
-    keyIndex.remove(key)
-    key
+    evictionCandidate()
   }
 }
 
