@@ -35,10 +35,16 @@ object NodeViewModifier {
   val ModifierIdSize: Int = Try(ConfigFactory.load().getConfig("app").getInt("modifierIdSize")).getOrElse(DefaultIdSize)
 }
 
-
+/**
+  * Persistent node view modifier is a part of replicated log of state transformations.
+  * The log should be deterministic and ordered to get a deterministic state after its
+  * application to the genesis state and thus every modifier should have parent - modifier,
+  * which application should precede this modifier application
+  */
 trait PersistentNodeViewModifier extends NodeViewModifier {
-  // TODO remove. parentId is not nessesary for persistent modifiers, e.g. most of persistent modifiers in Ergo
-  // TODO (BlockTransactions, ADProofs, PoPoWProofs, ...) does not have parent id
+  /**
+    * Id modifier, which should be applied to the node view before this modifier
+    */
   def parentId: ModifierId
 }
 
