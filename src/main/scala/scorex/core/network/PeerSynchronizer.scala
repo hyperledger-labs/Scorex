@@ -5,7 +5,10 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
+import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
+import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
+import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeers}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 import shapeless.syntax.typeable._
@@ -18,19 +21,12 @@ import scala.language.postfixOps
 class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
                       (implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
-  import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
-  import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
-  import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeers}
-
-
   private implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
-
-  private val messageSpecs: Seq[MessageSpec[_]] = Seq(GetPeersSpec, PeersSpec)
 
   override def preStart: Unit = {
     super.preStart()
 
-    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
+    networkControllerRef ! RegisterMessagesHandler(Seq(GetPeersSpec, PeersSpec), self)
 
     val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
     val stn = SendToNetwork(msg, SendToRandom)

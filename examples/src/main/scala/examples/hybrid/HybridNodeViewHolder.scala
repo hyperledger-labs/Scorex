@@ -22,16 +22,15 @@ class HybridNodeViewHolder(hybridSettings: HybridSettings,
                            timeProvider: NetworkTimeProvider)
   extends NodeViewHolder[SimpleBoxTransaction, HybridBlock] {
 
-  private val settings: ScorexSettings = hybridSettings.scorexSettings
-  private val minerSettings: HybridMiningSettings = hybridSettings.mining
-  override val networkChunkSize: Int = settings.network.networkChunkSize
-
   override type SI = HybridSyncInfo
-
   override type HIS = HybridHistory
   override type MS = HBoxStoredState
   override type VL = HBoxWallet
   override type MP = SimpleBoxTransactionMemPool
+
+  private val settings: ScorexSettings = hybridSettings.scorexSettings
+  private val minerSettings: HybridMiningSettings = hybridSettings.mining
+  override val networkChunkSize: Int = settings.network.networkChunkSize
 
   override val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
     Map(PosBlock.ModifierTypeId -> PosBlockCompanion,

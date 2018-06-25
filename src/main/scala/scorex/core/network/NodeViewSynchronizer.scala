@@ -63,7 +63,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
-    context.system.eventStream.subscribe(self, classOf[PeerManagerEvent])
+    context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
+    context.system.eventStream.subscribe(self, classOf[DisconnectedPeer])
 
     //subscribe for all the node view holder events involving modifiers and transactions
     context.system.eventStream.subscribe(self, classOf[ChangedHistory[HR]])
