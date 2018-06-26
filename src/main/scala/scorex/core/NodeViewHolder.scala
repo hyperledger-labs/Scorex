@@ -6,6 +6,7 @@ import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.serialization.Serializer
+import scorex.core.settings.ScorexSettings
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
@@ -33,7 +34,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   import NodeViewHolder.ReceivableMessages._
   import NodeViewHolder._
   import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
-  //import scorex.core.LocallyGeneratedModifiersMessages.ReceivableMessages.{LocallyGeneratedTransaction, LocallyGeneratedModifier}
 
   type SI <: SyncInfo
   type HIS <: History[PMOD, SI, HIS]
@@ -41,8 +41,10 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   type VL <: Vault[TX, PMOD, VL]
   type MP <: MemoryPool[TX, MP]
 
-
   type NodeView = (HIS, MS, VL, MP)
+
+  val scorexSettings: ScorexSettings
+
   /**
     * The main data structure a node software is taking care about, a node view consists
     * of four elements to be updated atomically: history (log of persistent modifiers),
@@ -84,8 +86,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
-  //todo: make configurable limited size
-  private val modifiersCache = mutable.Map[MapKey, PMOD]()
+  protected lazy val modifiersCache: ModifiersCache[PMOD, HIS] =
+    new DefaultModifiersCache[PMOD, HIS](scorexSettings.network.maxModifiersCacheSize)
 
   protected def txModify(tx: TX): Unit = {
     //todo: async validation?
@@ -348,30 +350,21 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
             }
         }
 
-        log.debug(s"Cache before(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(encoder.encode).mkString(",")}")
+        log.debug(s"Cache size before: ${modifiersCache.size}")
 
         var applied: Boolean = false
         do {
-          applied = false
-          modifiersCache foreach { kv =>
-            history().applicableTry(kv._2) match {
-              case Failure(e) if e.isInstanceOf[RecoverableModifierError] =>
-                // do nothing - modifier may be applied in future
-              case Failure(e) =>
-                // non-recoverable error - remove modifier from cache
-                // TODO blaklist peer who sent it
-                log.warn(s"Modifier ${kv._2.encodedId} is permanently invalid and will be removed from cache", e)
-                modifiersCache.remove(kv._1)
-              case Success(_) =>
-                applied = true
-                pmodModify(kv._2)
-                modifiersCache.remove(kv._1)
-            }
+          modifiersCache.popCandidate(history()) match {
+            case Some(mod) =>
+              pmodModify(mod)
+              applied = true
+            case None =>
+              applied = false
           }
         } while (applied)
 
 
-        log.debug(s"Cache after(${modifiersCache.size}): ${modifiersCache.keySet.map(_.array).map(encoder.encode).mkString(",")}")
+        log.debug(s"Cache size after: ${modifiersCache.size}")
       }
   }
 

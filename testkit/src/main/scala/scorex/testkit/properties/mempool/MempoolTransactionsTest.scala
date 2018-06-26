@@ -3,7 +3,6 @@ package scorex.testkit.properties.mempool
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MemoryPool, Transaction}
 
 @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))

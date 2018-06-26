@@ -3,7 +3,6 @@ package scorex.testkit.generators
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 
 

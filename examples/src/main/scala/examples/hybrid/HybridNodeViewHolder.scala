@@ -18,7 +18,7 @@ import scorex.crypto.encode.Base58
 import scorex.crypto.signatures.PublicKey
 
 
-class HybridNodeViewHolder(settings: ScorexSettings,
+class HybridNodeViewHolder(override val scorexSettings: ScorexSettings,
                            minerSettings: HybridMiningSettings,
                            timeProvider: NetworkTimeProvider)
   extends NodeViewHolder[SimpleBoxTransaction, HybridBlock] {
@@ -46,18 +46,18 @@ class HybridNodeViewHolder(settings: ScorexSettings,
     * Hard-coded initial view all the honest nodes in a network are making progress from.
     */
   override protected def genesisState: (HIS, MS, VL, MP) =
-    HybridNodeViewHolder.generateGenesisState(settings, minerSettings, timeProvider)
+    HybridNodeViewHolder.generateGenesisState(scorexSettings, minerSettings, timeProvider)
 
   /**
     * Restore a local view during a node startup. If no any stored view found
     * (e.g. if it is a first launch of a node) None is to be returned
     */
   override def restoreState(): Option[(HIS, MS, VL, MP)] = {
-    if (HBoxWallet.exists(settings)) {
+    if (HBoxWallet.exists(scorexSettings)) {
       Some((
-        HybridHistory.readOrGenerate(settings, minerSettings, timeProvider),
-        HBoxStoredState.readOrGenerate(settings),
-        HBoxWallet.readOrGenerate(settings, 1),
+        HybridHistory.readOrGenerate(scorexSettings, minerSettings, timeProvider),
+        HBoxStoredState.readOrGenerate(scorexSettings),
+        HBoxWallet.readOrGenerate(scorexSettings, 1),
         SimpleBoxTransactionMemPool.emptyPool))
     } else None
   }
