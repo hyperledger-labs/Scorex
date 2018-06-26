@@ -9,8 +9,9 @@ import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
-import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core.utils.ScorexEncoding
 import scorex.core.validation.RecoverableModifierError
+import scorex.util.ScorexLogging
 
 import scala.annotation.tailrec
 import scala.collection.mutable

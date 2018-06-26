@@ -7,10 +7,10 @@ import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import scorex.core.VersionTag
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion, Removal}
-import scorex.core.utils.ScorexLogging
 import scorex.crypto.authds.avltree.batch.{Insert, Remove}
 import scorex.crypto.authds.{ADKey, ADValue}
 import scorex.mid.state.BoxMinimalState
+import scorex.util.ScorexLogging
 
 import scala.util.Try
 

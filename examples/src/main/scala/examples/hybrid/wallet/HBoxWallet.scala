@@ -12,8 +12,9 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
 import scorex.core.transaction.wallet.{BoxWallet, BoxWalletTransaction, WalletBox, WalletBoxSerializer}
-import scorex.core.utils.{ByteStr, ScorexEncoding, ScorexLogging}
+import scorex.core.utils.{ByteStr, ScorexEncoding}
 import scorex.crypto.hash.Blake2b256
+import scorex.util.ScorexLogging
 
 import scala.util.Try
 

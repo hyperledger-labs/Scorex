@@ -1,7 +1,7 @@
 package examples.spv
 
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core.utils.ScorexEncoding
 
 import scala.annotation.tailrec
 import scala.util.Try

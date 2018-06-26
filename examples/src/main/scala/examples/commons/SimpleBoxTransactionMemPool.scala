@@ -3,14 +3,13 @@ package examples.commons
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.ModifierId
 import scorex.core.transaction.MemoryPool
-import scorex.core.utils.ScorexLogging
 
 import scala.collection.concurrent.TrieMap
 import scala.util.{Success, Try}
 
 
 case class SimpleBoxTransactionMemPool(unconfirmed: TrieMap[ByteArrayWrapper, SimpleBoxTransaction])
-  extends MemoryPool[SimpleBoxTransaction, SimpleBoxTransactionMemPool] with ScorexLogging {
+  extends MemoryPool[SimpleBoxTransaction, SimpleBoxTransactionMemPool] {
   override type NVCT = SimpleBoxTransactionMemPool
 
   private def key(id: Array[Byte]): ByteArrayWrapper = ByteArrayWrapper(id)

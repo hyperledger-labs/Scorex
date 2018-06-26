@@ -7,9 +7,9 @@ import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNo
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.utils.ScorexLogging
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.ArbitraryTransactionsCarryingModifierProducer
+import scorex.util.ScorexLogging
 
 trait MempoolRemovalTest[
 TX <: Transaction,

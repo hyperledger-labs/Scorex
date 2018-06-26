@@ -12,7 +12,6 @@ import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.utils.ScorexLogging
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.AkkaFixture
 import scorex.core.network.message._
@@ -22,6 +21,7 @@ import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared,
 import NodeViewSynchronizer.ReceivableMessages._
 import NetworkController.ReceivableMessages.{Blacklist, SendToNetwork}
 import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
+import scorex.util.ScorexLogging
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

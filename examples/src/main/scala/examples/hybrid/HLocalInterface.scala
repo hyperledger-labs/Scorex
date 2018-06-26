@@ -5,7 +5,7 @@ import examples.hybrid.blocks.{PosBlock, PowBlock}
 import examples.hybrid.mining.HybridMiningSettings
 import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewHolderEvent, RollbackFailed, SemanticallySuccessfulModifier}
-import scorex.core.utils.ScorexLogging
+import scorex.util.ScorexLogging
 
 class HLocalInterface(viewHolderRef: ActorRef,
                       powMinerRef: ActorRef,

@@ -10,8 +10,9 @@ import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.state.StateReader
 import scorex.core.transaction.{MempoolReader, Transaction}
-import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
 import scorex.core.{PersistentNodeViewModifier, _}
+import scorex.util.ScorexLogging
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

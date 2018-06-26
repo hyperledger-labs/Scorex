@@ -71,7 +71,7 @@ val apiDependencies = Seq(
 )
 
 val loggingDependencies = Seq(
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.+",
+  "org.scorexfoundation" %% "scorex-util" % "1.0.0",
   "ch.qos.logback" % "logback-classic" % "1.+"
 )
 

@@ -10,10 +10,10 @@ import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.utils.ScorexLogging
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.testkit.generators._
 import scorex.testkit.utils.AkkaFixture
+import scorex.util.ScorexLogging
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

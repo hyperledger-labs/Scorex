@@ -4,7 +4,7 @@ import java.net.InetAddress
 
 import org.bitlet.weupnp.{GatewayDevice, GatewayDiscover}
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.ScorexLogging
+import scorex.util.ScorexLogging
 
 import scala.collection.JavaConverters._
 import scala.util.Try

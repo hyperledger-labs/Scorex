@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.ScorexLogging
+import scorex.util.ScorexLogging
 import shapeless.syntax.typeable._
 
 import scala.concurrent.ExecutionContext

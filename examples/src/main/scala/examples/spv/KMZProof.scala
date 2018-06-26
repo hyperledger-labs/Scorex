@@ -2,7 +2,7 @@ package examples.spv
 
 import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core.serialization.Serializer
-import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core.utils.ScorexEncoding
 
 import scala.annotation.tailrec
 import scala.util.Try
