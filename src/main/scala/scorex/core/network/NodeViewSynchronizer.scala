@@ -263,7 +263,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   @SuppressWarnings(Array("org.wartremover.warts.JavaSerializable"))
   protected def checkDelivery: Receive = {
     case CheckDelivery(peer, modifierTypeId, modifierId) =>
-
       if (deliveryTracker.peerWhoDelivered(modifierId).contains(peer)) {
         deliveryTracker.delete(modifierId)
       } else {

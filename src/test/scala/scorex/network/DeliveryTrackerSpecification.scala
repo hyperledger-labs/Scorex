@@ -23,7 +23,7 @@ class DeliveryTrackerSpecification extends PropSpec
   with Matchers
   with ObjectGenerators {
 
-  property("expect, onReceive, isExpecting") {
+  property("basic ops") {
     implicit val system = ActorSystem()
     val probe = TestProbe("p")(system)
     implicit val nvsStub: ActorRef = probe.testActor
@@ -42,13 +42,13 @@ class DeliveryTrackerSpecification extends PropSpec
 
     tracker.expect(cp, mtid, modids)
 
-    tracker.isExpecting(mtid, modids.head, cp) shouldBe true
+    tracker.isExpecting(modids.head) shouldBe true
 
-    tracker.isExpecting(mtid, notAdded, cp) shouldBe false
+    tracker.isExpecting(notAdded) shouldBe false
 
     tracker.onReceive(mtid, modids.head, cp)
 
-    tracker.isExpecting(mtid, modids.head, cp) shouldBe false
+    tracker.isExpecting(modids.head) shouldBe false
 
     tracker.peerWhoDelivered(modids.head).get shouldBe cp
 
@@ -57,15 +57,15 @@ class DeliveryTrackerSpecification extends PropSpec
     tracker.isSpam(notAdded) shouldBe true
 
     tracker.reexpect(cp, mtid, modids(1))
-    tracker.isExpecting(mtid, modids(1), cp) shouldBe true
+    tracker.isExpecting(modids(1)) shouldBe true
 
     tracker.reexpect(cp, mtid, modids(1))
-    tracker.isExpecting(mtid, modids(1), cp) shouldBe false
+    tracker.isExpecting(modids(1)) shouldBe false
 
     tracker.reexpect(cp, mtid, modids(1))
-    tracker.isExpecting(mtid, modids(1), cp) shouldBe true
+    tracker.isExpecting(modids(1)) shouldBe true
 
-    //tracker.reexpect(cp, mtid, modids.head)
-    //tracker.isExpecting(mtid, modids.head, cp) shouldBe true
+    tracker.reexpect(cp, mtid, modids.head)
+    tracker.isExpecting(modids.head) shouldBe true
   }
 }
