@@ -23,8 +23,6 @@ class HybridNodeViewHolder(settings: ScorexSettings,
                            timeProvider: NetworkTimeProvider)
   extends NodeViewHolder[SimpleBoxTransaction, HybridBlock] {
 
-  override val networkChunkSize: Int = settings.network.networkChunkSize
-
   override type SI = HybridSyncInfo
 
   override type HIS = HybridHistory

@@ -140,7 +140,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
       historyReaderOpt match {
         case Some(historyReader) =>
-          val extensionOpt = historyReader.continuationIds(syncInfo, networkSettings.networkChunkSize)
+          val extensionOpt = historyReader.continuationIds(syncInfo, networkSettings.maxInvObjects)
           val ext = extensionOpt.getOrElse(Seq())
           val comparison = historyReader.compare(syncInfo)
           log.debug(s"Comparison with $remote having starting points ${idsToString(syncInfo.startingPoints)}. " +
