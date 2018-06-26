@@ -1,6 +1,6 @@
 package scorex.core.network
 
-import akka.actor.{ActorContext, ActorRef, Cancellable}
+import akka.actor.{ActorRef, ActorSystem, Cancellable}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.CheckDelivery
 import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, ModifierTypeId}
@@ -12,15 +12,17 @@ import scala.util.{Failure, Try}
 
 
 /**
-  * This class tracks modifier ids that are expected from and delivered by other peers
-  * in order to ban or de-prioritize peers that deliver what is not expected
+  * This class tracks modifier ids which are expected from and delivered by other peers
+  * in order to ban or de-prioritize peers which are delivering what is not expected
   */
-class DeliveryTracker(context: ActorContext,
+class DeliveryTracker(system: ActorSystem,
                       deliveryTimeout: FiniteDuration,
                       maxDeliveryChecks: Int,
                       nvsRef: ActorRef) extends ScorexLogging {
 
   protected type ModifierIdAsKey = scala.collection.mutable.WrappedArray.ofByte
+
+  protected case class ExpectingStatus(peer: ConnectedPeer, cancellable: Cancellable, checks: Int)
 
   protected def key(id: ModifierId): ModifierIdAsKey = new mutable.WrappedArray.ofByte(id)
 
@@ -29,56 +31,49 @@ class DeliveryTracker(context: ActorContext,
   // when a remote peer is asked a modifier, we add the expected data to `expecting`
   // when a remote peer delivers expected data, it is removed from `expecting` and added to `delivered`.
   // when a remote peer delivers unexpected data, it is added to `deliveredSpam`.
-  protected val expecting = mutable.Set[(ModifierTypeId, ModifierIdAsKey, ConnectedPeer)]()
+  protected val expecting = mutable.Map[ModifierIdAsKey, ExpectingStatus]()
   protected val delivered = mutable.Map[ModifierIdAsKey, ConnectedPeer]()
   protected val deliveredSpam = mutable.Map[ModifierIdAsKey, ConnectedPeer]()
 
-  protected val cancellables = mutable.Map[(ModifierIdAsKey, ConnectedPeer), Cancellable]()
-  protected val checksCounter = mutable.Map[(ModifierIdAsKey, ConnectedPeer), Int]()
 
-  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Unit = tryWithLogging {
-    for (mid <- mids) expect(cp, mtid, mid)
-  }
+  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Unit =
+    tryWithLogging(mids.foreach(mid => expect(cp, mtid, mid)))
 
-  protected def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = {
-    val cancellable = context.system.scheduler.scheduleOnce(deliveryTimeout,
-      nvsRef,
-      CheckDelivery(cp, mtid, mid))
+  protected def expect(cp: ConnectedPeer,
+                       mtid: ModifierTypeId,
+                       mid: ModifierId,
+                       checksDone: Int = 0)(implicit ec: ExecutionContext): Unit = {
+    val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(cp, mtid, mid))
     val midAsKey = key(mid)
-    expecting += ((mtid, midAsKey, cp))
-    cancellables((midAsKey, cp)) = cancellable
+    expecting.put(midAsKey, ExpectingStatus(cp, cancellable, checks = checksDone))
   }
 
   // stops expecting, and expects again if the number of checks does not exceed the maximum
   def reexpect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = tryWithLogging {
-    stopExpecting(cp, mtid, mid)
-    val midAsKey = key(mid)
-    val checks = checksCounter.getOrElseUpdate((midAsKey, cp), 0) + 1
-    checksCounter((midAsKey, cp)) = checks
-    if (checks < maxDeliveryChecks) expect(cp, mtid, mid)
-    else checksCounter -= ((midAsKey, cp))
-  }
-
-  protected def stopExpecting(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId): Unit = {
-    val midAsKey = key(mid)
-    expecting -= ((mtid, midAsKey, cp))
-    cancellables((midAsKey, cp)).cancel()
-    cancellables -= ((midAsKey, cp))
-  }
-
-  protected def isExpecting(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean =
-    expecting.exists(e => (mtid == e._1) && (mid sameElements e._2.array) && cp == e._3)
-
-  def receive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = tryWithLogging {
-    if (isExpecting(mtid, mid, cp)) {
-      val eo = expecting.find(e => (mtid == e._1) && (mid sameElements e._2) && cp == e._3)
-      for (e <- eo) expecting -= e
-      delivered(key(mid)) = cp
-      val cancellableKey = (key(mid), cp)
-      for (c <- cancellables.get(cancellableKey)) c.cancel()
-      cancellables -= cancellableKey
+    if(isExpecting(mid)) {
+      val midAsKey = key(mid)
+      val checks = expecting(midAsKey).checks + 1
+      stopExpecting(mid)
+      if (checks < maxDeliveryChecks) expect(cp, mtid, mid, checks)
+    } else {
+      expect(cp, mtid, mid)
     }
-    else {
+  }
+
+  protected def stopExpecting(mid: ModifierId): Unit = {
+    val midAsKey = key(mid)
+    expecting(midAsKey).cancellable.cancel()
+    expecting.remove(midAsKey)
+  }
+
+  protected[network] def isExpecting(mid: ModifierId): Boolean =
+    expecting.contains(key(mid))
+
+  def onReceive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = tryWithLogging {
+    if (isExpecting(mid)) {
+      stopExpecting(mid)
+      delivered(key(mid)) = cp
+    } else {
       deliveredSpam(key(mid)) = cp
     }
   }
@@ -98,5 +93,4 @@ class DeliveryTracker(context: ActorContext,
         Failure(e)
     }
   }
-
 }

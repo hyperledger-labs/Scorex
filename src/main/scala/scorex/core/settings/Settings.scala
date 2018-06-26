@@ -17,7 +17,6 @@ case class RESTApiSettings(bindAddress: InetSocketAddress,
 
 case class NetworkSettings(nodeName: String,
                            addedMaxDelay: Option[FiniteDuration],
-                           networkChunkSize: Int,
                            localOnly: Boolean,
                            knownPeers: Seq[InetSocketAddress],
                            bindAddress: InetSocketAddress,
