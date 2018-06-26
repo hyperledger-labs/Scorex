@@ -77,13 +77,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     */
   val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
 
-  //todo: write desc
-  /**
-    *
-    */
-  val networkChunkSize: Int
-
-
   protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
 
   protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
