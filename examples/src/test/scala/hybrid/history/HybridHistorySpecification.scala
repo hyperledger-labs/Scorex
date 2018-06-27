@@ -84,8 +84,8 @@ class HybridHistorySpecification extends PropSpec
 
   }
 
-  def compareAndCheck(history: HybridHistory, syncInfo: HybridSyncInfo, networkChunkSize: Int = 10): HistoryComparisonResult = {
-    val extensionOpt = history.continuationIds(syncInfo.startingPoints, networkChunkSize)
+  def compareAndCheck(history: HybridHistory, syncInfo: HybridSyncInfo, continuationSize: Int = 10): HistoryComparisonResult = {
+    val extensionOpt = history.continuationIds(syncInfo.startingPoints, continuationSize)
     val comparison = history.compare(syncInfo)
     if (comparison == Younger) {
       println(extensionOpt)

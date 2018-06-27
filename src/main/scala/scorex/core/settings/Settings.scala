@@ -17,7 +17,6 @@ case class RESTApiSettings(bindAddress: InetSocketAddress,
 
 case class NetworkSettings(nodeName: String,
                            addedMaxDelay: Option[FiniteDuration],
-                           networkChunkSize: Int,
                            localOnly: Boolean,
                            knownPeers: Seq[InetSocketAddress],
                            bindAddress: InetSocketAddress,
@@ -39,8 +38,8 @@ case class NetworkSettings(nodeName: String,
                            syncIntervalStable: FiniteDuration,
                            syncStatusRefreshStable: FiniteDuration,
                            syncTimeout: Option[FiniteDuration],
-                           controllerTimeout: Option[FiniteDuration]
-                          )
+                           controllerTimeout: Option[FiniteDuration],
+                           maxModifiersCacheSize: Int)
 
 case class ScorexSettings(dataDir: File,
                           logDir: File,

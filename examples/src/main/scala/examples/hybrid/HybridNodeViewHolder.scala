@@ -28,9 +28,8 @@ class HybridNodeViewHolder(hybridSettings: HybridSettings,
   override type VL = HBoxWallet
   override type MP = SimpleBoxTransactionMemPool
 
-  private val settings: ScorexSettings = hybridSettings.scorexSettings
+  override val scorexSettings: ScorexSettings = hybridSettings.scorexSettings
   private val minerSettings: HybridMiningSettings = hybridSettings.mining
-  override val networkChunkSize: Int = settings.network.networkChunkSize
 
   override val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
     Map(PosBlock.ModifierTypeId -> PosBlockCompanion,
@@ -57,8 +56,8 @@ class HybridNodeViewHolder(hybridSettings: HybridSettings,
   override def restoreState(): Option[(HIS, MS, VL, MP)] = {
     if (HBoxWallet.exists(hybridSettings.walletSettings)) {
       Some((
-        HybridHistory.readOrGenerate(settings, minerSettings, timeProvider),
-        HBoxStoredState.readOrGenerate(settings),
+        HybridHistory.readOrGenerate(scorexSettings, minerSettings, timeProvider),
+        HBoxStoredState.readOrGenerate(scorexSettings),
         HBoxWallet.readOrGenerate(hybridSettings.walletSettings, 1),
         SimpleBoxTransactionMemPool.emptyPool))
     } else None
