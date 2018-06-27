@@ -122,7 +122,7 @@ object SimpleBoxTransaction extends ScorexEncoding {
     val amount = to.map(_._2.toLong).sum
 
     val from: IndexedSeq[(PrivateKey25519, Nonce, Value)] = w.boxes()
-      .filter(b => !boxesIdsToExclude.exists(_ sameElements b.box.id)).takeWhile { b =>
+      .filter(b => !boxesIdsToExclude.exists(_ sameElements b.box.id)).sortBy(_.createdAt).takeWhile { b =>
       s = s + b.box.value
       s < amount + b.box.value
     }.flatMap { b =>

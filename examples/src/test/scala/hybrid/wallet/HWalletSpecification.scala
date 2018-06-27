@@ -60,7 +60,7 @@ class HWalletSpecification extends PropSpec
 
         val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, Array(), EmptySignature)
         val boxes = w.scanPersistent(pb).boxes()
-        boxes.forall(b => tx.newBoxes.exists(_.id sameElements b.box.id))
+        boxes.exists(b => b.transactionId sameElements tx.id) shouldBe true
       }
     }
   }
