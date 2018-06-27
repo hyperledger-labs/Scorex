@@ -11,7 +11,12 @@ import scorex.core.{ModifierId, NodeViewModifier, PersistentNodeViewModifier}
 
 import scala.util.Try
 
-//TODO why do we need transactionId and createdAt
+/**
+  * TODO WalletBox is not used in Scorex and should be moved to `mid` layer.
+  * It may be used in systems where a box does not contain a link to a corresponding transaction,
+  * e.g. could be useful for developments of the Twinscoin protocol and wallet.
+  *
+  */
 case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
                                                    (subclassDeser: Serializer[B]) extends BytesSerializable
   with ScorexEncoding {
