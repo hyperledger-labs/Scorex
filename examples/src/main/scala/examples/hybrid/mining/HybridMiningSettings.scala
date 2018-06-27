@@ -1,5 +1,7 @@
 package examples.hybrid.mining
 
+import java.io.File
+
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
@@ -7,12 +9,17 @@ import net.ceedubs.ficus.readers.ValueReader
 import scorex.core.ModifierId
 import scorex.core.settings.ScorexSettings.readConfigFromPath
 import scorex.core.settings._
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ByteStr, ScorexLogging}
 
 import scala.concurrent.duration._
 
 case class HybridSettings(mining: HybridMiningSettings,
+                          walletSettings: WalletSettings,
                           scorexSettings: ScorexSettings)
+
+case class WalletSettings(seed: ByteStr,
+                          password: String,
+                          walletDir: File)
 
 case class HybridMiningSettings(offlineGeneration: Boolean,
                                 targetBlockDelay: FiniteDuration,
@@ -34,9 +41,10 @@ object HybridSettings extends ScorexLogging with SettingsReaders {
 
   private def fromConfig(config: Config): HybridSettings = {
     log.info(config.toString)
+    val walletSettings = config.as[WalletSettings]("scorex.wallet")
     val miningSettings = config.as[HybridMiningSettings]("scorex.miner")
     val scorexSettings = config.as[ScorexSettings]("scorex")
-    HybridSettings(miningSettings, scorexSettings)
+    HybridSettings(miningSettings, walletSettings, scorexSettings)
   }
 }
 

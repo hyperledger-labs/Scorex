@@ -9,6 +9,7 @@ import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.state.StateReader
+import scorex.core.transaction.wallet.VaultReader
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
@@ -118,13 +119,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      //todo: why this condition?
-      if (statusTracker.elapsedTimeSinceLastSync() < (networkSettings.syncInterval.toMillis / 2)) {
-        //TODO should never reach this point
-        log.debug("Trying to send sync info too often")
-      } else {
-        historyReaderOpt.foreach(r => sendSync(statusTracker, r))
-      }
+      historyReaderOpt.foreach(r => sendSync(statusTracker, r))
   }
 
   protected def sendSync(syncTracker: SyncTracker, history: HR): Unit = {
@@ -357,12 +352,9 @@ object NodeViewSynchronizer {
 
     case class ChangedHistory[HR <: HistoryReader[_ <: PersistentNodeViewModifier, _ <: SyncInfo]](reader: HR) extends NodeViewChange
 
-    //TODO: return mempool reader
     case class ChangedMempool[MR <: MempoolReader[_ <: Transaction]](mempool: MR) extends NodeViewChange
 
-    //TODO: return Vault reader
-    //FIXME: No actor process this message explicitly, it seems to be sent to NodeViewSynchcronizer
-    case class ChangedVault() extends NodeViewChange
+    case class ChangedVault[VR <: VaultReader](reader: VR) extends NodeViewChange
 
     case class ChangedState[SR <: StateReader](reader: SR) extends NodeViewChange
 

@@ -28,7 +28,7 @@ object PrivateChain extends App with ScorexLogging with ScorexEncoding {
   val proposition: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
 
   def genesisState(): (HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool)  = {
-    HybridNodeViewHolder.generateGenesisState(settings, miningSettings, new NetworkTimeProvider(settings.ntp))
+    HybridNodeViewHolder.generateGenesisState(hybridSettings, new NetworkTimeProvider(settings.ntp))
   }
 
   def generatePow(h: HybridHistory, brother: Boolean, hashesPerSecond: Int): PowBlock = {

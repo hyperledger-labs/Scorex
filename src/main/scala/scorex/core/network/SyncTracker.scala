@@ -64,7 +64,6 @@ class SyncTracker(nvsRef: ActorRef,
     }
   }
 
-
   //todo: combine both?
   def clearStatus(remote: InetSocketAddress): Unit = {
     statuses.find(_._1.socketAddress == remote) match {
