@@ -1,8 +1,8 @@
 package scorex.core
 
 import scorex.core.consensus.HistoryReader
-import scorex.core.utils.ScorexLogging
 import scorex.core.validation.RecoverableModifierError
+import scorex.util.ScorexLogging
 
 import scala.annotation.tailrec
 import scala.collection.mutable
