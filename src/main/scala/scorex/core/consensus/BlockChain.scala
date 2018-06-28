@@ -79,11 +79,7 @@ trait BlockChain[TX <: Transaction, B <: Block[TX], SI <: SyncInfo, BT <: BlockC
   }.getOrElse(Seq())
 
   def children(blockId: ModifierId): Seq[B]
-
-  // TODO: Would it be better to give `genesisBlock` type Option[B]?
-  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-  lazy val genesisBlock: B = blockAt(1).get
-
+  
   /**
     * Score of concrete block
     */

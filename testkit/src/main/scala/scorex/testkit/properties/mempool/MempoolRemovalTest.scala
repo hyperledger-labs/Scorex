@@ -5,7 +5,6 @@ import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.ArbitraryTransactionsCarryingModifierProducer
