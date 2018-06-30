@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
 import org.scalatest._
+import scorex.ObjectGenerators
 import scorex.core.app.Version
 import scorex.core.network.peer.PeerManager.ReceivableMessages.Handshaked
 import scorex.core.network.{ConnectedPeer, Handshake, Incoming}
@@ -14,7 +15,7 @@ import scorex.core.utils.NetworkTimeProvider
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-class PeerManagerSpec extends FlatSpec with Matchers {
+class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
 
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, GetAllPeers}
 
@@ -31,7 +32,7 @@ class PeerManagerSpec extends FlatSpec with Matchers {
     val peerManager = PeerManagerRef(settings, timeProvider)(system)
     val selfAddress = settings.network.bindAddress
 
-    peerManager ! AddOrUpdatePeer(selfAddress, None, None)
+    peerManager ! AddOrUpdatePeer(selfAddress, None, None, Seq())
     peerManager ! GetAllPeers
     val data = p.expectMsgClass(classOf[Data])
 
@@ -49,7 +50,7 @@ class PeerManagerSpec extends FlatSpec with Matchers {
     val peerManager = PeerManagerRef(settings, timeProvider)(system)
     val peerAddress = new InetSocketAddress("1.1.1.1", DefaultPort)
 
-    peerManager ! AddOrUpdatePeer(peerAddress, None, None)
+    peerManager ! AddOrUpdatePeer(peerAddress, None, None, Seq())
     peerManager ! GetAllPeers
 
     val data = p.expectMsgClass(classOf[Data])
@@ -70,7 +71,9 @@ class PeerManagerSpec extends FlatSpec with Matchers {
     val pa1 = new InetSocketAddress("1.1.1.1", DefaultPort)
     val pa2 = new InetSocketAddress("some_host.com", DefaultPort)
 
-    val h1 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", Some(pa1), System.currentTimeMillis())
+    val feats = Seq(FullNodePeerFeature$)
+
+    val h1 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", Some(pa1), feats, System.currentTimeMillis())
     //connected peer is public cause declared address == peerAddress
     val p1 = ConnectedPeer(pa1, testActor, Incoming, h1)
 
@@ -80,7 +83,7 @@ class PeerManagerSpec extends FlatSpec with Matchers {
     val data1 = pr1.expectMsgClass(classOf[Data])
     data1.keySet should contain(pa1)
 
-    val h2 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", Some(pa2), System.currentTimeMillis())
+    val h2 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", Some(pa2), feats, System.currentTimeMillis())
     //connected peer became non-public cause declared address != peerAddress
     val p2 = ConnectedPeer(pa1, testActor, Incoming, h2)
 

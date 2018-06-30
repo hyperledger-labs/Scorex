@@ -1,9 +1,7 @@
 package scorex.core.network.peer
 
 import java.net.InetSocketAddress
-
 import scorex.core.utils.NetworkTime
-
 import scala.collection.mutable
 
 
@@ -17,8 +15,13 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase {
   override def addOrUpdateKnownPeer(address: InetSocketAddress, peerInfo: PeerInfo): Unit = {
     val updatedPeerInfo = whitelistPersistence.get(address).fold(peerInfo) { dbPeerInfo =>
       val nodeNameOpt = peerInfo.nodeName orElse dbPeerInfo.nodeName
-      val connTypeOpt = peerInfo.connectionType orElse  dbPeerInfo.connectionType
-      PeerInfo(peerInfo.lastSeen, nodeNameOpt, connTypeOpt)
+      val connTypeOpt = peerInfo.connectionType orElse dbPeerInfo.connectionType
+      val feats = if (dbPeerInfo.features.nonEmpty && peerInfo.features.isEmpty) {
+        dbPeerInfo.features
+      } else {
+        peerInfo.features
+      }
+      PeerInfo(peerInfo.lastSeen, nodeNameOpt, connTypeOpt, feats)
     }
     whitelistPersistence.put(address, updatedPeerInfo)
   }

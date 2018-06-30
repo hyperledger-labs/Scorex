@@ -2,10 +2,9 @@ package scorex.core.network
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import com.google.common.primitives.{Ints, Longs}
+import com.google.common.primitives.{Ints, Longs, Shorts}
 import scorex.core.app.{ApplicationVersionSerializer, Version}
-import scorex.core.serialization.{BytesSerializable, Serializer}
-
+import scorex.core.serialization.Serializer
 import scala.util.Try
 
 
@@ -13,17 +12,14 @@ case class Handshake(applicationName: String,
                      protocolVersion: Version,
                      nodeName: String,
                      declaredAddress: Option[InetSocketAddress],
-                     time: Long) extends BytesSerializable {
+                     features: Seq[PeerFeature],
+                     time: Long) {
 
   require(Option(applicationName).isDefined)
   require(Option(protocolVersion).isDefined)
-
-  override type M = Handshake
-
-  override def serializer: Serializer[Handshake] = HandshakeSerializer
 }
 
-object HandshakeSerializer extends Serializer[Handshake] {
+class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <: PeerFeature]]) extends Serializer[Handshake] {
 
   override def toBytes(obj: Handshake): Array[Byte] = {
     val anb = obj.applicationName.getBytes
@@ -34,15 +30,26 @@ object HandshakeSerializer extends Serializer[Handshake] {
 
     val nodeNameBytes = obj.nodeName.getBytes
 
-    Array(anb.size.toByte) ++ anb ++
-      obj.protocolVersion.bytes ++
-      Array(nodeNameBytes.size.toByte) ++ nodeNameBytes ++
-      Ints.toByteArray(fab.length) ++ fab ++
-      Longs.toByteArray(obj.time)
+    val featureBytes = obj.features.foldLeft(Array(obj.features.size.toByte)){case (fb, f) =>
+      val featId = f.featureId
+      val featBytes = f.bytes
+      fb ++ (featId +: Shorts.toByteArray(featBytes.length.toShort)) ++ featBytes
+    }
 
+    Array(anb.size.toByte) ++
+      anb ++
+      obj.protocolVersion.bytes ++
+      Array(nodeNameBytes.size.toByte) ++
+      nodeNameBytes ++
+      Ints.toByteArray(fab.length) ++
+      fab ++
+      featureBytes ++
+      Longs.toByteArray(obj.time)
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Handshake] = Try {
+    //todo: check handshake size
+
     var position = 0
     val appNameSize = bytes.head
     require(appNameSize > 0)
@@ -75,8 +82,24 @@ object HandshakeSerializer extends Serializer[Handshake] {
       Some(new InetSocketAddress(InetAddress.getByAddress(fa), port))
     } else None
 
+    val featuresCount = bytes.slice(position, position + 1).head
+    position +=1
+
+    val feats = (1 to featuresCount).map{_ =>
+      val featId = bytes.slice(position, position + 1).head
+      position += 1
+
+      val featBytesCount = Shorts.fromByteArray(bytes.slice(position, position + 2))
+      position += 2
+
+      val featTry = featureSerializers(featId).parseBytes(bytes.slice(position, position + featBytesCount))
+      position += featBytesCount
+
+      featTry.get  //fail fast
+    }
+
     val time = Longs.fromByteArray(bytes.slice(position, position + 8))
 
-    Handshake(an, av, nodeName, isaOpt, time)
+    Handshake(an, av, nodeName, isaOpt, feats, time)
   }
 }

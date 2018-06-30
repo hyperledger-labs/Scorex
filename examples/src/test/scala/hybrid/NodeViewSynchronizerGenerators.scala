@@ -46,7 +46,7 @@ trait NodeViewSynchronizerGenerators {
     val tx = simpleBoxTransactionGen.sample.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref, Outgoing,
-      Handshake("", Version(0,1,2), "", None, 0L))
+      Handshake("", Version(0,1,2), "", None, Seq(), 0L))
 
     (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, eventListener)
   }

@@ -18,6 +18,9 @@ with ObjectGenerators {
   val validNumbers: Gen[Int] =
     for (n <- Gen.choose(Integer.MIN_VALUE + 1, Integer.MAX_VALUE)) yield n
 
+  private val feats = Seq(FullNodePeerFeature$)
+  private val featSerializers = Map(FullNodePeerFeature$.featureId -> FullNodePeerFeature$.serializer)
+
   property("handshake should remain the same after serialization/deserialization") {
     forAll(Gen.alphaStr, appVersionGen, Gen.alphaStr, inetSocketAddressGen, Gen.posNum[Long]) {
       (appName: String,
@@ -28,15 +31,17 @@ with ObjectGenerators {
 
         whenever(appName.nonEmpty) {
 
-          val h1 = Handshake(appName, av, nodeName, None, time)
-          val hr1: Handshake = HandshakeSerializer.parseBytes(h1.bytes).get
+          val handshakeSerializer = new HandshakeSerializer(featSerializers)
+
+          val h1 = Handshake(appName, av, nodeName, None, feats, time)
+          val hr1: Handshake = handshakeSerializer.parseBytes(handshakeSerializer.toBytes(h1)).get
           hr1.applicationName should be(h1.applicationName)
           hr1.protocolVersion should be(h1.protocolVersion)
           hr1.declaredAddress should be(h1.declaredAddress)
           hr1.time should be(h1.time)
 
-          val h2 = Handshake(appName, av, nodeName, Some(isa), time)
-          val hr2 = HandshakeSerializer.parseBytes(h2.bytes).get
+          val h2 = Handshake(appName, av, nodeName, Some(isa), feats, time)
+          val hr2 = handshakeSerializer.parseBytes(handshakeSerializer.toBytes(h2)).get
           hr2.applicationName should be(h2.applicationName)
           hr2.protocolVersion should be(h2.protocolVersion)
           hr2.declaredAddress should be(h2.declaredAddress)

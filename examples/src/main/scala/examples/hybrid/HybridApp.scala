@@ -9,7 +9,7 @@ import examples.hybrid.mining._
 import examples.hybrid.wallet.SimpleBoxTransactionGeneratorRef
 import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApiRoute}
 import scorex.core.app.Application
-import scorex.core.network.NodeViewSynchronizerRef
+import scorex.core.network.{PeerFeature, NodeViewSynchronizerRef}
 import scorex.core.network.message.MessageSpec
 import scorex.core.serialization.SerializerRegistry
 import scorex.core.serialization.SerializerRegistry.SerializerRecord
@@ -38,6 +38,8 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoMessageSpec)
 
+  override val features: Seq[PeerFeature] = Seq()
+
   override val nodeViewHolderRef: ActorRef = HybridNodeViewHolderRef(hybridSettings, timeProvider)
 
   override val apiRoutes: Seq[ApiRoute] = Seq[ApiRoute](
@@ -45,7 +47,7 @@ class HybridApp(val settingsFilename: String) extends Application {
     WalletApiRoute(settings.restApi, nodeViewHolderRef),
     StatsApiRoute(settings.restApi, nodeViewHolderRef),
     UtilsApiRoute(settings.restApi),
-    NodeViewApiRoute[TX](settings.restApi, nodeViewHolderRef),
+    NodeViewApiRoute[SimpleBoxTransaction](settings.restApi, nodeViewHolderRef),
     PeersApiRoute(peerManagerRef, networkControllerRef, settings.restApi)
   )
 
@@ -57,10 +59,10 @@ class HybridApp(val settingsFilename: String) extends Application {
   val localInterface: ActorRef = HLocalInterfaceRef(nodeViewHolderRef, miner, forger, hybridSettings.mining)
 
   override val nodeViewSynchronizer: ActorRef =
-    actorSystem.actorOf(NodeViewSynchronizerRef.props[TX, HybridSyncInfo, HybridSyncInfoMessageSpec.type,
-                                                      PMOD, HybridHistory, SimpleBoxTransactionMemPool]
-                                                     (networkControllerRef, nodeViewHolderRef,
-                                                      HybridSyncInfoMessageSpec, settings.network, timeProvider))
+    actorSystem.actorOf(NodeViewSynchronizerRef.props[SimpleBoxTransaction, HybridSyncInfo, HybridSyncInfoMessageSpec.type,
+      HybridBlock, HybridHistory, SimpleBoxTransactionMemPool]
+      (networkControllerRef, nodeViewHolderRef,
+        HybridSyncInfoMessageSpec, settings.network, timeProvider))
 
   if (settings.network.nodeName.startsWith("generatorNode")) {
     log.info("Starting transactions generation")
