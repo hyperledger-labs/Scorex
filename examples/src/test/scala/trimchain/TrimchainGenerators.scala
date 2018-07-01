@@ -6,7 +6,7 @@ import examples.trimchain.core._
 import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.ModifierId
-import scorex.crypto.authds.SerializedAdProof
+import scorex.core.crypto.authds.SerializedAdProof
 
 trait TrimchainGenerators extends ExamplesCommonGenerators {
 

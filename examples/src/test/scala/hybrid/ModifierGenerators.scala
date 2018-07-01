@@ -9,7 +9,7 @@ import org.scalacheck.Gen
 import scorex.core.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
-import scorex.crypto.hash.Blake2b256
+import scorex.core.crypto.hash.Blake2b256
 import scorex.testkit.generators.{CoreGenerators, ModifierProducerTemplateItem, SynInvalid, Valid}
 
 import scala.collection.mutable

@@ -1,7 +1,7 @@
 package scorex.core.transaction
 
 import scorex.core.{EphemerealNodeViewModifier, ModifierId, ModifierTypeId}
-import scorex.crypto.hash.Blake2b256
+import scorex.core.crypto.hash.Blake2b256
 
 
 /**

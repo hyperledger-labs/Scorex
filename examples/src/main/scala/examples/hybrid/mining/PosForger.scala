@@ -9,7 +9,7 @@ import examples.hybrid.wallet.HBoxWallet
 import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.hash.Blake2b256
+import scorex.core.crypto.hash.Blake2b256
 import scorex.utils.Random
 
 

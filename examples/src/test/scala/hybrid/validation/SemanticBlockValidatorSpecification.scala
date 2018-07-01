@@ -4,7 +4,7 @@ import examples.hybrid.validation.SemanticBlockValidator
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.crypto.hash.Blake2b256
+import scorex.core.crypto.hash.Blake2b256
 
 
 class SemanticBlockValidatorSpecification extends PropSpec

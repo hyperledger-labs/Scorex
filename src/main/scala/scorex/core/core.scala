@@ -1,7 +1,7 @@
 package scorex
 
 import scorex.core.network.message.BasicMsgDataTypes.InvData
-import scorex.crypto.encode.BytesEncoder
+import scorex.core.crypto.encode.BytesEncoder
 import supertagged.TaggedType
 
 package object core {

@@ -17,7 +17,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
 import scorex.core.validation.RecoverableModifierError
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
-import scorex.crypto.hash.Blake2b256
+import scorex.core.crypto.hash.Blake2b256
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}

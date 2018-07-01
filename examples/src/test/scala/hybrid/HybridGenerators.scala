@@ -15,8 +15,8 @@ import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
 import scorex.core.{ModifierId, NodeViewModifier}
-import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.Signature
+import scorex.core.crypto.hash.Blake2b256
+import scorex.core.crypto.signatures.Signature
 import scorex.testkit.utils.{FileUtils, NoShrink}
 
 import scala.collection.concurrent.TrieMap

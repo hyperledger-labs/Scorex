@@ -8,7 +8,7 @@ import scorex.core.ModifierId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.consensus.ModifierSemanticValidity.{Absent, Unknown}
 import scorex.core.utils.ScorexLogging
-import scorex.crypto.hash.Sha256
+import scorex.core.crypto.hash.Sha256
 
 import scala.util.{Failure, Random, Try}
 

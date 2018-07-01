@@ -3,7 +3,7 @@ package scorex.core.transaction.state
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.ScorexEncoding
-import scorex.crypto.authds._
+import scorex.core.crypto.authds._
 
 abstract class BoxStateChangeOperation[P <: Proposition, BX <: Box[P]]
 

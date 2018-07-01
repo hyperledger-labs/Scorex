@@ -1,6 +1,6 @@
 package scorex.core.utils
 
-import scorex.crypto.encode.{Base16, BytesEncoder}
+import scorex.core.crypto.encode.{Base16, BytesEncoder}
 
 /**
   * Trait with bytes to string encoder

@@ -11,10 +11,10 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
-import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
-import scorex.crypto.authds.{ADKey, ADValue, SerializedAdProof}
-import scorex.crypto.encode.Base58
-import scorex.crypto.hash.{Blake2b256, Digest32}
+import scorex.core.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
+import scorex.core.crypto.authds.{ADKey, ADValue, SerializedAdProof}
+import scorex.core.crypto.encode.Base58
+import scorex.core.crypto.hash.{Blake2b256, Digest32}
 import scorex.mid.state.BoxMinimalState
 
 import scala.util.{Random, Success, Try}
@@ -162,7 +162,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
 object PersistentAuthenticatedUtxo {
 
-  type ProverType = BatchAVLProver[Digest32, Blake2b256.type]
+  type ProverType = BatchAVLProver[Digest32, scorex.crypto.hash.Blake2b256.type]
 
   def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = Try {
     require(tx.from.size == tx.signatures.size)

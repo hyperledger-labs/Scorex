@@ -8,9 +8,9 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519Companion
-import scorex.crypto.encode.Base58
-import scorex.crypto.hash.Sha256
-import scorex.crypto.signatures.{PublicKey, Signature}
+import scorex.core.crypto.encode.Base58
+import scorex.core.crypto.hash.Sha256
+import scorex.core.crypto.signatures.{PublicKey, Signature}
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class SimpleBoxTransactionSpecification extends PropSpec

@@ -12,8 +12,8 @@ import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
-import scorex.crypto.encode.Base58
-import scorex.crypto.hash.Blake2b256
+import scorex.core.crypto.encode.Base58
+import scorex.core.crypto.hash.Blake2b256
 
 import scala.concurrent._
 import scala.concurrent.duration._

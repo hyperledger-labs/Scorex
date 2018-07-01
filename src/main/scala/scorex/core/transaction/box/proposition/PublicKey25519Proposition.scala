@@ -3,8 +3,8 @@ package scorex.core.transaction.box.proposition
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexEncoding
-import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
+import scorex.core.crypto.hash.Blake2b256
+import scorex.core.crypto.signatures.{Curve25519, PublicKey, Signature}
 
 import scala.util.{Failure, Success, Try}
 

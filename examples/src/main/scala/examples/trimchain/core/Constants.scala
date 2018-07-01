@@ -1,6 +1,6 @@
 package examples.trimchain.core
 
-import scorex.crypto.hash.Blake2b256
+import scorex.core.crypto.hash.Blake2b256
 
 
 object Constants {

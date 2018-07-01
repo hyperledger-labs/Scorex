@@ -4,7 +4,7 @@ import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexEncoding
-import scorex.crypto.signatures.{Curve25519, Signature}
+import scorex.core.crypto.signatures.{Curve25519, Signature}
 
 import scala.util.Try
 

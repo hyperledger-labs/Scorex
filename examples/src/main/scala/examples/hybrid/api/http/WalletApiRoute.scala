@@ -12,7 +12,7 @@ import scorex.core.api.http.{ApiError, ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexEncoding
-import scorex.crypto.signatures.PublicKey
+import scorex.core.crypto.signatures.PublicKey
 
 import scala.util.{Failure, Success, Try}
 

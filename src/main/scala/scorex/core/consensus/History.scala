@@ -2,7 +2,7 @@ package scorex.core.consensus
 
 import scorex.core._
 import scorex.core.consensus.History.ProgressInfo
-import scorex.crypto.encode.BytesEncoder
+import scorex.core.crypto.encode.BytesEncoder
 
 import scala.util.Try
 

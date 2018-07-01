@@ -11,7 +11,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ByteStr
-import scorex.crypto.signatures.Signature
+import scorex.core.crypto.signatures.Signature
 
 import scala.annotation.tailrec
 import scala.util.Random

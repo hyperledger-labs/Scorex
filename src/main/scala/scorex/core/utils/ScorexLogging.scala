@@ -1,7 +1,7 @@
 package scorex.core.utils
 
 import com.typesafe.scalalogging.StrictLogging
-import scorex.crypto.encode.{Base16, BytesEncoder}
+import scorex.core.crypto.encode.{Base16, BytesEncoder}
 
 /**
 * TODO extract to ScorexUtils project

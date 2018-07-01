@@ -5,8 +5,8 @@ import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.serialization.Serializer
 import scorex.core.utils.ScorexEncoding
-import scorex.crypto.authds.SerializedAdProof
-import scorex.crypto.signatures.Curve25519
+import scorex.core.crypto.authds.SerializedAdProof
+import scorex.core.crypto.signatures.Curve25519
 
 import scala.annotation.tailrec
 import scala.util.Try
