@@ -157,8 +157,9 @@ class NetworkController(settings: NetworkSettings,
       }
       log.info(logMsg)
       val connection = sender()
+      val connectionDescription = ConnectionDescription(connection, direction, externalSocketAddress, remote, features)
       val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
-        messageHandler, handshakeSerializer, connection, direction, externalSocketAddress, remote, features, timeProvider)
+        messageHandler, handshakeSerializer, connectionDescription, timeProvider)
       context.actorOf(handlerProps) // launch connection handler
       outgoing -= remote
 
