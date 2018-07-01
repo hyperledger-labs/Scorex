@@ -31,7 +31,7 @@ with ObjectGenerators {
 
         whenever(appName.nonEmpty) {
 
-          val handshakeSerializer = new HandshakeSerializer(featSerializers)
+          val handshakeSerializer = new HandshakeSerializer(featSerializers, 2048)
 
           val h1 = Handshake(appName, av, nodeName, None, feats, time)
           val hr1: Handshake = handshakeSerializer.parseBytes(handshakeSerializer.toBytes(h1)).get

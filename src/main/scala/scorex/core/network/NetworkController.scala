@@ -39,7 +39,7 @@ class NetworkController(settings: NetworkSettings,
   private implicit val system: ActorSystem = context.system
 
   private val featureSerializers: PeerFeature.Serializers = features.map(f => f.featureId -> f.serializer).toMap
-  private val handshakeSerializer = new HandshakeSerializer(featureSerializers)
+  private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
 
   //todo: make usage more clear
   private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)

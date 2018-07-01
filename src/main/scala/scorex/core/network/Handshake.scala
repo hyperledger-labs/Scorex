@@ -19,7 +19,8 @@ case class Handshake(applicationName: String,
   require(Option(protocolVersion).isDefined)
 }
 
-class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <: PeerFeature]]) extends Serializer[Handshake] {
+class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <: PeerFeature]],
+                          maxHandshakeSize: Int) extends Serializer[Handshake] {
 
   override def toBytes(obj: Handshake): Array[Byte] = {
     val anb = obj.applicationName.getBytes
@@ -48,7 +49,7 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Handshake] = Try {
-    //todo: check handshake size
+    require(bytes.length <= maxHandshakeSize)
 
     var position = 0
     val appNameSize = bytes.head

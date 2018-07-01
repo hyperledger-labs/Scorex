@@ -38,7 +38,7 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   override protected lazy val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq(HybridSyncInfoMessageSpec)
 
-  override val features: Seq[PeerFeature] = Seq()
+  override protected lazy val features: Seq[PeerFeature] = Seq()
 
   override val nodeViewHolderRef: ActorRef = HybridNodeViewHolderRef(hybridSettings, timeProvider)
 
