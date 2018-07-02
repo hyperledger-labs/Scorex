@@ -42,6 +42,7 @@ class HandshakeSpecification extends PropSpec
           hr1.applicationName should be(h1.applicationName)
           hr1.protocolVersion should be(h1.protocolVersion)
           hr1.declaredAddress should be(h1.declaredAddress)
+          if (serializers.nonEmpty) hr1.features shouldBe h1.features else hr1.features.isEmpty shouldBe true
           hr1.time should be(h1.time)
 
           val h2 = Handshake(appName, av, nodeName, Some(isa), feats, time)
@@ -49,6 +50,7 @@ class HandshakeSpecification extends PropSpec
           hr2.applicationName should be(h2.applicationName)
           hr2.protocolVersion should be(h2.protocolVersion)
           hr2.declaredAddress should be(h2.declaredAddress)
+          if (serializers.nonEmpty) hr2.features shouldBe h2.features else hr2.features.isEmpty shouldBe true
           hr2.time should be(h2.time)
 
           val h3 = Handshake(appName, av, nodeName, Some(isa), Seq(), time)
@@ -56,6 +58,7 @@ class HandshakeSpecification extends PropSpec
           hr3.applicationName should be(h3.applicationName)
           hr3.protocolVersion should be(h3.protocolVersion)
           hr3.declaredAddress should be(h3.declaredAddress)
+          if (serializers.nonEmpty) hr3.features shouldBe h3.features else hr3.features.isEmpty shouldBe true
           hr3.time should be(h3.time)
         }
     }
