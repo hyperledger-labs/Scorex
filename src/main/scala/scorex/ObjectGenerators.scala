@@ -16,17 +16,15 @@ import scala.util.Try
 
 trait ObjectGenerators {
 
-  object FullNodePeerFeature$ extends PeerFeature {
+  object FullNodePeerFeature extends PeerFeature {
     override val featureId: PeerFeature.Id = 1: Byte
 
     override def serializer: Serializer[PeerFeature] = new Serializer[PeerFeature] {
       override def toBytes(obj: PeerFeature): Array[Byte] = Array(1: Byte, 2: Byte, 3: Byte)
 
       override def parseBytes(bytes: Array[Byte]): Try[PeerFeature] = Try {
-        assert(bytes(0) == 1)
-        assert(bytes(1) == 2)
-        assert(bytes(2) == 3)
-        FullNodePeerFeature$
+        require(bytes(0) == 1 && bytes(1) == 2 && bytes(2) == 3)
+        FullNodePeerFeature
       }
     }
   }

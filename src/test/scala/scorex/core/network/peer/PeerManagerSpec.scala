@@ -71,7 +71,7 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
     val pa1 = new InetSocketAddress("1.1.1.1", DefaultPort)
     val pa2 = new InetSocketAddress("some_host.com", DefaultPort)
 
-    val feats = Seq(FullNodePeerFeature$)
+    val feats = Seq(FullNodePeerFeature)
 
     val h1 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", Some(pa1), feats, System.currentTimeMillis())
     //connected peer is public cause declared address == peerAddress

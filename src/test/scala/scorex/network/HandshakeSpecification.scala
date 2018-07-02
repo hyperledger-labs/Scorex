@@ -18,8 +18,8 @@ class HandshakeSpecification extends PropSpec
   val validNumbers: Gen[Int] =
     for (n <- Gen.choose(Integer.MIN_VALUE + 1, Integer.MAX_VALUE)) yield n
 
-  private val feats = Seq(FullNodePeerFeature$)
-  private val featSerializers = Map(FullNodePeerFeature$.featureId -> FullNodePeerFeature$.serializer)
+  private val feats = Seq(FullNodePeerFeature)
+  private val featSerializers = Map(FullNodePeerFeature.featureId -> FullNodePeerFeature.serializer)
   private val noSerializers: PeerFeature.Serializers = Map()
 
   property("handshake should remain the same after serialization/deserialization") {
