@@ -41,7 +41,7 @@ class NetworkController(settings: NetworkSettings,
   private val featureSerializers: PeerFeature.Serializers = features.map(f => f.featureId -> f.serializer).toMap
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
 
-  //todo: make usage more clear
+  //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
   private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
 
   private implicit val timeout: Timeout = Timeout(settings.controllerTimeout.getOrElse(5 seconds))
