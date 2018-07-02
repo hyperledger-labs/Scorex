@@ -2,11 +2,10 @@ package scorex.core.network
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import com.google.common.primitives.{Ints, Longs, Shorts}
+import com.google.common.primitives.{Bytes, Ints, Longs, Shorts}
 import scorex.core.app.{ApplicationVersionSerializer, Version}
 import scorex.core.serialization.Serializer
 import scala.util.Try
-
 
 case class Handshake(applicationName: String,
                      protocolVersion: Version,
@@ -26,26 +25,27 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
     val anb = obj.applicationName.getBytes
 
     val fab = obj.declaredAddress.map { isa =>
-      isa.getAddress.getAddress ++ Ints.toByteArray(isa.getPort)
+      Bytes.concat(isa.getAddress.getAddress, Ints.toByteArray(isa.getPort))
     }.getOrElse(Array[Byte]())
 
     val nodeNameBytes = obj.nodeName.getBytes
 
-    val featureBytes = obj.features.foldLeft(Array(obj.features.size.toByte)){case (fb, f) =>
+    val featureBytes = obj.features.foldLeft(Array(obj.features.size.toByte)) { case (fb, f) =>
       val featId = f.featureId
       val featBytes = f.bytes
-      fb ++ (featId +: Shorts.toByteArray(featBytes.length.toShort)) ++ featBytes
+      Bytes.concat(fb, featId +: Shorts.toByteArray(featBytes.length.toShort), featBytes)
     }
 
-    Array(anb.size.toByte) ++
-      anb ++
-      obj.protocolVersion.bytes ++
-      Array(nodeNameBytes.size.toByte) ++
-      nodeNameBytes ++
-      Ints.toByteArray(fab.length) ++
-      fab ++
-      featureBytes ++
-      Longs.toByteArray(obj.time)
+    Bytes.concat(
+      Array(anb.size.toByte),
+      anb,
+      obj.protocolVersion.bytes,
+      Array(nodeNameBytes.size.toByte),
+      nodeNameBytes,
+      Ints.toByteArray(fab.length),
+      fab,
+      featureBytes,
+      Longs.toByteArray(obj.time))
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Handshake] = Try {
@@ -84,9 +84,9 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
     } else None
 
     val featuresCount = bytes.slice(position, position + 1).head
-    position +=1
+    position += 1
 
-    val feats = (1 to featuresCount).flatMap{_ =>
+    val feats = (1 to featuresCount).flatMap { _ =>
       val featId = bytes.slice(position, position + 1).head
       position += 1
 
@@ -95,7 +95,7 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
 
       //we ignore a feature found in the handshake if we do not know how to parse it or failed to do that
 
-      val featOpt = featureSerializers.get(featId).flatMap{featureSerializer =>
+      val featOpt = featureSerializers.get(featId).flatMap { featureSerializer =>
         featureSerializer.parseBytes(bytes.slice(position, position + featBytesCount)).toOption
       }
       position += featBytesCount
