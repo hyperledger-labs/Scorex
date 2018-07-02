@@ -86,17 +86,21 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
     val featuresCount = bytes.slice(position, position + 1).head
     position +=1
 
-    val feats = (1 to featuresCount).map{_ =>
+    val feats = (1 to featuresCount).flatMap{_ =>
       val featId = bytes.slice(position, position + 1).head
       position += 1
 
       val featBytesCount = Shorts.fromByteArray(bytes.slice(position, position + 2))
       position += 2
 
-      val featTry = featureSerializers(featId).parseBytes(bytes.slice(position, position + featBytesCount))
+      //we ignore a feature found in the handshake if we do not know how to parse it or failed to do that
+
+      val featOpt = featureSerializers.get(featId).flatMap{featureSerializer =>
+        featureSerializer.parseBytes(bytes.slice(position, position + featBytesCount)).toOption
+      }
       position += featBytesCount
 
-      featTry.get  //fail fast
+      featOpt
     }
 
     val time = Longs.fromByteArray(bytes.slice(position, position + 8))

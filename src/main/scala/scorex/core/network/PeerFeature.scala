@@ -12,7 +12,7 @@ import scorex.core.serialization.{BytesSerializable, Serializer}
   */
 trait PeerFeature extends BytesSerializable {
   override type M = PeerFeature
-  val featureId: Byte
+  val featureId: PeerFeature.Id
 }
 
 object PeerFeature {
