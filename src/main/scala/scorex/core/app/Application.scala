@@ -10,7 +10,6 @@ import scorex.core.network.message._
 import scorex.core.network.peer.PeerManagerRef
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 
@@ -20,7 +19,6 @@ trait Application extends ScorexLogging {
 
   import scorex.core.network.NetworkController.ReceivableMessages.ShutdownNetwork
 
-  type P <: Proposition
   type TX <: Transaction
   type PMOD <: PersistentNodeViewModifier
   type NVHT <: NodeViewHolder[TX, PMOD]

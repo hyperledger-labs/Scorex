@@ -9,12 +9,11 @@ import examples.hybrid.mining._
 import examples.hybrid.wallet.SimpleBoxTransactionGeneratorRef
 import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApiRoute}
 import scorex.core.app.Application
-import scorex.core.network.{PeerFeature, NodeViewSynchronizerRef}
 import scorex.core.network.message.MessageSpec
+import scorex.core.network.{NodeViewSynchronizerRef, PeerFeature}
 import scorex.core.serialization.SerializerRegistry
 import scorex.core.serialization.SerializerRegistry.SerializerRecord
 import scorex.core.settings.ScorexSettings
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 
 import scala.concurrent.duration._
 import scala.io.Source
@@ -24,7 +23,6 @@ class HybridApp(val settingsFilename: String) extends Application {
 
   import examples.hybrid.wallet.SimpleBoxTransactionGenerator.ReceivableMessages.StartGeneration
 
-  override type P = PublicKey25519Proposition
   override type TX = SimpleBoxTransaction
   override type PMOD = HybridBlock
   override type NVHT = HybridNodeViewHolder
