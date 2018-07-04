@@ -44,19 +44,30 @@ case class ConnectedPeer(socketAddress: InetSocketAddress,
 case object Ack extends Event
 
 
+case class ConnectionDescription(connection: ActorRef,
+                                 direction: ConnectionType,
+                                 ownSocketAddress: Option[InetSocketAddress],
+                                 remote: InetSocketAddress,
+                                 localFeatures: Seq[PeerFeature])
+
 class PeerConnectionHandler(val settings: NetworkSettings,
                             networkControllerRef: ActorRef,
                             peerManagerRef: ActorRef,
-                            messagesHandler: MessageHandler,
-                            connection: ActorRef,
-                            direction: ConnectionType,
-                            ownSocketAddress: Option[InetSocketAddress],
-                            remote: InetSocketAddress,
+                            messageHandler: MessageHandler,
+                            handshakeSerializer: HandshakeSerializer,
+                            connectionDescription: ConnectionDescription,
                             timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext)
   extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler.ReceivableMessages._
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Disconnected, DoConnecting, Handshaked}
+
+  private lazy val connection = connectionDescription.connection
+  private lazy val direction = connectionDescription.direction
+  private lazy val ownSocketAddress = connectionDescription.ownSocketAddress
+  private lazy val remote = connectionDescription.remote
+  private lazy val localFeatures = connectionDescription.localFeatures
+
 
   context watch connection
 
@@ -108,9 +119,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private def startInteraction: Receive = {
     case StartInteraction =>
-      val hb = Handshake(settings.agentName,
+      val hb = handshakeSerializer.toBytes(Handshake(settings.agentName,
         Version(settings.appVersion), settings.nodeName,
-        ownSocketAddress, timeProvider.time()).bytes
+        ownSocketAddress, localFeatures, timeProvider.time()))
 
       connection ! Tcp.Write(ByteString(hb))
       log.info(s"Handshake sent to $remote")
@@ -120,7 +131,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private def receivedData: Receive = {
     case Received(data) =>
-      HandshakeSerializer.parseBytes(data.toArray) match {
+      handshakeSerializer.parseBytes(data.toArray) match {
         case Success(handshake) =>
           receivedHandshake = Some(handshake)
           log.info(s"Got a Handshake from $remote")
@@ -182,7 +193,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       chunksBuffer = t._2
 
       t._1.find { packet =>
-        messagesHandler.parseBytes(packet.toByteBuffer, selfPeer) match {
+        messageHandler.parseBytes(packet.toByteBuffer, selfPeer) match {
           case Success(message) =>
             log.info("Received message " + message.spec + " from " + remote)
             networkControllerRef ! message
@@ -244,38 +255,32 @@ object PeerConnectionHandlerRef {
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
             messagesHandler: MessageHandler,
-            connection: ActorRef,
-            direction: ConnectionType,
-            ownSocketAddress: Option[InetSocketAddress],
-            remote: InetSocketAddress,
+            handshakeSerializer: HandshakeSerializer,
+            connectionDescription: ConnectionDescription,
             timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, messagesHandler,
-                                    connection, direction, ownSocketAddress, remote, timeProvider))
+                                    handshakeSerializer, connectionDescription, timeProvider))
 
   def apply(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
             messagesHandler: MessageHandler,
-            connection: ActorRef,
-            direction: ConnectionType,
-            ownSocketAddress: Option[InetSocketAddress],
-            remote: InetSocketAddress,
+            handshakeSerializer: HandshakeSerializer,
+            connectionDescription: ConnectionDescription,
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
-                         connection, direction, ownSocketAddress, remote, timeProvider))
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, handshakeSerializer,
+                         connectionDescription, timeProvider))
 
   def apply(name: String,
             settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
             messagesHandler: MessageHandler,
-            connection: ActorRef,
-            direction: ConnectionType,
-            ownSocketAddress: Option[InetSocketAddress],
-            remote: InetSocketAddress,
+            handshakeSerializer: HandshakeSerializer,
+            connectionDescription: ConnectionDescription,
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler,
-                         connection, direction, ownSocketAddress, remote, timeProvider), name)
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, handshakeSerializer,
+                         connectionDescription, timeProvider), name)
 }

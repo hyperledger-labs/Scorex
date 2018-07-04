@@ -38,6 +38,7 @@ trait Application extends ScorexLogging {
   protected implicit lazy val actorSystem = ActorSystem(settings.network.agentName)
   implicit val executionContext: ExecutionContext = actorSystem.dispatchers.lookup("scorex.executionContext")
 
+  protected val features: Seq[PeerFeature]
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
   //p2p
@@ -69,8 +70,9 @@ trait Application extends ScorexLogging {
 
   val peerManagerRef = PeerManagerRef(settings, timeProvider)
 
-  val networkControllerRef: ActorRef = NetworkControllerRef("networkController",settings.network,
-                                                            messagesHandler, upnp, peerManagerRef, timeProvider)
+  val networkControllerRef: ActorRef = NetworkControllerRef("networkController", settings.network,
+                                                            messagesHandler, features, upnp,
+                                                            peerManagerRef, timeProvider)
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 

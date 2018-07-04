@@ -48,7 +48,7 @@ package object utils {
     val length: Int = seq.map(_.length).sum
     val result: Array[Byte] = new Array[Byte](length)
     var pos: Int = 0
-    seq.foreach{ array =>
+    seq.foreach { array =>
       System.arraycopy(array, 0, result, pos, array.length)
       pos += array.length
     }
@@ -56,7 +56,7 @@ package object utils {
   }
 
   def concatFixLengthBytes(seq: Traversable[Array[Byte]]): Array[Byte] = seq.headOption match {
-    case None       => Array[Byte]()
+    case None => Array[Byte]()
     case Some(head) => concatFixLengthBytes(seq, head.length)
   }
 

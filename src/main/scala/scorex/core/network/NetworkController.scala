@@ -25,6 +25,7 @@ import scala.util.{Failure, Success, Try}
   */
 class NetworkController(settings: NetworkSettings,
                         messageHandler: MessageHandler,
+                        features: Seq[PeerFeature],
                         upnp: UPnP,
                         peerManagerRef: ActorRef,
                         timeProvider: NetworkTimeProvider
@@ -37,6 +38,10 @@ class NetworkController(settings: NetworkSettings,
 
   private implicit val system: ActorSystem = context.system
 
+  private val featureSerializers: PeerFeature.Serializers = features.map(f => f.featureId -> f.serializer).toMap
+  private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
+
+  //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
   private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
 
   private implicit val timeout: Timeout = Timeout(settings.controllerTimeout.getOrElse(5 seconds))
@@ -152,8 +157,9 @@ class NetworkController(settings: NetworkSettings,
       }
       log.info(logMsg)
       val connection = sender()
+      val connectionDescription = ConnectionDescription(connection, direction, externalSocketAddress, remote, features)
       val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
-        messageHandler, connection, direction, externalSocketAddress, remote, timeProvider)
+        messageHandler, handshakeSerializer, connectionDescription, timeProvider)
       context.actorOf(handlerProps) // launch connection handler
       outgoing -= remote
 
@@ -201,25 +207,28 @@ object NetworkController {
 object NetworkControllerRef {
   def props(settings: NetworkSettings,
             messageHandler: MessageHandler,
+            features: Seq[PeerFeature],
             upnp: UPnP,
             peerManagerRef: ActorRef,
             timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
-    Props(new NetworkController(settings, messageHandler, upnp, peerManagerRef, timeProvider))
+    Props(new NetworkController(settings, messageHandler, features, upnp, peerManagerRef, timeProvider))
 
   def apply(settings: NetworkSettings,
             messageHandler: MessageHandler,
+            features: Seq[PeerFeature],
             upnp: UPnP,
             peerManagerRef: ActorRef,
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider))
+    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider))
 
   def apply(name: String,
             settings: NetworkSettings,
             messageHandler: MessageHandler,
+            features: Seq[PeerFeature],
             upnp: UPnP,
             peerManagerRef: ActorRef,
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, messageHandler, upnp, peerManagerRef, timeProvider), name)
+    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider), name)
 }

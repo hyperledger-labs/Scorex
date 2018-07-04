@@ -41,9 +41,13 @@ class SyncTracker(nvsRef: ActorRef,
     schedule = Some(context.system.scheduler.schedule(2.seconds, minInterval())(nvsRef ! SendLocalSyncInfo))
   }
 
-  def maxInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncStatusRefreshStable else networkSettings.syncStatusRefresh
+  def maxInterval(): FiniteDuration =
+    if (stableSyncRegime) networkSettings.syncStatusRefreshStable
+    else networkSettings.syncStatusRefresh
 
-  def minInterval(): FiniteDuration = if (stableSyncRegime) networkSettings.syncIntervalStable else networkSettings.syncInterval
+  def minInterval(): FiniteDuration =
+    if (stableSyncRegime) networkSettings.syncIntervalStable
+    else networkSettings.syncInterval
 
   def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult): Unit = {
     val seniorsBefore = numOfSeniors()
