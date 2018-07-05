@@ -6,6 +6,8 @@ import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.validation.ValidationResult._
 import scorex.crypto.encode.{Base16, BytesEncoder}
 
+import scala.util.{Failure, Try}
+
 class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
 
   override implicit val encoder: BytesEncoder = Base16
@@ -255,6 +257,27 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
 
     result.isValid shouldBe false
     result shouldBe an[Invalid]
+    result.errors should have size 1
+    result.errors.map(_.message) should contain only errMsg
+  }
+
+  it should "switch payload type" in {
+    val errMsg = "Failure 1"
+    val stringFailure: ValidationState[String] = failFast
+      .payload("Hi there")
+      .pass(fatal(errMsg))
+
+    val unitFailure: ValidationState[Unit] = stringFailure
+      .pass(success)
+      .pass(fatal(errMsg + "23"))
+
+    val longFailure: ValidationState[Long] = unitFailure
+      .payloadFromTry(Failure(new Error("Doesn't matter")): Try[Long])(e => fatal(errMsg + e))
+
+    val result = longFailure.result
+    result.isValid shouldBe false
+    result shouldBe an[Invalid]
+    result.payload shouldBe empty
     result.errors should have size 1
     result.errors.map(_.message) should contain only errMsg
   }

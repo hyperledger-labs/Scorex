@@ -44,8 +44,6 @@ trait ModifierValidator {
   def invalid(error: ModifierError): Invalid = ModifierValidator.invalid(error)
 
   /** successful validation */
-  def success[T](value: T): Valid[T] = ModifierValidator.success(value)
-
   def success: Valid[Unit] = ModifierValidator.success
 
 }
@@ -73,11 +71,8 @@ object ModifierValidator extends ScorexLogging  {
   /** unsuccessful validation with a given error*/
   def invalid(error: ModifierError): Invalid = Invalid(Seq(error))
 
-  /** successful validation with payload  */
-  def success[T](value: T): Valid[T] = Valid(value)
-
   /** successful validation without payload */
-  val success: Valid[Unit] = success(())
+  val success: Valid[Unit] = Valid(())
 }
 
 /** This is the place where all the validation DSL lives */
@@ -120,7 +115,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   /** Validate the `condition` is `Success`. Otherwise the `error` callback will be provided with detail
     * on a failure exception
     */
-  def validateTry(condition: => Try[_])(error: Throwable => Invalid): ValidationState[T] = {
+  def validateNoFailure(condition: => Try[_])(error: Throwable => Invalid): ValidationState[T] = {
     validate(condition.isSuccess)(condition.fold(error, x => error(new Error(x.toString))))
   }
 
@@ -128,30 +123,59 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     * on the exception
     */
   def validateNoThrow(block: => Any)(error: Throwable => Invalid): ValidationState[T] = {
-    validateTry(Try(block))(error)
+    validateNoFailure(Try(block))(error)
   }
 
-  /** Validate the condition is `true` or else return the `error` given */
+
+  /** Validate condition against option value if it's not `None`.
+    * If given option is `None` then pass the previous result as success.
+    * Return `error` if option is `Some` amd condition is `false`
+    */
+  def validateOptionOrNone[A](option: => Option[A], error: => Invalid)(condition: A => Boolean): ValidationState[T] = {
+    pass(option.map(value => if (condition(value)) result else error).getOrElse(result))
+  }
+
+  /** Validate the condition is `true` or else return the `error` given
+    */
   def validate(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
     pass(if (condition) result else error)
   }
 
-  /** This is for nested validations that allow mixing fail-fast and accumulate-errors validation strategies */
-  def validate(operation: => ValidationResult[T]): ValidationState[T] = pass(operation)
-
-  /** Create the next validation state as the result of given `operation` */
-  def pass(operation: => ValidationResult[T]): ValidationState[T] = {
+  /** Validate `condition` against payload is `true` or else return the `error`
+    */
+  def validatePayload(condition: T => Boolean)(error: => Invalid): ValidationState[T] = {
     result match {
-      case Valid(_) => copy(result = operation)
-      case Invalid(_) if strategy.isFailFast => this
-      case invalid @ Invalid(_) => copy(result = invalid.accumulateErrors(operation))
+      case Valid(payload) => validate(condition(payload))(error)
+      case _ => this
     }
   }
 
-  /** Replace payload with the new one, discarding current payload value
+  /** This is for nested validations that allow mixing fail-fast and accumulate-errors validation strategies
+    */
+  def validate(operation: => ValidationResult[T]): ValidationState[T] = pass(operation)
+
+
+  /** Replace payload with the new one, discarding current payload value. This method catches throwables
     */
   def payload[R](payload: R): ValidationState[R] = {
-    copy(result = result(payload))
+    payloadFromTry(Try(payload)) { e =>
+      ModifierValidator.fatal(s"Error while calculating payload: $e", Option(e))
+    }
+  }
+
+  /** Replace payload with the new one if it is `Success` or else return the `error` given
+    */
+  def payloadFromTry[R](newPayload: => Try[R])(error: Throwable => Invalid): ValidationState[R] = {
+    pass(newPayload.fold(e => error(e), result.apply))
+  }
+
+  /** Create the next validation state as the result of given `operation` */
+  def pass[R](operation: => ValidationResult[R]): ValidationState[R] = {
+    result match {
+      case Valid(_) => copy(result = operation)
+      case Invalid(_) if strategy.isFailFast => this.asInstanceOf[ValidationState[R]]
+      case invalid @ Invalid(_) => copy(result = invalid.accumulateErrors(operation))
+    }
   }
 
   /** Map payload if validation is successful
@@ -176,7 +200,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   /** Shortcut `require`-like method for the `Try` validation with fatal error
     */
   def demandSuccess(condition: => Try[_], fatalError: => String): ValidationState[T] = {
-    validateTry(condition)(e => ModifierValidator.fatal(msg(fatalError, e), Option(e)))
+    validateNoFailure(condition)(e => ModifierValidator.fatal(msg(fatalError, e), Option(e)))
   }
 
   /** Shortcut `require`-like method to validate that `block` doesn't throw an Exception.
@@ -186,13 +210,26 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     validateNoThrow(block)(e => ModifierValidator.fatal(msg(fatalError, e), Option(e)))
   }
 
+  /** Shortcut `require`-like method to replace payload with the new one if it is `Success`.
+    * Otherwise returns fatal error
+    */
+  def demandPayloadFromTry[R](newPayload: => Try[R], fatalError: => String): ValidationState[R] = {
+    payloadFromTry(newPayload)(e => ModifierValidator.fatal(msg(fatalError, e), Option(e)))
+  }
+
+  /** Shortcut `require`-like method to validate that `condition` against payload is `true`.
+    * Otherwise returns fatal error
+    */
+  def demandPayload(condition: T => Boolean, fatalError: => String): ValidationState[T] = {
+    validatePayload(condition)(ModifierValidator.fatal(fatalError))
+  }
+
   /** Shortcut `require`-like method for the simple validation with recoverable error.
     * If you need more convenient checks, use `validate` methods.
     */
   def recoverable(condition: => Boolean, recoverableError: => String): ValidationState[T] = {
     validate(condition)(ModifierValidator.error(recoverableError))
   }
-
 
   /** Shortcut `require`-like method to validate the `id`s are equal. Otherwise returns recoverable error
     */
@@ -203,8 +240,8 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
 
   /** Shortcut `require`-like method for the `Try` validation with recoverable error
     */
-  def recoverableTry(condition: => Try[_], recoverableError: => String): ValidationState[T] = {
-    validateTry(condition)(e => ModifierValidator.error(msg(recoverableError, e), Option(e)))
+  def recoverableNoFailure(condition: => Try[_], recoverableError: => String): ValidationState[T] = {
+    validateNoFailure(condition)(e => ModifierValidator.error(msg(recoverableError, e), Option(e)))
   }
 
   /** Shortcut `require`-like method to validate that `block` doesn't throw an Exception.
@@ -212,6 +249,20 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     */
   def recoverableNoThrow(block: => Any, recoverableError: => String): ValidationState[T] = {
     validateNoThrow(block)(e => ModifierValidator.error(msg(recoverableError, e), Option(e)))
+  }
+
+  /** Shortcut `require`-like method to replace payload with the new one if it is `Success`.
+    * Otherwise returns recoverable error
+    */
+  def recoverablePayloadFromTry[R](newPayload: => Try[R], recoverableError: => String): ValidationState[R] = {
+    payloadFromTry(newPayload)(e => ModifierValidator.error(msg(recoverableError, e), Option(e)))
+  }
+
+  /** Shortcut `require`-like method to validate that `condition` against payload is `true`.
+    * Otherwise returns recoverable error
+    */
+  def recoverablePayload(condition: T => Boolean, recoverableError: => String): ValidationState[T] = {
+    validatePayload(condition)(ModifierValidator.error(recoverableError))
   }
 
   private def msg(description: String, e: Throwable): String = msg(description, e.getMessage)
