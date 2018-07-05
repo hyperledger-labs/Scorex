@@ -91,7 +91,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   /** Validate the first argument equals the second. This should not be used with `Id` of type `Array[Byte]`.
     * The `error` callback will be provided with detail on argument values for better reporting
     */
-  def validateEquals[TT](given: => TT)(expected: => TT)(error: String => Invalid): ValidationState[T] = {
+  def validateEquals[A](given: => A)(expected: => A)(error: String => Invalid): ValidationState[T] = {
     (given, expected) match {
       case (a: Array[_], b: Array[_]) if a sameElements b =>
         pass(result)

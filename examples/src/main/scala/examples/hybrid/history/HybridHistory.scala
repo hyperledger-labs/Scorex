@@ -268,9 +268,9 @@ class HybridHistory(val storage: HistoryStorage,
   override def applicableTry(block: HybridBlock): Try[Unit] = {
     block match {
       case pwb: PowBlock if !contains(pwb.parentId) || !contains(pwb.prevPosId) =>
-        Failure(RecoverableModifierError("Parent block or previous PoS block is not in history yet"))
+        Failure(new RecoverableModifierError("Parent block or previous PoS block is not in history yet"))
       case psb: PosBlock if !contains(psb.parentId) =>
-        Failure(RecoverableModifierError("Parent block is not in history yet"))
+        Failure(new RecoverableModifierError("Parent block is not in history yet"))
       case _ =>
         Success()
     }
