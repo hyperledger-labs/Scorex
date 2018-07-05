@@ -148,14 +148,14 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
   /** Shortcut `require`-like method for the `Try` validation with fatal error
     */
   def demandSuccess(condition: => Try[_], fatalError: => String): ValidationState = {
-    validateTry(condition)(e => ModifierValidator.fatal(fatalError + e.toString))
+    validateTry(condition)(e => ModifierValidator.fatal(fatalError + e.getMessage))
   }
 
   /** Shortcut `require`-like method to validate that `block` doesn't throw an Exception.
     * Otherwise returns fatal error
     */
   def demandNoThrow(block: => Any, fatalError: => String): ValidationState = {
-    validateNoThrow(block)(e => ModifierValidator.fatal(fatalError + e.toString))
+    validateNoThrow(block)(e => ModifierValidator.fatal(fatalError + e.getMessage))
   }
 
   /** Shortcut `require`-like method for the simple validation with recoverable error.
@@ -169,14 +169,14 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
   /** Shortcut `require`-like method for the `Try` validation with recoverable error
     */
   def recoverableTry(condition: => Try[_], recoverableError: => String): ValidationState = {
-    validateTry(condition)(e => ModifierValidator.error(recoverableError + e.toString))
+    validateTry(condition)(e => ModifierValidator.error(recoverableError + e.getMessage))
   }
 
   /** Shortcut `require`-like method to validate that `block` doesn't throw an Exception.
     * Otherwise returns recoverable error
     */
   def recoverableNoThrow(block: => Any, recoverableError: => String): ValidationState = {
-    validateNoThrow(block)(e => ModifierValidator.error(recoverableError + e.toString))
+    validateNoThrow(block)(e => ModifierValidator.error(recoverableError + e.getMessage))
   }
 }
 
