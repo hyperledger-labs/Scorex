@@ -6,6 +6,8 @@ import scorex.core.utils.ScorexLogging
 import scorex.core.validation.ValidationResult._
 import scorex.crypto.encode.{Base58, BytesEncoder}
 
+import scala.util.Try
+
 /** Base trait for the modifier validation process.
   *
   * This code was pretty much inspired by cats `Validated` facility. There is a reason for the original cats facility
@@ -44,27 +46,6 @@ trait ModifierValidator {
   /** successful validation */
   def success: Valid = ModifierValidator.success
 
-  /** Shortcut method for the simple single-check validation.
-    * If you need to validate against multiple checks, which is usual,
-    * then use [[failFast]] and [[accumulateErrors]] to start the validation
-    */
-  def validate(condition: Boolean)(error: => Invalid): ValidationResult = {
-    accumulateErrors.validate(condition)(error).result
-  }
-
-  /** Shortcut `require`-like method for the simple single-check validation with fatal error.
-    * If you need to validate against multiple checks then use [[failFast]] and [[accumulateErrors]]
-    */
-  def demand(condition: Boolean, fatalError: => String): ValidationResult = {
-    validate(condition)(fatal(fatalError))
-  }
-
-  /** Shortcut `require`-like method for the simple single-check validation with recoverable error.
-    * If you need to validate against multiple checks then use [[failFast]] and [[accumulateErrors]]
-    */
-  def recoverable(condition: Boolean, recoverableError: => String): ValidationResult = {
-    validate(condition)(error(recoverableError))
-  }
 }
 
 object ModifierValidator extends ScorexLogging  {
@@ -114,7 +95,8 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
     }
   }
 
-  /** Validate the `id`s are equal. The `error` callback will be provided with detail on argument values */
+  /** Validate the `id`s are equal. The `error` callback will be provided with detail on argument values
+    */
   def validateEqualIds(given: => Array[Byte], expected: => Array[Byte])(error: String => Invalid): ValidationState = {
     validate(given sameElements expected)(error(s"Given: ${e.encode(given)}, expected ${e.encode(expected)}"))
   }
@@ -123,6 +105,20 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
     */
   def validateSemantics(validity: => ModifierSemanticValidity)(error: => Invalid): ValidationState = {
     validateNot(validity == ModifierSemanticValidity.Invalid)(error)
+  }
+
+  /** Validate the `condition` is [[scala.util.Success]]. Otherwise the `error` callback will be provided with detail
+    * on a failure exception
+    */
+  def validateTry(condition: => Try[_])(error: Throwable => Invalid): ValidationState = {
+    validate(condition.isSuccess)(condition.fold(error, x => error(new Error(x.toString))))
+  }
+
+  /** Validate the `block` doesn't throw an Exception. Otherwise the `error` callback will be provided with detail
+    * on the exception
+    */
+  def validateNoThrow(block: => Any)(error: Throwable => Invalid): ValidationState = {
+    validateTry(Try(block))(error)
   }
 
   /** Validate the condition is `true` or else return the `error` given */
@@ -149,11 +145,38 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
     validate(condition)(ModifierValidator.fatal(fatalError))
   }
 
+  /** Shortcut `require`-like method for the [[Try]] validation with fatal error
+    */
+  def demandSuccess(condition: => Try[_], fatalError: => String): ValidationState = {
+    validateTry(condition)(e => ModifierValidator.fatal(fatalError + e.toString))
+  }
+
+  /** Shortcut `require`-like method to validate that `block` doesn't throw an Exception.
+    * Otherwise returns fatal error
+    */
+  def demandNoThrow(block: => Any, fatalError: => String): ValidationState = {
+    validateNoThrow(block)(e => ModifierValidator.fatal(fatalError + e.toString))
+  }
+
   /** Shortcut `require`-like method for the simple validation with recoverable error.
     * If you need more convenient checks, use `validate` methods.
     */
   def recoverable(condition: => Boolean, recoverableError: => String): ValidationState = {
     validate(condition)(ModifierValidator.error(recoverableError))
+  }
+
+
+  /** Shortcut `require`-like method for the [[Try]] validation with recoverable error
+    */
+  def recoverableTry(condition: => Try[_], recoverableError: => String): ValidationState = {
+    validateTry(condition)(e => ModifierValidator.error(recoverableError + e.toString))
+  }
+
+  /** Shortcut `require`-like method to validate that `block` doesn't throw an Exception.
+    * Otherwise returns recoverable error
+    */
+  def recoverableNoThrow(block: => Any, recoverableError: => String): ValidationState = {
+    validateNoThrow(block)(e => ModifierValidator.error(recoverableError + e.toString))
   }
 }
 

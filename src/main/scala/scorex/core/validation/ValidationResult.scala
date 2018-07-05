@@ -20,7 +20,9 @@ sealed trait ValidationResult {
 
   def ++(next: ValidationResult): ValidationResult
 
-  def toTry: Try[Unit]
+  def toTry[T](success: T): Try[T]
+
+  def toTry: Try[Unit] = toTry(())
 
   def toFuture: Future[Unit] = Future.fromTry(toTry)
 
@@ -47,7 +49,7 @@ object ValidationResult {
     def message: String = "OK"
     def errors: Seq[ModifierError] = Seq.empty
     def ++(next: ValidationResult): ValidationResult = next
-    def toTry: Try[Unit] = Success(())
+    def toTry[T](success: T): Try[T] = Success(success)
   }
 
   /** Unsuccessful validation result
@@ -65,9 +67,11 @@ object ValidationResult {
     }
 
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-    lazy val toTry: Try[Unit] = {
+    override lazy val toTry: Failure[Nothing] = {
       if (errors.size == 1) Failure(errors.head.toThrowable) else Failure(MultipleErrors(errors))
     }
+
+    def toTry[T](success: T): Failure[Nothing] = toTry
   }
 
 }
