@@ -68,7 +68,7 @@ trait Application extends ScorexLogging {
 
   val peerManagerRef = PeerManagerRef(settings, timeProvider)
 
-  val networkControllerRef: ActorRef = NetworkControllerRef("networkController", settings.network,
+  lazy val networkControllerRef: ActorRef = NetworkControllerRef("networkController", settings.network,
                                                             messagesHandler, features, upnp,
                                                             peerManagerRef, timeProvider)
 
