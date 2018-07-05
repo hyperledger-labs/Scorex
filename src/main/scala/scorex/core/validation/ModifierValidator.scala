@@ -63,10 +63,12 @@ object ModifierValidator extends ScorexLogging  {
   }
 
   /** report recoverable modifier error that could be fixed by later retries */
-  def error(errorMessage: String): Invalid = invalid(RecoverableModifierError(errorMessage))
+  def error(errorMessage: String, cause: Option[Throwable] = None): Invalid =
+    invalid(new RecoverableModifierError(errorMessage, cause))
 
   /** report non-recoverable modifier error that could be fixed by retries and requires modifier change */
-  def fatal(errorMessage: String): Invalid = invalid(MalformedModifierError(errorMessage))
+  def fatal(errorMessage: String, cause: Option[Throwable] = None): Invalid =
+    invalid(new MalformedModifierError(errorMessage, cause))
 
   /** unsuccessful validation with a given error*/
   def invalid(error: ModifierError): Invalid = Invalid(Seq(error))
@@ -146,6 +148,18 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     }
   }
 
+  /** Replace payload with the new one, discarding current payload value
+    */
+  def payload[R](payload: R): ValidationState[R] = {
+    copy(result = result(payload))
+  }
+
+  /** Map payload if validation is successful
+    */
+  def map[R](f: T => R): ValidationState[R] = {
+    copy(result = result.map(f))
+  }
+
   /** Shortcut `require`-like method for the simple validation with fatal error.
     * If you need more convenient checks, use `validate` methods.
     */
@@ -156,20 +170,20 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   /** Shortcut `require`-like method to validate the `id`s are equal. Otherwise returns fatal error
     */
   def demandEqualIds(given: => Array[Byte], expected: => Array[Byte], fatalError: String): ValidationState[T] = {
-    validateEqualIds(given, expected)(d => ModifierValidator.fatal(s"$fatalError: $d"))
+    validateEqualIds(given, expected)(d => ModifierValidator.fatal(msg(fatalError, d)))
   }
 
   /** Shortcut `require`-like method for the `Try` validation with fatal error
     */
   def demandSuccess(condition: => Try[_], fatalError: => String): ValidationState[T] = {
-    validateTry(condition)(e => ModifierValidator.fatal(s"$fatalError: ${e.getMessage}"))
+    validateTry(condition)(e => ModifierValidator.fatal(msg(fatalError, e), Option(e)))
   }
 
   /** Shortcut `require`-like method to validate that `block` doesn't throw an Exception.
     * Otherwise returns fatal error
     */
   def demandNoThrow(block: => Any, fatalError: => String): ValidationState[T] = {
-    validateNoThrow(block)(e => ModifierValidator.fatal(s"$fatalError: ${e.getMessage}"))
+    validateNoThrow(block)(e => ModifierValidator.fatal(msg(fatalError, e), Option(e)))
   }
 
   /** Shortcut `require`-like method for the simple validation with recoverable error.
@@ -184,21 +198,25 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     */
   def recoverableEqualIds(given: => Array[Byte], expected: => Array[Byte],
                           recoverableError: String): ValidationState[T] = {
-    validateEqualIds(given, expected)(d => ModifierValidator.error(s"$recoverableError: $d"))
+    validateEqualIds(given, expected)(d => ModifierValidator.error(msg(recoverableError, d)))
   }
 
   /** Shortcut `require`-like method for the `Try` validation with recoverable error
     */
   def recoverableTry(condition: => Try[_], recoverableError: => String): ValidationState[T] = {
-    validateTry(condition)(e => ModifierValidator.error(s"$recoverableError: ${e.getMessage}"))
+    validateTry(condition)(e => ModifierValidator.error(msg(recoverableError, e), Option(e)))
   }
 
   /** Shortcut `require`-like method to validate that `block` doesn't throw an Exception.
     * Otherwise returns recoverable error
     */
   def recoverableNoThrow(block: => Any, recoverableError: => String): ValidationState[T] = {
-    validateNoThrow(block)(e => ModifierValidator.error(s"$recoverableError: ${e.getMessage}"))
+    validateNoThrow(block)(e => ModifierValidator.error(msg(recoverableError, e), Option(e)))
   }
+
+  private def msg(description: String, e: Throwable): String = msg(description, e.getMessage)
+
+  private def msg(description: String, detail: String): String = s"$description: $detail"
 }
 
 

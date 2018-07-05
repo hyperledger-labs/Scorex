@@ -12,25 +12,47 @@ import scala.util.{Failure, Success, Try}
   */
 sealed trait ValidationResult[+T] {
 
+  /** Whether validation was successful
+    */
   def isValid: Boolean
 
+  /** Error description for the unsuccessful validation
+    */
   def message: String
 
+  /** Errors for the unsuccessful validation
+    */
   def errors: Seq[ModifierError]
 
+  /** Payload for the successful validation
+    */
   def payload: Option[T]
 
+  /** Replace payload with the new one, discarding current payload value
+    */
+  def apply[R](payload: R): ValidationResult[R]
+
+  /** Map payload if validation is successful
+    */
   def map[R](f: T => R): ValidationResult[R]
 
+  /** Convert validation result to Try
+    */
   def toTry: Try[T]
 
+  /** Create completed Future with validation result
+    */
   def toFuture: Future[T] = Future.fromTry(toTry)
 
+  /** Convert validation result to circe json decoding result
+    */
   def toDecoderResult(implicit cursor: ACursor): Either[DecodingFailure, T] = this match {
     case Valid(value) => Right(value)
     case Invalid(_) => Left(DecodingFailure(message, cursor.history))
   }
 
+  /** Convert validation result to akka http route
+    */
   def toApi(onSuccess: T => Route): Route = this match {
     case Valid(value) => onSuccess(value)
     case Invalid(_) => ApiError.BadRequest(message)
@@ -47,6 +69,7 @@ object ValidationResult {
     def message: String = "OK"
     def errors: Seq[ModifierError] = Seq.empty
     def payload: Option[T] = Option(value)
+    def apply[R](payload: R): ValidationResult[R] = Valid(payload)
     def map[R](f: T => R): ValidationResult[R] = Valid(f(value))
     def toTry: Try[T] = Success(value)
   }
@@ -58,6 +81,7 @@ object ValidationResult {
     def isFatal: Boolean = errors.exists(_.isFatal)
     def message: String = "Validation errors: " + errors.mkString(" | ")
     def payload: Option[Nothing] = None
+    def apply[R](payload: R): Invalid = this
     def map[R](f: Nothing => R): Invalid = this
 
     def accumulateErrors[T](next: ValidationResult[T]): ValidationResult[T] = {

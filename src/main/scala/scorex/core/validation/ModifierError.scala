@@ -15,14 +15,18 @@ trait ModifierError {
 
 /** Permanent modifier error that could not be recovered in future even after any history updates
   */
-case class MalformedModifierError(message: String) extends Exception(message) with ModifierError {
+@SuppressWarnings(Array("org.wartremover.warts.Null"))
+class MalformedModifierError(val message: String, cause: Option[Throwable] = None)
+    extends Exception(message, cause.orNull) with ModifierError {
   def isFatal: Boolean = true
   def toThrowable: Throwable = this
 }
 
 /** Temporary modifier error that may be recovered in future after some history updates
   */
-case class RecoverableModifierError(message: String) extends Exception(message) with ModifierError {
+@SuppressWarnings(Array("org.wartremover.warts.Null"))
+class RecoverableModifierError(val message: String, cause: Option[Throwable] = None)
+    extends Exception(message, cause.orNull) with ModifierError {
   def isFatal: Boolean = false
   def toThrowable: Throwable = this
 }
