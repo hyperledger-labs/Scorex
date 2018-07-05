@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 
 /** Base trait for the result of validation
   */
-sealed trait ValidationResult {
+sealed trait ValidationResult[+T] {
 
   def isValid: Boolean
 
@@ -18,21 +18,21 @@ sealed trait ValidationResult {
 
   def errors: Seq[ModifierError]
 
-  def ++(next: ValidationResult): ValidationResult
+  def payload: Option[T]
 
-  def toTry[T](success: T): Try[T]
+  def map[R](f: T => R): ValidationResult[R]
 
-  def toTry: Try[Unit] = toTry(())
+  def toTry: Try[T]
 
-  def toFuture: Future[Unit] = Future.fromTry(toTry)
+  def toFuture: Future[T] = Future.fromTry(toTry)
 
-  def toDecoderResult[T](value: T)(implicit cursor: ACursor): Decoder.Result[T] = this match {
-    case Valid => Right(value)
+  def toDecoderResult(implicit cursor: ACursor): Either[DecodingFailure, T] = this match {
+    case Valid(value) => Right(value)
     case Invalid(_) => Left(DecodingFailure(message, cursor.history))
   }
 
-  def toApi(onSuccess: => Route): Route = this match {
-    case Valid => onSuccess
+  def toApi(onSuccess: T => Route): Route = this match {
+    case Valid(value) => onSuccess(value)
     case Invalid(_) => ApiError.BadRequest(message)
   }
 
@@ -40,28 +40,29 @@ sealed trait ValidationResult {
 
 object ValidationResult {
 
-  type Valid = ValidationResult.Valid.type
-
   /** Successful validation result
     */
-  final case object Valid extends ValidationResult {
+  final case class Valid[+T](value: T) extends ValidationResult[T] {
     def isValid: Boolean = true
     def message: String = "OK"
     def errors: Seq[ModifierError] = Seq.empty
-    def ++(next: ValidationResult): ValidationResult = next
-    def toTry[T](success: T): Try[T] = Success(success)
+    def payload: Option[T] = Option(value)
+    def map[R](f: T => R): ValidationResult[R] = Valid(f(value))
+    def toTry: Try[T] = Success(value)
   }
 
   /** Unsuccessful validation result
     */
-  final case class Invalid(errors: Seq[ModifierError]) extends ValidationResult {
+  final case class Invalid(errors: Seq[ModifierError]) extends ValidationResult[Nothing] {
     def isValid: Boolean = false
     def isFatal: Boolean = errors.exists(_.isFatal)
     def message: String = "Validation errors: " + errors.mkString(" | ")
+    def payload: Option[Nothing] = None
+    def map[R](f: Nothing => R): Invalid = this
 
-    def ++(next: ValidationResult): ValidationResult = {
+    def accumulateErrors[T](next: ValidationResult[T]): ValidationResult[T] = {
       next match {
-        case Valid => this
+        case Valid(_) => this
         case Invalid(e2) => Invalid(errors ++ e2)
       }
     }
@@ -71,7 +72,6 @@ object ValidationResult {
       if (errors.size == 1) Failure(errors.head.toThrowable) else Failure(MultipleErrors(errors))
     }
 
-    def toTry[T](success: T): Failure[Nothing] = toTry
   }
 
 }

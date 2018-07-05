@@ -18,7 +18,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
       }
       .result
     result.isValid shouldBe true
-    result shouldBe a[Valid]
+    result shouldBe a[Valid[_]]
   }
 
   it should "be able to succeed when accumulating errors" in {
@@ -29,7 +29,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
       .result
 
     result.isValid shouldBe true
-    result shouldBe a[Valid]
+    result shouldBe a[Valid[_]]
   }
 
   it should "support fail fast approach" in {
