@@ -144,17 +144,6 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     validateNoFailure(Try(block))(error)
   }
 
-  /** Validate condition against option value if it's not `None`.
-    * If given option is `None` then pass the previous result as success.
-    * Return `error` if option is `Some` amd condition is `false`
-    */
-  def validateOrSkip[A](option: => Option[A])
-                       (validation: (ValidationState[T], A) => ValidationState[T]): ValidationState[T] = {
-    option
-      .map(value => pass(Try(validation(this, value)).fold(unexpectedError, _.result)))
-      .getOrElse(this)
-  }
-
   /** Validate the condition is `true` or else return the `error` given
     */
   def validate(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
@@ -198,9 +187,19 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     }
   }
 
+  /** Validate condition against option value if it's not `None`.
+    * If given option is `None` then pass the previous result as success.
+    * Return `error` if option is `Some` amd condition is `false`
+    */
+  def validateOrSkip[A](option: => Option[A])(validation: A => ValidationState[T]): ValidationState[T] = {
+    option
+      .map(value => pass(validation(value).result))
+      .getOrElse(this)
+  }
+
   /** This is for nested validations that allow mixing fail-fast and accumulate-errors validation strategies
     */
-  def validate(operation: => ValidationResult[T]): ValidationState[T] = pass(operation)
+  def validate(operation: => ValidationState[T]): ValidationState[T] = pass(operation.result)
 
   /** Create the next validation state as the result of given `operation` */
   def pass[R](operation: => ValidationResult[R]): ValidationState[R] = {

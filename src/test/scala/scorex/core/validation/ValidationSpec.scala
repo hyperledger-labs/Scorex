@@ -126,7 +126,6 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
           .validate(condition = false) {
             fatal("This error should be skipped")
           }
-          .result
       }
       .result
 
@@ -150,7 +149,6 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
           .validate(condition = false) {
             fatal("Second error")
           }
-          .result
       }
       .result
 
@@ -172,7 +170,6 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
           .validate(condition = false) {
             fatal("Second error, should not achieve this")
           }
-          .result
       }
       .result
 
@@ -368,8 +365,8 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     val expression = "123"
     val cnt = expression.length
     val result = accumulateErrors
-      .validateOrSkip(Some(expression)) { case (v, expr) =>
-        v.validate(expr.length == cnt)(fatal("Should never happen"))
+      .validateOrSkip(Some(expression)) { expr =>
+        accumulateErrors.validate(expr.length == cnt)(fatal("Should never happen"))
       }
       .result
 
@@ -379,8 +376,8 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
 
   it should "skip optional validation for none" in {
     val result = accumulateErrors
-      .validateOrSkip(None) { case (v, _) =>
-        v.validate(condition = false)(fatal("Should never happen"))
+      .validateOrSkip(None) { _ =>
+        accumulateErrors.validate(condition = false)(fatal("Should never happen"))
       }
       .result
 
@@ -388,14 +385,4 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     result shouldBe a[Valid[_]]
   }
 
-  it should "catch errors while optional validation" in {
-    val result = accumulateErrors
-      .validateOrSkip(Some(0)) { case (_, _) =>
-        throw new Error("Failed")
-      }
-      .result
-
-    result.isValid shouldBe false
-    result shouldBe an[Invalid]
-  }
 }
