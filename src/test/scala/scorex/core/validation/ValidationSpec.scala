@@ -261,7 +261,89 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     result.errors.map(_.message) should contain only errMsg
   }
 
-  it should "switch payload type" in {
+  it should "carry payload" in {
+    val data = 1L
+    val result = accumulateErrors
+      .payload(data)
+      .validate(condition = true)(fatal("Should never happen"))
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe Valid(data)
+    result.payload shouldBe Some(data)
+  }
+
+  it should "replace payload" in {
+    val initialData = "Hi there"
+    val data = 1L
+    val result = accumulateErrors
+      .payload(initialData)
+      .validate(condition = true)(fatal("Should never happen"))
+      .result(data)
+
+    result.isValid shouldBe true
+    result shouldBe Valid(data)
+    result.payload shouldBe Some(data)
+  }
+
+  it should "catch errors when payload throws" in {
+    val result = accumulateErrors
+      .payload(throw new Error("Failed"))
+      .result
+
+    result.isValid shouldBe false
+    result shouldBe an[Invalid]
+  }
+
+  it should "fill payload from try" in {
+    val data = "Hi there"
+    val result = accumulateErrors
+      .payloadFromTry(Try(data))(e => fatal(s"Should never happen $e"))
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe Valid(data)
+    result.payload shouldBe Some(data)
+  }
+
+  it should "return error when filling payload from failure" in {
+    val errMsg = "Should not take payload from failure"
+    val result = accumulateErrors
+      .payloadFromTry(Failure(new Error("Failed")))(_ => fatal(errMsg))
+      .result
+
+    result.isValid shouldBe false
+    result shouldBe an[Invalid]
+    result.errors.map(_.message) should contain(errMsg)
+  }
+
+  it should "aggregate payload from try" in {
+    val data1 = 100L
+    val data2 = 50L
+    val expected = data1 / data2
+    val result = accumulateErrors
+      .payload(data1)
+      .aggregatePayloadFromTry(Try(data2), e => fatal(s"Should never happen $e"))(_ / _)
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe Valid(expected)
+    result.payload shouldBe Some(expected)
+  }
+
+  it should "return error when aggregating payload from failure" in {
+    val errMsg = "Should not take payload from failure"
+    val result = accumulateErrors
+      .payload(1)
+      .aggregatePayloadFromTry(Failure(new Error("Failed")), _ => fatal(errMsg)){ case (_, _) => 2 }
+      .result
+
+    result.isValid shouldBe false
+    result shouldBe an[Invalid]
+    result.errors.map(_.message) should contain(errMsg)
+  }
+
+  it should "switch failure payload type" in {
     val errMsg = "Failure 1"
     val stringFailure: ValidationState[String] = failFast
       .payload("Hi there")
@@ -280,5 +362,42 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     result.payload shouldBe empty
     result.errors should have size 1
     result.errors.map(_.message) should contain only errMsg
+  }
+
+  it should "validate optional for some" in {
+    val expression = "123"
+    val cnt = expression.length
+    val result = accumulateErrors
+      .validateOrSkip(Some(expression)) { case (validation, expr) =>
+        validation
+          .validate(expr.length == cnt)(fatal("Should never happen"))
+          .result
+      }
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe a[Valid[_]]
+  }
+
+  it should "skip optional validation for none" in {
+    val result = accumulateErrors
+      .validateOrSkip(None) { case (_, _) =>
+        fatal("Should never happen")
+      }
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe a[Valid[_]]
+  }
+
+  it should "catch errors while optional validation" in {
+    val result = accumulateErrors
+      .validateOrSkip(Some(0)) { case (validation, expr) =>
+        throw new Error("Failed")
+      }
+      .result
+
+    result.isValid shouldBe false
+    result shouldBe an[Invalid]
   }
 }
