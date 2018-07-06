@@ -368,10 +368,8 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     val expression = "123"
     val cnt = expression.length
     val result = accumulateErrors
-      .validateOrSkip(Some(expression)) { case (validation, expr) =>
-        validation
-          .validate(expr.length == cnt)(fatal("Should never happen"))
-          .result
+      .validateOrSkip(Some(expression)) { case (v, expr) =>
+        v.validate(expr.length == cnt)(fatal("Should never happen"))
       }
       .result
 
@@ -381,8 +379,8 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
 
   it should "skip optional validation for none" in {
     val result = accumulateErrors
-      .validateOrSkip(None) { case (_, _) =>
-        fatal("Should never happen")
+      .validateOrSkip(None) { case (v, _) =>
+        v.validate(condition = false)(fatal("Should never happen"))
       }
       .result
 
@@ -392,7 +390,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
 
   it should "catch errors while optional validation" in {
     val result = accumulateErrors
-      .validateOrSkip(Some(0)) { case (validation, expr) =>
+      .validateOrSkip(Some(0)) { case (_, _) =>
         throw new Error("Failed")
       }
       .result

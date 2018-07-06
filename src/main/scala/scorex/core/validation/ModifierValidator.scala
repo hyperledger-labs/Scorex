@@ -149,8 +149,10 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     * Return `error` if option is `Some` amd condition is `false`
     */
   def validateOrSkip[A](option: => Option[A])
-                       (validation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
-    pass(option.map(value => Try(validation(this, value)).fold(unexpectedError, x => x)).getOrElse(result))
+                       (validation: (ValidationState[T], A) => ValidationState[T]): ValidationState[T] = {
+    option
+      .map(value => pass(Try(validation(this, value)).fold(unexpectedError, _.result)))
+      .getOrElse(this)
   }
 
   /** Validate the condition is `true` or else return the `error` given
