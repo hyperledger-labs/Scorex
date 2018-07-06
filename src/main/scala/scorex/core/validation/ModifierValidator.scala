@@ -89,7 +89,7 @@ object ModifierValidator extends ScorexLogging  {
   /** successful validation without payload */
   val success: Valid[Unit] = Valid(())
 
-  private def msg(description: String, e: Throwable): String = msg(description, e.getMessage)
+  private def msg(descr: String, e: Throwable): String = msg(descr, Option(e.getMessage).getOrElse(e.toString))
   private def msg(description: String, detail: String): String = s"$description: $detail"
 }
 
@@ -199,7 +199,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
 
   /** This is for nested validations that allow mixing fail-fast and accumulate-errors validation strategies
     */
-  def validate(operation: => ValidationState[T]): ValidationState[T] = pass(operation.result)
+  def validate(operation: => ValidationResult[T]): ValidationState[T] = pass(operation)
 
   /** Create the next validation state as the result of given `operation` */
   def pass[R](operation: => ValidationResult[R]): ValidationState[R] = {

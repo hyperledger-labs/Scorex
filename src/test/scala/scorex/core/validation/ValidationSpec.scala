@@ -126,6 +126,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
           .validate(condition = false) {
             fatal("This error should be skipped")
           }
+          .result
       }
       .result
 
@@ -149,6 +150,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
           .validate(condition = false) {
             fatal("Second error")
           }
+          .result
       }
       .result
 
@@ -170,6 +172,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
           .validate(condition = false) {
             fatal("Second error, should not achieve this")
           }
+          .result
       }
       .result
 

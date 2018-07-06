@@ -73,6 +73,7 @@ class ApiResponseTest extends FlatSpec with Matchers with ScalatestRouteTest {
   }
 
   it should "return 500 for failure" in {
+    import ApiErrorHandler.exceptionHandler
     val route = ApiResponse(Future.failed[Json](new Exception))
     request ~> route ~> check {
       status shouldBe StatusCodes.InternalServerError
