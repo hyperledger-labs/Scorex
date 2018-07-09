@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
+import scorex.core.network.ModifiersStatusKeeper.{Applied, Received, Requested}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.settings.NetworkSettings
@@ -50,6 +51,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
+  protected val statusKeeper = new ModifiersStatusKeeper()
 
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
@@ -69,6 +71,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     //subscribe for all the node view holder events involving modifiers and transactions
     context.system.eventStream.subscribe(self, classOf[ChangedHistory[HR]])
     context.system.eventStream.subscribe(self, classOf[ChangedMempool[MR]])
+    context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
     context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
@@ -91,6 +94,8 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     //todo: penalize source peer?
 
     case SyntacticallySuccessfulModifier(mod) =>
+      statusKeeper.applied(mod.id)
+
     case SyntacticallyFailedModification(mod, throwable) =>
     //todo: penalize source peer?
 
@@ -224,7 +229,10 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       log.info(s"Got modifiers of type $typeId from remote connected peer: $remote")
       log.trace(s"Received modifier ids ${data._2.keySet.map(encoder.encode).mkString(",")}")
 
-      modifiers.foreach { case (id, _) => deliveryTracker.onReceive(typeId, id, remote) }
+      modifiers.foreach { case (id, _) =>
+        statusKeeper.received(id)
+        deliveryTracker.onReceive(typeId, id, remote)
+      }
 
       val (spam, fm) = modifiers.partition { case (id, _) => deliveryTracker.isSpam(id) }
 
@@ -250,6 +258,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
+      modifierIds.foreach(id => statusKeeper.requested(id))
       deliveryTracker.expect(peer, modifierTypeId, modifierIds)
   }
 
