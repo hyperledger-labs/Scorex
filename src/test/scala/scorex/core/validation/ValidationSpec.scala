@@ -286,19 +286,14 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     result.payload shouldBe Some(data)
   }
 
-  it should "catch errors when payload throws" in {
-    val result = accumulateErrors
-      .payload(throw new Error("Failed"))
-      .result
-
-    result.isValid shouldBe false
-    result shouldBe an[Invalid]
-  }
-
   it should "fill payload from try" in {
+    import ValidationStrategy.AccumulateErrors.asImplicit
     val data = "Hi there"
-    val result = accumulateErrors
-      .payloadFromTry(Try(data))(e => fatal(s"Should never happen $e"))
+    val result = validation
+      .payload("Random string")
+      .validateTry(Try(data), e => fatal(s"Should never happen $e")) {
+        case (_, str) => validation.result(str)
+      }
       .result
 
     result.isValid shouldBe true
@@ -307,9 +302,13 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
   }
 
   it should "return error when filling payload from failure" in {
+    import ValidationStrategy.AccumulateErrors.asImplicit
     val errMsg = "Should not take payload from failure"
-    val result = accumulateErrors
-      .payloadFromTry(Failure(new Error("Failed")))(_ => fatal(errMsg))
+    val result = validation
+      .payload("Random string")
+      .validateTry(Failure(new Error("Failed")), _ => fatal(errMsg)) {
+        case (_, str) => validation.result(str)
+      }
       .result
 
     result.isValid shouldBe false
@@ -318,12 +317,16 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
   }
 
   it should "aggregate payload from try" in {
+    import ValidationStrategy.AccumulateErrors.asImplicit
     val data1 = 100L
     val data2 = 50L
     val expected = data1 / data2
-    val result = accumulateErrors
+    val result = validation
       .payload(data1)
-      .aggregatePayloadFromTry(Try(data2), e => fatal(s"Should never happen $e"))(_ / _)
+      .validateTry(Try(data2), e => fatal(s"Should never happen $e")) {
+        case (payload, data) => validation.result(payload / data)
+
+      }
       .result
 
     result.isValid shouldBe true
@@ -332,10 +335,13 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
   }
 
   it should "return error when aggregating payload from failure" in {
+    import ValidationStrategy.AccumulateErrors.asImplicit
     val errMsg = "Should not take payload from failure"
-    val result = accumulateErrors
+    val result = validation
       .payload(1)
-      .aggregatePayloadFromTry(Failure(new Error("Failed")), _ => fatal(errMsg)){ case (_, _) => 2 }
+      .validateTry(Failure(new Error("Failed")), _ => fatal(errMsg)){
+        case (_, _) => validation.result(2)
+      }
       .result
 
     result.isValid shouldBe false
@@ -353,10 +359,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
       .pass(success)
       .pass(fatal(errMsg + "23"))
 
-    val longFailure: ValidationState[Long] = unitFailure
-      .payloadFromTry(Failure(new Error("Doesn't matter")): Try[Long])(e => fatal(errMsg + e))
-
-    val result = longFailure.result
+    val result = unitFailure.result
     result.isValid shouldBe false
     result shouldBe an[Invalid]
     result.payload shouldBe empty
@@ -368,7 +371,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     val expression = "123"
     val cnt = expression.length
     val result = accumulateErrors
-      .validateOrSkip(Some(expression)) { expr =>
+      .validateOrSkip(Some(expression)) { (_, expr) =>
         accumulateErrors.validate(expr.length == cnt)(fatal("Should never happen"))
       }
       .result
@@ -379,7 +382,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
 
   it should "skip optional validation for none" in {
     val result = accumulateErrors
-      .validateOrSkip(None) { _ =>
+      .validateOrSkip(None) { ( _, _) =>
         accumulateErrors.validate(condition = false)(fatal("Should never happen"))
       }
       .result

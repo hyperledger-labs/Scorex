@@ -149,60 +149,45 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   /** Replace payload with the new one, discarding current payload value. This method catches throwables
     */
   def payload[R](payload: => R): ValidationState[R] = {
-    payloadFromTry(Try(payload)) { e =>
-      ModifierValidator.fatal(s"Error while calculating payload: $e", e)
-    }
-  }
-
-  /** Replace payload with the new one if it is `Success` or else return the `error` given
-    */
-  def payloadFromTry[R](tryPayload: => Try[R])(error: Throwable => Invalid): ValidationState[R] = {
-    pass(tryPayload.fold(error, result.apply))
-  }
-
-  /** Replace payload with the result of aggregation of current payload and the new one if it is `Success`.
-    * Otherwise return the `error` given
-    */
-  def aggregatePayloadFromTry[R](tryPayload: => Try[R], error: Throwable => Invalid)
-                                (f: (T, R) => T): ValidationState[T] = {
-    def aggregate(payload: T)(newPayload: R): ValidationState[T] = {
-      payloadFromTry(Try(f(payload, newPayload)))(unexpectedError)
-    }
-    result match {
-      case Valid(payload) => tryPayload.fold(e => pass(error(e)), aggregate(payload))
-      case _ => this
-    }
+    pass(result(payload))
   }
 
   /** Validate the `condition` is `Success`. Otherwise the `error` callback will be provided with detail
     * on a failure exception
     */
   def validateNoFailure(condition: => Try[_])(error: Throwable => Invalid): ValidationState[T] = {
-    validateTry(condition, error)(_ => result)
+    pass(condition.fold(error, _ => result))
   }
 
   /** Validate the `block` doesn't throw an Exception. Otherwise the `error` callback will be provided with detail
     * on the exception
     */
   def validateNoThrow(block: => Any)(error: Throwable => Invalid): ValidationState[T] = {
-    validateTry(Try(block), error)(_ => result)
+    validateNoFailure(Try(block))(error)
   }
 
   /** Validate `condition` against payload is `true` or else return the `error`
     */
   def validateTry[A](tryValue: => Try[A], error: Throwable => Invalid)
-                    (operation: A => ValidationResult[T]): ValidationState[T] = {
-    pass(tryValue.fold(error, operation))
+                    (operation: (T, A) => ValidationResult[T]): ValidationState[T] = {
+    result match {
+      case Valid(payload) => pass(tryValue.fold(error, v => operation(payload, v)))
+      case _ => this
+    }
   }
 
   /** Validate condition against option value if it's not `None`.
     * If given option is `None` then pass the previous result as success.
     * Return `error` if option is `Some` amd condition is `false`
     */
-  def validateOrSkip[A](option: => Option[A])(operation: A => ValidationResult[T]): ValidationState[T] = {
-    option
-      .map(value => pass(operation(value)))
-      .getOrElse(this)
+  def validateOrSkip[A](option: => Option[A])(operation: (T, A) => ValidationResult[T]): ValidationState[T] = {
+    result match {
+      case Valid(payload) =>
+        option
+          .map(value => pass(operation(payload, value)))
+          .getOrElse(this)
+      case _ => this
+    }
   }
 
   /** This could add some sugar when validating elements of a given collection
@@ -262,15 +247,8 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   }
 
   def demandTry[A](tryValue: => Try[A], fatalError: => String)
-                  (operation: A => ValidationResult[T]): ValidationState[T] = {
+                  (operation: (T, A) => ValidationResult[T]): ValidationState[T] = {
     validateTry(tryValue, e => ModifierValidator.fatal(fatalError, e))(operation)
-  }
-
-  /** Shortcut `require`-like method to replace payload with the new one if it is `Success`.
-    * Otherwise returns fatal error
-    */
-  def demandPayloadFromTry[R](newPayload: => Try[R], fatalError: => String): ValidationState[R] = {
-    payloadFromTry(newPayload)(e => ModifierValidator.fatal(fatalError, e))
   }
 
   /** Shortcut `require`-like method for the simple validation with recoverable error.
@@ -285,10 +263,6 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   def recoverableEqualIds(given: => Array[Byte], expected: => Array[Byte],
                           recoverableError: String): ValidationState[T] = {
     validateEqualIds(given, expected)(d => ModifierValidator.error(recoverableError, d))
-  }
-
-  private def unexpectedError(e: Throwable): Invalid = {
-    ModifierValidator.fatal(s"Unexpected error during validation: $e")
   }
 
 }
