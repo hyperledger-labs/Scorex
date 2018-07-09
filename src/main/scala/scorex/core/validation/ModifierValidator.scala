@@ -34,8 +34,6 @@ trait ModifierValidator {
   /** Start validation accumulating all the errors */
   def accumulateErrors: ValidationState[Unit] = ModifierValidator.accumulateErrors
 
-  def validation(implicit strategy: ValidationStrategy): ValidationState[Unit] = ModifierValidator.validation
-
   /** report recoverable modifier error that could be fixed by later retries */
   def error(errorMessage: String): Invalid = ModifierValidator.error(errorMessage)
 
@@ -60,10 +58,6 @@ object ModifierValidator extends ScorexLogging  {
   /** Start validation accumulating all the errors */
   def accumulateErrors(implicit e: BytesEncoder): ValidationState[Unit] = {
     ValidationState(ModifierValidator.success, ValidationStrategy.AccumulateErrors)(e)
-  }
-
-  def validation(implicit strategy: ValidationStrategy, e: BytesEncoder): ValidationState[Unit] = {
-    ValidationState(ModifierValidator.success, strategy)
   }
 
   /** report recoverable modifier error that could be fixed by later retries */
@@ -169,35 +163,27 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   /** Validate `condition` against payload is `true` or else return the `error`
     */
   def validateTry[A](tryValue: => Try[A], error: Throwable => Invalid)
-                    (operation: (T, A) => ValidationResult[T]): ValidationState[T] = {
-    result match {
-      case Valid(payload) => pass(tryValue.fold(error, v => operation(payload, v)))
-      case _ => this
-    }
+                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
+    pass(tryValue.fold(error, v => operation(this, v)))
   }
 
   /** Validate condition against option value if it's not `None`.
     * If given option is `None` then pass the previous result as success.
     * Return `error` if option is `Some` amd condition is `false`
     */
-  def validateOrSkip[A](option: => Option[A])(operation: (T, A) => ValidationResult[T]): ValidationState[T] = {
-    result match {
-      case Valid(payload) =>
-        option
-          .map(value => pass(operation(payload, value)))
-          .getOrElse(this)
-      case _ => this
-    }
+  def validateOrSkip[A](option: => Option[A])
+                       (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
+    option
+      .map(value => pass(operation(this, value)))
+      .getOrElse(this)
   }
 
   /** This could add some sugar when validating elements of a given collection
     */
-  def validateSeq[A](seq: Iterable[A])(operation: (T, A) => ValidationResult[T]): ValidationState[T] = {
+  def validateSeq[A](seq: Iterable[A])
+                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
     seq.foldLeft(this) { (state, elem) =>
-      state.result match {
-        case Valid(payload) => state.copy(result = operation(payload, elem))
-        case _ => state
-      }
+      state.pass(operation(state, elem))
     }
   }
 
@@ -217,7 +203,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   /** Map payload if validation is successful
     */
   def map[R](f: T => R): ValidationState[R] = {
-    copy(result = result.map(f))
+    copy(result = result(f))
   }
 
   /** Shortcut `require`-like method for the simple validation with fatal error.
@@ -247,7 +233,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   }
 
   def demandTry[A](tryValue: => Try[A], fatalError: => String)
-                  (operation: (T, A) => ValidationResult[T]): ValidationState[T] = {
+                  (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
     validateTry(tryValue, e => ModifierValidator.fatal(fatalError, e))(operation)
   }
 

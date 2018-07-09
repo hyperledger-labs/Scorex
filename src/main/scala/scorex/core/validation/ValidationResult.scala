@@ -35,7 +35,7 @@ sealed trait ValidationResult[+T] {
 
   /** Map payload if validation is successful
     */
-  def map[R](f: T => R): ValidationResult[R]
+  def apply[R](f: T => R): ValidationResult[R]
 
   /** Convert validation result to Try
     */
@@ -71,7 +71,7 @@ object ValidationResult {
     def errors: Seq[ModifierError] = Seq.empty
     def payload: Option[T] = Option(value)
     def apply[R](payload: R): ValidationResult[R] = Valid(payload)
-    def map[R](f: T => R): ValidationResult[R] = Valid(f(value))
+    def apply[R](f: T => R): ValidationResult[R] = Valid(f(value))
     def toTry: Try[T] = Success(value)
   }
 
@@ -83,7 +83,7 @@ object ValidationResult {
     def message: String = "Validation errors: " + errors.mkString(" | ")
     def payload: Option[Nothing] = None
     def apply[R](payload: R): Invalid = this
-    def map[R](f: Nothing => R): Invalid = this
+    def apply[R](f: Nothing => R): Invalid = this
 
     def accumulateErrors[T](next: ValidationResult[T]): ValidationResult[T] = {
       next match {

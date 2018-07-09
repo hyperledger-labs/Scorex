@@ -287,12 +287,11 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
   }
 
   it should "fill payload from try" in {
-    import ValidationStrategy.AccumulateErrors.asImplicit
     val data = "Hi there"
-    val result = validation
+    val result = accumulateErrors
       .payload("Random string")
       .validateTry(Try(data), e => fatal(s"Should never happen $e")) {
-        case (_, str) => validation.result(str)
+        case (validation, str) => validation.result(str)
       }
       .result
 
@@ -302,12 +301,11 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
   }
 
   it should "return error when filling payload from failure" in {
-    import ValidationStrategy.AccumulateErrors.asImplicit
     val errMsg = "Should not take payload from failure"
-    val result = validation
+    val result = accumulateErrors
       .payload("Random string")
       .validateTry(Failure(new Error("Failed")), _ => fatal(errMsg)) {
-        case (_, str) => validation.result(str)
+        case (validation, str) => validation.result(str)
       }
       .result
 
@@ -317,14 +315,13 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
   }
 
   it should "aggregate payload from try" in {
-    import ValidationStrategy.AccumulateErrors.asImplicit
     val data1 = 100L
     val data2 = 50L
     val expected = data1 / data2
-    val result = validation
+    val result = accumulateErrors
       .payload(data1)
       .validateTry(Try(data2), e => fatal(s"Should never happen $e")) {
-        case (payload, data) => validation.result(payload / data)
+        case (validation, data) => validation.map(_ / data)
 
       }
       .result
@@ -335,12 +332,11 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
   }
 
   it should "return error when aggregating payload from failure" in {
-    import ValidationStrategy.AccumulateErrors.asImplicit
     val errMsg = "Should not take payload from failure"
-    val result = validation
+    val result = accumulateErrors
       .payload(1)
-      .validateTry(Failure(new Error("Failed")), _ => fatal(errMsg)){
-        case (_, _) => validation.result(2)
+      .validateTry(Failure(new Error("Failed")): Try[Int], _ => fatal(errMsg)){
+        case (validation, data) => validation.map(_ / data)
       }
       .result
 
