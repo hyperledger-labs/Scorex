@@ -207,9 +207,12 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
 
   /** This could add some sugar when validating elements of a given collection
     */
-  def validateSeq[A](seq: Iterable[A])(operation: A => ValidationResult[T]): ValidationState[T] = {
+  def validateSeq[A](seq: Iterable[A])(operation: (T, A) => ValidationResult[T]): ValidationState[T] = {
     seq.foldLeft(this) { (state, elem) =>
-      state.pass(operation(elem))
+      state.result match {
+        case Valid(payload) => state.copy(result = operation(payload, elem))
+        case _ => state
+      }
     }
   }
 
