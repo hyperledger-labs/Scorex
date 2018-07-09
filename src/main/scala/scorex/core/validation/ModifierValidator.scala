@@ -107,7 +107,7 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
     validateNot(validity == ModifierSemanticValidity.Invalid)(error)
   }
 
-  /** Validate the `condition` is [[scala.util.Success]]. Otherwise the `error` callback will be provided with detail
+  /** Validate the `condition` is `scala.util.Success`. Otherwise the `error` callback will be provided with detail
     * on a failure exception
     */
   def validateTry(condition: => Try[_])(error: Throwable => Invalid): ValidationState = {
@@ -145,7 +145,7 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
     validate(condition)(ModifierValidator.fatal(fatalError))
   }
 
-  /** Shortcut `require`-like method for the [[Try]] validation with fatal error
+  /** Shortcut `require`-like method for the `Try` validation with fatal error
     */
   def demandSuccess(condition: => Try[_], fatalError: => String): ValidationState = {
     validateTry(condition)(e => ModifierValidator.fatal(fatalError + e.toString))
@@ -166,7 +166,7 @@ case class ValidationState(result: ValidationResult, strategy: ValidationStrateg
   }
 
 
-  /** Shortcut `require`-like method for the [[Try]] validation with recoverable error
+  /** Shortcut `require`-like method for the `Try` validation with recoverable error
     */
   def recoverableTry(condition: => Try[_], recoverableError: => String): ValidationState = {
     validateTry(condition)(e => ModifierValidator.error(recoverableError + e.toString))
