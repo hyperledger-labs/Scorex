@@ -148,7 +148,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
 
   /** Map payload if validation is successful
     */
-  def payload[R](f: T => R): ValidationState[R] = {
+  def payloadMap[R](f: T => R): ValidationState[R] = {
     copy(result = result.map(f))
   }
 
