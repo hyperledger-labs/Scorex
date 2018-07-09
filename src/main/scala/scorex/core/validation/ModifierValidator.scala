@@ -89,8 +89,12 @@ object ModifierValidator extends ScorexLogging  {
   /** report non-recoverable modifier error that could be fixed by retries and requires modifier change */
   def fatal(description: String, detail: String): Invalid = fatal(msg(description, detail))
 
-  /** unsuccessful validation with a given error*/
-  def invalid(error: ModifierError): Invalid = Invalid(Seq(error))
+  /** unsuccessful validation with a given error; also logs the error as an exception */
+  def invalid(error: ModifierError): Invalid = {
+    val e = error.toThrowable
+    log.debug(msg("Validation error", e), e)
+    Invalid(Seq(error))
+  }
 
   /** successful validation without payload */
   val success: Valid[Unit] = Valid(())
@@ -136,33 +140,10 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     validateNot(validity == ModifierSemanticValidity.Invalid)(error)
   }
 
-  /** Validate the `condition` is `Success`. Otherwise the `error` callback will be provided with detail
-    * on a failure exception
-    */
-  def validateNoFailure(condition: => Try[_])(error: Throwable => Invalid): ValidationState[T] = {
-    validate(condition.isSuccess)(condition.fold(error, x => error(new Error(x.toString))))
-  }
-
-  /** Validate the `block` doesn't throw an Exception. Otherwise the `error` callback will be provided with detail
-    * on the exception
-    */
-  def validateNoThrow(block: => Any)(error: Throwable => Invalid): ValidationState[T] = {
-    validateNoFailure(Try(block))(error)
-  }
-
   /** Validate the condition is `true` or else return the `error` given
     */
   def validate(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
     pass(if (condition) result else error)
-  }
-
-  /** Validate `condition` against payload is `true` or else return the `error`
-    */
-  def validatePayload(condition: T => Boolean)(error: => Invalid): ValidationState[T] = {
-    result match {
-      case Valid(payload) => validate(condition(payload))(error)
-      case _ => this
-    }
   }
 
   /** Replace payload with the new one, discarding current payload value. This method catches throwables
@@ -193,13 +174,34 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     }
   }
 
+  /** Validate the `condition` is `Success`. Otherwise the `error` callback will be provided with detail
+    * on a failure exception
+    */
+  def validateNoFailure(condition: => Try[_])(error: Throwable => Invalid): ValidationState[T] = {
+    validateTry(condition, error)(_ => result)
+  }
+
+  /** Validate the `block` doesn't throw an Exception. Otherwise the `error` callback will be provided with detail
+    * on the exception
+    */
+  def validateNoThrow(block: => Any)(error: Throwable => Invalid): ValidationState[T] = {
+    validateTry(Try(block), error)(_ => result)
+  }
+
+  /** Validate `condition` against payload is `true` or else return the `error`
+    */
+  def validateTry[A](tryValue: => Try[A], error: Throwable => Invalid)
+                    (operation: A => ValidationResult[T]): ValidationState[T] = {
+    pass(tryValue.fold(error, operation))
+  }
+
   /** Validate condition against option value if it's not `None`.
     * If given option is `None` then pass the previous result as success.
     * Return `error` if option is `Some` amd condition is `false`
     */
-  def validateOrSkip[A](option: => Option[A])(validation: A => ValidationResult[T]): ValidationState[T] = {
+  def validateOrSkip[A](option: => Option[A])(operation: A => ValidationResult[T]): ValidationState[T] = {
     option
-      .map(value => pass(validation(value)))
+      .map(value => pass(operation(value)))
       .getOrElse(this)
   }
 
@@ -256,18 +258,16 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     validateNoThrow(block)(e => ModifierValidator.fatal(fatalError, e))
   }
 
+  def demandTry[A](tryValue: => Try[A], fatalError: => String)
+                  (operation: A => ValidationResult[T]): ValidationState[T] = {
+    validateTry(tryValue, e => ModifierValidator.fatal(fatalError, e))(operation)
+  }
+
   /** Shortcut `require`-like method to replace payload with the new one if it is `Success`.
     * Otherwise returns fatal error
     */
   def demandPayloadFromTry[R](newPayload: => Try[R], fatalError: => String): ValidationState[R] = {
     payloadFromTry(newPayload)(e => ModifierValidator.fatal(fatalError, e))
-  }
-
-  /** Shortcut `require`-like method to validate that `condition` against payload is `true`.
-    * Otherwise returns fatal error
-    */
-  def demandPayload(condition: T => Boolean, fatalError: => String): ValidationState[T] = {
-    validatePayload(condition)(ModifierValidator.fatal(fatalError))
   }
 
   /** Shortcut `require`-like method for the simple validation with recoverable error.
