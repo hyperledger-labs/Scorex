@@ -4,6 +4,7 @@ package scorex.core.network
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import scorex.core.NodeViewHolder.DownloadRequest
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
@@ -70,6 +71,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     context.system.eventStream.subscribe(self, classOf[ChangedHistory[HR]])
     context.system.eventStream.subscribe(self, classOf[ChangedMempool[MR]])
     context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
+    context.system.eventStream.subscribe(self, classOf[DownloadRequest])
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     statusTracker.scheduleSendSyncInfo()
@@ -258,13 +260,19 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
   @SuppressWarnings(Array("org.wartremover.warts.JavaSerializable"))
   protected def checkDelivery: Receive = {
-    case CheckDelivery(peer, modifierTypeId, modifierId) =>
-      if (deliveryTracker.peerWhoDelivered(modifierId).contains(peer)) {
-        deliveryTracker.delete(modifierId)
-      } else {
-        log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
-        penalizeNonDeliveringPeer(peer)
-        deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
+    case CheckDelivery(peerOpt, modifierTypeId, modifierId) =>
+      peerOpt match {
+        case Some(peer) =>
+          if (deliveryTracker.peerWhoDelivered(modifierId).contains(peer)) {
+            deliveryTracker.delete(modifierId)
+          } else {
+            log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
+            penalizeNonDeliveringPeer(peer)
+            deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
+          }
+        case None =>
+          // Random peer did not delivered modifier we need, ask another peer
+          requestDownload(modifierTypeId, Seq(modifierId))
       }
   }
 
@@ -295,8 +303,25 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       }
   }
 
+  /**
+    * Our node needs modifier of type `modifierTypeId` with id `modifierIds` but peer that can deliver
+    * it is unknown
+    */
+  protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
+    deliveryTracker.expect(modifierTypeId, modifierIds)
+    val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
+    //todo: Full nodes should be here, not a random peer
+    networkControllerRef ! SendToNetwork(msg, SendToRandom)
+  }
+
+  def onDownloadRequest: Receive = {
+    case DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) =>
+      requestDownload(modifierTypeId, Seq(modifierId))
+  }
+
   override def receive: Receive =
-    getLocalSyncInfo orElse
+    onDownloadRequest orElse
+      getLocalSyncInfo orElse
       processSync orElse
       processSyncStatus orElse
       processInv orElse
@@ -309,6 +334,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       checkDelivery orElse {
       case a: Any => log.error("Strange input: " + a)
     }
+
 }
 
 object NodeViewSynchronizer {
@@ -332,7 +358,13 @@ object NodeViewSynchronizer {
 
     case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
-    case class CheckDelivery(source: ConnectedPeer,
+    /**
+      * Check delivery of modifier with type `modifierTypeId` and id `modifierId`.
+      * `source` may be defined if we expect modifier from concrete peer or None if
+      * we just need some modifier, but don't know who have it
+      *
+      */
+    case class CheckDelivery(source: Option[ConnectedPeer],
                              modifierTypeId: ModifierTypeId,
                              modifierId: ModifierId)
 
