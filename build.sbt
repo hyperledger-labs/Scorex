@@ -85,6 +85,7 @@ val testingDependencies = Seq(
 )
 
 libraryDependencies ++= Seq(
+  "com.github.cb372" %% "scalacache-guava" % "0.+",
   "com.iheart" %% "ficus" % "1.4.2",
   "org.scorexfoundation" %% "scrypto" % "2.+"
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
