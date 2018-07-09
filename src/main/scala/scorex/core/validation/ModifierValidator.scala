@@ -146,6 +146,12 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     pass(result(payload))
   }
 
+  /** Map payload if validation is successful
+    */
+  def payload[R](f: T => R): ValidationState[R] = {
+    copy(result = result.map(f))
+  }
+
   /** Validate the `condition` is `Success`. Otherwise the `error` callback will be provided with detail
     * on a failure exception
     */
@@ -200,11 +206,6 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     }
   }
 
-  /** Map payload if validation is successful
-    */
-  def map[R](f: T => R): ValidationState[R] = {
-    copy(result = result(f))
-  }
 
   /** Shortcut `require`-like method for the simple validation with fatal error.
     * If you need more convenient checks, use `validate` methods.
