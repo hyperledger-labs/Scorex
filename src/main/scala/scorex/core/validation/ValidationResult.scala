@@ -1,12 +1,13 @@
 package scorex.core.validation
 
 import akka.http.scaladsl.server.Route
-import io.circe.{ACursor, Decoder, DecodingFailure}
+import io.circe.{ACursor, DecodingFailure}
 import scorex.core.api.http.ApiError
 import scorex.core.validation.ValidationResult.{Invalid, Valid}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
+import scala.language.implicitConversions
 
 /** Base trait for the result of validation
   */
@@ -97,6 +98,9 @@ object ValidationResult {
     }
 
   }
+
+  /** Shorthand to get the result of validation */
+  implicit def fromValidationState[R](state: ValidationState[R]): ValidationResult[R] = state.result
 
 }
 

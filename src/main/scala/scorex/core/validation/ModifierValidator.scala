@@ -34,6 +34,8 @@ trait ModifierValidator {
   /** Start validation accumulating all the errors */
   def accumulateErrors: ValidationState[Unit] = ModifierValidator.accumulateErrors
 
+  def validation(implicit strategy: ValidationStrategy): ValidationState[Unit] = ModifierValidator.validation
+
   /** report recoverable modifier error that could be fixed by later retries */
   def error(errorMessage: String): Invalid = ModifierValidator.error(errorMessage)
 
@@ -58,6 +60,10 @@ object ModifierValidator extends ScorexLogging  {
   /** Start validation accumulating all the errors */
   def accumulateErrors(implicit e: BytesEncoder): ValidationState[Unit] = {
     ValidationState(ModifierValidator.success, ValidationStrategy.AccumulateErrors)(e)
+  }
+
+  def validation(implicit strategy: ValidationStrategy, e: BytesEncoder): ValidationState[Unit] = {
+    ValidationState(ModifierValidator.success, strategy)
   }
 
   /** report recoverable modifier error that could be fixed by later retries */
@@ -191,10 +197,18 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     * If given option is `None` then pass the previous result as success.
     * Return `error` if option is `Some` amd condition is `false`
     */
-  def validateOrSkip[A](option: => Option[A])(validation: A => ValidationState[T]): ValidationState[T] = {
+  def validateOrSkip[A](option: => Option[A])(validation: A => ValidationResult[T]): ValidationState[T] = {
     option
-      .map(value => pass(validation(value).result))
+      .map(value => pass(validation(value)))
       .getOrElse(this)
+  }
+
+  /** This could add some sugar when validating elements of a given collection
+    */
+  def validateSeq[A](seq: Iterable[A])(operation: A => ValidationResult[T]): ValidationState[T] = {
+    seq.foldLeft(this) { (state, elem) =>
+      state.pass(operation(elem))
+    }
   }
 
   /** This is for nested validations that allow mixing fail-fast and accumulate-errors validation strategies
