@@ -23,6 +23,26 @@ class DeliveryTrackerSpecification extends PropSpec
   with Matchers
   with ObjectGenerators {
 
+  property("expect from random") {
+    implicit val system = ActorSystem()
+    val probe = TestProbe("p")(system)
+    implicit val nvsStub: ActorRef = probe.testActor
+
+    val dt = FiniteDuration(3, MINUTES)
+
+    val tracker = new DeliveryTracker(system, deliveryTimeout = dt, maxDeliveryChecks = 2, nvsStub)
+
+    val mtid = ModifierTypeId @@ (0: Byte)
+    val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(ModifierId @@ _)
+
+    tracker.expect(mtid, modids)
+    modids.foreach(id => tracker.isExpecting(id) shouldBe true)
+
+    // reexpect
+    tracker.expect(mtid, modids)
+    modids.foreach(id => tracker.isExpecting(id) shouldBe true)
+  }
+
   property("basic ops") {
     implicit val system = ActorSystem()
     val probe = TestProbe("p")(system)
@@ -36,9 +56,9 @@ class DeliveryTrackerSpecification extends PropSpec
 
     val mtid = ModifierTypeId @@ (0: Byte)
 
-    val modids = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(ModifierId @@ _)
+    val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(ModifierId @@ _)
 
-    val notAdded = ModifierId @@ Blake2b256("4")
+    val notAdded: ModifierId = ModifierId @@ Blake2b256("4")
 
     tracker.expect(cp, mtid, modids)
 
@@ -51,7 +71,6 @@ class DeliveryTrackerSpecification extends PropSpec
     tracker.isExpecting(modids.head) shouldBe false
 
     tracker.peerWhoDelivered(modids.head).get shouldBe cp
-
 
     tracker.onReceive(mtid, notAdded, cp)
     tracker.isSpam(notAdded) shouldBe true
