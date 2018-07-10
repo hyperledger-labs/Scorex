@@ -6,6 +6,8 @@ import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.validation.ValidationResult._
 import scorex.crypto.encode.{Base16, BytesEncoder}
 
+import scala.util.{Failure, Try}
+
 class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
 
   override implicit val encoder: BytesEncoder = Base16
@@ -18,7 +20,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
       }
       .result
     result.isValid shouldBe true
-    result shouldBe a[Valid]
+    result shouldBe a[Valid[_]]
   }
 
   it should "be able to succeed when accumulating errors" in {
@@ -29,7 +31,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
       .result
 
     result.isValid shouldBe true
-    result shouldBe a[Valid]
+    result shouldBe a[Valid[_]]
   }
 
   it should "support fail fast approach" in {
@@ -258,4 +260,131 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     result.errors should have size 1
     result.errors.map(_.message) should contain only errMsg
   }
+
+  it should "carry payload" in {
+    val data = 1L
+    val result = accumulateErrors
+      .payload(data)
+      .validate(condition = true)(fatal("Should never happen"))
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe Valid(data)
+    result.payload shouldBe Some(data)
+  }
+
+  it should "replace payload" in {
+    val initialData = "Hi there"
+    val data = 1L
+    val result = accumulateErrors
+      .payload(initialData)
+      .validate(condition = true)(fatal("Should never happen"))
+      .result(data)
+
+    result.isValid shouldBe true
+    result shouldBe Valid(data)
+    result.payload shouldBe Some(data)
+  }
+
+  it should "fill payload from try" in {
+    val data = "Hi there"
+    val result = accumulateErrors
+      .payload("Random string")
+      .validateTry(Try(data), e => fatal(s"Should never happen $e")) {
+        case (validation, str) => validation.result(str)
+      }
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe Valid(data)
+    result.payload shouldBe Some(data)
+  }
+
+  it should "return error when filling payload from failure" in {
+    val errMsg = "Should not take payload from failure"
+    val result = accumulateErrors
+      .payload("Random string")
+      .validateTry(Failure(new Error("Failed")), _ => fatal(errMsg)) {
+        case (validation, str) => validation.result(str)
+      }
+      .result
+
+    result.isValid shouldBe false
+    result shouldBe an[Invalid]
+    result.errors.map(_.message) should contain(errMsg)
+  }
+
+  it should "aggregate payload from try" in {
+    val data1 = 100L
+    val data2 = 50L
+    val expected = data1 / data2
+    val result = accumulateErrors
+      .payload(data1)
+      .validateTry(Try(data2), e => fatal(s"Should never happen $e")) {
+        case (validation, data) => validation.map(_ / data)
+
+      }
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe Valid(expected)
+    result.payload shouldBe Some(expected)
+  }
+
+  it should "return error when aggregating payload from failure" in {
+    val errMsg = "Should not take payload from failure"
+    val result = accumulateErrors
+      .payload(1)
+      .validateTry(Failure(new Error("Failed")): Try[Int], _ => fatal(errMsg)){
+        case (validation, data) => validation.map(_ / data)
+      }
+      .result
+
+    result.isValid shouldBe false
+    result shouldBe an[Invalid]
+    result.errors.map(_.message) should contain(errMsg)
+  }
+
+  it should "switch failure payload type" in {
+    val errMsg = "Failure 1"
+    val stringFailure: ValidationState[String] = failFast
+      .payload("Hi there")
+      .pass(fatal(errMsg))
+
+    val unitFailure: ValidationState[Unit] = stringFailure
+      .pass(success)
+      .pass(fatal(errMsg + "23"))
+
+    val result = unitFailure.result
+    result.isValid shouldBe false
+    result shouldBe an[Invalid]
+    result.payload shouldBe empty
+    result.errors should have size 1
+    result.errors.map(_.message) should contain only errMsg
+  }
+
+  it should "validate optional for some" in {
+    val expression = "123"
+    val cnt = expression.length
+    val result = accumulateErrors
+      .validateOrSkip(Some(expression)) { (validation, expr) =>
+        validation.validate(expr.length == cnt)(fatal("Should never happen"))
+      }
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe a[Valid[_]]
+  }
+
+  it should "skip optional validation for none" in {
+    val result = accumulateErrors
+      .validateOrSkip(None) { (validation, _) =>
+        validation.validate(condition = false)(fatal("Should never happen"))
+      }
+      .result
+
+    result.isValid shouldBe true
+    result shouldBe a[Valid[_]]
+  }
+
 }
