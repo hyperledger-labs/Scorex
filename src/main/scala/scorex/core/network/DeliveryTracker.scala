@@ -2,7 +2,7 @@ package scorex.core.network
 
 import akka.actor.{ActorRef, ActorSystem, Cancellable}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.CheckDelivery
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 import scorex.core.{ModifierId, ModifierTypeId}
 
 import scala.collection.mutable
@@ -18,15 +18,13 @@ import scala.util.{Failure, Try}
 class DeliveryTracker(system: ActorSystem,
                       deliveryTimeout: FiniteDuration,
                       maxDeliveryChecks: Int,
-                      nvsRef: ActorRef) extends ScorexLogging {
+                      nvsRef: ActorRef) extends ScorexLogging with ScorexEncoding {
 
   protected type ModifierIdAsKey = scala.collection.mutable.WrappedArray.ofByte
 
-  protected case class ExpectingStatus(peer: ConnectedPeer, cancellable: Cancellable, checks: Int)
+  protected case class ExpectingStatus(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
 
   protected def key(id: ModifierId): ModifierIdAsKey = new mutable.WrappedArray.ofByte(id)
-
-  // todo: Do we need to keep track of ModifierTypeIds? Maybe we could ignore them?
 
   // when a remote peer is asked a modifier, we add the expected data to `expecting`
   // when a remote peer delivers expected data, it is removed from `expecting` and added to `delivered`.
@@ -35,11 +33,19 @@ class DeliveryTracker(system: ActorSystem,
   protected val delivered = mutable.Map[ModifierIdAsKey, ConnectedPeer]()
   protected val deliveredSpam = mutable.Map[ModifierIdAsKey, ConnectedPeer]()
 
+  /**
+    * Someone should have these modifiers, but we do not know who
+    */
+  def expect(mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Try[Unit] =
+    tryWithLogging(mids.foreach(mid => expect(None, mtid, mid)))
 
-  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Unit =
-    tryWithLogging(mids.foreach(mid => expect(cp, mtid, mid)))
+  /**
+    * Peer `cp` should have these modifiers
+    */
+  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Try[Unit] =
+    tryWithLogging(mids.foreach(mid => expect(Some(cp), mtid, mid)))
 
-  protected def expect(cp: ConnectedPeer,
+  protected def expect(cp: Option[ConnectedPeer],
                        mtid: ModifierTypeId,
                        mid: ModifierId,
                        checksDone: Int = 0)(implicit ec: ExecutionContext): Unit = {
@@ -48,13 +54,24 @@ class DeliveryTracker(system: ActorSystem,
     expecting.put(midAsKey, ExpectingStatus(cp, cancellable, checks = checksDone))
   }
 
-  // stops expecting, and expects again if the number of checks does not exceed the maximum
-  def reexpect(cp: ConnectedPeer, mtid: ModifierTypeId, mid: ModifierId)(implicit ec: ExecutionContext): Unit = tryWithLogging {
-    if(isExpecting(mid)) {
+  /**
+    *
+    * Stops expecting, and expects again if the number of checks does not exceed the maximum
+    *
+    * @return `true` when expect again, `false` otherwise
+    */
+  def reexpect(cp: Option[ConnectedPeer],
+               mtid: ModifierTypeId,
+               mid: ModifierId)(implicit ec: ExecutionContext): Try[Unit] = tryWithLogging {
+    if (isExpecting(mid)) {
       val midAsKey = key(mid)
       val checks = expecting(midAsKey).checks + 1
       stopExpecting(mid)
-      if (checks < maxDeliveryChecks) expect(cp, mtid, mid, checks)
+      if (checks < maxDeliveryChecks) {
+        expect(cp, mtid, mid, checks)
+      } else {
+        throw new StopExpectingError(mid, checks)
+      }
     } else {
       expect(cp, mtid, mid)
     }
@@ -86,11 +103,18 @@ class DeliveryTracker(system: ActorSystem,
 
   def peerWhoDelivered(mid: ModifierId): Option[ConnectedPeer] = delivered.get(key(mid))
 
-  protected def tryWithLogging(fn: => Unit): Unit = {
+  protected def tryWithLogging[T](fn: => T): Try[T] = {
     Try(fn).recoverWith {
+      case e: StopExpectingError =>
+        log.warn(e.getMessage)
+        Failure(e)
       case e =>
         log.warn("Unexpected error", e)
         Failure(e)
     }
   }
+
+  class StopExpectingError(mid: ModifierId, checks: Int)
+    extends Error(s"Stop expecting ${encoder.encode(mid)} due to exceeded number of retries $checks")
+
 }
