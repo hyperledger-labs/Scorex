@@ -18,6 +18,7 @@ import scorex.core.{PersistentNodeViewModifier, _}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.Success
 
 /**
   * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
@@ -268,7 +269,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
           } else {
             log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
             penalizeNonDeliveringPeer(peer)
-            deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
+            deliveryTracker.reexpect(Some(peer), modifierTypeId, modifierId)
           }
         case None =>
           // Random peer did not delivered modifier we need, ask another peer
@@ -308,10 +309,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     * it is unknown
     */
   protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
-    deliveryTracker.expect(modifierTypeId, modifierIds)
-    val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
-    //todo: A peer which is supposedly having the modifier should be here, not a random peer
-    networkControllerRef ! SendToNetwork(msg, SendToRandom)
+    val reexpected = modifierIds.map(id => id -> deliveryTracker.reexpect(None, modifierTypeId, id))
+      .filter(_._2.isSuccess).map(_._1)
+    if (reexpected.nonEmpty) {
+      val msg = Message(requestModifierSpec, Right(modifierTypeId -> reexpected), None)
+      //todo: A peer which is supposedly having the modifier should be here, not a random peer
+      networkControllerRef ! SendToNetwork(msg, SendToRandom)
+    }
   }
 
   def onDownloadRequest: Receive = {

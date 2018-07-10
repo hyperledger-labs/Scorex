@@ -2,7 +2,7 @@ package scorex.core.network
 
 import akka.actor.{ActorRef, ActorSystem, Cancellable}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.CheckDelivery
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 import scorex.core.{ModifierId, ModifierTypeId}
 
 import scala.collection.mutable
@@ -18,7 +18,7 @@ import scala.util.{Failure, Try}
 class DeliveryTracker(system: ActorSystem,
                       deliveryTimeout: FiniteDuration,
                       maxDeliveryChecks: Int,
-                      nvsRef: ActorRef) extends ScorexLogging {
+                      nvsRef: ActorRef) extends ScorexLogging with ScorexEncoding {
 
   protected type ModifierIdAsKey = scala.collection.mutable.WrappedArray.ofByte
 
@@ -36,13 +36,13 @@ class DeliveryTracker(system: ActorSystem,
   /**
     * Someone should have these modifiers, but we do not know who
     */
-  def expect(mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Unit =
+  def expect(mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Try[Unit] =
     tryWithLogging(mids.foreach(mid => expect(None, mtid, mid)))
 
   /**
     * Peer `cp` should have these modifiers
     */
-  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Unit =
+  def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Try[Unit] =
     tryWithLogging(mids.foreach(mid => expect(Some(cp), mtid, mid)))
 
   protected def expect(cp: Option[ConnectedPeer],
@@ -55,18 +55,25 @@ class DeliveryTracker(system: ActorSystem,
   }
 
   /**
-    * stops expecting, and expects again if the number of checks does not exceed the maximum
+    *
+    * Stops expecting, and expects again if the number of checks does not exceed the maximum
+    *
+    * @return `true` when expect again, `false` otherwise
     */
-  def reexpect(cp: ConnectedPeer,
+  def reexpect(cp: Option[ConnectedPeer],
                mtid: ModifierTypeId,
-               mid: ModifierId)(implicit ec: ExecutionContext): Unit = tryWithLogging {
-    if(isExpecting(mid)) {
+               mid: ModifierId)(implicit ec: ExecutionContext): Try[Unit] = tryWithLogging {
+    if (isExpecting(mid)) {
       val midAsKey = key(mid)
       val checks = expecting(midAsKey).checks + 1
       stopExpecting(mid)
-      if (checks < maxDeliveryChecks) expect(Some(cp), mtid, mid, checks)
+      if (checks < maxDeliveryChecks) {
+        expect(cp, mtid, mid, checks)
+      } else {
+        throw new StopExpectingError(mid, checks)
+      }
     } else {
-      expect(Some(cp), mtid, mid)
+      expect(cp, mtid, mid)
     }
   }
 
@@ -96,11 +103,18 @@ class DeliveryTracker(system: ActorSystem,
 
   def peerWhoDelivered(mid: ModifierId): Option[ConnectedPeer] = delivered.get(key(mid))
 
-  protected def tryWithLogging(fn: => Unit): Unit = {
+  protected def tryWithLogging[T](fn: => T): Try[T] = {
     Try(fn).recoverWith {
+      case e: StopExpectingError =>
+        log.warn(e.getMessage)
+        Failure(e)
       case e =>
         log.warn("Unexpected error", e)
         Failure(e)
     }
   }
+
+  class StopExpectingError(mid: ModifierId, checks: Int)
+    extends Error(s"Stop expecting ${encoder.encode(mid)} due to exceeded number of retries $checks")
+
 }

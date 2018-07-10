@@ -75,16 +75,16 @@ class DeliveryTrackerSpecification extends PropSpec
     tracker.onReceive(mtid, notAdded, cp)
     tracker.isSpam(notAdded) shouldBe true
 
-    tracker.reexpect(cp, mtid, modids(1))
+    tracker.reexpect(Some(cp), mtid, modids(1))
     tracker.isExpecting(modids(1)) shouldBe true
 
-    tracker.reexpect(cp, mtid, modids(1))
+    tracker.reexpect(Some(cp), mtid, modids(1))
     tracker.isExpecting(modids(1)) shouldBe false
 
-    tracker.reexpect(cp, mtid, modids(1))
+    tracker.reexpect(Some(cp), mtid, modids(1))
     tracker.isExpecting(modids(1)) shouldBe true
 
-    tracker.reexpect(cp, mtid, modids.head)
+    tracker.reexpect(Some(cp), mtid, modids.head)
     tracker.isExpecting(modids.head) shouldBe true
   }
 }
