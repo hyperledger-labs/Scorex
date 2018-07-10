@@ -304,13 +304,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   }
 
   /**
-    * Our node needs modifier of type `modifierTypeId` with id `modifierIds` but peer that can deliver
+    * Our node needs for modifiers of type `modifierTypeId` with ids `modifierIds` but peer that can deliver
     * it is unknown
     */
   protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
     deliveryTracker.expect(modifierTypeId, modifierIds)
     val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
-    //todo: Full nodes should be here, not a random peer
+    //todo: A peer which is supposedly having the modifier should be here, not a random peer
     networkControllerRef ! SendToNetwork(msg, SendToRandom)
   }
 
