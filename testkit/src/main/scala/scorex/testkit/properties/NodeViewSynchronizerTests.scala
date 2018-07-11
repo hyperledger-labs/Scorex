@@ -196,7 +196,7 @@ trait NodeViewSynchronizerTests[
       case m => m
     }
     assert(!messages.exists {
-      case ModifiersFromRemote(p, _, _) if p == peer => true
+      case ModifiersFromRemote(p, _) if p == peer => true
       case _ => false
     })
     // ncProbe.fishForMessage(3 seconds) { case m => ??? }
@@ -207,7 +207,7 @@ trait NodeViewSynchronizerTests[
     node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
     node ! DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
     vhProbe.fishForMessage(3 seconds) { case m =>
-      m == ModifiersFromRemote(peer, mod.modifierTypeId, Seq(mod.bytes))
+      m == ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.bytes)))
     }
   }}
 

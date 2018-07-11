@@ -5,12 +5,14 @@ import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
+import scorex.core.network.message.BasicMsgDataTypes.ModifiersData
 import scorex.core.serialization.Serializer
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -172,7 +174,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
   private def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
     pi.toDownload.foreach { case (tid, id) =>
-      if(!modifiersCache.contains(id)) {
+      if (!modifiersCache.contains(id)) {
         context.system.eventStream.publish(DownloadRequest(tid, id))
       }
     }
@@ -228,11 +230,11 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
                                  suffix: IndexedSeq[PMOD])
 
     val (stateToApplyTry: Try[MS], suffixTrimmed: IndexedSeq[PMOD]) = if (progressInfo.chainSwitchingNeeded) {
-        @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-        val branchingPoint = VersionTag @@ progressInfo.branchPoint.get     //todo: .get
-        if (!state.version.sameElements(branchingPoint)){
-          state.rollbackTo(branchingPoint) -> trimChainSuffix(suffixApplied, branchingPoint)
-        } else Success(state) -> IndexedSeq()
+      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
+      val branchingPoint = VersionTag @@ progressInfo.branchPoint.get //todo: .get
+      if (!state.version.sameElements(branchingPoint)) {
+        state.rollbackTo(branchingPoint) -> trimChainSuffix(suffixApplied, branchingPoint)
+      } else Success(state) -> IndexedSeq()
     } else Success(state) -> suffixApplied
 
     stateToApplyTry match {
@@ -240,8 +242,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
         val u0 = UpdateInformation(history, stateToApply, None, None, suffixTrimmed)
 
-        val uf = progressInfo.toApply.foldLeft(u0) {case (u, modToApply) =>
-          if(u.failedMod.isEmpty) {
+        val uf = progressInfo.toApply.foldLeft(u0) { case (u, modToApply) =>
+          if (u.failedMod.isEmpty) {
             u.state.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
                 val newHis = history.reportModifierIsValid(modToApply)
@@ -336,18 +338,26 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def processRemoteModifiers: Receive = {
-    case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
-      modifierSerializers.get(modifierTypeId) foreach { companion =>
-        remoteObjects.flatMap(r => companion.parseBytes(r).toOption).foreach {
-          case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
-            txModify(tx)
-
-          case pmod: PMOD@unchecked =>
-            if (history().contains(pmod) || modifiersCache.contains(key(pmod.id))) {
-              log.warn(s"Received modifier ${pmod.encodedId} that is already in history")
-            } else {
-              modifiersCache.put(key(pmod.id), pmod)
-            }
+    case ModifiersFromRemote(remote, modifiersData) =>
+      modifierSerializers.get(modifiersData._1) foreach { companion =>
+        modifiersData._2.foreach { r =>
+          companion.parseBytes(r._2) match {
+            case Success(mod) if !(r._1 sameElements mod.id) =>
+              val e = new Error(s"Declared id ${encoder.encode(r._1)} is not equals to calculated one ${mod.encodedId}")
+              sender() ! IncorrectModifierFromRemote(remote, r._1, e)
+            case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
+              txModify(tx)
+            case Success(pmod: PMOD@unchecked) =>
+              if (modifiersCache.contains(key(pmod.id))) {
+                log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
+              } else if (history().contains(pmod)) {
+                log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
+              } else {
+                modifiersCache.put(key(pmod.id), pmod)
+              }
+            case Failure(e) =>
+              sender() ! IncorrectModifierFromRemote(remote, r._1, e)
+          }
         }
 
         log.debug(s"Cache size before: ${modifiersCache.size}")
@@ -391,7 +401,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   }
 
   override def receive: Receive =
-      compareViews orElse
+    compareViews orElse
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
       getCurrentInfo orElse
@@ -407,14 +417,20 @@ object NodeViewHolder {
 
     // Explicit request of NodeViewChange events of certain types.
     case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
+
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
     // Moved from NodeViewSynchronizer as this was only received here
     case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
-    case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
+
+    case class ModifiersFromRemote(source: ConnectedPeer, data: ModifiersData)
+
+    case class IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable)
 
     case class LocallyGeneratedTransaction[TX <: Transaction](tx: TX)
+
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
+
   }
 
   // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages

@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.NodeViewHolder.DownloadRequest
+import scorex.core.NodeViewHolder.ReceivableMessages.IncorrectModifierFromRemote
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
@@ -216,6 +217,13 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       }
   }
 
+  protected def incorrectModifiers: Receive = {
+    case IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable) =>
+      log.warn(s"Incorect modifier ${encoder.encode(id)} received: ${error.getMessage}")
+      statusKeeper.incorrectBytes(id)
+      penalizeMisbehavingPeer(source)
+  }
+
   /**
     * Logic to process modifiers got from another peer
     */
@@ -245,8 +253,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       }
 
       if (fm.nonEmpty) {
-        val mods = fm.values.toSeq
-        viewHolderRef ! ModifiersFromRemote(remote, typeId, mods)
+        viewHolderRef ! ModifiersFromRemote(remote, (typeId, fm))
       }
   }
 
@@ -296,6 +303,10 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
     //todo: consider something less harsh than blacklisting, see comment for previous function
     // networkControllerRef ! Blacklist(peer)
+  }
+
+  protected def penalizeMisbehavingPeer(peer: ConnectedPeer): Unit = {
+    // todo: peer sent incorrect modifier - blacklist or another serious penalty required
   }
 
   //local node sending out objects requested to remote
