@@ -21,8 +21,8 @@ trait NodeViewSynchronizerGenerators {
     def props(networkControllerRef: ActorRef,
               viewHolderRef: ActorRef): Props =
       NodeViewSynchronizerRef.props[TX, HSI, SIS, PM, HT, MP](networkControllerRef, viewHolderRef, HybridSyncInfoMessageSpec,
-                                                                 settings.scorexSettings.network,
-                                                                 new NetworkTimeProvider(settings.scorexSettings.ntp))
+        settings.scorexSettings.network,
+        new NetworkTimeProvider(settings.scorexSettings.ntp))
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
@@ -45,8 +45,7 @@ trait NodeViewSynchronizerGenerators {
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val tx = simpleBoxTransactionGen.sample.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-    val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref, Outgoing,
-      Handshake("", Version(0,1,2), "", None, Seq(), 0L))
+    val p: ConnectedPeer = connectedPeerGen(pchProbe.ref).sample.get
 
     (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, eventListener)
   }
