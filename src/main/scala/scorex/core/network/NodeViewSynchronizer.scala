@@ -4,6 +4,7 @@ package scorex.core.network
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import scorex.core.NodeViewHolder.DownloadRequest
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
@@ -18,6 +19,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
+import scala.util.Success
 
 /**
   * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
@@ -71,6 +73,7 @@ class NodeViewSynchronizer[TX <: Transaction,
     context.system.eventStream.subscribe(self, classOf[ChangedHistory[HR]])
     context.system.eventStream.subscribe(self, classOf[ChangedMempool[MR]])
     context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
+    context.system.eventStream.subscribe(self, classOf[DownloadRequest])
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     statusTracker.scheduleSendSyncInfo()
@@ -257,13 +260,19 @@ class NodeViewSynchronizer[TX <: Transaction,
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
   @SuppressWarnings(Array("org.wartremover.warts.JavaSerializable"))
   protected def checkDelivery: Receive = {
-    case CheckDelivery(peer, modifierTypeId, modifierId) =>
-      if (deliveryTracker.peerWhoDelivered(modifierId).contains(peer)) {
-        deliveryTracker.delete(modifierId)
-      } else {
-        log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
-        penalizeNonDeliveringPeer(peer)
-        deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
+    case CheckDelivery(peerOpt, modifierTypeId, modifierId) =>
+      peerOpt match {
+        case Some(peer) =>
+          if (deliveryTracker.peerWhoDelivered(modifierId).contains(peer)) {
+            deliveryTracker.delete(modifierId)
+          } else {
+            log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
+            penalizeNonDeliveringPeer(peer)
+            deliveryTracker.reexpect(Some(peer), modifierTypeId, modifierId)
+          }
+        case None =>
+          // Random peer did not delivered modifier we need, ask another peer
+          requestDownload(modifierTypeId, Seq(modifierId))
       }
   }
 
@@ -294,8 +303,28 @@ class NodeViewSynchronizer[TX <: Transaction,
       }
   }
 
+  /**
+    * Our node needs for modifiers of type `modifierTypeId` with ids `modifierIds` but peer that can deliver
+    * it is unknown
+    */
+  protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
+    val reexpected = modifierIds.map(id => id -> deliveryTracker.reexpect(None, modifierTypeId, id))
+      .filter(_._2.isSuccess).map(_._1)
+    if (reexpected.nonEmpty) {
+      val msg = Message(requestModifierSpec, Right(modifierTypeId -> reexpected), None)
+      //todo: A peer which is supposedly having the modifier should be here, not a random peer
+      networkControllerRef ! SendToNetwork(msg, SendToRandom)
+    }
+  }
+
+  def onDownloadRequest: Receive = {
+    case DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) =>
+      requestDownload(modifierTypeId, Seq(modifierId))
+  }
+
   override def receive: Receive =
-    getLocalSyncInfo orElse
+    onDownloadRequest orElse
+      getLocalSyncInfo orElse
       processSync orElse
       processSyncStatus orElse
       processInv orElse
@@ -308,6 +337,7 @@ class NodeViewSynchronizer[TX <: Transaction,
       checkDelivery orElse {
       case a: Any => log.error("Strange input: " + a)
     }
+
 }
 
 object NodeViewSynchronizer {
@@ -331,7 +361,13 @@ object NodeViewSynchronizer {
 
     case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
-    case class CheckDelivery(source: ConnectedPeer,
+    /**
+      * Check delivery of modifier with type `modifierTypeId` and id `modifierId`.
+      * `source` may be defined if we expect modifier from concrete peer or None if
+      * we just need some modifier, but don't know who have it
+      *
+      */
+    case class CheckDelivery(source: Option[ConnectedPeer],
                              modifierTypeId: ModifierTypeId,
                              modifierId: ModifierId)
 
