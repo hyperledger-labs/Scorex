@@ -44,7 +44,7 @@ object HybridSyncInfoSerializer extends Serializer[HybridSyncInfo] {
     Array(
       if (obj.answer) 1: Byte else 0: Byte,
       obj.lastPowBlockIds.size.toByte
-    ) ++ obj.lastPowBlockIds.foldLeft(Array[Byte]())((a, b) => a ++ b) ++ obj.lastPosBlockId
+    ) ++ obj.lastPowBlockIds.foldLeft(Array[Byte]())((a, b) => a ++ b.getBytes("UTF-8")) ++ obj.lastPosBlockId.getBytes("UTF-8")
 
   override def parseBytes(bytes: Array[Byte]): Try[HybridSyncInfo] = Try {
     val answer: Boolean = if (bytes.head == 1.toByte) true else false
@@ -54,10 +54,10 @@ object HybridSyncInfoSerializer extends Serializer[HybridSyncInfo] {
     require(bytes.length == 2 + (lastPowBlockIdsSize + 1) * NodeViewModifier.ModifierIdSize)
 
     val lastPowBlockIds = bytes.slice(2, 2 + NodeViewModifier.ModifierIdSize * lastPowBlockIdsSize)
-      .grouped(NodeViewModifier.ModifierIdSize).toSeq.map(id => ModifierId @@ id)
+      .grouped(NodeViewModifier.ModifierIdSize).toSeq.map(id => ModifierId @@ new String(id))
 
-    val lastPosBlockId = ModifierId @@ bytes
-      .slice(2 + NodeViewModifier.ModifierIdSize * lastPowBlockIdsSize, bytes.length)
+    val lastPosBlockId = ModifierId @@ new String(bytes.slice(2 + NodeViewModifier.ModifierIdSize * lastPowBlockIdsSize,
+      bytes.length))
 
     HybridSyncInfo(answer, lastPowBlockIds, lastPosBlockId)
   }

@@ -184,17 +184,17 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     val len = 32
     val byte1 = 1.toByte
     val byte2 = 2.toByte
-    val id = ModifierId @@ Array.fill(len)(byte1)
+    val id: ModifierId = ModifierId @@ new String(Array.fill(len)(byte1))
     val differentBytesMsg = "Different bytes"
     val differentLengthMsg = s"Different length"
     val result = accumulateErrors
-      .validateEqualIds(id, Array.fill(len)(byte1)) { detail =>
+      .validateEqualIds(id, ModifierId @@ new String(Array.fill(len)(byte1))) { detail =>
         fatal(s"Should never happen. $detail")
       }
-      .validateEqualIds(id, Array.fill(len)(byte2)) { _ =>
+      .validateEqualIds(id, ModifierId @@ new String(Array.fill(len)(byte2))) { _ =>
         fatal(differentBytesMsg)
       }
-      .validateEqualIds(id, Array.fill(len + 1)(byte1)) { _ =>
+      .validateEqualIds(id, ModifierId @@ new String(Array.fill(len + 1)(byte1))) { _ =>
         fatal(differentLengthMsg)
       }
       .result

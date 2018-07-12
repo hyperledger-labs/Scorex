@@ -219,7 +219,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def incorrectModifiers: Receive = {
     case IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable) =>
-      log.warn(s"Incorect modifier ${encoder.encode(id)} received: ${error.getMessage}")
+      log.warn(s"Incorect modifier ${encoder.encode(id.getBytes("UTF-8"))} received: ${error.getMessage}")
       statusKeeper.incorrectBytes(id)
       penalizeMisbehavingPeer(source)
   }
@@ -235,7 +235,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       val modifiers = data._2
 
       log.info(s"Got modifiers of type $typeId from remote connected peer: $remote")
-      log.trace(s"Received modifier ids ${data._2.keySet.map(encoder.encode).mkString(",")}")
+      log.trace(s"Received modifier ids ${data._2.keySet.map(id => encoder.encode(id)).mkString(",")}")
 
       modifiers.foreach { case (id, _) =>
         statusKeeper.received(id)
@@ -246,7 +246,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
       if (spam.nonEmpty) {
         log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
-          s": ${spam.keys.map(encoder.encode)}")
+          s": ${spam.keys.map(id => encoder.encode(id))}")
         penalizeSpammingPeer(remote)
         val mids = spam.keys.toSeq
         deliveryTracker.deleteSpam(mids)

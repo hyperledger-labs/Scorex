@@ -25,8 +25,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HybridBlock,
     HBoxStoredState] with ScorexLogging with ScorexEncoding {
 
-  require(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
-    s"${encoder.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${encoder.encode(version)}")
+  require(store.lastVersionID.map(w => new String(w.data)).getOrElse(version) == version,
+    s"${encoder.encode(store.lastVersionID.map(_.data).getOrElse(version.getBytes("UTF-8")))} != ${encoder.encode(version.getBytes("UTF-8"))}")
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridBlock
@@ -77,7 +77,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     log.trace(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encode(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => encoder.encode(b.data))}, " +
       s"adding boxes ${boxesToAdd.map(b => encoder.encode(b._1.data))}")
-    store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
+    store.update(ByteArrayWrapper(newVersion.getBytes("UTF-8")), boxIdsToRemove, boxesToAdd)
     HBoxStoredState(store, newVersion)
       .ensuring(st => boxIdsToRemove.forall(box => st.closedBox(box.data).isEmpty), s"Removed box is still in state")
   } ensuring { r => r.toOption.forall(_.version sameElements newVersion )}
@@ -89,7 +89,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       this
     } else {
       log.info(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")
-      store.rollback(ByteArrayWrapper(version))
+      store.rollback(ByteArrayWrapper(version.getBytes("UTF-8")))
       new HBoxStoredState(store, version)
     }
   }.recoverWith{case e =>
@@ -108,7 +108,7 @@ object HBoxStoredState {
     mod match {
       case pb: PowBlock =>
         val proposition: PublicKey25519Proposition = pb.generatorProposition
-        val nonce: Nonce = SimpleBoxTransaction.nonceFromDigest(mod.id)
+        val nonce: Nonce = SimpleBoxTransaction.nonceFromDigest(mod.id.getBytes("UTF-8"))
         val value: Value = Value @@ 1L
         val minerBox = PublicKey25519NoncedBox(proposition, nonce, value)
         Success(BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(minerBox))))
@@ -122,7 +122,7 @@ object HBoxStoredState {
             }
 
           //for PoS forger reward box, we use block Id as a nonce
-          val forgerNonce = Nonce @@ Longs.fromByteArray(ps.id.take(8))
+          val forgerNonce = Nonce @@ Longs.fromByteArray(ps.id.getBytes("UTF-8").take(8))
           val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, Value @@ reward)
 
           @SuppressWarnings(Array("org.wartremover.warts.Product","org.wartremover.warts.Serializable"))
@@ -148,7 +148,7 @@ object HBoxStoredState {
         stateStorage.close()
       }
     })
-    val version = VersionTag @@ stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
+    val version = VersionTag @@ new String(stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray))
 
     HBoxStoredState(stateStorage, version)
   }

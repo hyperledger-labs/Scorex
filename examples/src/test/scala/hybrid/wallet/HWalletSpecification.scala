@@ -6,7 +6,7 @@ import examples.hybrid.wallet.HBoxWallet
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.ModifierId
+import scorex.core._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
@@ -23,7 +23,7 @@ class HWalletSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  private val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
+  private val EmptyBytes = bytesToId(Array.fill(32)(0: Byte))
   private val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
   val w: HBoxWallet = HBoxWallet.readOrGenerate(settings.walletSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()

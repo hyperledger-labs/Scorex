@@ -28,7 +28,7 @@ case class HybridMiningSettings(offlineGeneration: Boolean,
                                 rParamX10: Int,
                                 initialDifficulty: BigInt) {
   lazy val MaxTarget = BigInt(1, Array.fill(32)(Byte.MinValue))
-  lazy val GenesisParentId = ModifierId @@ Array.fill(32)(1: Byte)
+  lazy val GenesisParentId = ModifierId @@ new String(Array.fill(32)(1: Byte))
 }
 
 object HybridSettings extends ScorexLogging with SettingsReaders {

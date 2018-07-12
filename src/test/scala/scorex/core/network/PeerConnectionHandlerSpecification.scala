@@ -1,4 +1,4 @@
-package scorex.network
+package scorex.core.network
 
 import org.scalatest._
 

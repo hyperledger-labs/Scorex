@@ -26,11 +26,11 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
   }
 
   def delay: Route = {
-    (get & path("delay" / Segment / IntNumber)) { case (encodedSignature, count) =>
+    (get & path("delay" / Segment / IntNumber)) { case (encodedId, count) =>
       withNodeView { view =>
         val result: Try[String] = for {
-          id <- encoder.decode(encodedSignature)
-          delay <- view.history.averageDelay(ModifierId @@ id, count)
+          id <- encoder.decode(encodedId).map(id => ModifierId @@ new String(id))
+          delay <- view.history.averageDelay(id, count)
         } yield delay.toString
         ApiResponse("delay" -> result.getOrElse("Undefined"))
       }
@@ -49,7 +49,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
         "bestPoS" -> encoder.encode(view.history.bestPosId).asJson,
         "bestPoW" -> encoder.encode(view.history.bestPowId).asJson,
         "bestBlock" -> bestBlockJson,
-        "stateVersion" -> encoder.encode(view.state.version).asJson
+        "stateVersion" -> encoder.encode(view.state.version.getBytes("UTF-8")).asJson
       )
     }
   }

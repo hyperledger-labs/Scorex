@@ -43,8 +43,8 @@ class DefaultModifiersCacheSpecification extends PropSpec
   property("cache - put() and remove() basics") {
     val limit = 3
 
-    val v1 = Blake2b256.hash("1")
-    val v2 = Blake2b256.hash("2")
+    val v1 = ModifierId @@ new String(Blake2b256.hash("1"))
+    val v2 = ModifierId @@ new String(Blake2b256.hash("2"))
 
     val cache = new DefaultModifiersCache[FakeModifier, FakeHr](limit)
 
@@ -74,10 +74,10 @@ class DefaultModifiersCacheSpecification extends PropSpec
   property("cache has limits") {
     val limit = 3
 
-    val v1 = Blake2b256.hash("1")
-    val v2 = Blake2b256.hash("2")
-    val v3 = Blake2b256.hash("3")
-    val v4 = Blake2b256.hash("4")
+    val v1 = ModifierId @@ new String(Blake2b256.hash("1"))
+    val v2 = ModifierId @@ new String(Blake2b256.hash("2"))
+    val v3 = ModifierId @@ new String(Blake2b256.hash("3"))
+    val v4 = ModifierId @@ new String(Blake2b256.hash("4"))
 
     val cache = new DefaultModifiersCache[FakeModifier, FakeHr](limit)
 

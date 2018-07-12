@@ -13,7 +13,7 @@ abstract class Transaction extends EphemerealNodeViewModifier {
 
   val messageToSign: Array[Byte]
 
-  override lazy val id: ModifierId = ModifierId @@ Blake2b256(messageToSign)
+  override lazy val id: ModifierId = ModifierId @@ new String(Blake2b256(messageToSign))
 }
 
 

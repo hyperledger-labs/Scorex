@@ -6,7 +6,7 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
-import scorex.core.ModifierId
+import scorex.core._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.hash.Blake2b256
@@ -129,8 +129,8 @@ trait ModifierGenerators {
     }
 
   private def makeSyntacticallyInvalid(mod: HybridBlock): HybridBlock = mod match {
-    case pow: PowBlock => pow.copy(parentId = ModifierId @@ hf(pow.parentId))
-    case pos: PosBlock => pos.copy(parentId = ModifierId @@ hf(pos.parentId))
+    case pow: PowBlock => pow.copy(parentId = bytesToId(hf(pow.parentId)))
+    case pos: PosBlock => pos.copy(parentId = bytesToId(hf(pos.parentId)))
   }
 
   def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock =

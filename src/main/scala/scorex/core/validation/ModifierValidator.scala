@@ -1,6 +1,7 @@
 package scorex.core.validation
 
 
+import scorex.core.ModifierId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.utils.ScorexLogging
 import scorex.core.validation.ValidationResult._
@@ -121,10 +122,10 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
 
   /** Validate the `id`s are equal. The `error` callback will be provided with detail on argument values
     */
-  def validateEqualIds(given: => Array[Byte], expected: => Array[Byte])
+  def validateEqualIds(given: => ModifierId, expected: => ModifierId)
                       (error: String => Invalid): ValidationState[T] = {
-    validate(java.util.Arrays.equals(given, expected)) {
-      error(s"Given: ${e.encode(given)}, expected ${e.encode(expected)}")
+    validate(given == expected) {
+      error(s"Given: ${e.encode(given.getBytes("UTF-8"))}, expected ${e.encode(expected.getBytes("UTF-8"))}")
     }
   }
 
@@ -216,7 +217,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
 
   /** Shortcut `require`-like method to validate the `id`s are equal. Otherwise returns fatal error
     */
-  def demandEqualIds(given: => Array[Byte], expected: => Array[Byte], fatalError: String): ValidationState[T] = {
+  def demandEqualIds(given: => ModifierId, expected: => ModifierId, fatalError: String): ValidationState[T] = {
     validateEqualIds(given, expected)(d => ModifierValidator.fatal(fatalError, d))
   }
 
@@ -247,7 +248,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
 
   /** Shortcut `require`-like method to validate the `id`s are equal. Otherwise returns recoverable error
     */
-  def recoverableEqualIds(given: => Array[Byte], expected: => Array[Byte],
+  def recoverableEqualIds(given: => ModifierId, expected: => ModifierId,
                           recoverableError: String): ValidationState[T] = {
     validateEqualIds(given, expected)(d => ModifierValidator.error(recoverableError, d))
   }

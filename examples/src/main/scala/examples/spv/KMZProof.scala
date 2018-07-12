@@ -14,7 +14,7 @@ case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[
 
     suffix.foldRight(Array[Byte]()) { (a, b) =>
       if (b.nonEmpty) require(b sameElements a.id)
-      a.parentId
+      a.parentId.getBytes("UTF-8")
     }
   }
 }
@@ -33,7 +33,7 @@ object KMZProofSerializer extends Serializer[KMZProof] with ScorexEncoding {
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
     }.toArray
     val prefixIdsBytes: Array[Byte] = scorex.core.utils.concatBytes(obj.prefixProofs.map { chain =>
-      Shorts.toByteArray(chain.length.toShort) ++ chain.flatMap(_.id)
+      Shorts.toByteArray(chain.length.toShort) ++ chain.flatMap(_.id.getBytes("UTF-8"))
     })
 
     // TODO: fixme, What should we do if `obj.suffix` is empty?

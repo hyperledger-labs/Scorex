@@ -58,7 +58,7 @@ case class NodeViewApiRoute[TX <: Transaction]
     encoder.decode(encodedId) match {
       case Failure(_) => ApiError.NotExists
       case Success(rawId) =>
-        val id = ModifierId @@ rawId
+        val id = ModifierId @@ new String(rawId)
 
         def f(v: CurrentView[HIS, MS, VL, MP]): Option[PM] = v.history.modifierById(id)
 
@@ -92,7 +92,7 @@ case class NodeViewApiRoute[TX <: Transaction]
 
   def openSurface: Route = (get & path("openSurface")) {
     withOpenSurface { os =>
-      ApiResponse(os.ids.map(encoder.encode).asJson)
+      ApiResponse(os.ids.map(id => encoder.encode(id.getBytes("UTF-8"))).asJson)
     }
   }
 

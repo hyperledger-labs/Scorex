@@ -6,6 +6,7 @@ import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
+import scorex.core.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.crypto.hash
@@ -30,11 +31,11 @@ class ChainTests extends PropSpec
   val genesis: Header = genGenesisHeader(stateRoot, minerKeys._2)
   val headerChain: Seq[Header] = genChain(Height, Difficulty, stateRoot, IndexedSeq(genesis))
   val lastBlock: Header = headerChain.last
-  val lastInnerLinks: Seq[Array[Byte]] = lastBlock.interlinks
+  val lastInnerLinks: Seq[ModifierId] = lastBlock.interlinks
 
   property("constructInnerChain contains all blocks at the level if no boundary provided") {
-    val blockchainMap: Map[ByteArrayWrapper, Header] = headerChain.map(b => ByteArrayWrapper(b.id) -> b).toMap
-    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
+    val blockchainMap: Map[ModifierId, Header] = headerChain.map(b => b.id -> b).toMap
+    def headerById(id: ModifierId): Header = blockchainMap(id)
 
     def check(mu: Int): Unit = {
       val innerChain = SpvAlgos.constructInnerChain(lastBlock, mu, genesis, headerById)
@@ -99,7 +100,7 @@ class ChainTests extends PropSpec
     forAll(mkGen) { mk =>
       whenever(mk._2 > 2) {
         val commonChain = headerChain.dropRight(2)
-        val block = genBlock(Difficulty, commonChain.reverse.toIndexedSeq, stateRoot, defaultId, System.currentTimeMillis())
+        val block = genBlock(Difficulty, commonChain.reverse.toIndexedSeq, stateRoot, emptyBytes, System.currentTimeMillis())
         val smallerForkChain = commonChain :+ block
         val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
         val proof2 = SpvAlgos.constructKLS16Proof(mk._1, mk._2, smallerForkChain).get

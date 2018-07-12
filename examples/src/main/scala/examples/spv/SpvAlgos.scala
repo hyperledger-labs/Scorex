@@ -1,6 +1,7 @@
 package examples.spv
 
 import io.iohk.iodb.ByteArrayWrapper
+import scorex.core.ModifierId
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 
 import scala.annotation.tailrec
@@ -8,18 +9,18 @@ import scala.util.Try
 
 object SpvAlgos extends ScorexEncoding {
 
-  def blockIdDifficulty(id: Array[Byte]): BigInt = {
-    val blockTarget = BigInt(1, id)
+  def blockIdDifficulty(id: ModifierId): BigInt = {
+    val blockTarget = BigInt(1, id.getBytes("UTF-8"))
     examples.spv.Constants.MaxTarget / blockTarget
   }
 
-  def constructInterlinkVector(parent: Header): Seq[Array[Byte]] = {
+  def constructInterlinkVector(parent: Header): Seq[ModifierId] = {
     // TODO: fixme, What should we do if `parent.interlinks` is empty? Can we return an empty sequence here?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val genesisId = parent.interlinks.head
 
     @tailrec
-    def generateInnerchain(curDifficulty: BigInt, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = {
+    def generateInnerchain(curDifficulty: BigInt, acc: Seq[ModifierId]): Seq[ModifierId] = {
       if (parent.realDifficulty >= curDifficulty) {
         generateInnerchain(curDifficulty * 2, acc :+ parent.id)
       } else {
@@ -30,7 +31,7 @@ object SpvAlgos extends ScorexEncoding {
       }
     }
 
-    genesisId +: generateInnerchain(Constants.InitialDifficulty * 2, Seq[Array[Byte]]())
+    genesisId +: generateInnerchain(Constants.InitialDifficulty * 2, Seq())
   }
 
   def constructKMZProof(m: Int, k: Int, C: Seq[Header]): Try[KMZProof] = Try {
@@ -42,8 +43,8 @@ object SpvAlgos extends ScorexEncoding {
     // TODO: fixme, What would be a more meaningful name for `i`? We also need a default value when `prefix` is empty
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val i = prefix.last.interlinks.size - 1
-    val blockchainMap: Map[ByteArrayWrapper, Header] = C.map(b => ByteArrayWrapper(b.id) -> b).toMap
-    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
+    val blockchainMap: Map[ModifierId, Header] = C.map(b => b.id -> b).toMap
+    def headerById(id: ModifierId): Header = blockchainMap(id)
 
     //Algorithm 3 from the KMZ paper
     @tailrec
@@ -82,7 +83,7 @@ object SpvAlgos extends ScorexEncoding {
   def constructInnerChain(startBlock: Header,
                           mu: Int,
                           boundary: Header,
-                          headerById: Array[Byte] => Header): Seq[Header] = {
+                          headerById: ModifierId => Header): Seq[Header] = {
 
     @tailrec
     def stepThroughInnerchain(B: Header, collected: Seq[Header], boundary: Header): Seq[Header] = {
@@ -118,9 +119,9 @@ object SpvAlgos extends ScorexEncoding {
     val firstSuffix = suffix.head
 
     //TODO make efficient
-    val blockchainMap: Map[ByteArrayWrapper, Header] = blockchain.map(b => ByteArrayWrapper(b.id) -> b).toMap
+    val blockchainMap: Map[ByteArrayWrapper, Header] = blockchain.map(b => ByteArrayWrapper(b.id.getBytes("UTF-8")) -> b).toMap
 
-    def headerById(id: Array[Byte]): Header = blockchainMap(ByteArrayWrapper(id))
+    def headerById(id: ModifierId): Header = blockchainMap(ByteArrayWrapper(id.getBytes("UTF-8")))
 
     @tailrec
     def constructProof(i: Int): (Int, Seq[Header]) = {

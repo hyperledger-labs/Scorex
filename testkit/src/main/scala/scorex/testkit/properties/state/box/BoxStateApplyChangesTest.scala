@@ -28,7 +28,7 @@ ST <: BoxMinimalState[P, B, TX, PM, ST]] extends BoxStateTests[P, B, TX, PM, ST]
       changes.toRemove.foreach { removal =>
         state.closedBox(removal.boxId).isDefined shouldBe true
       }
-      val newVersion = VersionTag @@ Array.fill(32)(Random.nextInt(Byte.MaxValue).toByte)
+      val newVersion = VersionTag @@ new String(Array.fill(32)(Random.nextInt(Byte.MaxValue).toByte))
       val newState = state.applyChanges(changes, newVersion).get
       changes.toAppend.foreach { insertion =>
         newState.closedBox(insertion.box.id).isDefined shouldBe true

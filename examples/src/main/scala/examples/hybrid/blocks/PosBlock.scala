@@ -32,8 +32,8 @@ case class PosBlock(override val parentId: BlockId, //PoW block
 
   override lazy val modifierTypeId: ModifierTypeId = PosBlock.ModifierTypeId
 
-  override lazy val id: ModifierId =
-    ModifierId @@ Blake2b256(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
+  override lazy val id: ModifierId = ModifierId @@ new String(Blake2b256(parentId.getBytes("UTF-8") ++
+    Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment))
 
   override def toString: String = s"PoSBlock(${this.asJson.noSpaces})"
 }
@@ -43,14 +43,14 @@ object PosBlockCompanion extends Serializer[PosBlock] with ScorexEncoding {
     val txsBytes = b.transactions.sortBy(t => encoder.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }
-    Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes,
+    Bytes.concat(b.parentId.getBytes("UTF-8"), Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes,
       Ints.toByteArray(b.transactions.length), txsBytes, Ints.toByteArray(b.attachment.length), b.attachment)
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[PosBlock] = Try {
     require(bytes.length <= PosBlock.MaxBlockSize)
 
-    val parentId = ModifierId @@ bytes.slice(0, BlockIdLength)
+    val parentId: ModifierId = ModifierId @@ new String(bytes.slice(0, BlockIdLength))
     var position = BlockIdLength
     val timestamp = Longs.fromByteArray(bytes.slice(position, position + 8))
     position = position + 8

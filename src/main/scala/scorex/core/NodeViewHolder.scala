@@ -14,7 +14,6 @@ import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 
@@ -79,9 +78,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     */
   val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
 
-  protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
-
-  protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
+  // todo remove
+  protected def key(id: ModifierId): ModifierId = id
 
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
@@ -180,7 +178,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     }
 
   private def trimChainSuffix(suffix: IndexedSeq[PMOD], rollbackPoint: ModifierId): IndexedSeq[PMOD] = {
-    val idx = suffix.indexWhere(_.id.sameElements(rollbackPoint))
+    val idx = suffix.indexWhere(_.id == rollbackPoint)
     if (idx == -1) IndexedSeq() else suffix.drop(idx)
   }
 
@@ -231,8 +229,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
     val (stateToApplyTry: Try[MS], suffixTrimmed: IndexedSeq[PMOD]) = if (progressInfo.chainSwitchingNeeded) {
       @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-      val branchingPoint = VersionTag @@ progressInfo.branchPoint.get //todo: .get
-      if (!state.version.sameElements(branchingPoint)) {
+      val branchingPoint: VersionTag with ModifierId = VersionTag @@ progressInfo.branchPoint.get //todo: .get
+      if (state.version != branchingPoint) {
         state.rollbackTo(branchingPoint) -> trimChainSuffix(suffixApplied, branchingPoint)
       } else Success(state) -> IndexedSeq()
     } else Success(state) -> suffixApplied
@@ -342,8 +340,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       modifierSerializers.get(modifiersData._1) foreach { companion =>
         modifiersData._2.foreach { r =>
           companion.parseBytes(r._2) match {
-            case Success(mod) if !(r._1 sameElements mod.id) =>
-              val e = new Error(s"Declared id ${encoder.encode(r._1)} is not equals to calculated one ${mod.encodedId}")
+            case Success(mod) if r._1 != mod.id =>
+              val e = new Error(s"Declared id ${encoder.encode(r._1.getBytes("UTF-8"))} is not equals to calculated one ${mod.encodedId}")
               sender() ! IncorrectModifierFromRemote(remote, r._1, e)
             case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
               txModify(tx)

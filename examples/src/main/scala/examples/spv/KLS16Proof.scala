@@ -17,7 +17,7 @@ case class KLS16Proof(m: Int,
 
     suffix.foldRight(Array[Byte]()) { (a, b) =>
       if (b.nonEmpty) require(b sameElements a.id)
-      a.parentId
+      a.parentId.getBytes("UTF-8")
     }
 
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
@@ -36,7 +36,7 @@ case class KLS16Proof(m: Int,
         require(b sameElements a.id)
       }
       //last element may not contain a.interlinks(i)
-      Try(a.interlinks(i)).getOrElse(Array.fill(32)(0.toByte))
+      Try(a.interlinks(i).getBytes("UTF-8")).getOrElse(Array.fill(32)(0.toByte))
     }
 
     //TODO check that genesis links are correct

@@ -7,7 +7,7 @@ import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, Outcome, fixture}
-import scorex.core.ModifierId
+import scorex.core._
 import scorex.core.utils.ScorexEncoding
 import scorex.testkit.utils.FileUtils
 
@@ -34,7 +34,7 @@ class IODBSpecification extends fixture.PropSpec
       val boxIdsToRemove: Iterable[ByteArrayWrapper] = Seq()
       val boxesToAdd: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] = tx.newBoxes
         .map(b => (ByteArrayWrapper(b.id), ByteArrayWrapper(b.bytes))).toList
-      blocksStorage.update(ByteArrayWrapper(tx.id), boxIdsToRemove, boxesToAdd)
+      blocksStorage.update(ByteArrayWrapper(idToBytes(tx.id)), boxIdsToRemove, boxesToAdd)
     }
 
     def checkTx(tx: SimpleBoxTransaction): Unit = {
@@ -49,7 +49,7 @@ class IODBSpecification extends fixture.PropSpec
         txs.tail.foreach(tx => writeTx(tx))
         txs.foreach(tx => checkTx(tx))
 
-        blocksStorage.rollback(ByteArrayWrapper(head.id))
+        blocksStorage.rollback(ByteArrayWrapper(idToBytes(head.id)))
         checkTx(head)
       }
     }
@@ -65,9 +65,9 @@ class IODBSpecification extends fixture.PropSpec
       }
 
       blocksStorage.update(
-        ByteArrayWrapper(b.id),
+        ByteArrayWrapper(idToBytes(b.id)),
         Seq(),
-        Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
+        Seq(ByteArrayWrapper(idToBytes(b.id)) -> ByteArrayWrapper(typeByte +: b.bytes)))
     }
 
     var ids: Seq[ModifierId] = Seq()
@@ -75,10 +75,10 @@ class IODBSpecification extends fixture.PropSpec
     forAll(powBlockGen) { block =>
       ids = block.id +: ids
       writeBlock(block)
-      blocksStorage.get(ByteArrayWrapper(block.id)).isDefined shouldBe true
+      blocksStorage.get(ByteArrayWrapper(idToBytes(block.id))).isDefined shouldBe true
     }
     ids.foreach { id =>
-      blocksStorage.get(ByteArrayWrapper(id)) match {
+      blocksStorage.get(ByteArrayWrapper(idToBytes(id))) match {
         case None =>
           throw new Error(s"Id ${encoder.encode(id)} not found")
         case Some(_) => ()

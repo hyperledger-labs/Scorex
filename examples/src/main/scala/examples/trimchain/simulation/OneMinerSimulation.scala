@@ -11,6 +11,7 @@ import io.iohk.iodb.ByteArrayWrapper
 import io.iohk.iodb.Store.VersionID
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
+import scorex.core._
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable

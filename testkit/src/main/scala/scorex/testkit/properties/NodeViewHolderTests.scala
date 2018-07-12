@@ -13,7 +13,7 @@ import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
-import scorex.core.{ModifierId, NodeViewHolder, PersistentNodeViewModifier}
+import scorex.core.{ModifierId, PersistentNodeViewModifier}
 import scorex.crypto.hash.Blake2b256
 import scorex.testkit.generators._
 import scorex.testkit.utils.AkkaFixture
@@ -72,11 +72,11 @@ MPool <: MemoryPool[TX, MPool]]
       val p = TestProbe()
       connectedPeerGen(TestProbe("PeerHandlerProbe").ref).sample.foreach { peer =>
         // send bytes, serializer will be unable to parse
-        p.send(node, ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.id))))
+        p.send(node, ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> Blake2b256("")))))
         p.expectMsgClass(classOf[IncorrectModifierFromRemote])
 
         // send bytes, serializer will be able to parse, but with different id
-        val wrongId = ModifierId @@ Blake2b256("")
+        val wrongId: ModifierId = ModifierId @@ new String(Blake2b256(""))
         p.send(node, ModifiersFromRemote(peer, (mod.modifierTypeId, Map(wrongId -> mod.bytes))))
         p.expectMsgClass(classOf[IncorrectModifierFromRemote])
 

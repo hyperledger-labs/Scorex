@@ -6,7 +6,7 @@ import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.HybridNodeViewHolder
 import examples.hybrid.wallet.HBoxWallet
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.VersionTag
+import scorex.core._
 import scorex.core.utils.{ByteStr, NetworkTimeProvider}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,7 +37,7 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
-    sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
+    sRaw.store.update(ByteArrayWrapper(idToBytes(v)), Seq(), Seq())
     val s = sRaw.copy(version = VersionTag @@ v)
     val ref = system.actorOf(NodeViewHolderForTests.props(h, s))
     val m = totallyValidModifier(h, s)

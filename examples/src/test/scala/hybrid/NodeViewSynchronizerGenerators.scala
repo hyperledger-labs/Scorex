@@ -5,8 +5,7 @@ import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.VersionTag
-import scorex.core.app.Version
+import scorex.core._
 import scorex.core.network._
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
@@ -32,7 +31,7 @@ trait NodeViewSynchronizerGenerators {
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
-    sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
+    sRaw.store.update(ByteArrayWrapper(idToBytes(v)), Seq(), Seq())
     val s = sRaw.copy(version = VersionTag @@ v)
 
     val ncProbe = TestProbe("NetworkControllerProbe")

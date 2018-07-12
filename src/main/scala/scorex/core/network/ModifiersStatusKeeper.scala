@@ -12,18 +12,15 @@ import scala.collection.mutable
   */
 class ModifiersStatusKeeper() {
 
-  type K = mutable.WrappedArray[Byte]
-
   // TODO some LRU cache might be useful here to limit this size and remove outdated statuses
-  private val statuses: TrieMap[K, ModifiersStatus] = TrieMap[K, ModifiersStatus]()
+  private val statuses: TrieMap[ModifierId, ModifiersStatus] = TrieMap[ModifierId, ModifiersStatus]()
 
   /**
     * @return status of modifier `id`.
     *         Since we do not keep statuses for already applied modifiers, `history` is required here.
     */
   def status(id: ModifierId)(history: History[_, _, _]): ModifiersStatus = {
-    val mKey = key(id)
-    statuses.getOrElse(mKey,
+    statuses.getOrElse(id,
       if (history.contains(id)) {
         Applied
       } else {
@@ -32,12 +29,12 @@ class ModifiersStatusKeeper() {
     )
   }
 
-  def set(id: ModifierId, status: ModifiersStatus): Option[ModifiersStatus] = statuses.put(key(id), status)
+  def set(id: ModifierId, status: ModifiersStatus): Option[ModifiersStatus] = statuses.put(id, status)
 
   /**
     * We do not keep applied modifiers status since we can get their status from history
     */
-  def applied(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
+  def applied(id: ModifierId): Option[ModifiersStatus] = statuses.remove(id)
 
   /**
     * Modifier `id` was received from other peer
@@ -53,9 +50,8 @@ class ModifiersStatusKeeper() {
     * Modifier `id` was received with incorrect bytes (unable to parse or
     * calculated id is different from the declared one)
     */
-  def incorrectBytes(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
+  def incorrectBytes(id: ModifierId): Option[ModifiersStatus] = statuses.remove(id)
 
-  protected def key(id: ModifierId) = new mutable.WrappedArray.ofByte(id)
 }
 
 

@@ -15,7 +15,7 @@ sealed trait NodeViewModifier extends BytesSerializable with ScorexEncoding {
   //todo: check statically or dynamically output size
   def id: ModifierId
 
-  def encodedId: String = encoder.encode(id)
+  def encodedId: String = encoder.encode(id.getBytes("UTF-8"))
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case that: NodeViewModifier => (that.id sameElements id) && (that.modifierTypeId == modifierTypeId)
