@@ -7,6 +7,7 @@ import java.util
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
+import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 
 import scala.util.Try
@@ -87,7 +88,7 @@ object ModifiersSpec {
   val MessageCode: MessageCode = 33: Byte
   val MessageName: String = "Modifier"
 }
-class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] {
+class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with ScorexLogging {
   import ModifiersSpec._
 
   override val messageCode: MessageCode = MessageCode
@@ -117,8 +118,12 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] {
     var msgSize = 5
     val payload: Seq[Array[Byte]] = modifiers.flatMap {case (id, modifier) =>
       msgSize += id.length + 4 + modifier.length
-      if(msgSize < maxMessageSize) Seq(id, Ints.toByteArray(modifier.length), modifier) else Seq()
+      if(msgSize <= maxMessageSize) Seq(id, Ints.toByteArray(modifier.length), modifier) else Seq()
     }.toSeq
+
+    if(msgSize > maxMessageSize){
+      log.info(s"Modifiers message of $msgSize generated while the maximum is $maxMessageSize. Better to fix app layer.")
+    }
 
     scorex.core.utils.concatBytes(Seq(Array(typeId), Ints.toByteArray(payload.size / 3)) ++ payload)
   }
