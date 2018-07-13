@@ -7,7 +7,7 @@ import examples.hybrid.HybridNodeViewHolder
 import examples.hybrid.wallet.HBoxWallet
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core._
-import scorex.core.utils.{ByteStr, NetworkTimeProvider}
+import scorex.core.utils.NetworkTimeProvider
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -19,8 +19,7 @@ trait NodeViewHolderGenerators { this: ModifierGenerators with StateGenerators w
     override protected def genesisState: (HIS, MS, VL, MP) = {
       @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
       val store = lsmStoreGen.sample.get
-      val byteStr = ByteStr(Array.fill(10)(1:Byte))
-      val gw = new HBoxWallet(byteStr, store)
+      val gw = new HBoxWallet(Array.fill(10)(1:Byte), store)
       (h, s, gw, SimpleBoxTransactionMemPool.emptyPool)
     }
 

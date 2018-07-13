@@ -9,17 +9,17 @@ import examples.hybrid.mining.WalletSettings
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core._
-import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
 import scorex.core.transaction.wallet.{BoxWallet, BoxWalletTransaction, WalletBox, WalletBoxSerializer}
-import scorex.core.utils.{ByteStr, ScorexEncoding, ScorexLogging}
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
 
 
-case class HBoxWallet(seed: ByteStr, store: LSMStore)
+case class HBoxWallet(seed: Array[Byte], store: LSMStore)
   extends BoxWallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock, HBoxWallet]
     with ScorexLogging with ScorexEncoding {
 
@@ -61,7 +61,7 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
   override def generateNewSecret(): HBoxWallet = {
     val prevSecrets = secrets
     val nonce: Array[Byte] = Ints.toByteArray(prevSecrets.size)
-    val s = Blake2b256(seed.arr ++ nonce)
+    val s = Blake2b256(seed ++ nonce)
     val (priv, _) = PrivateKey25519Companion.generateKeys(s)
     val allSecrets: Set[PrivateKey25519] = Set(priv) ++ prevSecrets
     store.update(ByteArrayWrapper(priv.privKeyBytes),
@@ -121,7 +121,8 @@ object HBoxWallet {
 
   def exists(settings: WalletSettings): Boolean = walletFile(settings).exists()
 
-  def readOrGenerate(settings: WalletSettings, seed: ByteStr): HBoxWallet = {
+  def readOrGenerate(settings: WalletSettings): HBoxWallet = {
+    val seed = settings.seed.getBytes("UTF-8")
     val wFile = walletFile(settings)
     wFile.mkdirs()
     val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000, keepVersions = 100) //todo: configurable kV
@@ -134,15 +135,6 @@ object HBoxWallet {
 
     HBoxWallet(seed, boxesStorage)
   }
-
-  def readOrGenerate(settings: WalletSettings): HBoxWallet = {
-    readOrGenerate(settings, settings.seed)
-  }
-
-  def readOrGenerate(settings: WalletSettings, seed: ByteStr, accounts: Int): HBoxWallet =
-    (1 to accounts).foldLeft(readOrGenerate(settings, seed)) { case (w, _) =>
-      w.generateNewSecret()
-    }
 
   def readOrGenerate(settings: WalletSettings, accounts: Int): HBoxWallet =
     (1 to accounts).foldLeft(readOrGenerate(settings)) { case (w, _) =>
@@ -159,9 +151,9 @@ object HBoxWallet {
 
 
 object GenesisStateGenerator extends App with ScorexEncoding {
-  private val w1 = HBoxWallet(ByteStr.decodeBase58("minerNode1").get, new LSMStore(new File("/tmp/w1")))
-  private val w2 = HBoxWallet(ByteStr.decodeBase58("minerNode2").get, new LSMStore(new File("/tmp/w2")))
-  private val w3 = HBoxWallet(ByteStr.decodeBase58("minerNode3").get, new LSMStore(new File("/tmp/w3")))
+  private val w1 = HBoxWallet(Base58.decode("minerNode1").get, new LSMStore(new File("/tmp/w1")))
+  private val w2 = HBoxWallet(Base58.decode("minerNode2").get, new LSMStore(new File("/tmp/w2")))
+  private val w3 = HBoxWallet(Base58.decode("minerNode3").get, new LSMStore(new File("/tmp/w3")))
 
   (1 to 20).foreach(_ => w1.generateNewSecret())
   (1 to 20).foreach(_ => w2.generateNewSecret())

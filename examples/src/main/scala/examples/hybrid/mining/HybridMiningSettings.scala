@@ -9,7 +9,7 @@ import net.ceedubs.ficus.readers.ValueReader
 import scorex.core._
 import scorex.core.settings.ScorexSettings.readConfigFromPath
 import scorex.core.settings._
-import scorex.core.utils.{ByteStr, ScorexLogging}
+import scorex.core.utils.ScorexLogging
 
 import scala.concurrent.duration._
 
@@ -17,7 +17,7 @@ case class HybridSettings(mining: HybridMiningSettings,
                           walletSettings: WalletSettings,
                           scorexSettings: ScorexSettings)
 
-case class WalletSettings(seed: ByteStr,
+case class WalletSettings(seed: String,
                           password: String,
                           walletDir: File)
 
