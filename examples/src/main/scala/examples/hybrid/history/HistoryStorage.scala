@@ -142,10 +142,10 @@ class HistoryStorage(storage: LSMStore,
   }
 
   private def validityKey(b: HybridBlock): ByteArrayWrapper =
-    ByteArrayWrapper(Sha256(s"validity${idToBytes(b.id)}"))
+    ByteArrayWrapper(Sha256(s"validity${b.id}"))
 
   private def blockHeightKey(blockId: ModifierId): ByteArrayWrapper =
-    ByteArrayWrapper(Sha256(s"height${idToBytes(blockId)}"))
+    ByteArrayWrapper(Sha256(s"height$blockId"))
 
   private def blockDiffKey(blockId: ModifierId, isPos: Boolean): ByteArrayWrapper =
     ByteArrayWrapper(Sha256(s"difficulties$isPos$blockId"))
