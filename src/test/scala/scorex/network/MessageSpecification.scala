@@ -79,6 +79,14 @@ class MessageSpecification extends PropSpec
         }
 
         modifiersSpec.toBytes(data) shouldEqual bytes
+
+        val modifiersSpecLimited = new ModifiersSpec(6)
+        val bytes2 = modifiersSpecLimited.toBytes(data)
+        val recovered2 = modifiersSpecLimited.parseBytes(bytes2).get
+
+        recovered2._1 shouldEqual data._1
+        (recovered2._2.keys.size == data._2.keys.size) shouldEqual false
+        recovered2._2.keys.size shouldEqual 0
       }
     }
   }
