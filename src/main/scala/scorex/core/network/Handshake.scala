@@ -24,13 +24,13 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
                           maxHandshakeSize: Int) extends Serializer[Handshake] {
 
   override def toBytes(obj: Handshake): Array[Byte] = {
-    val anb = obj.applicationName.getBytes
+    val anb = obj.applicationName.getBytes("UTF-8")
 
     val fab = obj.declaredAddress.map { isa =>
       Bytes.concat(isa.getAddress.getAddress, Ints.toByteArray(isa.getPort))
     }.getOrElse(Array[Byte]())
 
-    val nodeNameBytes = obj.nodeName.getBytes
+    val nodeNameBytes = obj.nodeName.getBytes("UTF-8")
 
     val featureBytes = obj.features.foldLeft(Array(obj.features.size.toByte)) { case (fb, f) =>
       val featId = f.featureId
@@ -59,7 +59,7 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
 
     position += 1
 
-    val an = bytesToId(bytes.slice(position, position + appNameSize))
+    val an = new String(bytes.slice(position, position + appNameSize), "UTF-8")
     position += appNameSize
 
     val av = ApplicationVersionSerializer.parseBytes(
@@ -69,7 +69,7 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
     val nodeNameSize = bytes.slice(position, position + 1).head
     position += 1
 
-    val nodeName = bytesToId(bytes.slice(position, position + nodeNameSize))
+    val nodeName = new String(bytes.slice(position, position + nodeNameSize), "UTF-8")
     position += nodeNameSize
 
     val fas = Ints.fromByteArray(bytes.slice(position, position + 4))
