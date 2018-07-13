@@ -16,9 +16,9 @@ case class KLS16Proof(m: Int,
   lazy val valid: Try[Unit] = Try {
     require(suffix.length == k, s"${suffix.length} == $k")
 
-    suffix.foldRight(Array[Byte]()) { (a, b) =>
-      if (b.nonEmpty) require(b sameElements a.id)
-      idToBytes(a.parentId)
+    suffix.foldRight[Option[ModifierId]](None) { (a, b) =>
+      b foreach (id => require(id == a.id))
+      Some(a.parentId)
     }
 
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
@@ -32,12 +32,10 @@ case class KLS16Proof(m: Int,
     require(innerchain.length >= m, s"${innerchain.length} >= $m")
     innerchain.foreach(b => require(b.realDifficulty >= difficulty, s"$b: ${b.realDifficulty} >= $difficulty"))
 
-    innerchain.foldRight(Array[Byte]()) { (a, b) =>
-      if (b.nonEmpty) {
-        require(b sameElements a.id)
-      }
+    innerchain.foldRight[Option[ModifierId]](None) { (a, b) =>
+      b foreach (id => require(id == a.id))
       //last element may not contain a.interlinks(i)
-      Try(idToBytes(a.interlinks(i))).getOrElse(Array.fill(32)(0.toByte))
+      Try(a.interlinks(i)).toOption
     }
 
     //TODO check that genesis links are correct

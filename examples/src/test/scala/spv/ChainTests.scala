@@ -3,7 +3,7 @@ package spv
 import examples.spv.simulation.SimulatorFuctions
 import examples.spv.{Header, KLS16ProofSerializer, KMZProofSerializer, SpvAlgos}
 import io.iohk.iodb.ByteArrayWrapper
-import org.scalacheck.Gen
+import org.scalacheck.{Gen, Shrink}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.ModifierId
@@ -22,6 +22,7 @@ class ChainTests extends PropSpec
   with SPVGenerators
   with SimulatorFuctions {
 
+  protected implicit def noShrink[A]: Shrink[A] = Shrink(_ => Stream.empty)
 
   private val Height = 5000
   private val Difficulty = BigInt(1)

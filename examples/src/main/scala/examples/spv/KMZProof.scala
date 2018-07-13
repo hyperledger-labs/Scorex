@@ -3,7 +3,7 @@ package examples.spv
 import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core._
 import scorex.core.serialization.Serializer
-import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core.utils.ScorexEncoding
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -13,9 +13,9 @@ case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[
     require(suffix.length >= k, "Wrong suffix length")
     prefixProofs.foreach(p => require(p.length == m, s"${p.length} == $m"))
 
-    suffix.foldRight(Array[Byte]()) { (a, b) =>
-      if (b.nonEmpty) require(b sameElements a.id)
-      idToBytes(a.parentId)
+    suffix.foldRight[Option[ModifierId]](None) { (a, b) =>
+      b foreach (id => require(id == a.id))
+      Some(a.parentId)
     }
   }
 }
@@ -69,6 +69,7 @@ object KMZProofSerializer extends Serializer[KMZProof] with ScorexEncoding {
         parseSuffixes(index + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }
     }
+
     var (index, suffix) = parseSuffixes(4 + headSuffixLength, Seq(headSuffix))
 
     val prefixHeadersLength: Int = Shorts.fromByteArray(bytes.slice(index, index + 2))
