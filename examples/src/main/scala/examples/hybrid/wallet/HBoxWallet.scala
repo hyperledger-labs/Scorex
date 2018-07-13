@@ -81,7 +81,7 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
 
     val newBoxes = changes.toAppend.filter(s => secretByPublicImage(s.box.proposition).isDefined).map(_.box).map { box =>
       val boxTransaction = modifier.transactions.find(t => t.newBoxes.exists(tb => tb.id sameElements box.id))
-      val txId = boxTransaction.map(b => idToBytes(b.id)).getOrElse(Array.fill(32)(0: Byte))
+      val txId = boxTransaction.map(b => b.id).getOrElse(bytesToId(Array.fill(32)(0: Byte)))
       val ts = boxTransaction.map(_.timestamp).getOrElse(modifier.timestamp)
       val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, ts)(PublicKey25519NoncedBoxSerializer)
       ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)

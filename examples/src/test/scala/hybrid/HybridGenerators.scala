@@ -115,7 +115,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
 
   lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
     createdAt <- positiveLongGen
-    txId <- genBytes(NodeViewModifier.ModifierIdSize)
+    txId <- modifierIdGen
     box: PublicKey25519NoncedBox <- noncedBoxGen
   } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
 
