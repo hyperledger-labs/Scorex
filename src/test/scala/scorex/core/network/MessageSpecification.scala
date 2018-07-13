@@ -68,11 +68,11 @@ class MessageSpecification extends PropSpec
       recovered._2.keys.size shouldEqual data._2.keys.size
 
       recovered._2.keys.foreach { id =>
-        data._2.keys.exists(_.sameElements(id)) shouldEqual true
+        data._2.contains(id) shouldEqual true
       }
 
       recovered._2.values.toSet.foreach { v: Array[Byte] =>
-        data._2.values.toSet.exists(_.sameElements(v)) shouldEqual true
+        data._2.values.toSet.contains(v) shouldEqual true
       }
 
       ModifiersSpec.toBytes(data) shouldEqual bytes

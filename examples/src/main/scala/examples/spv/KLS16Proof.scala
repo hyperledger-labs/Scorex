@@ -25,7 +25,7 @@ case class KLS16Proof(m: Int,
     val firstSuffix = suffix.head
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val lastInnerchain = innerchain.last
-    require(firstSuffix.interlinks(i) sameElements lastInnerchain.id)
+    require(firstSuffix.interlinks(i) == lastInnerchain.id)
 
 
     val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
@@ -48,10 +48,10 @@ case class KLS16Proof(m: Int,
     } else if (this.valid.isFailure) {
       -1
     } else {
-      val ourIndex = this.suffix.reverse.indexWhere(h => that.suffix.exists(_.id sameElements h.id))
+      val ourIndex = this.suffix.reverse.indexWhere(h => that.suffix.exists(_.id == h.id))
       if (ourIndex >= 0) {
         //there is common block in suffix
-        val theirIndex = that.suffix.reverse.indexWhere(h => this.suffix.exists(_.id sameElements h.id))
+        val theirIndex = that.suffix.reverse.indexWhere(h => this.suffix.exists(_.id == h.id))
         ourIndex - theirIndex
       } else {
         //no common block in suffix

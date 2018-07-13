@@ -119,8 +119,7 @@ object PosForger extends ScorexLogging {
 
         val txs = view.pool.take(TransactionsPerBlock).foldLeft(Seq[SimpleBoxTransaction]()) { case (collected, tx) =>
           if (view.state.validate(tx).isSuccess &&
-            tx.boxIdsToOpen.forall(id => !collected.flatMap(_.boxIdsToOpen)
-              .exists(_ sameElements id))) collected :+ tx
+            tx.boxIdsToOpen.forall(id => !collected.flatMap(_.boxIdsToOpen).contains(id))) collected :+ tx
           else collected
         }
 

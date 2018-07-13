@@ -80,7 +80,7 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
     val changes = HBoxStoredState.changes(modifier).get
 
     val newBoxes = changes.toAppend.filter(s => secretByPublicImage(s.box.proposition).isDefined).map(_.box).map { box =>
-      val boxTransaction = modifier.transactions.find(t => t.newBoxes.exists(tb => tb.id sameElements box.id))
+      val boxTransaction = modifier.transactions.find(t => t.newBoxes.exists(tb => tb.id == box.id))
       val txId = boxTransaction.map(b => b.id).getOrElse(bytesToId(Array.fill(32)(0: Byte)))
       val ts = boxTransaction.map(_.timestamp).getOrElse(modifier.timestamp)
       val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, ts)(PublicKey25519NoncedBoxSerializer)
@@ -89,7 +89,7 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
 
     val boxIdsToRemove = changes.toRemove.view.map(_.boxId).map(ByteArrayWrapper.apply)
     val newBoxIds: ByteArrayWrapper = ByteArrayWrapper(newBoxes.toArray.flatMap(_._1.data) ++
-      boxIds.filter(bi => !boxIdsToRemove.exists(_.data sameElements bi)).flatten)
+      boxIds.filter(bi => !boxIdsToRemove.exists(w => bytesToId(w.data) == bi)).flatten)
     store.update(ByteArrayWrapper(idToBytes(modifier.id)), boxIdsToRemove, Seq(BoxIdsKey -> newBoxIds) ++ newBoxes)
     log.debug(s"Successfully applied modifier to wallet: ${encoder.encode(modifier.id)}")
 
@@ -97,7 +97,7 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
   }
 
   override def rollback(to: VersionTag): Try[HBoxWallet] = Try {
-    if (store.lastVersionID.exists(_.data sameElements to)) {
+    if (store.lastVersionID.exists(w => bytesToId(w.data) == to)) {
       this
     } else {
       log.debug(s"Rolling back wallet to: ${encoder.encode(to)}")

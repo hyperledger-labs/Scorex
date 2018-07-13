@@ -187,10 +187,8 @@ trait ModifierGenerators {
   }.ensuring{blocks =>
     lazy val head = blocks.head
     lazy val headLinksValid = head match {
-      case psb: PosBlock =>
-        history.bestPowId.sameElements(psb.parentId)
-      case pwb: PowBlock =>
-        history.bestPowId.sameElements(pwb.parentId) && history.bestPosId.sameElements(pwb.prevPosId)
+      case psb: PosBlock => history.bestPowId == psb.parentId
+      case pwb: PowBlock => history.bestPowId == pwb.parentId && history.bestPosId == pwb.prevPosId
     }
     headLinksValid && history.applicableTry(head).isSuccess
   }

@@ -24,7 +24,7 @@ trait MemoryPool[TX <: Transaction, M <: MemoryPool[TX, M]] extends MempoolReade
 
   def remove(tx: TX): M
 
-  def filter(txs: Seq[TX]): M = filter(t => !txs.exists(_.id sameElements t.id))
+  def filter(txs: Seq[TX]): M = filter(t => !txs.exists(_.id == t.id))
 
   def filter(condition: TX => Boolean): M
 

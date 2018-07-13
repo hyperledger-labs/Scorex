@@ -24,7 +24,7 @@ object SpvAlgos extends ScorexEncoding {
         generateInnerchain(curDifficulty * 2, acc :+ parent.id)
       } else {
         parent.interlinks.find(pId => blockIdDifficulty(pId) >= curDifficulty) match {
-          case Some(id) if !(id sameElements genesisId) => generateInnerchain(curDifficulty * 2, acc :+ id)
+          case Some(id) if id != genesisId => generateInnerchain(curDifficulty * 2, acc :+ id)
           case _ => acc
         }
       }

@@ -115,7 +115,7 @@ class HistoryStorage(storage: LSMStore,
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def getPoWDifficulty(idOpt: Option[ModifierId]): BigInt = {
     idOpt match {
-      case Some(id) if id sameElements settings.GenesisParentId =>
+      case Some(id) if id == settings.GenesisParentId =>
         settings.initialDifficulty
       case Some(id) =>
         BigInt(storage.get(blockDiffKey(id, isPos = false)).get.data)
@@ -128,7 +128,7 @@ class HistoryStorage(storage: LSMStore,
 
   // TODO: review me .get
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-  def getPoSDifficulty(id: ModifierId): BigInt = if (id sameElements settings.GenesisParentId) {
+  def getPoSDifficulty(id: ModifierId): BigInt = if (id == settings.GenesisParentId) {
     PosForger.InitialDifficuly
   } else {
     BigInt(storage.get(blockDiffKey(id, isPos = true)).get.data)
@@ -154,7 +154,7 @@ class HistoryStorage(storage: LSMStore,
     .map(b => Longs.fromByteArray(b.data))
 
   def isGenesis(b: HybridBlock): Boolean = b match {
-    case powB: PowBlock => powB.parentId sameElements settings.GenesisParentId
+    case powB: PowBlock => powB.parentId == settings.GenesisParentId
     case posB: PosBlock => heightOf(posB.parentId).contains(1L)
   }
 }

@@ -135,13 +135,13 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     PersistentAuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
       .ensuring(newSt => boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
   } ensuring {
-    _.toOption.forall(_.version sameElements newVersion)
+    _.toOption.forall(_.version == newVersion)
   }
 
   override def maxRollbackDepth: Int = store.keepVersions
 
   override def rollbackTo(version: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
-    if (store.lastVersionID.exists(_.data sameElements version)) {
+    if (store.lastVersionID.exists(lv => bytesToId(lv.data) == version)) {
       this
     } else {
       log.debug(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")

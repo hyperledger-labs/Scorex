@@ -51,13 +51,13 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     mod match {
       case pwb: PowBlock =>
         //coinbase transaction is generated implicitly when block is applied to state, no validation needed
-        require((pwb.parentId sameElements version) || (pwb.prevPosId sameElements version)
-          || pwb.brothers.exists(_.id sameElements version), s"Incorrect state version: ${encoder.encode(version)} " +
+        require((pwb.parentId == version) || (pwb.prevPosId == version)
+          || pwb.brothers.exists(_.id == version), s"Incorrect state version: ${encoder.encode(version)} " +
           s"found, (${encoder.encode(pwb.prevPosId)} || ${encoder.encode(pwb.parentId)} ||" +
           s" ${pwb.brothers.map(b => encoder.encode(b.id))}) expected")
 
       case psb: PosBlock =>
-        require(psb.parentId sameElements version, s"Incorrect state version!: ${encoder.encode(psb.parentId)} found, " +
+        require(psb.parentId == version, s"Incorrect state version!: ${encoder.encode(psb.parentId)} found, " +
           s"${encoder.encode(version)} expected")
         //TODO/review this: if the get below is removed, some of hybrid.HybridSanity and hybrid.NodeViewHolderSpec tests fail
         closedBox(psb.generatorBox.id).get
@@ -80,12 +80,12 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     store.update(ByteArrayWrapper(versionToBytes(newVersion)), boxIdsToRemove, boxesToAdd)
     HBoxStoredState(store, newVersion)
       .ensuring(st => boxIdsToRemove.forall(box => st.closedBox(box.data).isEmpty), s"Removed box is still in state")
-  } ensuring { r => r.toOption.forall(_.version sameElements newVersion )}
+  } ensuring { r => r.toOption.forall(_.version == newVersion )}
 
   override def maxRollbackDepth: Int = store.keepVersions
 
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
-    if (store.lastVersionID.exists(_.data sameElements version)) {
+    if (store.lastVersionID.exists(lv => bytesToId(lv.data) == version)) {
       this
     } else {
       log.info(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")
