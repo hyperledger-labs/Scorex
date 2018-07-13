@@ -6,15 +6,14 @@ import examples.hybrid.blocks._
 import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.mining.HybridSettings
 import examples.hybrid.state.HBoxStoredState
-import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
+import scorex.core.ModifierId
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
-import scorex.core.{ModifierId, NodeViewModifier}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Signature
 import scorex.testkit.utils.{FileUtils, NoShrink}

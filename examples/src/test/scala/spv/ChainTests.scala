@@ -22,8 +22,6 @@ class ChainTests extends PropSpec
   with SPVGenerators
   with SimulatorFuctions {
 
-  protected implicit def noShrink[A]: Shrink[A] = Shrink(_ => Stream.empty)
-
   private val Height = 5000
   private val Difficulty = BigInt(1)
   val stateRoot: hash.Digest32 = Blake2b256("")

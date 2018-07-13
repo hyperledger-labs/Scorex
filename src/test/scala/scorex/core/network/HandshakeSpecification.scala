@@ -21,7 +21,6 @@ class HandshakeSpecification extends PropSpec
   private val feats = Seq(FullNodePeerFeature)
   private val featSerializers = Map(FullNodePeerFeature.featureId -> FullNodePeerFeature.serializer)
   private val noSerializers: PeerFeature.Serializers = Map()
-  protected implicit def noShrink[A]: Shrink[A] = Shrink(_ => Stream.empty)
 
   property("handshake should remain the same after serialization/deserialization") {
     val serializersGen = Gen.oneOf(featSerializers, noSerializers)

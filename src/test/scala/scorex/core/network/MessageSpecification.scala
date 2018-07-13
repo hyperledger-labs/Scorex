@@ -59,6 +59,7 @@ class MessageSpecification extends PropSpec
     }
   }
 
+
   property("ModifiersSpec serialization/deserialization") {
     forAll(modifiersGen) { data: (ModifierTypeId, Map[ModifierId, Array[Byte]]) =>
       val bytes = ModifiersSpec.toBytes(data)
@@ -71,8 +72,8 @@ class MessageSpecification extends PropSpec
         data._2.contains(id) shouldEqual true
       }
 
-      recovered._2.values.toSet.foreach { v: Array[Byte] =>
-        data._2.values.toSet.contains(v) shouldEqual true
+      recovered._2.values.foreach { v: Array[Byte] =>
+        data._2.values.toSet.exists(_.sameElements(v)) shouldEqual true
       }
 
       ModifiersSpec.toBytes(data) shouldEqual bytes
