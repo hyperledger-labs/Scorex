@@ -19,6 +19,7 @@ import scorex.core.{PersistentNodeViewModifier, _}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.reflect.ClassTag
 
 /**
   * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
@@ -29,17 +30,17 @@ import scala.language.postfixOps
   * @tparam TX  transaction
   * @tparam SIS SyncInfoMessage specification
   */
-class NodeViewSynchronizer[
-TX <: Transaction,
+class NodeViewSynchronizer[TX <: Transaction,
 SI <: SyncInfo,
 SIS <: SyncInfoMessageSpec[SI],
 PMOD <: PersistentNodeViewModifier,
-HR <: HistoryReader[PMOD, SI],
-MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
-                         viewHolderRef: ActorRef,
-                         syncInfoSpec: SIS,
-                         networkSettings: NetworkSettings,
-                         timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
+HR <: HistoryReader[PMOD, SI] : ClassTag,
+MR <: MempoolReader[TX] : ClassTag]
+(networkControllerRef: ActorRef,
+ viewHolderRef: ActorRef,
+ syncInfoSpec: SIS,
+ networkSettings: NetworkSettings,
+ timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
   with ScorexLogging with ScorexEncoding {
 
   import History._
@@ -106,12 +107,10 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: penalize source peer?
 
-    case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
-      //TODO isInstanceOf, type erasure
+    case ChangedHistory(reader: HR) =>
       historyReaderOpt = Some(reader)
 
-    case ChangedMempool(reader: MR@unchecked) if reader.isInstanceOf[MR] =>
-      //TODO isInstanceOf, type erasure
+    case ChangedMempool(reader: MR) =>
       mempoolReaderOpt = Some(reader)
   }
 
@@ -439,48 +438,48 @@ object NodeViewSynchronizer {
 }
 
 object NodeViewSynchronizerRef {
-  def props[
-  TX <: Transaction,
+  def props[TX <: Transaction,
   SI <: SyncInfo,
   SIS <: SyncInfoMessageSpec[SI],
   PMOD <: PersistentNodeViewModifier,
-  HR <: HistoryReader[PMOD, SI],
-  MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
-                           viewHolderRef: ActorRef,
-                           syncInfoSpec: SIS,
-                           networkSettings: NetworkSettings,
-                           timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
+  HR <: HistoryReader[PMOD, SI] : ClassTag,
+  MR <: MempoolReader[TX] : ClassTag]
+  (networkControllerRef: ActorRef,
+   viewHolderRef: ActorRef,
+   syncInfoSpec: SIS,
+   networkSettings: NetworkSettings,
+   timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new NodeViewSynchronizer[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
       networkSettings, timeProvider))
 
-  def apply[
-  TX <: Transaction,
+  def apply[TX <: Transaction,
   SI <: SyncInfo,
   SIS <: SyncInfoMessageSpec[SI],
   PMOD <: PersistentNodeViewModifier,
-  HR <: HistoryReader[PMOD, SI],
-  MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
-                           viewHolderRef: ActorRef,
-                           syncInfoSpec: SIS,
-                           networkSettings: NetworkSettings,
-                           timeProvider: NetworkTimeProvider)
-                          (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+  HR <: HistoryReader[PMOD, SI] : ClassTag,
+  MR <: MempoolReader[TX] : ClassTag]
+  (networkControllerRef: ActorRef,
+   viewHolderRef: ActorRef,
+   syncInfoSpec: SIS,
+   networkSettings: NetworkSettings,
+   timeProvider: NetworkTimeProvider)
+  (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider))
 
-  def apply[
-  TX <: Transaction,
+  def apply[TX <: Transaction,
   SI <: SyncInfo,
   SIS <: SyncInfoMessageSpec[SI],
   PMOD <: PersistentNodeViewModifier,
-  HR <: HistoryReader[PMOD, SI],
-  MR <: MempoolReader[TX]](name: String,
-                           networkControllerRef: ActorRef,
-                           viewHolderRef: ActorRef,
-                           syncInfoSpec: SIS,
-                           networkSettings: NetworkSettings,
-                           timeProvider: NetworkTimeProvider)
-                          (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+  HR <: HistoryReader[PMOD, SI] : ClassTag,
+  MR <: MempoolReader[TX] : ClassTag]
+  (name: String,
+   networkControllerRef: ActorRef,
+   viewHolderRef: ActorRef,
+   syncInfoSpec: SIS,
+   networkSettings: NetworkSettings,
+   timeProvider: NetworkTimeProvider)
+  (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider), name)
 }

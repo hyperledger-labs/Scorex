@@ -105,18 +105,16 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     validate(!condition)(error)
   }
 
-  /** Validate the first argument equals the second. This should not be used with `Id` of type `Array[Byte]`.
+  /** Validate the first argument equals the second. This should not be used with `ModifierId` of type `Array[Byte]`.
     * The `error` callback will be provided with detail on argument values for better reporting
     */
   def validateEquals[A](given: => A)(expected: => A)(error: String => Invalid): ValidationState[T] = {
-    (given, expected) match {
-      case (a: Array[_], b: Array[_]) if a sameElements b =>
-        pass(result)
-      case (_: Array[_], _) =>
-        pass(error(s"Given: $given, expected: $expected. Use validateEqualIds when comparing Arrays"))
-      case _ =>
-        validate(given == expected)(error(s"Given: $given, expected $expected"))
-    }
+    pass((given, expected) match {
+      case (a: Array[_], b: Array[_]) if a sameElements b => result
+      case (_: Array[_], _) => error(s"Given: $given, expected: $expected. Use validateEqualIds when comparing Arrays")
+      case _ if given == expected => result
+      case _ => error(s"Given: $given, expected $expected")
+    })
   }
 
   /** Validate the `id`s are equal. The `error` callback will be provided with detail on argument values
@@ -199,9 +197,11 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
 
   /** Create the next validation state as the result of given `operation` */
   def pass[R](operation: => ValidationResult[R]): ValidationState[R] = {
+    lazy val newRes = operation
     result match {
-      case Valid(_) => copy(result = operation)
-      case Invalid(_) if strategy.isFailFast => this.asInstanceOf[ValidationState[R]]
+      case Valid(_) if result == newRes => asInstanceOf[ValidationState[R]]
+      case Valid(_) => copy(result = newRes)
+      case Invalid(_) if strategy.isFailFast => asInstanceOf[ValidationState[R]]
       case invalid @ Invalid(_) => copy(result = invalid.accumulateErrors(operation))
     }
   }
