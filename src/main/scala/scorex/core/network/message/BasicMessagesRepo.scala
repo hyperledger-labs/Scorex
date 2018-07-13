@@ -83,10 +83,15 @@ class RequestModifierSpec(maxInvObjects: Int)
 }
 
 
-object ModifiersSpec extends MessageSpec[ModifiersData] {
+object ModifiersSpec {
+  val MessageCode: MessageCode = 33: Byte
+  val MessageName: String = "Modifier"
+}
+class ModifiersSpec(maxPacketSize: Int) extends MessageSpec[ModifiersData] {
+  import ModifiersSpec._
 
-  override val messageCode: MessageCode = 33: Byte
-  override val messageName: String = "Modifier"
+  override val messageCode: MessageCode = MessageCode
+  override val messageName: String = MessageName
 
   override def parseBytes(bytes: Array[Byte]): Try[ModifiersData] = Try {
     val typeId = ModifierTypeId @@ bytes.head
@@ -108,9 +113,14 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
     require(data._2.nonEmpty, "empty modifiers list")
     val typeId = data._1
     val modifiers = data._2
-    Array(typeId) ++ Ints.toByteArray(modifiers.size) ++ modifiers.map { case (id, modifier) =>
-      id ++ Ints.toByteArray(modifier.length) ++ modifier
-    }.fold(Array[Byte]())(_ ++ _)
+
+    var msgSize = 5
+    val payload: Seq[Array[Byte]] = modifiers.flatMap {case (id, modifier) =>
+      msgSize += id.length + 4 + modifier.length
+      if(msgSize < maxPacketSize) Seq(id, Ints.toByteArray(modifier.length), modifier) else Seq()
+    }.toSeq
+
+    scorex.core.utils.concatBytes(Seq(Array(typeId), Ints.toByteArray(payload.size / 3)) ++ payload)
   }
 }
 

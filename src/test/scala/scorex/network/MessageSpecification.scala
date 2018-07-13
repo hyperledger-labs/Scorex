@@ -62,8 +62,10 @@ class MessageSpecification extends PropSpec
   property("ModifiersSpec serialization/deserialization") {
     forAll(modifiersGen) { data: (ModifierTypeId, Map[ModifierId, Array[Byte]]) =>
       whenever(data._2.nonEmpty && data._2.forall { case (id, m) => id.length == NodeViewModifier.ModifierIdSize && m.length > 0 }) {
-        val bytes = ModifiersSpec.toBytes(data)
-        val recovered = ModifiersSpec.parseBytes(bytes).get
+        val modifiersSpec = new ModifiersSpec(1024 * 1024)
+
+        val bytes = modifiersSpec.toBytes(data)
+        val recovered = modifiersSpec.parseBytes(bytes).get
 
         recovered._1 shouldEqual data._1
         recovered._2.keys.size shouldEqual data._2.keys.size
@@ -76,7 +78,7 @@ class MessageSpecification extends PropSpec
           data._2.values.toSet.exists(_.sameElements(v)) shouldEqual true
         }
 
-        ModifiersSpec.toBytes(data) shouldEqual bytes
+        modifiersSpec.toBytes(data) shouldEqual bytes
       }
     }
   }
