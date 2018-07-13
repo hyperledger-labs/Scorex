@@ -40,7 +40,7 @@ trait ModifierValidator {
   /** report non-recoverable modifier error that could be fixed by retries and requires modifier change */
   def fatal(errorMessage: String): Invalid = ModifierValidator.fatal(errorMessage)
 
-  /** unsuccessful validation with a given error*/
+  /** unsuccessful validation with a given error */
   def invalid(error: ModifierError): Invalid = ModifierValidator.invalid(error)
 
   /** successful validation */
@@ -48,7 +48,7 @@ trait ModifierValidator {
 
 }
 
-object ModifierValidator extends ScorexLogging  {
+object ModifierValidator extends ScorexLogging {
 
   /** Start validation in Fail-Fast mode */
   def failFast(implicit e: ScorexEncoder): ValidationState[Unit] = {
@@ -94,6 +94,7 @@ object ModifierValidator extends ScorexLogging  {
   val success: Valid[Unit] = Valid(())
 
   private def msg(descr: String, e: Throwable): String = msg(descr, Option(e.getMessage).getOrElse(e.toString))
+
   private def msg(description: String, detail: String): String = s"$description: $detail"
 }
 
@@ -111,7 +112,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   def validateEquals[A](given: => A)(expected: => A)(error: String => Invalid): ValidationState[T] = {
     pass((given, expected) match {
       case (a: Array[_], b: Array[_]) if a sameElements b => result
-      case (_: Array[_], _) => error(s"Given: $given, expected: $expected. Use validateEqualIds when comparing Arrays")
+      case (_: Array[_], _) => error(s"Given: $given, expected: $expected.")
       case _ if given == expected => result
       case _ => error(s"Given: $given, expected $expected")
     })
@@ -202,7 +203,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
       case Valid(_) if result == newRes => asInstanceOf[ValidationState[R]]
       case Valid(_) => copy(result = newRes)
       case Invalid(_) if strategy.isFailFast => asInstanceOf[ValidationState[R]]
-      case invalid @ Invalid(_) => copy(result = invalid.accumulateErrors(operation))
+      case invalid@Invalid(_) => copy(result = invalid.accumulateErrors(operation))
     }
   }
 
@@ -218,6 +219,12 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     */
   def demandEqualIds(given: => ModifierId, expected: => ModifierId, fatalError: String): ValidationState[T] = {
     validateEqualIds(given, expected)(d => ModifierValidator.fatal(fatalError, d))
+  }
+
+  /** Shortcut `require`-like method to validate the arrays are equal. Otherwise returns fatal error
+    */
+  def demandEqualArrays(given: => Array[Byte], expected: => Array[Byte], fatalError: String): ValidationState[T] = {
+    validateEquals(given)(expected)(d => ModifierValidator.fatal(fatalError, d))
   }
 
   /** Shortcut `require`-like method for the `Try` validation with fatal error
