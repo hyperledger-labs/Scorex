@@ -1,6 +1,6 @@
 package examples.trimchain.modifiers
 
-import com.google.common.primitives.Longs
+import com.google.common.primitives.{Bytes, Longs}
 import examples.trimchain.core._
 import io.circe.Encoder
 import io.circe.syntax._
@@ -46,8 +46,8 @@ object BlockHeader extends ScorexEncoding {
 object BlockHeaderSerializer extends Serializer[BlockHeader] {
   private val ds = Constants.hashfn.DigestSize
 
-  override def toBytes(obj: BlockHeader): Array[Byte] = idToBytes(obj.parentId) ++ obj.stateRoot ++ obj.txRoot ++
-    Longs.toByteArray(obj.powNonce) ++ TicketSerializer.toBytes(obj.ticket)
+  override def toBytes(obj: BlockHeader): Array[Byte] = Bytes.concat(idToBytes(obj.parentId), obj.stateRoot, obj.txRoot,
+    Longs.toByteArray(obj.powNonce), TicketSerializer.toBytes(obj.ticket))
 
 
   override def parseBytes(bytes: Array[Byte]): Try[BlockHeader] = Try {

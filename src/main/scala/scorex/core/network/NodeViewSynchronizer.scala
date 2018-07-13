@@ -219,7 +219,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   protected def incorrectModifiers: Receive = {
     case IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable) =>
-      log.warn(s"Incorect modifier ${encoder.encode(id.getBytes("UTF-8"))} received: ${error.getMessage}")
+      log.warn(s"Incorect modifier ${encoder.encode(id)} received: ${error.getMessage}")
       statusKeeper.incorrectBytes(id)
       penalizeMisbehavingPeer(source)
   }

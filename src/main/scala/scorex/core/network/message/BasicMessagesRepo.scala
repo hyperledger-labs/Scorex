@@ -7,7 +7,7 @@ import java.util
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
+import scorex.core._
 
 import scala.util.Try
 
@@ -49,7 +49,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
     require(count <= maxInvObjects, s"more invs than $maxInvObjects in a message")
 
     val elems = (0 until count).map { c =>
-       new String(bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize))
+      bytesToId(bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize))
     }
 
     typeId -> ModifierId @@ elems
@@ -60,7 +60,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
     require(data._2.size <= maxInvObjects, s"more invs than $maxInvObjects in a message")
     data._2.foreach(e => require(e.length == NodeViewModifier.ModifierIdSize))
 
-    Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(data._2.map(_.getBytes("UTF-8"))))
+    Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(data._2.map(d => idToBytes(d))))
   }
 }
 
@@ -99,7 +99,7 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
     val (_, seq) = (0 until count).foldLeft(0 -> Seq[(ModifierId, Array[Byte])]()) {
       case ((pos, collected), _) =>
 
-        val id = ModifierId @@ new String(objBytes.slice(pos, pos + NodeViewModifier.ModifierIdSize))
+        val id = bytesToId(objBytes.slice(pos, pos + NodeViewModifier.ModifierIdSize))
         val objBytesCnt = Ints.fromByteArray(objBytes.slice(pos + NodeViewModifier.ModifierIdSize, pos + NodeViewModifier.ModifierIdSize + 4))
         val obj = objBytes.slice(pos + NodeViewModifier.ModifierIdSize + 4, pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt)
 
@@ -113,7 +113,7 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
     val typeId = data._1
     val modifiers = data._2
     Array(typeId) ++ Ints.toByteArray(modifiers.size) ++ modifiers.map { case (id, modifier) =>
-      id.getBytes("UTF-8") ++ Ints.toByteArray(modifier.length) ++ modifier
+      idToBytes(id) ++ Ints.toByteArray(modifier.length) ++ modifier
     }.fold(Array[Byte]())(_ ++ _)
   }
 }

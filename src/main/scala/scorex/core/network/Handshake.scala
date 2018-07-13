@@ -4,7 +4,9 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import com.google.common.primitives.{Bytes, Ints, Longs, Shorts}
 import scorex.core.app.{ApplicationVersionSerializer, Version}
+import scorex.core.bytesToId
 import scorex.core.serialization.Serializer
+
 import scala.util.Try
 
 case class Handshake(applicationName: String,
@@ -57,7 +59,7 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
 
     position += 1
 
-    val an = new String(bytes.slice(position, position + appNameSize))
+    val an = bytesToId(bytes.slice(position, position + appNameSize))
     position += appNameSize
 
     val av = ApplicationVersionSerializer.parseBytes(
@@ -67,7 +69,7 @@ class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <
     val nodeNameSize = bytes.slice(position, position + 1).head
     position += 1
 
-    val nodeName = new String(bytes.slice(position, position + nodeNameSize))
+    val nodeName = bytesToId(bytes.slice(position, position + nodeNameSize))
     position += nodeNameSize
 
     val fas = Ints.fromByteArray(bytes.slice(position, position + 4))

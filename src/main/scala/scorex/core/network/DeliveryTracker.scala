@@ -114,6 +114,6 @@ class DeliveryTracker(system: ActorSystem,
   }
 
   class StopExpectingError(mid: ModifierId, checks: Int)
-    extends Error(s"Stop expecting ${encoder.encode(mid.getBytes("UTF-8"))} due to exceeded number of retries $checks")
+    extends Error(s"Stop expecting ${encoder.encode(mid)} due to exceeded number of retries $checks")
 
 }

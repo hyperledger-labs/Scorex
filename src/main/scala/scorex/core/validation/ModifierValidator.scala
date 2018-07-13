@@ -3,9 +3,8 @@ package scorex.core.validation
 
 import scorex.core.ModifierId
 import scorex.core.consensus.ModifierSemanticValidity
-import scorex.core.utils.ScorexLogging
+import scorex.core.utils.{ScorexEncoder, ScorexLogging}
 import scorex.core.validation.ValidationResult._
-import scorex.crypto.encode.BytesEncoder
 
 import scala.util.Try
 
@@ -27,7 +26,7 @@ import scala.util.Try
 trait ModifierValidator {
 
   /** Encoder from bytes to string and back for logging */
-  implicit val encoder: BytesEncoder
+  implicit val encoder: ScorexEncoder
 
   /** Start validation in Fail-Fast mode */
   def failFast: ValidationState[Unit] = ModifierValidator.failFast
@@ -52,12 +51,12 @@ trait ModifierValidator {
 object ModifierValidator extends ScorexLogging  {
 
   /** Start validation in Fail-Fast mode */
-  def failFast(implicit e: BytesEncoder): ValidationState[Unit] = {
+  def failFast(implicit e: ScorexEncoder): ValidationState[Unit] = {
     ValidationState(ModifierValidator.success, ValidationStrategy.FailFast)(e)
   }
 
   /** Start validation accumulating all the errors */
-  def accumulateErrors(implicit e: BytesEncoder): ValidationState[Unit] = {
+  def accumulateErrors(implicit e: ScorexEncoder): ValidationState[Unit] = {
     ValidationState(ModifierValidator.success, ValidationStrategy.AccumulateErrors)(e)
   }
 
@@ -99,7 +98,7 @@ object ModifierValidator extends ScorexLogging  {
 }
 
 /** This is the place where all the validation DSL lives */
-case class ValidationState[T](result: ValidationResult[T], strategy: ValidationStrategy)(implicit e: BytesEncoder) {
+case class ValidationState[T](result: ValidationResult[T], strategy: ValidationStrategy)(implicit e: ScorexEncoder) {
 
   /** Reverse condition: Validate the condition is `false` or else return the `error` given */
   def validateNot(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
@@ -125,7 +124,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   def validateEqualIds(given: => ModifierId, expected: => ModifierId)
                       (error: String => Invalid): ValidationState[T] = {
     validate(given == expected) {
-      error(s"Given: ${e.encode(given.getBytes("UTF-8"))}, expected ${e.encode(expected.getBytes("UTF-8"))}")
+      error(s"Given: ${e.encode(given)}, expected ${e.encode(expected)}")
     }
   }
 

@@ -2,7 +2,7 @@ package scorex.core.consensus
 
 import scorex.core._
 import scorex.core.consensus.History.ProgressInfo
-import scorex.crypto.encode.BytesEncoder
+import scorex.core.utils.ScorexEncoder
 
 import scala.util.Try
 
@@ -80,7 +80,7 @@ object History {
                                                             toRemove: Seq[PM],
                                                             toApply: Seq[PM],
                                                             toDownload: Seq[(ModifierTypeId, ModifierId)])
-                                                           (implicit encoder: BytesEncoder) {
+                                                           (implicit encoder: ScorexEncoder) {
 
     require(branchPoint.isDefined == toRemove.nonEmpty, s"Branch point should be defined for non-empty toRemove," +
       s" ${branchPoint.isDefined} == ${toRemove.nonEmpty} given")
@@ -88,7 +88,7 @@ object History {
     lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
 
     override def toString: String = {
-      s"ProgressInfo(BranchPoint: ${branchPoint.map(id => encoder.encode(id.getBytes("UTF-8")))}, " +
+      s"ProgressInfo(BranchPoint: ${branchPoint.map(id => encoder.encode(id))}, " +
         s" to remove: ${toRemove.map(_.encodedId)}, to apply: ${toApply.map(_.encodedId)})"
     }
   }

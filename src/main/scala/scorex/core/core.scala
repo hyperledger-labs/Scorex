@@ -1,6 +1,7 @@
 package scorex
 
 import scorex.core.network.message.BasicMsgDataTypes.InvData
+import scorex.core.utils.ScorexEncoder
 import scorex.crypto.encode.BytesEncoder
 import supertagged.TaggedType
 
@@ -22,20 +23,20 @@ package object core {
   type VersionTag = VersionTag.Type
 
   def idsToString(ids: Seq[(ModifierTypeId, ModifierId)])
-                 (implicit encoder: BytesEncoder): String = (ids.headOption, ids.lastOption) match {
+                 (implicit encoder: ScorexEncoder): String = (ids.headOption, ids.lastOption) match {
     case (Some(f), Some(l)) if f._2 == l._2 =>
-      s"[(${f._1},${encoder.encode(f._2.getBytes("UTF-8"))})]"
+      s"[(${f._1},${encoder.encode(f._2)})]"
     case (Some(f), Some(l)) =>
-      s"[(${f._1},${encoder.encode(f._2.getBytes("UTF-8"))})..(${l._1},${encoder.encode(l._2.getBytes("UTF-8"))})]"
+      s"[(${f._1},${encoder.encode(f._2)})..(${l._1},${encoder.encode(l._2)})]"
     case _ =>
       "[]"
   }
 
-  def idsToString(modifierType: ModifierTypeId, ids: Seq[ModifierId])(implicit encoder: BytesEncoder): String = {
+  def idsToString(modifierType: ModifierTypeId, ids: Seq[ModifierId])(implicit encoder: ScorexEncoder): String = {
     idsToString(ids.map(id => (modifierType, id)))
   }
 
-  def idsToString(invData: InvData)(implicit encoder: BytesEncoder): String = idsToString(invData._1, invData._2)
+  def idsToString(invData: InvData)(implicit encoder: ScorexEncoder): String = idsToString(invData._1, invData._2)
 
   def bytesToId(bytes: Array[Byte]): ModifierId = ModifierId @@ new String(bytes, "UTF-8")
 

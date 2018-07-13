@@ -1,7 +1,7 @@
 package examples.spv
 
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.ModifierId
+import scorex.core.{ModifierId, idToBytes}
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 
 import scala.annotation.tailrec
@@ -10,7 +10,7 @@ import scala.util.Try
 object SpvAlgos extends ScorexEncoding {
 
   def blockIdDifficulty(id: ModifierId): BigInt = {
-    val blockTarget = BigInt(1, id.getBytes("UTF-8"))
+    val blockTarget = BigInt(1, idToBytes(id))
     examples.spv.Constants.MaxTarget / blockTarget
   }
 
@@ -119,9 +119,9 @@ object SpvAlgos extends ScorexEncoding {
     val firstSuffix = suffix.head
 
     //TODO make efficient
-    val blockchainMap: Map[ByteArrayWrapper, Header] = blockchain.map(b => ByteArrayWrapper(b.id.getBytes("UTF-8")) -> b).toMap
+    val blockchainMap: Map[ModifierId, Header] = blockchain.map(b => b.id -> b).toMap
 
-    def headerById(id: ModifierId): Header = blockchainMap(ByteArrayWrapper(id.getBytes("UTF-8")))
+    def headerById(id: ModifierId): Header = blockchainMap(id)
 
     @tailrec
     def constructProof(i: Int): (Int, Seq[Header]) = {

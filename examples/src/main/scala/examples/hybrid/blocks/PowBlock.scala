@@ -29,8 +29,8 @@ class PowBlockHeader(
   import PowBlockHeader._
 
   lazy val headerBytes: Array[Byte] =
-    parentId.getBytes("UTF-8") ++
-      prevPosId.getBytes("UTF-8") ++
+    idToBytes(parentId) ++
+      idToBytes(prevPosId) ++
       Longs.toByteArray(timestamp) ++
       Longs.toByteArray(nonce) ++
       Ints.toByteArray(brothersCount) ++
@@ -39,7 +39,7 @@ class PowBlockHeader(
 
   def correctWork(difficulty: BigInt, s: HybridMiningSettings): Boolean = correctWorkDone(id, difficulty, s)
 
-  lazy val id: ModifierId = ModifierId @@ new String(Blake2b256(headerBytes))
+  lazy val id: ModifierId = bytesToId(Blake2b256(headerBytes))
 
   override lazy val toString: String = s"PowBlockHeader(id: ${encoder.encode(id)})" +
     s"(parentId: ${encoder.encode(parentId)}, posParentId: ${encoder.encode(prevPosId)}, time: $timestamp, " +
@@ -52,8 +52,8 @@ object PowBlockHeader {
 
   def parse(bytes: Array[Byte]): Try[PowBlockHeader] = Try {
     require(bytes.length == PowHeaderSize)
-    val parentId = ModifierId @@ new String(bytes.slice(0, 32))
-    val prevPosId = ModifierId @@ new String(bytes.slice(32, 64))
+    val parentId = bytesToId(bytes.slice(0, 32))
+    val prevPosId = bytesToId(bytes.slice(32, 64))
     val timestamp = Longs.fromByteArray(bytes.slice(64, 72))
     val nonce = Longs.fromByteArray(bytes.slice(72, 80))
     val brothersCount = Ints.fromByteArray(bytes.slice(80, 84))
@@ -65,7 +65,7 @@ object PowBlockHeader {
 
   def correctWorkDone(id: ModifierId, difficulty: BigInt, s: HybridMiningSettings): Boolean = {
     val target = s.MaxTarget / difficulty
-    BigInt(1, id.getBytes("UTF-8")) < target
+    BigInt(1, idToBytes(id)) < target
   }
 }
 

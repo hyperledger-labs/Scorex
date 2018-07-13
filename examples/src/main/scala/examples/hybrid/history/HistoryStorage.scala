@@ -4,7 +4,7 @@ import com.google.common.primitives.Longs
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{HybridMiningSettings, PosForger}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.ModifierId
+import scorex.core._
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.consensus.ModifierSemanticValidity.{Absent, Unknown}
 import scorex.core.utils.ScorexLogging
@@ -23,10 +23,10 @@ class HistoryStorage(storage: LSMStore,
 
   def bestChainScore: Long = height
 
-  def bestPowId: ModifierId = storage.get(bestPowIdKey).map(d => ModifierId @@ new String(d.data))
+  def bestPowId: ModifierId = storage.get(bestPowIdKey).map(d => bytesToId(d.data))
     .getOrElse(settings.GenesisParentId)
 
-  def bestPosId: ModifierId = storage.get(bestPosIdKey).map(d => ModifierId @@ new String(d.data))
+  def bestPosId: ModifierId = storage.get(bestPosIdKey).map(d => bytesToId(d.data))
     .getOrElse(settings.GenesisParentId)
 
   // TODO: review me .get
@@ -44,7 +44,7 @@ class HistoryStorage(storage: LSMStore,
   }
 
   def modifierById(blockId: ModifierId): Option[HybridBlock] = {
-    storage.get(ByteArrayWrapper(blockId.getBytes("UTF-8"))).flatMap { bw =>
+    storage.get(ByteArrayWrapper(idToBytes(blockId))).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
       val parsed: Try[HybridBlock] = mtypeId match {
@@ -73,7 +73,7 @@ class HistoryStorage(storage: LSMStore,
   }
 
   def updateValidity(b: HybridBlock, status: ModifierSemanticValidity): Unit = {
-    val version = ByteArrayWrapper(Sha256(scala.util.Random.nextString(20).getBytes("UTF-8")))
+    val version = ByteArrayWrapper(scorex.core.utils.randomBytes(32))
     storage.update(version, Seq(), Seq(validityKey(b) -> ByteArrayWrapper(Array(status.code))))
   }
 
@@ -96,9 +96,9 @@ class HistoryStorage(storage: LSMStore,
 
     val bestBlockSeq: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] = b match {
       case powBlock: PowBlock if isBest =>
-        Seq(bestPowIdKey -> ByteArrayWrapper(powBlock.id.getBytes("UTF-8")), bestPosIdKey -> ByteArrayWrapper(powBlock.prevPosId.getBytes("UTF-8")))
+        Seq(bestPowIdKey -> ByteArrayWrapper(idToBytes(powBlock.id)), bestPosIdKey -> ByteArrayWrapper(idToBytes(powBlock.prevPosId)))
       case posBlock: PosBlock if isBest =>
-        Seq(bestPowIdKey -> ByteArrayWrapper(posBlock.parentId.getBytes("UTF-8")), bestPosIdKey -> ByteArrayWrapper(posBlock.id.getBytes("UTF-8")))
+        Seq(bestPowIdKey -> ByteArrayWrapper(idToBytes(posBlock.parentId)), bestPosIdKey -> ByteArrayWrapper(idToBytes(posBlock.id)))
       case _ => Seq()
     }
 
@@ -108,7 +108,7 @@ class HistoryStorage(storage: LSMStore,
       blockDiff ++
         blockH ++
         bestBlockSeq ++
-        Seq(ByteArrayWrapper(b.id.getBytes("UTF-8")) -> ByteArrayWrapper(typeByte +: b.bytes)))
+        Seq(ByteArrayWrapper(idToBytes(b.id)) -> ByteArrayWrapper(typeByte +: b.bytes)))
   }
 
   // TODO: review me .get
@@ -142,10 +142,10 @@ class HistoryStorage(storage: LSMStore,
   }
 
   private def validityKey(b: HybridBlock): ByteArrayWrapper =
-    ByteArrayWrapper(Sha256("validity".getBytes("UTF-8") ++ b.id.getBytes("UTF-8")))
+    ByteArrayWrapper(Sha256(s"validity${idToBytes(b.id)}"))
 
   private def blockHeightKey(blockId: ModifierId): ByteArrayWrapper =
-    ByteArrayWrapper(Sha256("height".getBytes("UTF-8") ++ blockId.getBytes("UTF-8")))
+    ByteArrayWrapper(Sha256(s"height${idToBytes(blockId)}"))
 
   private def blockDiffKey(blockId: ModifierId, isPos: Boolean): ByteArrayWrapper =
     ByteArrayWrapper(Sha256(s"difficulties$isPos$blockId"))

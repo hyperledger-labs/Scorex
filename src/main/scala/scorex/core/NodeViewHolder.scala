@@ -341,7 +341,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
         modifiersData._2.foreach { r =>
           companion.parseBytes(r._2) match {
             case Success(mod) if r._1 != mod.id =>
-              val e = new Error(s"Declared id ${encoder.encode(r._1.getBytes("UTF-8"))} is not equals to calculated one ${mod.encodedId}")
+              val e = new Error(s"Declared id ${encoder.encode(r._1)} is not equals to calculated one ${mod.encodedId}")
               sender() ! IncorrectModifierFromRemote(remote, r._1, e)
             case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
               txModify(tx)

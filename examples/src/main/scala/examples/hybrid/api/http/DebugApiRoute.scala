@@ -8,7 +8,7 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.syntax._
-import scorex.core.ModifierId
+import scorex.core.{ModifierId, bytesToId}
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
@@ -29,7 +29,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
     (get & path("delay" / Segment / IntNumber)) { case (encodedId, count) =>
       withNodeView { view =>
         val result: Try[String] = for {
-          id <- encoder.decode(encodedId).map(id => ModifierId @@ new String(id))
+          id <- encoder.decode(encodedId).map(id => bytesToId(id))
           delay <- view.history.averageDelay(id, count)
         } yield delay.toString
         ApiResponse("delay" -> result.getOrElse("Undefined"))
@@ -49,7 +49,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
         "bestPoS" -> encoder.encode(view.history.bestPosId).asJson,
         "bestPoW" -> encoder.encode(view.history.bestPowId).asJson,
         "bestBlock" -> bestBlockJson,
-        "stateVersion" -> encoder.encode(view.state.version.getBytes("UTF-8")).asJson
+        "stateVersion" -> encoder.encode(view.state.version).asJson
       )
     }
   }
