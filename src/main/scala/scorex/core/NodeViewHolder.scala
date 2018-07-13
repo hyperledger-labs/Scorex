@@ -78,9 +78,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     */
   val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
 
-  // todo remove
-  protected def key(id: ModifierId): ModifierId = id
-
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
@@ -161,7 +158,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     val appliedTxs = blocksApplied.flatMap(extractTransactions)
 
     memPool.putWithoutCheck(rolledBackTxs).filter { tx =>
-      !appliedTxs.exists(t => t.id sameElements tx.id) && {
+      !appliedTxs.exists(_.id == tx.id) && {
         state match {
           case v: TransactionValidation[TX] => v.validate(tx).isSuccess
           case _ => true
@@ -328,7 +325,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
         case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
           memoryPool().notIn(modifierIds)
         case _ =>
-          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(key(mid)))
+          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
       }
 
       sender() ! RequestFromLocal(peer, modifierTypeId, ids)
@@ -346,12 +343,12 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
             case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
               txModify(tx)
             case Success(pmod: PMOD@unchecked) =>
-              if (modifiersCache.contains(key(pmod.id))) {
+              if (modifiersCache.contains(pmod.id)) {
                 log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
               } else if (history().contains(pmod)) {
                 log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
               } else {
-                modifiersCache.put(key(pmod.id), pmod)
+                modifiersCache.put(pmod.id, pmod)
               }
             case Failure(e) =>
               sender() ! IncorrectModifierFromRemote(remote, r._1, e)
