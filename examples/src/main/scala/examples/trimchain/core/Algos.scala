@@ -90,7 +90,7 @@ object Algos extends App {
       val ids = (0 until NElementsInProof) map (elementIndex => hashfn(seed ++ minerKey ++
         Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
 
-      val v = new BatchAVLVerifier[Digest32, Blake2b256.type](ADDigest @@ idToBytes(sroot), pp, keyLength = BoxKeyLength,
+      val v = new BatchAVLVerifier[Digest32, Blake2b256.type](ADDigest @@ versionToBytes(sroot), pp, keyLength = BoxKeyLength,
         valueLengthOpt = Some(BoxLength))
 
       ids.foreach(id => v.performOneOperation(Lookup(ADKey @@ id)).get)
@@ -118,7 +118,7 @@ object Algos extends App {
 
   val headerOpt: Option[BlockHeader] = pow(defaultId,
     TransactionsRoot @@ Array.fill(32)(0: Byte),
-    StateRoot @@ idToBytes(u2.rootHash),
+    StateRoot @@ versionToBytes(u2.rootHash),
     pk1.pubKeyBytes,
     IndexedSeq(u2),
     Constants.Difficulty, 500).get

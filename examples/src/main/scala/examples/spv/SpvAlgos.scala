@@ -1,8 +1,7 @@
 package examples.spv
 
-import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.{ModifierId, idToBytes}
-import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core._
+import scorex.core.utils.ScorexEncoding
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -44,6 +43,7 @@ object SpvAlgos extends ScorexEncoding {
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val i = prefix.last.interlinks.size - 1
     val blockchainMap: Map[ModifierId, Header] = C.map(b => b.id -> b).toMap
+
     def headerById(id: ModifierId): Header = blockchainMap(id)
 
     //Algorithm 3 from the KMZ paper
@@ -97,6 +97,7 @@ object SpvAlgos extends ScorexEncoding {
         stepThroughInnerchain(newB, collected :+ newB, boundary)
       }
     }
+
     stepThroughInnerchain(startBlock, Seq(), boundary).reverse
   }
 

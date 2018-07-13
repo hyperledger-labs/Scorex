@@ -28,7 +28,7 @@ trait Simulators {
 
     // TODO: review me - .get.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-    val h = Algos.pow(defaultId, txsHash, StateRoot @@ idToBytes(currentUtxo.rootHash), minerPubKey.pubKeyBytes,
+    val h = Algos.pow(defaultId, txsHash, StateRoot @@ versionToBytes(currentUtxo.rootHash), minerPubKey.pubKeyBytes,
       miningUtxos, Constants.Difficulty, 10000).get.get
 
     val newRichBoxes = txs.flatMap(_.newBoxes).filter(_.value > 5)

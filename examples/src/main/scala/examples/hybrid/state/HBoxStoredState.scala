@@ -26,7 +26,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HBoxStoredState] with ScorexLogging with ScorexEncoding {
 
   require(store.lastVersionID.map(w => bytesToId(w.data)).getOrElse(version) == version,
-    s"${encoder.encode(store.lastVersionID.map(_.data).getOrElse(idToBytes(version)))} != ${encoder.encode(idToBytes(version))}")
+    s"${encoder.encode(store.lastVersionID.map(_.data).getOrElse(versionToBytes(version)))} != ${encoder.encode(versionToBytes(version))}")
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridBlock
@@ -77,7 +77,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     log.trace(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encode(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => encoder.encode(b.data))}, " +
       s"adding boxes ${boxesToAdd.map(b => encoder.encode(b._1.data))}")
-    store.update(ByteArrayWrapper(idToBytes(newVersion)), boxIdsToRemove, boxesToAdd)
+    store.update(ByteArrayWrapper(versionToBytes(newVersion)), boxIdsToRemove, boxesToAdd)
     HBoxStoredState(store, newVersion)
       .ensuring(st => boxIdsToRemove.forall(box => st.closedBox(box.data).isEmpty), s"Removed box is still in state")
   } ensuring { r => r.toOption.forall(_.version sameElements newVersion )}
@@ -89,7 +89,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       this
     } else {
       log.info(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")
-      store.rollback(ByteArrayWrapper(idToBytes(version)))
+      store.rollback(ByteArrayWrapper(versionToBytes(version)))
       new HBoxStoredState(store, version)
     }
   }.recoverWith{case e =>

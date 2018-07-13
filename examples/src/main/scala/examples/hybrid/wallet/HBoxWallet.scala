@@ -8,7 +8,7 @@ import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.mining.WalletSettings
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.{VersionTag, idToBytes}
+import scorex.core._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
@@ -101,7 +101,7 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
       this
     } else {
       log.debug(s"Rolling back wallet to: ${encoder.encode(to)}")
-      store.rollback(ByteArrayWrapper(idToBytes(to)))
+      store.rollback(ByteArrayWrapper(versionToBytes(to)))
       log.debug(s"Successfully rolled back wallet to: ${encoder.encode(to)}")
       HBoxWallet(seed, store)
     }

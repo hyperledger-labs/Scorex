@@ -1,7 +1,7 @@
 package examples.spv
 
 import com.google.common.primitives.{Bytes, Shorts}
-import scorex.core.idToBytes
+import scorex.core._
 import scorex.core.serialization.Serializer
 
 import scala.annotation.tailrec

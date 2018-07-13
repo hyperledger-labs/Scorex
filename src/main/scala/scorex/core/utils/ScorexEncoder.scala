@@ -15,7 +15,7 @@ trait ScorexEncoder extends BytesEncoder {
   override def decode(input: String): Try[Array[Byte]] = Base16.decode(input)
 
   @inline
-  def encode(input: String): String = Base16.encode(input.getBytes("UTF-8"))
+  def encode(input: String): String = input
 
 }
 

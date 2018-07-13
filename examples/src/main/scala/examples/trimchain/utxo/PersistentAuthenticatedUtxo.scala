@@ -130,7 +130,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     val toRemove = boxIdsToRemove.map(ByteArrayWrapper.apply)
     val toAdd = boxesToAdd.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    store.update(ByteArrayWrapper(idToBytes(newVersion)), toRemove, toAdd)
+    store.update(ByteArrayWrapper(versionToBytes(newVersion)), toRemove, toAdd)
 
     PersistentAuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
       .ensuring(newSt => boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
@@ -145,7 +145,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
       this
     } else {
       log.debug(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")
-      store.rollback(ByteArrayWrapper(idToBytes(version)))
+      store.rollback(ByteArrayWrapper(versionToBytes(version)))
       PersistentAuthenticatedUtxo(store, store.getAll().size, None, version) //todo: more efficient rollback, rollback prover
     }
   }

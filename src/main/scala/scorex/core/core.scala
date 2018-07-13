@@ -1,8 +1,9 @@
 package scorex
 
+import scorex.core.ModifierId
 import scorex.core.network.message.BasicMsgDataTypes.InvData
 import scorex.core.utils.ScorexEncoder
-import scorex.crypto.encode.BytesEncoder
+import scorex.crypto.encode.{Base16, BytesEncoder}
 import supertagged.TaggedType
 
 import scala.language.implicitConversions
@@ -38,8 +39,10 @@ package object core {
 
   def idsToString(invData: InvData)(implicit encoder: ScorexEncoder): String = idsToString(invData._1, invData._2)
 
-  def bytesToId(bytes: Array[Byte]): ModifierId = ModifierId @@ new String(bytes, "UTF-8")
+  def bytesToId(bytes: Array[Byte]): ModifierId = ModifierId @@ Base16.encode(bytes)
 
-  def idToBytes(id: String): Array[Byte] = id.getBytes("UTF-8")
+  def idToBytes(id: ModifierId): Array[Byte] = Base16.decode(id).get
+
+  def versionToBytes(id: VersionTag): Array[Byte] = Base16.decode(id).get
 
 }
