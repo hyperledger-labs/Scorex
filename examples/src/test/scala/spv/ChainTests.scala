@@ -1,6 +1,6 @@
 package spv
 
-import examples.spv.simulation.SimulatorFuctions
+import examples.spv.simulation.SimulatorFunctions
 import examples.spv.{Header, KLS16ProofSerializer, KMZProofSerializer, SpvAlgos}
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.{Gen, Shrink}
@@ -20,7 +20,7 @@ class ChainTests extends PropSpec
   with GeneratorDrivenPropertyChecks
   with Matchers
   with SPVGenerators
-  with SimulatorFuctions {
+  with SimulatorFunctions {
 
   private val Height = 5000
   private val Difficulty = BigInt(1)

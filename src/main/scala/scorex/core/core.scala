@@ -1,6 +1,6 @@
 package scorex
 
-import scorex.core.ModifierId
+import scorex.core.{ModifierId, VersionTag}
 import scorex.core.network.message.BasicMsgDataTypes.InvData
 import scorex.core.utils.ScorexEncoder
 import scorex.crypto.encode.{Base16, BytesEncoder}
@@ -44,5 +44,7 @@ package object core {
   def idToBytes(id: ModifierId): Array[Byte] = Base16.decode(id).get
 
   def versionToBytes(id: VersionTag): Array[Byte] = Base16.decode(id).get
+
+  def bytesToVersion(bytes: Array[Byte]): VersionTag = VersionTag @@ Base16.encode(bytes)
 
 }

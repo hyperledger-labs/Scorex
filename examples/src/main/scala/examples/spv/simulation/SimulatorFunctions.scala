@@ -13,7 +13,7 @@ import scorex.core._
 import scala.annotation.tailrec
 import scala.util.Random
 
-trait SimulatorFuctions {
+trait SimulatorFunctions {
   val emptyBytes = Array.fill(32)(0: Byte)
   val defaultId: ModifierId with VersionTag = VersionTag @@ bytesToId(emptyBytes)
 

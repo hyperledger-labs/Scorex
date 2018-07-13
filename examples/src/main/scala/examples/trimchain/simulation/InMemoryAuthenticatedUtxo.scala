@@ -39,7 +39,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
     p
   }
 
-  lazy val rootHash: VersionTag = VersionTag @@ bytesToId(prover.digest)
+  lazy val rootHash: VersionTag = bytesToVersion(prover.digest)
 
   override type NVCT = InMemoryAuthenticatedUtxo
 

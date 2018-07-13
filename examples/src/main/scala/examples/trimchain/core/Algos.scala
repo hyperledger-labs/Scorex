@@ -8,9 +8,9 @@ import examples.commons.{Nonce, PublicKey25519NoncedBox, Value}
 import examples.trimchain.modifiers.BlockHeader
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import io.iohk.iodb.LSMStore
+import scorex.core._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
-import scorex.core._
 import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
 import scorex.crypto.authds.{ADDigest, ADKey}
 import scorex.crypto.hash.{Blake2b256, Digest32}
@@ -113,7 +113,7 @@ object Algos extends App {
   private val b1 = PublicKey25519NoncedBox(pk1, Nonce @@ 1L, Value @@ 10L)
   private val b2 = PublicKey25519NoncedBox(pk1, Nonce @@ 2L, Value @@ 20L)
   private val u2 = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))),
-    VersionTag @@ bytesToId(Array.fill(32)(Random.nextInt(100).toByte))).get
+    bytesToVersion(Array.fill(32)(Random.nextInt(100).toByte))).get
 
 
   val headerOpt: Option[BlockHeader] = pow(defaultId,

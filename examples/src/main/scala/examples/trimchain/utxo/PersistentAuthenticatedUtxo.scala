@@ -73,7 +73,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     p
   }
 
-  lazy val rootHash: VersionTag = VersionTag @@ bytesToId(prover.digest)
+  lazy val rootHash: VersionTag = bytesToVersion(prover.digest)
 
   override type NVCT = PersistentAuthenticatedUtxo
 
@@ -219,7 +219,7 @@ object PersistentAuthenticatedUtxo {
         stateStorage.close()
       }
     })
-    val version = VersionTag @@ bytesToId(stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray))
+    val version = bytesToVersion(stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray))
 
     //todo: more efficient size detection, prover init
     PersistentAuthenticatedUtxo(stateStorage, stateStorage.getAll().size, None, version)

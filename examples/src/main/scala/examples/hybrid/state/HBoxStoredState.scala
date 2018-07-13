@@ -148,7 +148,7 @@ object HBoxStoredState {
         stateStorage.close()
       }
     })
-    val version = VersionTag @@ bytesToId(stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray))
+    val version = bytesToVersion(stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray))
 
     HBoxStoredState(stateStorage, version)
   }

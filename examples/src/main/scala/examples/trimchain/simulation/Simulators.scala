@@ -24,7 +24,7 @@ trait Simulators {
     val txsHash: TransactionsRoot = TransactionsRoot @@ hashfn(scorex.core.utils.concatBytes(txs.map(_.bytes)))
 
     val changes = PersistentAuthenticatedUtxo.changes(txs).get
-    val updUtxo = currentUtxo.applyChanges(changes, VersionTag @@ bytesToId(scorex.utils.Random.randomBytes())).get
+    val updUtxo = currentUtxo.applyChanges(changes, bytesToVersion(scorex.utils.Random.randomBytes())).get
 
     // TODO: review me - .get.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
