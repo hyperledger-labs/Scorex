@@ -87,7 +87,7 @@ object ModifiersSpec {
   val MessageCode: MessageCode = 33: Byte
   val MessageName: String = "Modifier"
 }
-class ModifiersSpec(maxPacketSize: Int) extends MessageSpec[ModifiersData] {
+class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] {
   import ModifiersSpec._
 
   override val messageCode: MessageCode = MessageCode
@@ -117,7 +117,7 @@ class ModifiersSpec(maxPacketSize: Int) extends MessageSpec[ModifiersData] {
     var msgSize = 5
     val payload: Seq[Array[Byte]] = modifiers.flatMap {case (id, modifier) =>
       msgSize += id.length + 4 + modifier.length
-      if(msgSize < maxPacketSize) Seq(id, Ints.toByteArray(modifier.length), modifier) else Seq()
+      if(msgSize < maxMessageSize) Seq(id, Ints.toByteArray(modifier.length), modifier) else Seq()
     }.toSeq
 
     scorex.core.utils.concatBytes(Seq(Array(typeId), Ints.toByteArray(payload.size / 3)) ++ payload)
