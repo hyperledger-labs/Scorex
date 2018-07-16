@@ -34,7 +34,9 @@ object InvSpec {
   val MessageCode: Byte = 55
   val MessageName: String = "Inv"
 }
+
 class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
+
   import InvSpec._
 
   override val messageCode = MessageCode
@@ -67,8 +69,10 @@ object RequestModifierSpec {
   val MessageCode: MessageCode = 22: Byte
   val MessageName: String = "RequestModifier"
 }
+
 class RequestModifierSpec(maxInvObjects: Int)
   extends MessageSpec[InvData] {
+
   import RequestModifierSpec._
 
   override val messageCode: MessageCode = MessageCode
@@ -88,7 +92,9 @@ object ModifiersSpec {
   val MessageCode: MessageCode = 33: Byte
   val MessageName: String = "Modifier"
 }
+
 class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with ScorexLogging {
+
   import ModifiersSpec._
 
   override val messageCode: MessageCode = MessageCode
@@ -116,12 +122,12 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
     val modifiers = data._2
 
     var msgSize = 5
-    val payload: Seq[Array[Byte]] = modifiers.flatMap {case (id, modifier) =>
+    val payload: Seq[Array[Byte]] = modifiers.flatMap { case (id, modifier) =>
       msgSize += id.length + 4 + modifier.length
-      if(msgSize <= maxMessageSize) Seq(id, Ints.toByteArray(modifier.length), modifier) else Seq()
+      if (msgSize <= maxMessageSize) Seq(id, Ints.toByteArray(modifier.length), modifier) else Seq()
     }.toSeq
 
-    if(msgSize > maxMessageSize){
+    if (msgSize > maxMessageSize) {
       log.info(s"Modifiers message of $msgSize generated while the maximum is $maxMessageSize. Better to fix app layer.")
     }
 
