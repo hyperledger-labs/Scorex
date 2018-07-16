@@ -53,6 +53,7 @@ class NodeViewSynchronizer[TX <: Transaction,
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
+  protected val modifiersSpec = new ModifiersSpec(networkSettings.maxPacketSize)
 
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
@@ -62,7 +63,7 @@ class NodeViewSynchronizer[TX <: Transaction,
 
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
-    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, modifiersSpec, syncInfoSpec)
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
@@ -218,7 +219,7 @@ class NodeViewSynchronizer[TX <: Transaction,
     */
   protected def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
-      if spec.messageCode == ModifiersSpec.messageCode =>
+      if spec.messageCode == ModifiersSpec.MessageCode =>
 
       val typeId = data._1
       val modifiers = data._2
@@ -298,7 +299,7 @@ class NodeViewSynchronizer[TX <: Transaction,
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val modType = modifiers.head.modifierTypeId
         val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
-        val msg = Message(ModifiersSpec, Right(m), None)
+        val msg = Message(modifiersSpec, Right(m), None)
         peer.handlerRef ! msg
       }
   }
