@@ -3,27 +3,27 @@ package scorex.testkit.properties
 import akka.actor._
 import akka.testkit.TestProbe
 import org.scalacheck.Gen
-import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
-import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
+import org.scalatest.{Matchers, PropSpec}
+import scorex.core.NodeViewHolder.ReceivableMessages.ModifiersFromRemote
+import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
-import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.network.NetworkController.ReceivableMessages.{Blacklist, SendToNetwork}
+import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
+import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
+import scorex.core.network._
+import scorex.core.network.message._
+import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.AkkaFixture
-import scorex.core.network.message._
-import scorex.core.serialization.{BytesSerializable, Serializer}
-import NodeViewHolder.ReceivableMessages.{CompareViews, ModifiersFromRemote}
-import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
-import NodeViewSynchronizer.ReceivableMessages._
-import NetworkController.ReceivableMessages.{Blacklist, SendToNetwork}
-import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Failure
@@ -65,105 +65,137 @@ trait NodeViewSynchronizerTests[
   }
 
 
-  property("NodeViewSynchronizer: SuccessfulTransaction") { withFixture { ctx =>
-    import ctx._
-    node ! SuccessfulTransaction[TX](tx)
-    ncProbe.fishForMessage(3 seconds) { case m => m.isInstanceOf[SendToNetwork] }
-  }}
+  property("NodeViewSynchronizer: SuccessfulTransaction") {
+    withFixture { ctx =>
+      import ctx._
+      node ! SuccessfulTransaction[TX](tx)
+      ncProbe.fishForMessage(3 seconds) { case m => m.isInstanceOf[SendToNetwork] }
+    }
+  }
 
-  property("NodeViewSynchronizer: FailedTransaction") { withFixture { ctx =>
-    import ctx._
-    node ! FailedTransaction[TX](tx, new Exception)
-    // todo: NVS currently does nothing in this case. Should check banning.
-  }}
+  property("NodeViewSynchronizer: FailedTransaction") {
+    withFixture { ctx =>
+      import ctx._
+      node ! FailedTransaction[TX](tx, new Exception)
+      // todo: NVS currently does nothing in this case. Should check banning.
+    }
+  }
 
-  property("NodeViewSynchronizer: SyntacticallySuccessfulModifier") { withFixture { ctx =>
-    import ctx._
-    node ! SyntacticallySuccessfulModifier(mod)
-    // todo ? : NVS currently does nothing in this case. Should it do?
-  }}
+  property("NodeViewSynchronizer: SyntacticallySuccessfulModifier") {
+    withFixture { ctx =>
+      import ctx._
+      node ! SyntacticallySuccessfulModifier(mod)
+      // todo ? : NVS currently does nothing in this case. Should it do?
+    }
+  }
 
-  property("NodeViewSynchronizer: SyntacticallyFailedModification") { withFixture { ctx =>
-    import ctx._
-    node ! SyntacticallyFailedModification(mod, new Exception)
-    // todo: NVS currently does nothing in this case. Should check banning.
-  }}
+  property("NodeViewSynchronizer: SyntacticallyFailedModification") {
+    withFixture { ctx =>
+      import ctx._
+      node ! SyntacticallyFailedModification(mod, new Exception)
+      // todo: NVS currently does nothing in this case. Should check banning.
+    }
+  }
 
-  property("NodeViewSynchronizer: SemanticallySuccessfulModifier") { withFixture { ctx =>
-    import ctx._
-    node ! SemanticallySuccessfulModifier(mod)
-    ncProbe.fishForMessage(3 seconds) { case m => m.isInstanceOf[SendToNetwork] }
-  }}
+  property("NodeViewSynchronizer: SemanticallySuccessfulModifier") {
+    withFixture { ctx =>
+      import ctx._
+      node ! SemanticallySuccessfulModifier(mod)
+      ncProbe.fishForMessage(3 seconds) { case m => m.isInstanceOf[SendToNetwork] }
+    }
+  }
 
-  property("NodeViewSynchronizer: SemanticallyFailedModification") { withFixture { ctx =>
-    import ctx._
-    node ! SemanticallyFailedModification(mod, new Exception)
-    // todo: NVS currently does nothing in this case. Should check banning.
-  }}
+  property("NodeViewSynchronizer: SemanticallyFailedModification") {
+    withFixture { ctx =>
+      import ctx._
+      node ! SemanticallyFailedModification(mod, new Exception)
+      // todo: NVS currently does nothing in this case. Should check banning.
+    }
+  }
 
   //TODO rewrite
-  ignore("NodeViewSynchronizer: DataFromPeer: SyncInfoSpec") { withFixture { ctx =>
-    import ctx._
+  ignore("NodeViewSynchronizer: DataFromPeer: SyncInfoSpec") {
+    withFixture { ctx =>
+      import ctx._
 
-    val dummySyncInfoMessageSpec = new SyncInfoMessageSpec[SyncInfo](_ => Failure[SyncInfo](new Exception)) { }
+      val dummySyncInfoMessageSpec = new SyncInfoMessageSpec[SyncInfo](_ => Failure[SyncInfo](new Exception)) {}
 
-    val dummySyncInfo = new SyncInfo {
-      def answer: Boolean = true
-      def startingPoints: History.ModifierIds = Seq((mod.modifierTypeId, mod.id))
-      type M = BytesSerializable
-      def serializer: Serializer[M] = throw new Exception
+      val dummySyncInfo = new SyncInfo {
+        def answer: Boolean = true
+
+        def startingPoints: History.ModifierIds = Seq((mod.modifierTypeId, mod.id))
+
+        type M = BytesSerializable
+
+        def serializer: Serializer[M] = throw new Exception
+      }
+
+      node ! DataFromPeer(dummySyncInfoMessageSpec, dummySyncInfo, peer)
+      //    vhProbe.fishForMessage(3 seconds) { case m => m == OtherNodeSyncingInfo(peer, dummySyncInfo) }
     }
+  }
 
-    node ! DataFromPeer(dummySyncInfoMessageSpec, dummySyncInfo, peer)
-//    vhProbe.fishForMessage(3 seconds) { case m => m == OtherNodeSyncingInfo(peer, dummySyncInfo) }
-  }}
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Nonsense") {
+    withFixture { ctx =>
+      import ctx._
+      node ! OtherNodeSyncingStatus(peer, Nonsense, None)
+      // NVS does nothing in this case
+    }
+  }
 
-  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Nonsense") { withFixture { ctx =>
-    import ctx._
-    node ! OtherNodeSyncingStatus(peer, Nonsense, None)
-    // NVS does nothing in this case
-  }}
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older") {
+    withFixture { ctx =>
+      import ctx._
+      system.eventStream.subscribe(eventListener.ref, classOf[NodeViewSynchronizerEvent])
+      node ! OtherNodeSyncingStatus(peer, Older, None)
+      eventListener.fishForMessage(3 seconds) { case m => m == BetterNeighbourAppeared }
+    }
+  }
 
-  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older") { withFixture { ctx =>
-    import ctx._
-    system.eventStream.subscribe(eventListener.ref, classOf[NodeViewSynchronizerEvent])
-    node ! OtherNodeSyncingStatus(peer, Older, None)
-    eventListener.fishForMessage(3 seconds) { case m => m == BetterNeighbourAppeared }
-  }}
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older and then Younger") {
+    withFixture { ctx =>
+      import ctx._
+      system.eventStream.subscribe(eventListener.ref, classOf[NodeViewSynchronizerEvent])
+      node ! OtherNodeSyncingStatus(peer, Older, None)
+      node ! OtherNodeSyncingStatus(peer, Younger, None)
+      eventListener.fishForMessage(3 seconds) { case m => m == NoBetterNeighbour }
+    }
+  }
 
-  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Older and then Younger") { withFixture { ctx =>
-    import ctx._
-    system.eventStream.subscribe(eventListener.ref, classOf[NodeViewSynchronizerEvent])
-    node ! OtherNodeSyncingStatus(peer, Older, None)
-    node ! OtherNodeSyncingStatus(peer, Younger, None)
-    eventListener.fishForMessage(3 seconds) { case m => m == NoBetterNeighbour }
-  }}
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Younger with Non-Empty Extension") {
+    withFixture { ctx =>
+      import ctx._
+      node ! OtherNodeSyncingStatus(peer, Younger, Some(Seq((mod.modifierTypeId, mod.id))))
+      ncProbe.fishForMessage(3 seconds) { case m =>
+        m match {
+          case SendToNetwork(Message(_, Right((tid, ids)), None), SendToPeer(p))
+            if p == peer && tid == mod.modifierTypeId && ids == Seq(mod.id) => true
+          case _ => false
+        }
+      }
+    }
+  }
 
-  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Younger with Non-Empty Extension") { withFixture { ctx =>
-    import ctx._
-    node ! OtherNodeSyncingStatus(peer, Younger, Some(Seq((mod.modifierTypeId, mod.id))))
-    ncProbe.fishForMessage(3 seconds) { case m =>
-      m match {
-        case SendToNetwork(Message(_, Right((tid, ids)), None), SendToPeer(p))
-          if p == peer && tid == mod.modifierTypeId && ids == Seq(mod.id) => true
+  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Equal") {
+    withFixture { ctx =>
+      import ctx._
+      node ! OtherNodeSyncingStatus(peer, Equal, None)
+      // NVS does nothing significant in this case
+    }
+  }
+
+  property("NodeViewSynchronizer: DataFromPeer: InvSpec") {
+    withFixture { ctx =>
+      import ctx._
+      val spec = new InvSpec(3)
+      val modifiers = Seq(mod.id)
+      node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
+      pchProbe.fishForMessage(5 seconds) {
+        case _: Message[_] => true
         case _ => false
       }
     }
-  }}
-
-  property("NodeViewSynchronizer: OtherNodeSyncingStatus: Equal") { withFixture { ctx =>
-    import ctx._
-    node ! OtherNodeSyncingStatus(peer, Equal, None)
-    // NVS does nothing significant in this case
-  }}
-
-  property("NodeViewSynchronizer: DataFromPeer: InvSpec") { withFixture { ctx =>
-    import ctx._
-    val spec = new InvSpec(3)
-    val modifiers = Seq(mod.id)
-    node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
-    vhProbe.fishForMessage(3 seconds) { case m => m == CompareViews(peer, mod.modifierTypeId, modifiers) }
-  }}
+  }
 
   property("NodeViewSynchronizer: DataFromPeer: RequestModifierSpec") {
     withFixture { ctx =>
@@ -179,9 +211,6 @@ trait NodeViewSynchronizerTests[
       node ! ChangedMempool(m)
       node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
 
-
-
-
       pchProbe.fishForMessage(5 seconds) {
         case _: Message[_] => true
         case _ => false
@@ -189,62 +218,58 @@ trait NodeViewSynchronizerTests[
     }
   }
 
-  ignore("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") { withFixture { ctx =>
-    import ctx._
+  ignore("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") {
+    withFixture { ctx =>
+      import ctx._
 
-    val modifiersSpec = new ModifiersSpec(1024 * 1024)
+      val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
-    node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-    val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
-      case m => m
+      node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+      val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
+        case m => m
+      }
+      assert(!messages.exists {
+        case ModifiersFromRemote(p, _) if p == peer => true
+        case _ => false
+      })
+      // ncProbe.fishForMessage(3 seconds) { case m => ??? }
     }
-    assert(!messages.exists {
-      case ModifiersFromRemote(p, _) if p == peer => true
-      case _ => false
-    })
-    // ncProbe.fishForMessage(3 seconds) { case m => ??? }
-  }}
+  }
 
-  property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") { withFixture { ctx =>
-    import ctx._
+  property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") {
+    withFixture { ctx =>
+      import ctx._
 
-    val modifiersSpec = new ModifiersSpec(1024 * 1024)
+      val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
-    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
-    node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-    vhProbe.fishForMessage(3 seconds) { case m =>
-      m == ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.bytes)))
+      node ! DataFromPeer(new InvSpec(3), (mod.modifierTypeId, Seq(mod.id)), peer)
+      node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+      vhProbe.fishForMessage(3 seconds) { case m =>
+        m == ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.bytes)))
+      }
     }
-  }}
+  }
 
-  property("NodeViewSynchronizer: RequestFromLocal") { withFixture { ctx =>
-    import ctx._
-    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
-    pchProbe.expectMsgType[Message[_]]
-  }}
+  property("NodeViewSynchronizer: DataFromPeer - CheckDelivery -  Do not penalize if delivered") {
+    withFixture { ctx =>
+      import ctx._
 
-  ignore("NodeViewSynchronizer: RequestFromLocal - CheckDelivery - Penalize if not delivered") { withFixture { ctx =>
-    import ctx._
-    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
-    // ncProbe.fishForMessage(5 seconds) { case m => ??? }
-  }}
+      val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
-  property("NodeViewSynchronizer: RequestFromLocal - CheckDelivery -  Do not penalize if delivered") { withFixture { ctx =>
-    import ctx._
+      node ! DataFromPeer(new InvSpec(3), (mod.modifierTypeId, Seq(mod.id)), peer)
+      node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+      system.scheduler.scheduleOnce(1 second, node, DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer))
+      val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
+      assert(!messages.contains(Blacklist(peer)))
+    }
+  }
 
-    val modifiersSpec = new ModifiersSpec(1024 * 1024)
-
-    node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
-    import scala.concurrent.ExecutionContext.Implicits.global
-    system.scheduler.scheduleOnce(1 second, node, DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer) )
-    val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
-    assert(!messages.contains(Blacklist(peer)))
-  }}
-
-  property("NodeViewSynchronizer: ResponseFromLocal") { withFixture { ctx =>
-    import ctx._
-    node ! ResponseFromLocal(peer, mod.modifierTypeId, Seq(mod))
-    pchProbe.expectMsgType[Message[_]]
-  }}
+  property("NodeViewSynchronizer: ResponseFromLocal") {
+    withFixture { ctx =>
+      import ctx._
+      node ! ResponseFromLocal(peer, mod.modifierTypeId, Seq(mod))
+      pchProbe.expectMsgType[Message[_]]
+    }
+  }
 
 }

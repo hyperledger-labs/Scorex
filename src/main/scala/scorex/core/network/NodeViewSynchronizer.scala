@@ -45,7 +45,7 @@ class NodeViewSynchronizer[TX <: Transaction,
 
   import History._
   import NodeViewSynchronizer.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.{CompareViews, GetNodeViewChanges, ModifiersFromRemote}
+  import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, ModifiersFromRemote}
   import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
@@ -191,11 +191,29 @@ class NodeViewSynchronizer[TX <: Transaction,
 
   //object ids coming from other node
   protected def processInv: Receive = {
-    case DataFromPeer(spec, invData: InvData@unchecked, remote)
+    case DataFromPeer(spec, invData: InvData@unchecked, peer)
       if spec.messageCode == InvSpec.MessageCode =>
 
-      //TODO can't replace viewHolderRef with a reader because of modifiers cache
-      viewHolderRef ! CompareViews(remote, invData._1, invData._2)
+      (mempoolReaderOpt, historyReaderOpt) match {
+        case (Some(mempool), Some(history)) =>
+          val modifierTypeId = invData._1
+          val modifierIds = modifierTypeId match {
+            case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
+              mempool.notIn(invData._2)
+            case _ =>
+              invData._2.filter(mid => statusKeeper.status(mid)(history) == ModifiersStatusKeeper.Unknown)
+          }
+
+          if (modifierIds.nonEmpty) {
+            val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
+            peer.handlerRef ! msg
+            modifierIds.foreach(id => statusKeeper.requested(id))
+            deliveryTracker.expect(peer, modifierTypeId, modifierIds)
+          }
+
+        case _ =>
+          log.warn(s"Got data from peer while readers are not ready ${(mempoolReaderOpt, historyReaderOpt)}")
+      }
   }
 
   //other node asking for objects by their ids
@@ -255,18 +273,6 @@ class NodeViewSynchronizer[TX <: Transaction,
       if (fm.nonEmpty) {
         viewHolderRef ! ModifiersFromRemote(remote, (typeId, fm))
       }
-  }
-
-  //local node sending object ids to remote
-  protected def requestFromLocal: Receive = {
-    case RequestFromLocal(peer, modifierTypeId, modifierIds) =>
-
-      if (modifierIds.nonEmpty) {
-        val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
-        peer.handlerRef ! msg
-      }
-      modifierIds.foreach(id => statusKeeper.requested(id))
-      deliveryTracker.expect(peer, modifierTypeId, modifierIds)
   }
 
   // todo: make DeliveryTracker an independent actor and move checkDelivery there?
@@ -347,7 +353,6 @@ class NodeViewSynchronizer[TX <: Transaction,
       processSyncStatus orElse
       processInv orElse
       modifiersReq orElse
-      requestFromLocal orElse
       responseFromLocal orElse
       modifiersFromRemote orElse
       viewHolderEvents orElse
@@ -374,8 +379,6 @@ object NodeViewSynchronizer {
 
     // getLocalSyncInfo messages
     case object SendLocalSyncInfo
-
-    case class RequestFromLocal(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
     case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 

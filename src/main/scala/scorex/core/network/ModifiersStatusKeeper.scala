@@ -1,7 +1,7 @@
 package scorex.core.network
 
 import scorex.core.ModifierId
-import scorex.core.consensus.History
+import scorex.core.consensus.HistoryReader
 import scorex.core.network.ModifiersStatusKeeper._
 
 import scala.collection.concurrent.TrieMap
@@ -21,7 +21,7 @@ class ModifiersStatusKeeper() {
     * @return status of modifier `id`.
     *         Since we do not keep statuses for already applied modifiers, `history` is required here.
     */
-  def status(id: ModifierId)(history: History[_, _, _]): ModifiersStatus = {
+  def status(id: ModifierId)(history: HistoryReader[_, _]): ModifiersStatus = {
     val mKey = key(id)
     statuses.getOrElse(mKey,
       if (history.contains(id)) {

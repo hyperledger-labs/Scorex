@@ -323,19 +323,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       log.warn(s"Trying to apply modifier ${pmod.encodedId} that's already in history")
     }
 
-
-  protected def compareViews: Receive = {
-    case CompareViews(peer, modifierTypeId, modifierIds) =>
-      val ids = modifierTypeId match {
-        case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-          memoryPool().notIn(modifierIds)
-        case _ =>
-          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(key(mid)))
-      }
-
-      sender() ! RequestFromLocal(peer, modifierTypeId, ids)
-  }
-
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(remote, modifiersData) =>
@@ -401,7 +388,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   }
 
   override def receive: Receive =
-    compareViews orElse
       processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
       getCurrentInfo orElse
@@ -419,9 +405,6 @@ object NodeViewHolder {
     case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
 
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
-
-    // Moved from NodeViewSynchronizer as this was only received here
-    case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
 
     case class ModifiersFromRemote(source: ConnectedPeer, data: ModifiersData)
 

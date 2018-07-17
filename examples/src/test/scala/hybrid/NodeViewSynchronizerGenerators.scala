@@ -3,10 +3,12 @@ package hybrid
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
+import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
 import scorex.core.app.Version
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{ChangedHistory, ChangedMempool}
 import scorex.core.network._
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
@@ -31,6 +33,7 @@ trait NodeViewSynchronizerGenerators {
     val h = historyGen.sample.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val sRaw = stateGen.sample.get
+    val mempool = SimpleBoxTransactionMemPool.emptyPool
     val v = h.openSurfaceIds().last
     sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
     val s = sRaw.copy(version = VersionTag @@ v)
@@ -41,6 +44,8 @@ trait NodeViewSynchronizerGenerators {
     val eventListener = TestProbe("EventListener")
 
     val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref))
+    ref ! ChangedHistory(h)
+    ref ! ChangedMempool(mempool)
     val m = totallyValidModifier(h, s)
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val tx = simpleBoxTransactionGen.sample.get
