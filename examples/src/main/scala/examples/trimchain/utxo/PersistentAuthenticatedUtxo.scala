@@ -6,7 +6,7 @@ import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSeriali
 import examples.trimchain.modifiers.{BlockHeader, TBlock, TModifier, UtxoSnapshot}
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.VersionTag
+import scorex.core._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
@@ -18,6 +18,7 @@ import scorex.crypto.hash.{Blake2b256, Digest32}
 import scorex.mid.state.BoxMinimalState
 
 import scala.util.{Random, Success, Try}
+import PublicKey25519NoncedBox.{BoxKeyLength, BoxLength}
 
 trait AuthenticatedUtxo {
 
@@ -56,11 +57,10 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     TModifier,
     PersistentAuthenticatedUtxo] with AuthenticatedUtxo with ScorexLogging with ScorexEncoding {
 
-  import PublicKey25519NoncedBox.{BoxKeyLength, BoxLength}
 
   require(size >= 0)
-  require(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
-    s"${encoder.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${encoder.encode(version)}")
+  require(store.lastVersionID.map(id => bytesToId(id.data)).getOrElse(version) == version,
+    s"${store.lastVersionID.map(_.data).map(id => encoder.encode(id))} != ${encoder.encode(version)}")
 
   override lazy val prover = proverOpt.getOrElse {
     val p = new ProverType(keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength)) //todo: feed it with genesis state
@@ -73,7 +73,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     p
   }
 
-  lazy val rootHash: VersionTag = VersionTag @@ prover.digest
+  lazy val rootHash: VersionTag = bytesToVersion(prover.digest)
 
   override type NVCT = PersistentAuthenticatedUtxo
 
@@ -130,22 +130,22 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     val toRemove = boxIdsToRemove.map(ByteArrayWrapper.apply)
     val toAdd = boxesToAdd.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    store.update(ByteArrayWrapper(newVersion), toRemove, toAdd)
+    store.update(ByteArrayWrapper(versionToBytes(newVersion)), toRemove, toAdd)
 
     PersistentAuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
       .ensuring(newSt => boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
   } ensuring {
-    _.toOption.forall(_.version sameElements newVersion)
+    _.toOption.forall(_.version == newVersion)
   }
 
   override def maxRollbackDepth: Int = store.keepVersions
 
   override def rollbackTo(version: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
-    if (store.lastVersionID.exists(_.data sameElements version)) {
+    if (store.lastVersionID.exists(lv => bytesToId(lv.data) == version)) {
       this
     } else {
       log.debug(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")
-      store.rollback(ByteArrayWrapper(version))
+      store.rollback(ByteArrayWrapper(versionToBytes(version)))
       PersistentAuthenticatedUtxo(store, store.getAll().size, None, version) //todo: more efficient rollback, rollback prover
     }
   }
@@ -219,7 +219,7 @@ object PersistentAuthenticatedUtxo {
         stateStorage.close()
       }
     })
-    val version = VersionTag @@ stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
+    val version = bytesToVersion(stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray))
 
     //todo: more efficient size detection, prover init
     PersistentAuthenticatedUtxo(stateStorage, stateStorage.getAll().size, None, version)

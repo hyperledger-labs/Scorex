@@ -6,15 +6,14 @@ import examples.hybrid.blocks._
 import examples.hybrid.history.HybridSyncInfo
 import examples.hybrid.mining.HybridSettings
 import examples.hybrid.state.HBoxStoredState
-import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
+import scorex.core.ModifierId
 import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
-import scorex.core.{ModifierId, NodeViewModifier}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Signature
 import scorex.testkit.utils.{FileUtils, NoShrink}
@@ -115,18 +114,18 @@ trait HybridGenerators extends ExamplesCommonGenerators
 
   lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
     createdAt <- positiveLongGen
-    txId <- genBytes(NodeViewModifier.ModifierIdSize)
+    txId <- modifierIdGen
     box: PublicKey25519NoncedBox <- noncedBoxGen
   } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
 
   //Generators
-  val memPoolElementGen: Gen[(ByteArrayWrapper, SimpleBoxTransaction)] = for {
-    id <- modifierIdGen.map(ByteArrayWrapper(_))
+  val memPoolElementGen: Gen[(ModifierId, SimpleBoxTransaction)] = for {
+    id <- modifierIdGen
     transaction <- simpleBoxTransactionGen
   } yield (id, transaction)
 
   val emptyMemPoolGen: Gen[SimpleBoxTransactionMemPool] = for {
-    map <- Gen.buildableOfN[TrieMap[ByteArrayWrapper, SimpleBoxTransaction], (ByteArrayWrapper, SimpleBoxTransaction)](0, memPoolElementGen)
+    map <- Gen.buildableOfN[TrieMap[ModifierId, SimpleBoxTransaction], (ModifierId, SimpleBoxTransaction)](0, memPoolElementGen)
   } yield SimpleBoxTransactionMemPool(map)
 
   def stateChangesGenerator(state: HBoxStoredState): ChangesGen = {

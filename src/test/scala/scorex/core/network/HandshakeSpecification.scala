@@ -2,7 +2,7 @@ package scorex.core.network
 
 import java.net.InetSocketAddress
 
-import org.scalacheck.Gen
+import org.scalacheck.{Gen, Shrink}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators

@@ -6,11 +6,10 @@ import examples.hybrid.wallet.HBoxWallet
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.ModifierId
+import scorex.core._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
-import scorex.core.utils.ByteStr
 import scorex.crypto.signatures.Signature
 
 import scala.annotation.tailrec
@@ -23,10 +22,11 @@ class HWalletSpecification extends PropSpec
   with Matchers
   with HybridGenerators {
 
-  private val EmptyBytes = ModifierId @@ Array.fill(32)(0: Byte)
+  private val EmptyBytes = bytesToId(Array.fill(32)(0: Byte))
   private val EmptySignature = Signature25519(Signature @@ Array.fill(64)(0: Byte))
 
-  val w: HBoxWallet = HBoxWallet.readOrGenerate(settings.walletSettings, ByteStr.decodeBase58("p").get).generateNewSecret().generateNewSecret()
+  private val walletSettings = settings.walletSettings.copy(seed = "p")
+  val w: HBoxWallet = HBoxWallet.readOrGenerate(walletSettings).generateNewSecret().generateNewSecret()
   w.secrets.size should be >= 2
   val fs: PrivateKey25519 = w.secrets.head
   val ss: PrivateKey25519 = w.secrets.tail.head
@@ -34,6 +34,7 @@ class HWalletSpecification extends PropSpec
   //todo: what is this test about actually?
   ignore("Wallet should generate same keys") {
     val KeysToGenerate = 5
+
     @tailrec
     def wallet(oldW: HBoxWallet): HBoxWallet = if (oldW.publicKeys.size >= KeysToGenerate) oldW
     else wallet(oldW.generateNewSecret())
@@ -60,7 +61,7 @@ class HWalletSpecification extends PropSpec
 
         val pb = PosBlock(EmptyBytes, System.currentTimeMillis(), Seq(tx), box, Array(), EmptySignature)
         val boxes = w.scanPersistent(pb).boxes()
-        boxes.exists(b => b.transactionId sameElements tx.id) shouldBe true
+        boxes.exists(b => b.transactionId == tx.id) shouldBe true
       }
     }
   }

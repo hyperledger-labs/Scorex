@@ -13,7 +13,7 @@ import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
-import scorex.core.{ModifierId, NodeViewHolder, PersistentNodeViewModifier}
+import scorex.core.{ModifierId, PersistentNodeViewModifier, bytesToId}
 import scorex.crypto.hash.Blake2b256
 import scorex.testkit.generators._
 import scorex.testkit.utils.AkkaFixture
@@ -72,11 +72,11 @@ MPool <: MemoryPool[TX, MPool]]
       val p = TestProbe()
       connectedPeerGen(TestProbe("PeerHandlerProbe").ref).sample.foreach { peer =>
         // send bytes, serializer will be unable to parse
-        p.send(node, ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.id))))
+        p.send(node, ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> Blake2b256("")))))
         p.expectMsgClass(classOf[IncorrectModifierFromRemote])
 
         // send bytes, serializer will be able to parse, but with different id
-        val wrongId = ModifierId @@ Blake2b256("")
+        val wrongId: ModifierId = bytesToId(Blake2b256(""))
         p.send(node, ModifiersFromRemote(peer, (mod.modifierTypeId, Map(wrongId -> mod.bytes))))
         p.expectMsgClass(classOf[IncorrectModifierFromRemote])
 
@@ -163,7 +163,7 @@ MPool <: MemoryPool[TX, MPool]]
       val p = TestProbe()
 
       p.send(node, GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
-        v.state.version.sameElements(s.version)
+        v.state.version == s.version
       })
       p.expectMsg(true)
     }
@@ -220,7 +220,7 @@ MPool <: MemoryPool[TX, MPool]]
       eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
       p.send(node, GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
-        v.state.version.sameElements(s.version) && v.history.contains(mod.id)
+        v.state.version == s.version && v.history.contains(mod.id)
       })
 
       p.expectMsg(true)
@@ -293,7 +293,7 @@ MPool <: MemoryPool[TX, MPool]]
 
       p.send(node, GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Seq[PM]] { v =>
         val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
-        assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
+        assert(mods.head.parentId == v.history.openSurfaceIds().head)
         mods
       })
       val fork1Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])

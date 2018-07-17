@@ -1,6 +1,5 @@
 package examples.commons
 
-import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.ModifierId
 import scorex.core.transaction.MemoryPool
 import scorex.core.utils.ScorexLogging
@@ -9,23 +8,21 @@ import scala.collection.concurrent.TrieMap
 import scala.util.{Success, Try}
 
 
-case class SimpleBoxTransactionMemPool(unconfirmed: TrieMap[ByteArrayWrapper, SimpleBoxTransaction])
+case class SimpleBoxTransactionMemPool(unconfirmed: TrieMap[ModifierId, SimpleBoxTransaction])
   extends MemoryPool[SimpleBoxTransaction, SimpleBoxTransactionMemPool] with ScorexLogging {
   override type NVCT = SimpleBoxTransactionMemPool
 
-  private def key(id: Array[Byte]): ByteArrayWrapper = ByteArrayWrapper(id)
-
   //getters
   override def getById(id: ModifierId): Option[SimpleBoxTransaction] =
-  unconfirmed.get(key(id))
+    unconfirmed.get(id)
 
-  override def contains(id: ModifierId): Boolean = unconfirmed.contains(key(id))
+  override def contains(id: ModifierId): Boolean = unconfirmed.contains(id)
 
   override def getAll(ids: Seq[ModifierId]): Seq[SimpleBoxTransaction] = ids.flatMap(getById)
 
   //modifiers
   override def put(tx: SimpleBoxTransaction): Try[SimpleBoxTransactionMemPool] = Success {
-    unconfirmed.put(key(tx.id), tx)
+    unconfirmed.put(tx.id, tx)
     this
   }
 
@@ -33,12 +30,12 @@ case class SimpleBoxTransactionMemPool(unconfirmed: TrieMap[ByteArrayWrapper, Si
   override def put(txs: Iterable[SimpleBoxTransaction]): Try[SimpleBoxTransactionMemPool] = Success(putWithoutCheck(txs))
 
   override def putWithoutCheck(txs: Iterable[SimpleBoxTransaction]): SimpleBoxTransactionMemPool = {
-    txs.foreach(tx => unconfirmed.put(key(tx.id), tx))
+    txs.foreach(tx => unconfirmed.put(tx.id, tx))
     this
   }
 
   override def remove(tx: SimpleBoxTransaction): SimpleBoxTransactionMemPool = {
-    unconfirmed.remove(key(tx.id))
+    unconfirmed.remove(tx.id)
     this
   }
 

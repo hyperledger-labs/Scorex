@@ -14,7 +14,6 @@ import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 
@@ -78,10 +77,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     * Serializers for modifiers, to be provided by a concrete instantiation
     */
   val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
-
-  protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
-
-  protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
 
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
@@ -163,7 +158,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     val appliedTxs = blocksApplied.flatMap(extractTransactions)
 
     memPool.putWithoutCheck(rolledBackTxs).filter { tx =>
-      !appliedTxs.exists(t => t.id sameElements tx.id) && {
+      !appliedTxs.exists(_.id == tx.id) && {
         state match {
           case v: TransactionValidation[TX] => v.validate(tx).isSuccess
           case _ => true
@@ -180,7 +175,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     }
 
   private def trimChainSuffix(suffix: IndexedSeq[PMOD], rollbackPoint: ModifierId): IndexedSeq[PMOD] = {
-    val idx = suffix.indexWhere(_.id.sameElements(rollbackPoint))
+    val idx = suffix.indexWhere(_.id == rollbackPoint)
     if (idx == -1) IndexedSeq() else suffix.drop(idx)
   }
 
@@ -231,8 +226,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
     val (stateToApplyTry: Try[MS], suffixTrimmed: IndexedSeq[PMOD]) = if (progressInfo.chainSwitchingNeeded) {
       @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-      val branchingPoint = VersionTag @@ progressInfo.branchPoint.get //todo: .get
-      if (!state.version.sameElements(branchingPoint)) {
+      val branchingPoint: VersionTag with ModifierId = VersionTag @@ progressInfo.branchPoint.get //todo: .get
+      if (state.version != branchingPoint) {
         state.rollbackTo(branchingPoint) -> trimChainSuffix(suffixApplied, branchingPoint)
       } else Success(state) -> IndexedSeq()
     } else Success(state) -> suffixApplied
@@ -330,7 +325,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
         case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
           memoryPool().notIn(modifierIds)
         case _ =>
-          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(key(mid)))
+          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
       }
 
       sender() ! RequestFromLocal(peer, modifierTypeId, ids)
@@ -342,18 +337,18 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       modifierSerializers.get(modifiersData._1) foreach { companion =>
         modifiersData._2.foreach { r =>
           companion.parseBytes(r._2) match {
-            case Success(mod) if !(r._1 sameElements mod.id) =>
+            case Success(mod) if r._1 != mod.id =>
               val e = new Error(s"Declared id ${encoder.encode(r._1)} is not equals to calculated one ${mod.encodedId}")
               sender() ! IncorrectModifierFromRemote(remote, r._1, e)
             case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
               txModify(tx)
             case Success(pmod: PMOD@unchecked) =>
-              if (modifiersCache.contains(key(pmod.id))) {
+              if (modifiersCache.contains(pmod.id)) {
                 log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
               } else if (history().contains(pmod)) {
                 log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
               } else {
-                modifiersCache.put(key(pmod.id), pmod)
+                modifiersCache.put(pmod.id, pmod)
               }
             case Failure(e) =>
               sender() ! IncorrectModifierFromRemote(remote, r._1, e)

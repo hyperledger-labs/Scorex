@@ -54,6 +54,7 @@ MR <: MempoolReader[TX] : ClassTag]
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
   protected val statusKeeper = new ModifiersStatusKeeper()
+  protected val modifiersSpec = new ModifiersSpec(networkSettings.maxPacketSize)
 
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
@@ -63,7 +64,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
-    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, modifiersSpec, syncInfoSpec)
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
@@ -228,13 +229,13 @@ MR <: MempoolReader[TX] : ClassTag]
     */
   protected def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
-      if spec.messageCode == ModifiersSpec.messageCode =>
+      if spec.messageCode == ModifiersSpec.MessageCode =>
 
       val typeId = data._1
       val modifiers = data._2
 
       log.info(s"Got modifiers of type $typeId from remote connected peer: $remote")
-      log.trace(s"Received modifier ids ${data._2.keySet.map(encoder.encode).mkString(",")}")
+      log.trace(s"Received modifier ids ${data._2.keySet.map(id => encoder.encode(id)).mkString(",")}")
 
       modifiers.foreach { case (id, _) =>
         statusKeeper.received(id)
@@ -245,7 +246,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
       if (spam.nonEmpty) {
         log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
-          s": ${spam.keys.map(encoder.encode)}")
+          s": ${spam.keys.map(id => encoder.encode(id))}")
         penalizeSpammingPeer(remote)
         val mids = spam.keys.toSeq
         deliveryTracker.deleteSpam(mids)
@@ -315,7 +316,7 @@ MR <: MempoolReader[TX] : ClassTag]
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val modType = modifiers.head.modifierTypeId
         val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
-        val msg = Message(ModifiersSpec, Right(m), None)
+        val msg = Message(modifiersSpec, Right(m), None)
         peer.handlerRef ! msg
       }
   }

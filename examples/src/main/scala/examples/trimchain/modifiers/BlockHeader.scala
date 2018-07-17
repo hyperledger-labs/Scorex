@@ -1,12 +1,12 @@
 package examples.trimchain.modifiers
 
-import com.google.common.primitives.Longs
+import com.google.common.primitives.{Bytes, Longs}
 import examples.trimchain.core._
 import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.serialization.Serializer
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.core._
 
 import scala.util.Try
 
@@ -21,11 +21,11 @@ case class BlockHeader(override val parentId: ModifierId,
 
   override val modifierTypeId: ModifierTypeId = TModifier.Header
 
-  override lazy val id: ModifierId = ModifierId @@ Constants.hashfn.hash(bytes)
+  override lazy val id: ModifierId = bytesToId(Constants.hashfn.hash(bytes))
 
   def correctWorkDone(difficulty: BigInt): Boolean = {
     val target = Constants.MaxTarget / difficulty
-    BigInt(1, id) < target
+    BigInt(1, idToBytes(id)) < target
   }
 
   override lazy val serializer = BlockHeaderSerializer
@@ -46,12 +46,12 @@ object BlockHeader extends ScorexEncoding {
 object BlockHeaderSerializer extends Serializer[BlockHeader] {
   private val ds = Constants.hashfn.DigestSize
 
-  override def toBytes(obj: BlockHeader): Array[Byte] = obj.parentId ++ obj.stateRoot ++ obj.txRoot ++
-    Longs.toByteArray(obj.powNonce) ++ TicketSerializer.toBytes(obj.ticket)
+  override def toBytes(obj: BlockHeader): Array[Byte] = Bytes.concat(idToBytes(obj.parentId), obj.stateRoot, obj.txRoot,
+    Longs.toByteArray(obj.powNonce), TicketSerializer.toBytes(obj.ticket))
 
 
   override def parseBytes(bytes: Array[Byte]): Try[BlockHeader] = Try {
-    val parentId = ModifierId @@ bytes.slice(0, ds)
+    val parentId = bytesToId(bytes.slice(0, ds))
     val stateRoot = StateRoot @@ bytes.slice(ds, 2 * ds)
     val txRoot = TransactionsRoot @@ bytes.slice(2 * ds, 3 * ds)
     val powNonce = Longs.fromByteArray(bytes.slice(3 * ds, 3 * ds + 8))

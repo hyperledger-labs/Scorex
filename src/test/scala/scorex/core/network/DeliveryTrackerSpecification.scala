@@ -4,14 +4,14 @@ import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
-import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
+import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
-import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId, bytesToId}
 import scorex.crypto.hash.Blake2b256
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 @SuppressWarnings(Array(
   "org.wartremover.warts.Null",
@@ -33,7 +33,7 @@ class DeliveryTrackerSpecification extends PropSpec
     val tracker = new DeliveryTracker(system, deliveryTimeout = dt, maxDeliveryChecks = 2, nvsStub)
 
     val mtid = ModifierTypeId @@ (0: Byte)
-    val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(ModifierId @@ _)
+    val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(b => bytesToId(b))
 
     tracker.expect(mtid, modids)
     modids.foreach(id => tracker.isExpecting(id) shouldBe true)
@@ -56,9 +56,9 @@ class DeliveryTrackerSpecification extends PropSpec
 
     val mtid = ModifierTypeId @@ (0: Byte)
 
-    val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(ModifierId @@ _)
+    val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(b => bytesToId(b))
 
-    val notAdded: ModifierId = ModifierId @@ Blake2b256("4")
+    val notAdded: ModifierId = bytesToId(Blake2b256("4"))
 
     tracker.expect(cp, mtid, modids)
 

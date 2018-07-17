@@ -8,18 +8,18 @@ import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.mining.WalletSettings
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.VersionTag
-import scorex.core.settings.ScorexSettings
+import scorex.core._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion, PrivateKey25519Serializer}
 import scorex.core.transaction.wallet.{BoxWallet, BoxWalletTransaction, WalletBox, WalletBoxSerializer}
-import scorex.core.utils.{ByteStr, ScorexEncoding, ScorexLogging}
+import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
 
 
-case class HBoxWallet(seed: ByteStr, store: LSMStore)
+case class HBoxWallet(seed: Array[Byte], store: LSMStore)
   extends BoxWallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock, HBoxWallet]
     with ScorexLogging with ScorexEncoding {
 
@@ -61,7 +61,7 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
   override def generateNewSecret(): HBoxWallet = {
     val prevSecrets = secrets
     val nonce: Array[Byte] = Ints.toByteArray(prevSecrets.size)
-    val s = Blake2b256(seed.arr ++ nonce)
+    val s = Blake2b256(seed ++ nonce)
     val (priv, _) = PrivateKey25519Companion.generateKeys(s)
     val allSecrets: Set[PrivateKey25519] = Set(priv) ++ prevSecrets
     store.update(ByteArrayWrapper(priv.privKeyBytes),
@@ -80,8 +80,8 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
     val changes = HBoxStoredState.changes(modifier).get
 
     val newBoxes = changes.toAppend.filter(s => secretByPublicImage(s.box.proposition).isDefined).map(_.box).map { box =>
-      val boxTransaction = modifier.transactions.find(t => t.newBoxes.exists(tb => tb.id sameElements box.id))
-      val txId = boxTransaction.map(_.id).getOrElse(Array.fill(32)(0: Byte))
+      val boxTransaction = modifier.transactions.find(t => t.newBoxes.exists(tb => tb.id == box.id))
+      val txId = boxTransaction.map(b => b.id).getOrElse(bytesToId(Array.fill(32)(0: Byte)))
       val ts = boxTransaction.map(_.timestamp).getOrElse(modifier.timestamp)
       val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, ts)(PublicKey25519NoncedBoxSerializer)
       ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
@@ -89,19 +89,19 @@ case class HBoxWallet(seed: ByteStr, store: LSMStore)
 
     val boxIdsToRemove = changes.toRemove.view.map(_.boxId).map(ByteArrayWrapper.apply)
     val newBoxIds: ByteArrayWrapper = ByteArrayWrapper(newBoxes.toArray.flatMap(_._1.data) ++
-      boxIds.filter(bi => !boxIdsToRemove.exists(_.data sameElements bi)).flatten)
-    store.update(ByteArrayWrapper(modifier.id), boxIdsToRemove, Seq(BoxIdsKey -> newBoxIds) ++ newBoxes)
+      boxIds.filter(bi => !boxIdsToRemove.exists(w => bytesToId(w.data) == bi)).flatten)
+    store.update(ByteArrayWrapper(idToBytes(modifier.id)), boxIdsToRemove, Seq(BoxIdsKey -> newBoxIds) ++ newBoxes)
     log.debug(s"Successfully applied modifier to wallet: ${encoder.encode(modifier.id)}")
 
     HBoxWallet(seed, store)
   }
 
   override def rollback(to: VersionTag): Try[HBoxWallet] = Try {
-    if (store.lastVersionID.exists(_.data sameElements to)) {
+    if (store.lastVersionID.exists(w => bytesToId(w.data) == to)) {
       this
     } else {
       log.debug(s"Rolling back wallet to: ${encoder.encode(to)}")
-      store.rollback(ByteArrayWrapper(to))
+      store.rollback(ByteArrayWrapper(versionToBytes(to)))
       log.debug(s"Successfully rolled back wallet to: ${encoder.encode(to)}")
       HBoxWallet(seed, store)
     }
@@ -121,7 +121,8 @@ object HBoxWallet {
 
   def exists(settings: WalletSettings): Boolean = walletFile(settings).exists()
 
-  def readOrGenerate(settings: WalletSettings, seed: ByteStr): HBoxWallet = {
+  def readOrGenerate(settings: WalletSettings): HBoxWallet = {
+    val seed = settings.seed.getBytes("UTF-8")
     val wFile = walletFile(settings)
     wFile.mkdirs()
     val boxesStorage = new LSMStore(wFile, maxJournalEntryCount = 10000, keepVersions = 100) //todo: configurable kV
@@ -134,15 +135,6 @@ object HBoxWallet {
 
     HBoxWallet(seed, boxesStorage)
   }
-
-  def readOrGenerate(settings: WalletSettings): HBoxWallet = {
-    readOrGenerate(settings, settings.seed)
-  }
-
-  def readOrGenerate(settings: WalletSettings, seed: ByteStr, accounts: Int): HBoxWallet =
-    (1 to accounts).foldLeft(readOrGenerate(settings, seed)) { case (w, _) =>
-      w.generateNewSecret()
-    }
 
   def readOrGenerate(settings: WalletSettings, accounts: Int): HBoxWallet =
     (1 to accounts).foldLeft(readOrGenerate(settings)) { case (w, _) =>
@@ -159,9 +151,9 @@ object HBoxWallet {
 
 
 object GenesisStateGenerator extends App with ScorexEncoding {
-  private val w1 = HBoxWallet(ByteStr.decodeBase58("minerNode1").get, new LSMStore(new File("/tmp/w1")))
-  private val w2 = HBoxWallet(ByteStr.decodeBase58("minerNode2").get, new LSMStore(new File("/tmp/w2")))
-  private val w3 = HBoxWallet(ByteStr.decodeBase58("minerNode3").get, new LSMStore(new File("/tmp/w3")))
+  private val w1 = HBoxWallet(Base58.decode("minerNode1").get, new LSMStore(new File("/tmp/w1")))
+  private val w2 = HBoxWallet(Base58.decode("minerNode2").get, new LSMStore(new File("/tmp/w2")))
+  private val w3 = HBoxWallet(Base58.decode("minerNode3").get, new LSMStore(new File("/tmp/w3")))
 
   (1 to 20).foreach(_ => w1.generateNewSecret())
   (1 to 20).foreach(_ => w2.generateNewSecret())

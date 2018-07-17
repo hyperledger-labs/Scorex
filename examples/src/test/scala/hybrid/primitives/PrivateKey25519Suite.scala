@@ -14,7 +14,7 @@ class PrivateKey25519Suite extends PropSpec
   with HybridGenerators {
 
   property("Public key is deterministic") {
-    forAll(modifierIdGen, minSuccessful(1000)){ mid =>
+    forAll(genBytes(32), minSuccessful(1000)){ mid =>
       val pair1 = PrivateKey25519Companion.generateKeys(mid)
       val pair2 = PrivateKey25519Companion.generateKeys(mid)
 
