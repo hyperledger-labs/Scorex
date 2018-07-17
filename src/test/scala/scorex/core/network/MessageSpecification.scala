@@ -1,4 +1,4 @@
-package scorex.network
+package scorex.core.network
 
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
