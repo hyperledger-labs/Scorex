@@ -154,8 +154,6 @@ object HybridNodeViewHolder extends ScorexLogging with ScorexEncoding {
 
     val gs = HBoxStoredState.genesisState(settings, Seq[HybridBlock](posGenesis, powGenesis))
     val gw = HBoxWallet.genesisWallet(hybridSettings.walletSettings, Seq[HybridBlock](posGenesis, powGenesis))
-      .ensuring(_.boxes().map(_.box.value.toLong).sum >= GenesisBalance ||
-        !encoder.encode(hybridSettings.walletSettings.seed.arr).startsWith("genesis"))
       .ensuring(_.boxes().forall(b => gs.closedBox(b.box.id).isDefined))
 
     (history, gs, gw, SimpleBoxTransactionMemPool.emptyPool)

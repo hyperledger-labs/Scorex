@@ -8,9 +8,9 @@ import examples.commons.{Nonce, PublicKey25519NoncedBox, Value}
 import examples.trimchain.modifiers.BlockHeader
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
 import io.iohk.iodb.LSMStore
+import scorex.core._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
-import scorex.core.{ModifierId, VersionTag}
 import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
 import scorex.crypto.authds.{ADDigest, ADKey}
 import scorex.crypto.hash.{Blake2b256, Digest32}
@@ -61,7 +61,7 @@ object Algos extends App {
     require(miningUtxos.length == k)
 
     (1 to attempts).foreach { i =>
-      val st = hashfn(parentId ++ transactionsRoot ++ currentStateRoot)
+      val st = hashfn(idToBytes(parentId) ++ transactionsRoot ++ currentStateRoot)
       val nonce = Random.nextLong()
       val ticket = generateTicket(miningUtxos, st, minerPubKey, nonce).get
       val header = BlockHeader(parentId, currentStateRoot, transactionsRoot, ticket, nonce)
@@ -75,7 +75,7 @@ object Algos extends App {
   }
 
   def validatePow(header: BlockHeader,
-                  miningStateRoots: IndexedSeq[Array[Byte]],
+                  miningStateRoots: IndexedSeq[VersionTag],
                   difficulty: BigInt): Boolean = Try {
     require(header.correctWorkDone(difficulty))
     require(miningStateRoots.length == k)
@@ -90,7 +90,7 @@ object Algos extends App {
       val ids = (0 until NElementsInProof) map (elementIndex => hashfn(seed ++ minerKey ++
         Ints.toByteArray(stateIndex) ++ Ints.toByteArray(elementIndex)))
 
-      val v = new BatchAVLVerifier[Digest32, Blake2b256.type](ADDigest @@ sroot, pp, keyLength = BoxKeyLength,
+      val v = new BatchAVLVerifier[Digest32, Blake2b256.type](ADDigest @@ versionToBytes(sroot), pp, keyLength = BoxKeyLength,
         valueLengthOpt = Some(BoxLength))
 
       ids.foreach(id => v.performOneOperation(Lookup(ADKey @@ id)).get)
@@ -107,18 +107,18 @@ object Algos extends App {
   new File("/tmp/utxo").delete()
   new File("/tmp/utxo").mkdirs()
   private val store = new LSMStore(new File("/tmp/utxo"))
-  private val u1 = PersistentAuthenticatedUtxo(store, 0, None, VersionTag @@ Array.fill(32)(0: Byte))
+  private val u1 = PersistentAuthenticatedUtxo(store, 0, None, defaultId)
 
   private val pk1 = PublicKey25519Proposition(PublicKey @@ Array.fill(32)(Random.nextInt(100).toByte))
   private val b1 = PublicKey25519NoncedBox(pk1, Nonce @@ 1L, Value @@ 10L)
   private val b2 = PublicKey25519NoncedBox(pk1, Nonce @@ 2L, Value @@ 20L)
   private val u2 = u1.applyChanges(BoxStateChanges(Seq(Insertion(b1), Insertion(b2))),
-    VersionTag @@ Array.fill(32)(Random.nextInt(100).toByte)).get
+    bytesToVersion(Array.fill(32)(Random.nextInt(100).toByte))).get
 
 
-  val headerOpt: Option[BlockHeader] = pow(ModifierId @@ Array.fill(32)(0: Byte),
+  val headerOpt: Option[BlockHeader] = pow(defaultId,
     TransactionsRoot @@ Array.fill(32)(0: Byte),
-    StateRoot @@ u2.rootHash,
+    StateRoot @@ versionToBytes(u2.rootHash),
     pk1.pubKeyBytes,
     IndexedSeq(u2),
     Constants.Difficulty, 500).get

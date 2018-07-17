@@ -1,7 +1,7 @@
 package scorex.testkit.properties.state.box
 
 import org.scalacheck.Gen
-import scorex.core._
+import scorex.core.{VersionTag, _}
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
@@ -28,7 +28,7 @@ ST <: BoxMinimalState[P, B, TX, PM, ST]] extends BoxStateTests[P, B, TX, PM, ST]
       changes.toRemove.foreach { removal =>
         state.closedBox(removal.boxId).isDefined shouldBe true
       }
-      val newVersion = VersionTag @@ Array.fill(32)(Random.nextInt(Byte.MaxValue).toByte)
+      val newVersion = bytesToVersion(Array.fill(32)(Random.nextInt(Byte.MaxValue).toByte))
       val newState = state.applyChanges(changes, newVersion).get
       changes.toAppend.foreach { insertion =>
         newState.closedBox(insertion.box.id).isDefined shouldBe true

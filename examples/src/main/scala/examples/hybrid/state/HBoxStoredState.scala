@@ -6,7 +6,7 @@ import com.google.common.primitives.Longs
 import examples.commons._
 import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.VersionTag
+import scorex.core._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
@@ -25,8 +25,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HybridBlock,
     HBoxStoredState] with ScorexLogging with ScorexEncoding {
 
-  require(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
-    s"${encoder.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${encoder.encode(version)}")
+  require(store.lastVersionID.map(w => bytesToId(w.data)).getOrElse(version) == version,
+    s"${encoder.encode(store.lastVersionID.map(_.data).getOrElse(versionToBytes(version)))} != ${encoder.encode(versionToBytes(version))}")
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridBlock
@@ -51,13 +51,13 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     mod match {
       case pwb: PowBlock =>
         //coinbase transaction is generated implicitly when block is applied to state, no validation needed
-        require((pwb.parentId sameElements version) || (pwb.prevPosId sameElements version)
-          || pwb.brothers.exists(_.id sameElements version), s"Incorrect state version: ${encoder.encode(version)} " +
+        require((pwb.parentId == version) || (pwb.prevPosId == version)
+          || pwb.brothers.exists(_.id == version), s"Incorrect state version: ${encoder.encode(version)} " +
           s"found, (${encoder.encode(pwb.prevPosId)} || ${encoder.encode(pwb.parentId)} ||" +
           s" ${pwb.brothers.map(b => encoder.encode(b.id))}) expected")
 
       case psb: PosBlock =>
-        require(psb.parentId sameElements version, s"Incorrect state version!: ${encoder.encode(psb.parentId)} found, " +
+        require(psb.parentId == version, s"Incorrect state version!: ${encoder.encode(psb.parentId)} found, " +
           s"${encoder.encode(version)} expected")
         //TODO/review this: if the get below is removed, some of hybrid.HybridSanity and hybrid.NodeViewHolderSpec tests fail
         closedBox(psb.generatorBox.id).get
@@ -77,19 +77,19 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     log.trace(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encode(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => encoder.encode(b.data))}, " +
       s"adding boxes ${boxesToAdd.map(b => encoder.encode(b._1.data))}")
-    store.update(ByteArrayWrapper(newVersion), boxIdsToRemove, boxesToAdd)
+    store.update(ByteArrayWrapper(versionToBytes(newVersion)), boxIdsToRemove, boxesToAdd)
     HBoxStoredState(store, newVersion)
       .ensuring(st => boxIdsToRemove.forall(box => st.closedBox(box.data).isEmpty), s"Removed box is still in state")
-  } ensuring { r => r.toOption.forall(_.version sameElements newVersion )}
+  } ensuring { r => r.toOption.forall(_.version == newVersion )}
 
   override def maxRollbackDepth: Int = store.keepVersions
 
   override def rollbackTo(version: VersionTag): Try[HBoxStoredState] = Try {
-    if (store.lastVersionID.exists(_.data sameElements version)) {
+    if (store.lastVersionID.exists(lv => bytesToId(lv.data) == version)) {
       this
     } else {
       log.info(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")
-      store.rollback(ByteArrayWrapper(version))
+      store.rollback(ByteArrayWrapper(versionToBytes(version)))
       new HBoxStoredState(store, version)
     }
   }.recoverWith{case e =>
@@ -108,7 +108,7 @@ object HBoxStoredState {
     mod match {
       case pb: PowBlock =>
         val proposition: PublicKey25519Proposition = pb.generatorProposition
-        val nonce: Nonce = SimpleBoxTransaction.nonceFromDigest(mod.id)
+        val nonce: Nonce = SimpleBoxTransaction.nonceFromDigest(idToBytes(mod.id))
         val value: Value = Value @@ 1L
         val minerBox = PublicKey25519NoncedBox(proposition, nonce, value)
         Success(BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox](Seq(Insertion(minerBox))))
@@ -122,7 +122,7 @@ object HBoxStoredState {
             }
 
           //for PoS forger reward box, we use block Id as a nonce
-          val forgerNonce = Nonce @@ Longs.fromByteArray(ps.id.take(8))
+          val forgerNonce = Nonce @@ Longs.fromByteArray(idToBytes(ps.id).take(8))
           val forgerBox = PublicKey25519NoncedBox(ps.generatorBox.proposition, forgerNonce, Value @@ reward)
 
           @SuppressWarnings(Array("org.wartremover.warts.Product","org.wartremover.warts.Serializable"))
@@ -148,7 +148,7 @@ object HBoxStoredState {
         stateStorage.close()
       }
     })
-    val version = VersionTag @@ stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
+    val version = bytesToVersion(stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray))
 
     HBoxStoredState(stateStorage, version)
   }

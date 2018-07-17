@@ -5,8 +5,7 @@ import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.VersionTag
-import scorex.core.app.Version
+import scorex.core._
 import scorex.core.network._
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
@@ -21,8 +20,8 @@ trait NodeViewSynchronizerGenerators {
     def props(networkControllerRef: ActorRef,
               viewHolderRef: ActorRef): Props =
       NodeViewSynchronizerRef.props[TX, HSI, SIS, PM, HT, MP](networkControllerRef, viewHolderRef, HybridSyncInfoMessageSpec,
-                                                                 settings.scorexSettings.network,
-                                                                 new NetworkTimeProvider(settings.scorexSettings.ntp))
+        settings.scorexSettings.network,
+        new NetworkTimeProvider(settings.scorexSettings.ntp))
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
@@ -32,7 +31,7 @@ trait NodeViewSynchronizerGenerators {
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
-    sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
+    sRaw.store.update(ByteArrayWrapper(idToBytes(v)), Seq(), Seq())
     val s = sRaw.copy(version = VersionTag @@ v)
 
     val ncProbe = TestProbe("NetworkControllerProbe")
@@ -45,8 +44,7 @@ trait NodeViewSynchronizerGenerators {
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val tx = simpleBoxTransactionGen.sample.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-    val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref, Outgoing,
-      Handshake("", Version(0,1,2), "", None, Seq(), 0L))
+    val p: ConnectedPeer = connectedPeerGen(pchProbe.ref).sample.get
 
     (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, eventListener)
   }

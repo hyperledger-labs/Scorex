@@ -4,7 +4,7 @@ import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSeriali
 import examples.trimchain.modifiers.{TBlock, TModifier, UtxoSnapshot}
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 import examples.trimchain.utxo.{AuthenticatedUtxo, PersistentAuthenticatedUtxo}
-import scorex.core.VersionTag
+import scorex.core._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexLogging
@@ -39,7 +39,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
     p
   }
 
-  lazy val rootHash: VersionTag = VersionTag @@ prover.digest
+  lazy val rootHash: VersionTag = bytesToVersion(prover.digest)
 
   override type NVCT = InMemoryAuthenticatedUtxo
 

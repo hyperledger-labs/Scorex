@@ -4,7 +4,7 @@ import com.google.common.primitives.Longs
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{HybridMiningSettings, PosForger}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.ModifierId
+import scorex.core._
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.consensus.ModifierSemanticValidity.{Absent, Unknown}
 import scorex.core.utils.ScorexLogging
@@ -23,10 +23,10 @@ class HistoryStorage(storage: LSMStore,
 
   def bestChainScore: Long = height
 
-  def bestPowId: ModifierId = storage.get(bestPowIdKey).map(d => ModifierId @@ d.data)
+  def bestPowId: ModifierId = storage.get(bestPowIdKey).map(d => bytesToId(d.data))
     .getOrElse(settings.GenesisParentId)
 
-  def bestPosId: ModifierId = storage.get(bestPosIdKey).map(d => ModifierId @@ d.data)
+  def bestPosId: ModifierId = storage.get(bestPosIdKey).map(d => bytesToId(d.data))
     .getOrElse(settings.GenesisParentId)
 
   // TODO: review me .get
@@ -44,7 +44,7 @@ class HistoryStorage(storage: LSMStore,
   }
 
   def modifierById(blockId: ModifierId): Option[HybridBlock] = {
-    storage.get(ByteArrayWrapper(blockId)).flatMap { bw =>
+    storage.get(ByteArrayWrapper(idToBytes(blockId))).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
       val parsed: Try[HybridBlock] = mtypeId match {
@@ -73,7 +73,7 @@ class HistoryStorage(storage: LSMStore,
   }
 
   def updateValidity(b: HybridBlock, status: ModifierSemanticValidity): Unit = {
-    val version = ByteArrayWrapper(Sha256(scala.util.Random.nextString(20).getBytes("UTF-8")))
+    val version = ByteArrayWrapper(scorex.core.utils.randomBytes(32))
     storage.update(version, Seq(), Seq(validityKey(b) -> ByteArrayWrapper(Array(status.code))))
   }
 
@@ -96,9 +96,9 @@ class HistoryStorage(storage: LSMStore,
 
     val bestBlockSeq: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] = b match {
       case powBlock: PowBlock if isBest =>
-        Seq(bestPowIdKey -> ByteArrayWrapper(powBlock.id), bestPosIdKey -> ByteArrayWrapper(powBlock.prevPosId))
+        Seq(bestPowIdKey -> ByteArrayWrapper(idToBytes(powBlock.id)), bestPosIdKey -> ByteArrayWrapper(idToBytes(powBlock.prevPosId)))
       case posBlock: PosBlock if isBest =>
-        Seq(bestPowIdKey -> ByteArrayWrapper(posBlock.parentId), bestPosIdKey -> ByteArrayWrapper(posBlock.id))
+        Seq(bestPowIdKey -> ByteArrayWrapper(idToBytes(posBlock.parentId)), bestPosIdKey -> ByteArrayWrapper(idToBytes(posBlock.id)))
       case _ => Seq()
     }
 
@@ -108,14 +108,14 @@ class HistoryStorage(storage: LSMStore,
       blockDiff ++
         blockH ++
         bestBlockSeq ++
-        Seq(ByteArrayWrapper(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
+        Seq(ByteArrayWrapper(idToBytes(b.id)) -> ByteArrayWrapper(typeByte +: b.bytes)))
   }
 
   // TODO: review me .get
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def getPoWDifficulty(idOpt: Option[ModifierId]): BigInt = {
     idOpt match {
-      case Some(id) if id sameElements settings.GenesisParentId =>
+      case Some(id) if id == settings.GenesisParentId =>
         settings.initialDifficulty
       case Some(id) =>
         BigInt(storage.get(blockDiffKey(id, isPos = false)).get.data)
@@ -128,7 +128,7 @@ class HistoryStorage(storage: LSMStore,
 
   // TODO: review me .get
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-  def getPoSDifficulty(id: ModifierId): BigInt = if (id sameElements settings.GenesisParentId) {
+  def getPoSDifficulty(id: ModifierId): BigInt = if (id == settings.GenesisParentId) {
     PosForger.InitialDifficuly
   } else {
     BigInt(storage.get(blockDiffKey(id, isPos = true)).get.data)
@@ -142,19 +142,19 @@ class HistoryStorage(storage: LSMStore,
   }
 
   private def validityKey(b: HybridBlock): ByteArrayWrapper =
-    ByteArrayWrapper(Sha256("validity".getBytes("UTF-8") ++ b.id))
+    ByteArrayWrapper(Sha256(s"validity${b.id}"))
 
   private def blockHeightKey(blockId: ModifierId): ByteArrayWrapper =
-    ByteArrayWrapper(Sha256("height".getBytes("UTF-8") ++ blockId))
+    ByteArrayWrapper(Sha256(s"height$blockId"))
 
-  private def blockDiffKey(blockId: Array[Byte], isPos: Boolean): ByteArrayWrapper =
-    ByteArrayWrapper(Sha256(s"difficulties$isPos".getBytes("UTF-8") ++ blockId))
+  private def blockDiffKey(blockId: ModifierId, isPos: Boolean): ByteArrayWrapper =
+    ByteArrayWrapper(Sha256(s"difficulties$isPos$blockId"))
 
   def heightOf(blockId: ModifierId): Option[Long] = storage.get(blockHeightKey(blockId))
     .map(b => Longs.fromByteArray(b.data))
 
   def isGenesis(b: HybridBlock): Boolean = b match {
-    case powB: PowBlock => powB.parentId sameElements settings.GenesisParentId
+    case powB: PowBlock => powB.parentId == settings.GenesisParentId
     case posB: PosBlock => heightOf(posB.parentId).contains(1L)
   }
 }

@@ -3,25 +3,24 @@ package scorex.testkit.properties
 import akka.actor._
 import akka.testkit.TestProbe
 import org.scalacheck.Gen
-import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
-import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
+import org.scalatest.{Matchers, PropSpec}
+import scorex.core.NodeViewHolder.ReceivableMessages.{CompareViews, ModifiersFromRemote}
+import scorex.core._
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
-import scorex.core.network._
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.transaction.box.proposition.Proposition
+import scorex.core.network.NetworkController.ReceivableMessages.{Blacklist, SendToNetwork}
+import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
+import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
+import scorex.core.network._
+import scorex.core.network.message._
+import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.AkkaFixture
-import scorex.core.network.message._
-import scorex.core.serialization.{BytesSerializable, Serializer}
-import NodeViewHolder.ReceivableMessages.{CompareViews, ModifiersFromRemote}
-import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
-import NodeViewSynchronizer.ReceivableMessages._
-import NetworkController.ReceivableMessages.{Blacklist, SendToNetwork}
-import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -199,7 +198,7 @@ trait NodeViewSynchronizerTests[
       case m => m
     }
     assert(!messages.exists {
-      case ModifiersFromRemote(p, _, _) if p == peer => true
+      case ModifiersFromRemote(p, _) if p == peer => true
       case _ => false
     })
     // ncProbe.fishForMessage(3 seconds) { case m => ??? }
@@ -213,7 +212,7 @@ trait NodeViewSynchronizerTests[
     node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
     node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
     vhProbe.fishForMessage(3 seconds) { case m =>
-      m == ModifiersFromRemote(peer, mod.modifierTypeId, Seq(mod.bytes))
+      m == ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.bytes)))
     }
   }}
 

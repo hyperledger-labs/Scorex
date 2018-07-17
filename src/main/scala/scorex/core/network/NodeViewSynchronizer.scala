@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.NodeViewHolder.DownloadRequest
+import scorex.core.NodeViewHolder.ReceivableMessages.IncorrectModifierFromRemote
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
@@ -19,7 +20,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-import scala.util.Success
 
 /**
   * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
@@ -31,16 +31,16 @@ import scala.util.Success
   * @tparam SIS SyncInfoMessage specification
   */
 class NodeViewSynchronizer[TX <: Transaction,
-                           SI <: SyncInfo,
-                           SIS <: SyncInfoMessageSpec[SI],
-                           PMOD <: PersistentNodeViewModifier,
-                           HR <: HistoryReader[PMOD, SI] : ClassTag,
-                           MR <: MempoolReader[TX] : ClassTag]
-  (networkControllerRef: ActorRef,
-  viewHolderRef: ActorRef,
-  syncInfoSpec: SIS,
-  networkSettings: NetworkSettings,
-  timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
+SI <: SyncInfo,
+SIS <: SyncInfoMessageSpec[SI],
+PMOD <: PersistentNodeViewModifier,
+HR <: HistoryReader[PMOD, SI] : ClassTag,
+MR <: MempoolReader[TX] : ClassTag]
+(networkControllerRef: ActorRef,
+ viewHolderRef: ActorRef,
+ syncInfoSpec: SIS,
+ networkSettings: NetworkSettings,
+ timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
   with ScorexLogging with ScorexEncoding {
 
   import History._
@@ -53,6 +53,7 @@ class NodeViewSynchronizer[TX <: Transaction,
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
+  protected val statusKeeper = new ModifiersStatusKeeper()
   protected val modifiersSpec = new ModifiersSpec(networkSettings.maxPacketSize)
 
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
@@ -96,6 +97,8 @@ class NodeViewSynchronizer[TX <: Transaction,
     //todo: penalize source peer?
 
     case SyntacticallySuccessfulModifier(mod) =>
+      statusKeeper.applied(mod.id)
+
     case SyntacticallyFailedModification(mod, throwable) =>
     //todo: penalize source peer?
 
@@ -214,6 +217,13 @@ class NodeViewSynchronizer[TX <: Transaction,
       }
   }
 
+  protected def incorrectModifiers: Receive = {
+    case IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable) =>
+      log.warn(s"Incorect modifier ${encoder.encode(id)} received: ${error.getMessage}")
+      statusKeeper.incorrectBytes(id)
+      penalizeMisbehavingPeer(source)
+  }
+
   /**
     * Logic to process modifiers got from another peer
     */
@@ -225,23 +235,25 @@ class NodeViewSynchronizer[TX <: Transaction,
       val modifiers = data._2
 
       log.info(s"Got modifiers of type $typeId from remote connected peer: $remote")
-      log.trace(s"Received modifier ids ${data._2.keySet.map(encoder.encode).mkString(",")}")
+      log.trace(s"Received modifier ids ${data._2.keySet.map(id => encoder.encode(id)).mkString(",")}")
 
-      modifiers.foreach { case (id, _) => deliveryTracker.onReceive(typeId, id, remote) }
+      modifiers.foreach { case (id, _) =>
+        statusKeeper.received(id)
+        deliveryTracker.onReceive(typeId, id, remote)
+      }
 
       val (spam, fm) = modifiers.partition { case (id, _) => deliveryTracker.isSpam(id) }
 
       if (spam.nonEmpty) {
         log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
-          s": ${spam.keys.map(encoder.encode)}")
+          s": ${spam.keys.map(id => encoder.encode(id))}")
         penalizeSpammingPeer(remote)
         val mids = spam.keys.toSeq
         deliveryTracker.deleteSpam(mids)
       }
 
       if (fm.nonEmpty) {
-        val mods = fm.values.toSeq
-        viewHolderRef ! ModifiersFromRemote(remote, typeId, mods)
+        viewHolderRef ! ModifiersFromRemote(remote, (typeId, fm))
       }
   }
 
@@ -253,6 +265,7 @@ class NodeViewSynchronizer[TX <: Transaction,
         val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
         peer.handlerRef ! msg
       }
+      modifierIds.foreach(id => statusKeeper.requested(id))
       deliveryTracker.expect(peer, modifierTypeId, modifierIds)
   }
 
@@ -290,6 +303,10 @@ class NodeViewSynchronizer[TX <: Transaction,
   protected def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
     //todo: consider something less harsh than blacklisting, see comment for previous function
     // networkControllerRef ! Blacklist(peer)
+  }
+
+  protected def penalizeMisbehavingPeer(peer: ConnectedPeer): Unit = {
+    // todo: peer sent incorrect modifier - blacklist or another serious penalty required
   }
 
   //local node sending out objects requested to remote
@@ -423,47 +440,47 @@ object NodeViewSynchronizer {
 
 object NodeViewSynchronizerRef {
   def props[TX <: Transaction,
-            SI <: SyncInfo,
-            SIS <: SyncInfoMessageSpec[SI],
-            PMOD <: PersistentNodeViewModifier,
-            HR <: HistoryReader[PMOD, SI] : ClassTag,
-            MR <: MempoolReader[TX] : ClassTag]
-      (networkControllerRef: ActorRef,
-       viewHolderRef: ActorRef,
-       syncInfoSpec: SIS,
-       networkSettings: NetworkSettings,
-       timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
+  SI <: SyncInfo,
+  SIS <: SyncInfoMessageSpec[SI],
+  PMOD <: PersistentNodeViewModifier,
+  HR <: HistoryReader[PMOD, SI] : ClassTag,
+  MR <: MempoolReader[TX] : ClassTag]
+  (networkControllerRef: ActorRef,
+   viewHolderRef: ActorRef,
+   syncInfoSpec: SIS,
+   networkSettings: NetworkSettings,
+   timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new NodeViewSynchronizer[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
       networkSettings, timeProvider))
 
   def apply[TX <: Transaction,
-            SI <: SyncInfo,
-            SIS <: SyncInfoMessageSpec[SI],
-            PMOD <: PersistentNodeViewModifier,
-            HR <: HistoryReader[PMOD, SI] : ClassTag,
-            MR <: MempoolReader[TX] : ClassTag]
-      (networkControllerRef: ActorRef,
-       viewHolderRef: ActorRef,
-       syncInfoSpec: SIS,
-       networkSettings: NetworkSettings,
-       timeProvider: NetworkTimeProvider)
-      (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+  SI <: SyncInfo,
+  SIS <: SyncInfoMessageSpec[SI],
+  PMOD <: PersistentNodeViewModifier,
+  HR <: HistoryReader[PMOD, SI] : ClassTag,
+  MR <: MempoolReader[TX] : ClassTag]
+  (networkControllerRef: ActorRef,
+   viewHolderRef: ActorRef,
+   syncInfoSpec: SIS,
+   networkSettings: NetworkSettings,
+   timeProvider: NetworkTimeProvider)
+  (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider))
 
   def apply[TX <: Transaction,
-            SI <: SyncInfo,
-            SIS <: SyncInfoMessageSpec[SI],
-            PMOD <: PersistentNodeViewModifier,
-            HR <: HistoryReader[PMOD, SI] : ClassTag,
-            MR <: MempoolReader[TX] : ClassTag]
-      (name: String,
-       networkControllerRef: ActorRef,
-       viewHolderRef: ActorRef,
-       syncInfoSpec: SIS,
-       networkSettings: NetworkSettings,
-       timeProvider: NetworkTimeProvider)
-      (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+  SI <: SyncInfo,
+  SIS <: SyncInfoMessageSpec[SI],
+  PMOD <: PersistentNodeViewModifier,
+  HR <: HistoryReader[PMOD, SI] : ClassTag,
+  MR <: MempoolReader[TX] : ClassTag]
+  (name: String,
+   networkControllerRef: ActorRef,
+   viewHolderRef: ActorRef,
+   syncInfoSpec: SIS,
+   networkSettings: NetworkSettings,
+   timeProvider: NetworkTimeProvider)
+  (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider), name)
 }

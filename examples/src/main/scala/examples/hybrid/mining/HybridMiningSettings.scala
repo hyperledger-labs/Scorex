@@ -6,10 +6,10 @@ import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.ValueReader
-import scorex.core.ModifierId
+import scorex.core._
 import scorex.core.settings.ScorexSettings.readConfigFromPath
 import scorex.core.settings._
-import scorex.core.utils.{ByteStr, ScorexLogging}
+import scorex.core.utils.ScorexLogging
 
 import scala.concurrent.duration._
 
@@ -17,7 +17,7 @@ case class HybridSettings(mining: HybridMiningSettings,
                           walletSettings: WalletSettings,
                           scorexSettings: ScorexSettings)
 
-case class WalletSettings(seed: ByteStr,
+case class WalletSettings(seed: String,
                           password: String,
                           walletDir: File)
 
@@ -28,7 +28,7 @@ case class HybridMiningSettings(offlineGeneration: Boolean,
                                 rParamX10: Int,
                                 initialDifficulty: BigInt) {
   lazy val MaxTarget = BigInt(1, Array.fill(32)(Byte.MinValue))
-  lazy val GenesisParentId = ModifierId @@ Array.fill(32)(1: Byte)
+  lazy val GenesisParentId: ModifierId = bytesToId(Array.fill(32)(1: Byte))
 }
 
 object HybridSettings extends ScorexLogging with SettingsReaders {

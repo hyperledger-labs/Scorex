@@ -20,18 +20,17 @@ class DeliveryTracker(system: ActorSystem,
                       maxDeliveryChecks: Int,
                       nvsRef: ActorRef) extends ScorexLogging with ScorexEncoding {
 
-  protected type ModifierIdAsKey = scala.collection.mutable.WrappedArray.ofByte
-
   protected case class ExpectingStatus(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
 
-  protected def key(id: ModifierId): ModifierIdAsKey = new mutable.WrappedArray.ofByte(id)
+  // todo remove
+  protected def key(id: ModifierId): ModifierId = id
 
   // when a remote peer is asked a modifier, we add the expected data to `expecting`
   // when a remote peer delivers expected data, it is removed from `expecting` and added to `delivered`.
   // when a remote peer delivers unexpected data, it is added to `deliveredSpam`.
-  protected val expecting = mutable.Map[ModifierIdAsKey, ExpectingStatus]()
-  protected val delivered = mutable.Map[ModifierIdAsKey, ConnectedPeer]()
-  protected val deliveredSpam = mutable.Map[ModifierIdAsKey, ConnectedPeer]()
+  protected val expecting = mutable.Map[ModifierId, ExpectingStatus]()
+  protected val delivered = mutable.Map[ModifierId, ConnectedPeer]()
+  protected val deliveredSpam = mutable.Map[ModifierId, ConnectedPeer]()
 
   /**
     * Someone should have these modifiers, but we do not know who
