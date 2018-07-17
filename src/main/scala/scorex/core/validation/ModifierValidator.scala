@@ -224,7 +224,9 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   /** Shortcut `require`-like method to validate the arrays are equal. Otherwise returns fatal error
     */
   def demandEqualArrays(given: => Array[Byte], expected: => Array[Byte], fatalError: String): ValidationState[T] = {
-    validateEquals(given)(expected)(d => ModifierValidator.fatal(fatalError, d))
+    validate(java.util.Arrays.equals(given, expected)) {
+      ModifierValidator.fatal(s"$fatalError. Given $given while expected $expected")
+    }
   }
 
   /** Shortcut `require`-like method for the `Try` validation with fatal error
