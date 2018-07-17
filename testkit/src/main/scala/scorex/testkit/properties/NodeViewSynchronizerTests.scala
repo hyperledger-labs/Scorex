@@ -191,7 +191,10 @@ trait NodeViewSynchronizerTests[
 
   ignore("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") { withFixture { ctx =>
     import ctx._
-    node ! DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+
+    val modifiersSpec = new ModifiersSpec(1024 * 1024)
+
+    node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
     val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
       case m => m
     }
@@ -204,8 +207,11 @@ trait NodeViewSynchronizerTests[
 
   property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") { withFixture { ctx =>
     import ctx._
+
+    val modifiersSpec = new ModifiersSpec(1024 * 1024)
+
     node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
-    node ! DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+    node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
     vhProbe.fishForMessage(3 seconds) { case m =>
       m == ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.bytes)))
     }
@@ -225,9 +231,12 @@ trait NodeViewSynchronizerTests[
 
   property("NodeViewSynchronizer: RequestFromLocal - CheckDelivery -  Do not penalize if delivered") { withFixture { ctx =>
     import ctx._
+
+    val modifiersSpec = new ModifiersSpec(1024 * 1024)
+
     node ! RequestFromLocal(peer, mod.modifierTypeId, Seq(mod.id))
     import scala.concurrent.ExecutionContext.Implicits.global
-    system.scheduler.scheduleOnce(1 second, node, DataFromPeer(ModifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer) )
+    system.scheduler.scheduleOnce(1 second, node, DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer) )
     val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
     assert(!messages.contains(Blacklist(peer)))
   }}

@@ -7,6 +7,7 @@ import java.util
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
+import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 
 import scala.util.Try
@@ -33,7 +34,9 @@ object InvSpec {
   val MessageCode: Byte = 55
   val MessageName: String = "Inv"
 }
+
 class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
+
   import InvSpec._
 
   override val messageCode = MessageCode
@@ -66,8 +69,10 @@ object RequestModifierSpec {
   val MessageCode: MessageCode = 22: Byte
   val MessageName: String = "RequestModifier"
 }
+
 class RequestModifierSpec(maxInvObjects: Int)
   extends MessageSpec[InvData] {
+
   import RequestModifierSpec._
 
   override val messageCode: MessageCode = MessageCode
@@ -83,10 +88,17 @@ class RequestModifierSpec(maxInvObjects: Int)
 }
 
 
-object ModifiersSpec extends MessageSpec[ModifiersData] {
+object ModifiersSpec {
+  val MessageCode: MessageCode = 33: Byte
+  val MessageName: String = "Modifier"
+}
 
-  override val messageCode: MessageCode = 33: Byte
-  override val messageName: String = "Modifier"
+class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with ScorexLogging {
+
+  import ModifiersSpec._
+
+  override val messageCode: MessageCode = MessageCode
+  override val messageName: String = MessageName
 
   override def parseBytes(bytes: Array[Byte]): Try[ModifiersData] = Try {
     val typeId = ModifierTypeId @@ bytes.head
@@ -108,9 +120,18 @@ object ModifiersSpec extends MessageSpec[ModifiersData] {
     require(data._2.nonEmpty, "empty modifiers list")
     val typeId = data._1
     val modifiers = data._2
-    Array(typeId) ++ Ints.toByteArray(modifiers.size) ++ modifiers.map { case (id, modifier) =>
-      id ++ Ints.toByteArray(modifier.length) ++ modifier
-    }.fold(Array[Byte]())(_ ++ _)
+
+    var msgSize = 5
+    val payload: Seq[Array[Byte]] = modifiers.flatMap { case (id, modifier) =>
+      msgSize += id.length + 4 + modifier.length
+      if (msgSize <= maxMessageSize) Seq(id, Ints.toByteArray(modifier.length), modifier) else Seq()
+    }.toSeq
+
+    if (msgSize > maxMessageSize) {
+      log.info(s"Modifiers message of $msgSize generated while the maximum is $maxMessageSize. Better to fix app layer.")
+    }
+
+    scorex.core.utils.concatBytes(Seq(Array(typeId), Ints.toByteArray(payload.size / 3)) ++ payload)
   }
 }
 

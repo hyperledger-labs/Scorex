@@ -31,16 +31,16 @@ import scala.reflect.ClassTag
   * @tparam SIS SyncInfoMessage specification
   */
 class NodeViewSynchronizer[TX <: Transaction,
-SI <: SyncInfo,
-SIS <: SyncInfoMessageSpec[SI],
-PMOD <: PersistentNodeViewModifier,
-HR <: HistoryReader[PMOD, SI] : ClassTag,
-MR <: MempoolReader[TX] : ClassTag]
-(networkControllerRef: ActorRef,
- viewHolderRef: ActorRef,
- syncInfoSpec: SIS,
- networkSettings: NetworkSettings,
- timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
+                           SI <: SyncInfo,
+                           SIS <: SyncInfoMessageSpec[SI],
+                           PMOD <: PersistentNodeViewModifier,
+                           HR <: HistoryReader[PMOD, SI] : ClassTag,
+                           MR <: MempoolReader[TX] : ClassTag]
+  (networkControllerRef: ActorRef,
+  viewHolderRef: ActorRef,
+  syncInfoSpec: SIS,
+  networkSettings: NetworkSettings,
+  timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
   with ScorexLogging with ScorexEncoding {
 
   import History._
@@ -53,8 +53,9 @@ MR <: MempoolReader[TX] : ClassTag]
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
-  protected val statusKeeper = new ModifiersStatusKeeper()
+  protected val modifiersSpec = new ModifiersSpec(networkSettings.maxPacketSize)
 
+  protected val statusKeeper = new ModifiersStatusKeeper()
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
 
@@ -63,7 +64,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
-    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, modifiersSpec, syncInfoSpec)
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
@@ -228,7 +229,7 @@ MR <: MempoolReader[TX] : ClassTag]
     */
   protected def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
-      if spec.messageCode == ModifiersSpec.messageCode =>
+      if spec.messageCode == ModifiersSpec.MessageCode =>
 
       val typeId = data._1
       val modifiers = data._2
@@ -315,7 +316,7 @@ MR <: MempoolReader[TX] : ClassTag]
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val modType = modifiers.head.modifierTypeId
         val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
-        val msg = Message(ModifiersSpec, Right(m), None)
+        val msg = Message(modifiersSpec, Right(m), None)
         peer.handlerRef ! msg
       }
   }
@@ -439,47 +440,47 @@ object NodeViewSynchronizer {
 
 object NodeViewSynchronizerRef {
   def props[TX <: Transaction,
-  SI <: SyncInfo,
-  SIS <: SyncInfoMessageSpec[SI],
-  PMOD <: PersistentNodeViewModifier,
-  HR <: HistoryReader[PMOD, SI] : ClassTag,
-  MR <: MempoolReader[TX] : ClassTag]
-  (networkControllerRef: ActorRef,
-   viewHolderRef: ActorRef,
-   syncInfoSpec: SIS,
-   networkSettings: NetworkSettings,
-   timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
+            SI <: SyncInfo,
+            SIS <: SyncInfoMessageSpec[SI],
+            PMOD <: PersistentNodeViewModifier,
+            HR <: HistoryReader[PMOD, SI] : ClassTag,
+            MR <: MempoolReader[TX] : ClassTag]
+      (networkControllerRef: ActorRef,
+       viewHolderRef: ActorRef,
+       syncInfoSpec: SIS,
+       networkSettings: NetworkSettings,
+       timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new NodeViewSynchronizer[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
       networkSettings, timeProvider))
 
   def apply[TX <: Transaction,
-  SI <: SyncInfo,
-  SIS <: SyncInfoMessageSpec[SI],
-  PMOD <: PersistentNodeViewModifier,
-  HR <: HistoryReader[PMOD, SI] : ClassTag,
-  MR <: MempoolReader[TX] : ClassTag]
-  (networkControllerRef: ActorRef,
-   viewHolderRef: ActorRef,
-   syncInfoSpec: SIS,
-   networkSettings: NetworkSettings,
-   timeProvider: NetworkTimeProvider)
-  (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+            SI <: SyncInfo,
+            SIS <: SyncInfoMessageSpec[SI],
+            PMOD <: PersistentNodeViewModifier,
+            HR <: HistoryReader[PMOD, SI] : ClassTag,
+            MR <: MempoolReader[TX] : ClassTag]
+      (networkControllerRef: ActorRef,
+       viewHolderRef: ActorRef,
+       syncInfoSpec: SIS,
+       networkSettings: NetworkSettings,
+       timeProvider: NetworkTimeProvider)
+      (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider))
 
   def apply[TX <: Transaction,
-  SI <: SyncInfo,
-  SIS <: SyncInfoMessageSpec[SI],
-  PMOD <: PersistentNodeViewModifier,
-  HR <: HistoryReader[PMOD, SI] : ClassTag,
-  MR <: MempoolReader[TX] : ClassTag]
-  (name: String,
-   networkControllerRef: ActorRef,
-   viewHolderRef: ActorRef,
-   syncInfoSpec: SIS,
-   networkSettings: NetworkSettings,
-   timeProvider: NetworkTimeProvider)
-  (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+            SI <: SyncInfo,
+            SIS <: SyncInfoMessageSpec[SI],
+            PMOD <: PersistentNodeViewModifier,
+            HR <: HistoryReader[PMOD, SI] : ClassTag,
+            MR <: MempoolReader[TX] : ClassTag]
+      (name: String,
+       networkControllerRef: ActorRef,
+       viewHolderRef: ActorRef,
+       syncInfoSpec: SIS,
+       networkSettings: NetworkSettings,
+       timeProvider: NetworkTimeProvider)
+      (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider), name)
 }
