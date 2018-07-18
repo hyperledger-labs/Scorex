@@ -50,10 +50,10 @@ class ModifiersStatusKeeper() {
   def requested(id: ModifierId): Option[ModifiersStatus] = set(id, Requested)
 
   /**
-    * Modifier `id` was received with incorrect bytes (unable to parse or
-    * calculated id is different from the declared one)
+    * Remove status for modifier `id` for ModifiersStatusKeeper.
+    * This may happen when received modifier bytes does not correspond to declared modifier id
     */
-  def incorrectBytes(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
+  def remove(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
 
   protected def key(id: ModifierId) = new mutable.WrappedArray.ofByte(id)
 }

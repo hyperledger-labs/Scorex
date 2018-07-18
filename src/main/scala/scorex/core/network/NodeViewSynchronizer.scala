@@ -238,7 +238,7 @@ class NodeViewSynchronizer[TX <: Transaction,
   protected def incorrectModifiers: Receive = {
     case IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable) =>
       log.warn(s"Incorect modifier ${encoder.encode(id)} received: ${error.getMessage}")
-      statusKeeper.incorrectBytes(id)
+      statusKeeper.remove(id)
       penalizeMisbehavingPeer(source)
   }
 
