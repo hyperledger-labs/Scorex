@@ -288,7 +288,9 @@ class NodeViewSynchronizer[TX <: Transaction,
           } else {
             log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
             penalizeNonDeliveringPeer(peer)
-            deliveryTracker.reexpect(Some(peer), modifierTypeId, modifierId)
+            if (deliveryTracker.reexpect(Some(peer), modifierTypeId, modifierId).isFailure) {
+              statusKeeper.remove(modifierId)
+            }
           }
         case None =>
           // Random peer did not delivered modifier we need, ask another peer
