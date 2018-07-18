@@ -201,7 +201,7 @@ class NodeViewSynchronizer[TX <: Transaction,
             case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
               mempool.notIn(invData._2)
             case _ =>
-              invData._2.filter(mid => statusKeeper.status(mid)(history) == ModifiersStatusKeeper.Unknown)
+              invData._2.filter(mid => statusKeeper.status(mid)(history) == ModifiersStatus.Unknown)
           }
 
           if (modifierIds.nonEmpty) {

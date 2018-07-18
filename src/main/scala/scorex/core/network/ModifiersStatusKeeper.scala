@@ -2,7 +2,7 @@ package scorex.core.network
 
 import scorex.core.ModifierId
 import scorex.core.consensus.HistoryReader
-import scorex.core.network.ModifiersStatusKeeper._
+import scorex.core.network.ModifiersStatus.{Applied, ModifiersStatus, Received, Requested, Unknown}
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
@@ -56,32 +56,4 @@ class ModifiersStatusKeeper() {
   def incorrectBytes(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
 
   protected def key(id: ModifierId) = new mutable.WrappedArray.ofByte(id)
-}
-
-
-object ModifiersStatusKeeper {
-
-  sealed trait ModifiersStatus
-
-  /**
-    * This modifier is unknown to our node
-    */
-  case object Unknown extends ModifiersStatus
-
-  /**
-    * Our node have requested this modifier from other peers but did not received it yet.
-    */
-  case object Requested extends ModifiersStatus
-
-  /**
-    * Our node have received this modifier from other peers but is not applied yet.
-    * It might be ModifiersCache or on the way to it
-    */
-  case object Received extends ModifiersStatus
-
-  /**
-    * This modifier was already applied to history
-    */
-  case object Applied extends ModifiersStatus
-
 }
