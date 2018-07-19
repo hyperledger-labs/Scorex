@@ -92,8 +92,7 @@ class HybridHistory(val storage: HistoryStorage,
   override def modifierById(id: ModifierId): Option[HybridBlock with
     Block[SimpleBoxTransaction]] = storage.modifierById(id)
 
-  override def contains(id: ModifierId): Boolean =
-    if (id == settings.GenesisParentId) true else modifierById(id).isDefined
+  override def contains(id: ModifierId): Boolean = id == settings.GenesisParentId || modifierById(id).isDefined
 
   private def powBlockAppend(powBlock: PowBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
     val progress: ProgressInfo[HybridBlock] = if (isGenesis(powBlock)) {
@@ -109,8 +108,7 @@ class HybridHistory(val storage: HistoryStorage,
           val isBest: Boolean = storage.height == storage.parentHeight(powBlock) || isBestBrother
 
           val mod: ProgressInfo[HybridBlock] = if (isBest) {
-            if (isGenesis(powBlock) ||
-              ((powBlock.parentId == bestPowId) && (powBlock.prevPosId == bestPosId))) {
+            if (isGenesis(powBlock) || (powBlock.parentId == bestPowId && powBlock.prevPosId == bestPosId)) {
               log.debug(s"New best PoW block ${encoder.encode(powBlock.id)}")
               //just apply one block to the end
               ProgressInfo(None, Seq(), Seq(powBlock), Seq())

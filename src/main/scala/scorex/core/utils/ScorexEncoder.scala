@@ -4,7 +4,7 @@ import scorex.crypto.encode.{Base16, BytesEncoder}
 
 import scala.util.Try
 
-trait ScorexEncoder extends BytesEncoder {
+class ScorexEncoder extends BytesEncoder {
   @inline
   override val Alphabet: String = Base16.Alphabet
 
@@ -24,4 +24,6 @@ trait ScorexEncoder extends BytesEncoder {
 
 }
 
-object ScorexEncoderImpl extends ScorexEncoder
+object ScorexEncoder {
+  val default: ScorexEncoder = new ScorexEncoder()
+}

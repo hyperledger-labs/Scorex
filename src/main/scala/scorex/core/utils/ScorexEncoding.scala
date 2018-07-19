@@ -5,5 +5,5 @@ package scorex.core.utils
   * TODO extract to ScorexUtils project
   */
 trait ScorexEncoding {
-  implicit val encoder: ScorexEncoder = ScorexEncoderImpl
+  implicit val encoder: ScorexEncoder = ScorexEncoder.default
 }
