@@ -115,18 +115,18 @@ trait HybridGenerators extends ExamplesCommonGenerators
 
   lazy val walletBoxGen: Gen[WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox]] = for {
     createdAt <- positiveLongGen
-    txId <- genBytes(NodeViewModifier.ModifierIdSize)
+    txId <- modifierIdGen
     box: PublicKey25519NoncedBox <- noncedBoxGen
   } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
 
   //Generators
-  val memPoolElementGen: Gen[(ByteArrayWrapper, SimpleBoxTransaction)] = for {
-    id <- modifierIdGen.map(ByteArrayWrapper(_))
+  val memPoolElementGen: Gen[(ModifierId, SimpleBoxTransaction)] = for {
+    id <- modifierIdGen
     transaction <- simpleBoxTransactionGen
   } yield (id, transaction)
 
   val emptyMemPoolGen: Gen[SimpleBoxTransactionMemPool] = for {
-    map <- Gen.buildableOfN[TrieMap[ByteArrayWrapper, SimpleBoxTransaction], (ByteArrayWrapper, SimpleBoxTransaction)](0, memPoolElementGen)
+    map <- Gen.buildableOfN[TrieMap[ModifierId, SimpleBoxTransaction], (ModifierId, SimpleBoxTransaction)](0, memPoolElementGen)
   } yield SimpleBoxTransactionMemPool(map)
 
   def stateChangesGenerator(state: HBoxStoredState): ChangesGen = {

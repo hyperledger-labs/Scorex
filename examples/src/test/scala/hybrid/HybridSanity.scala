@@ -7,7 +7,6 @@ import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import org.scalacheck.Gen
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.ByteStr
 import scorex.testkit.{BlockchainPerformance, BlockchainSanity}
 
 
@@ -23,10 +22,11 @@ class HybridSanity extends BlockchainSanity[PublicKey25519Proposition,
                                             SimpleBoxTransactionMemPool, HBoxStoredState, HybridHistory]
   with HybridGenerators {
 
+  private val walletSettings = originalSettings.walletSettings.copy(seed = "p")
 
   //Node view components
   override lazy val memPool: SimpleBoxTransactionMemPool = SimpleBoxTransactionMemPool.emptyPool
   override lazy val memPoolGenerator: Gen[SimpleBoxTransactionMemPool] = emptyMemPoolGen
   override lazy val transactionGenerator: Gen[TX] = simpleBoxTransactionGen
-  override lazy val wallet = (0 until 100).foldLeft(HBoxWallet.readOrGenerate(originalSettings.walletSettings, ByteStr.decodeBase58("p").get))((w, _) => w.generateNewSecret())
+  override lazy val wallet = (0 until 100).foldLeft(HBoxWallet.readOrGenerate(walletSettings))((w, _) => w.generateNewSecret())
 }

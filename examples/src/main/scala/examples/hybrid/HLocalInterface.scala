@@ -36,7 +36,7 @@ class HLocalInterface(viewHolderRef: ActorRef,
             powMinerRef ! MineBlock
 
           case sb: PosBlock =>
-            if (!(sb.parentId sameElements minerSettings.GenesisParentId)) {
+            if (!(sb.parentId == minerSettings.GenesisParentId)) {
               posForgerRef ! StopForging
               powMinerRef ! StartMining
             }

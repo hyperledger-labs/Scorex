@@ -7,7 +7,7 @@ import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, NodeViewModifier, PersistentNodeViewModifier}
+import scorex.core._
 
 import scala.util.Try
 
@@ -17,7 +17,7 @@ import scala.util.Try
   * e.g. could be useful for developments of the Twinscoin protocol and wallet.
   *
   */
-case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array[Byte], createdAt: Long)
+case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: ModifierId, createdAt: Long)
                                                    (subclassDeser: Serializer[B]) extends BytesSerializable
   with ScorexEncoding {
 
@@ -31,11 +31,11 @@ case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Array
 
 class WalletBoxSerializer[P <: Proposition, B <: Box[P]](subclassDeser: Serializer[B]) extends Serializer[WalletBox[P, B]] {
   override def toBytes(box: WalletBox[P, B]): Array[Byte] = {
-    Bytes.concat(box.transactionId, Longs.toByteArray(box.createdAt), box.box.bytes)
+    Bytes.concat(idToBytes(box.transactionId), Longs.toByteArray(box.createdAt), box.box.bytes)
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[WalletBox[P, B]] = Try {
-    val txId = bytes.slice(0, NodeViewModifier.ModifierIdSize)
+    val txId = bytesToId(bytes.slice(0, NodeViewModifier.ModifierIdSize))
     val createdAt = Longs.fromByteArray(
       bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8))
     val boxB = bytes.slice(NodeViewModifier.ModifierIdSize + 8, bytes.length)
