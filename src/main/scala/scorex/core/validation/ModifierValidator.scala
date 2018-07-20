@@ -2,7 +2,6 @@ package scorex.core.validation
 
 
 import scorex.core.consensus.ModifierSemanticValidity
-import scorex.core.utils.ScorexLogging
 import scorex.core.validation.ValidationResult._
 import scorex.crypto.encode.BytesEncoder
 
@@ -48,7 +47,7 @@ trait ModifierValidator {
 
 }
 
-object ModifierValidator extends ScorexLogging  {
+object ModifierValidator {
 
   /** Start validation in Fail-Fast mode */
   def failFast(implicit e: BytesEncoder): ValidationState[Unit] = {
@@ -85,8 +84,6 @@ object ModifierValidator extends ScorexLogging  {
 
   /** unsuccessful validation with a given error; also logs the error as an exception */
   def invalid(error: ModifierError): Invalid = {
-    val e = error.toThrowable
-    log.debug(msg("Validation error", e), e)
     Invalid(Seq(error))
   }
 
