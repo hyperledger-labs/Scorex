@@ -133,9 +133,9 @@ class NetworkController(settings: NetworkSettings,
       log.info(s"Connecting to: $remote")
       outgoing += remote
       tcpManager ! Connect(remote,
-                          localAddress = externalSocketAddress,
+                          //localAddress = externalSocketAddress,
                           options = KeepAlive(true) :: Nil,
-                          timeout = connTimeout,
+                          timeout = Some(10.second),//connTimeout,
                           pullMode = true) //todo: check pullMode flag
 
     case DisconnectFrom(peer) =>
@@ -163,9 +163,14 @@ class NetworkController(settings: NetworkSettings,
       context.actorOf(handlerProps) // launch connection handler
       outgoing -= remote
 
-    case CommandFailed(c: Connect) =>
+    case f@CommandFailed(c: Connect) =>
       outgoing -= c.remoteAddress
-      log.info("Failed to connect to : " + c.remoteAddress)
+      f.cause match {
+        case Some(t) =>
+          log.info("Failed to connect to : " + c.remoteAddress, t)
+        case None =>
+          log.info("Failed to connect to : " + c.remoteAddress)
+      }
       peerManagerRef ! Disconnected(c.remoteAddress)
   }
 

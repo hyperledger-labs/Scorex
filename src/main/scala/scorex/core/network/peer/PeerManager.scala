@@ -69,6 +69,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       sender() ! (connectedPeers.values.map(_.handshake).toSeq: Seq[Handshake])
 
     case GetAllPeers =>
+      log.trace(s"Get all peers: ${peerDatabase.knownPeers()}")
       sender() ! peerDatabase.knownPeers()
 
     case GetBlacklistedPeers =>
@@ -126,6 +127,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       if (peerDatabase.isBlacklisted(peer.socketAddress)) {
         log.info(s"Got handshake from blacklisted ${peer.socketAddress}")
       } else {
+        log.trace(s"Got handshake from $peer")
         //drop connection to self if occurred
         if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
           peer.handlerRef ! CloseConnection
@@ -133,7 +135,8 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           if (peer.publicPeer) {
             val peerName = Some(peer.handshake.nodeName)
             val peerFeats = peer.handshake.features
-            self ! AddOrUpdatePeer(peer.socketAddress, peerName, Some(peer.direction), peerFeats)
+            val address = peer.handshake.declaredAddress.getOrElse(peer.socketAddress)
+            self ! AddOrUpdatePeer(address, peerName, Some(peer.direction), peerFeats)
           } else {
             peerDatabase.remove(peer.socketAddress)
           }

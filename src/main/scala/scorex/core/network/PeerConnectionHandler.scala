@@ -30,7 +30,7 @@ case class ConnectedPeer(socketAddress: InetSocketAddress,
 
   import shapeless.syntax.typeable._
 
-  def publicPeer: Boolean = handshake.declaredAddress.contains(socketAddress)
+  def publicPeer: Boolean = handshake.declaredAddress.isDefined
 
   override def hashCode(): Int = socketAddress.hashCode()
 

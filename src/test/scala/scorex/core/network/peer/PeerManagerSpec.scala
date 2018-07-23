@@ -74,7 +74,7 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
     val feats = Seq(FullNodePeerFeature)
 
     val h1 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", Some(pa1), feats, System.currentTimeMillis())
-    //connected peer is public cause declared address == peerAddress
+    //connected peer is public cause declared address is defined
     val p1 = ConnectedPeer(pa1, testActor, Incoming, h1)
 
     peerManager ! Handshaked(p1)
@@ -83,8 +83,8 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
     val data1 = pr1.expectMsgClass(classOf[Data])
     data1.keySet should contain(pa1)
 
-    val h2 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", Some(pa2), feats, System.currentTimeMillis())
-    //connected peer became non-public cause declared address != peerAddress
+    val h2 = Handshake("test", Version(1: Byte, 2: Byte, 3: Byte), "1", None, feats, System.currentTimeMillis())
+    //connected peer became non-public cause declared address is not defined
     val p2 = ConnectedPeer(pa1, testActor, Incoming, h2)
 
     peerManager ! Handshaked(p2)
