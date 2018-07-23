@@ -28,8 +28,8 @@ class HybridNodeViewHolder(hybridSettings: HybridSettings,
   override type VL = HBoxWallet
   override type MP = SimpleBoxTransactionMemPool
 
-  override val scorexSettings: ScorexSettings = hybridSettings.scorexSettings
-  private val minerSettings: HybridMiningSettings = hybridSettings.mining
+  override lazy val scorexSettings: ScorexSettings = hybridSettings.scorexSettings
+  private lazy val minerSettings: HybridMiningSettings = hybridSettings.mining
 
   override val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
     Map(PosBlock.ModifierTypeId -> PosBlockCompanion,
