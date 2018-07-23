@@ -59,9 +59,9 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
   override def toBytes(data: InvData): Array[Byte] = {
     require(data._2.nonEmpty, "empty inv list")
     require(data._2.lengthCompare(maxInvObjects) <= 0, s"more invs than $maxInvObjects in a message")
-    data._2.foreach(e => require(e.length == 2 * NodeViewModifier.ModifierIdSize))
+    val idsBytes = data._2.map(idToBytes).ensuring(_.forall(_.lengthCompare(NodeViewModifier.ModifierIdSize) == 0))
 
-    Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(data._2.map(idToBytes)))
+    Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(idsBytes))
   }
 }
 
