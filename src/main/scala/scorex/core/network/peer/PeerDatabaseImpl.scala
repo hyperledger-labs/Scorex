@@ -29,7 +29,7 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with Score
   }
 
   override def blacklistPeer(address: InetSocketAddress, time: NetworkTime.Time): Unit = {
-    log.trace(s"Black list peer: ${address.toString}")
+    log.warn(s"Black list peer: ${address.toString}")
     whitelistPersistence.remove(address)
     if (!isBlacklisted(address)) blacklist += address.getHostName -> time
   }

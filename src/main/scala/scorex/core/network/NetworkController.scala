@@ -133,9 +133,8 @@ class NetworkController(settings: NetworkSettings,
       log.info(s"Connecting to: $remote")
       outgoing += remote
       tcpManager ! Connect(remote,
-                          //localAddress = externalSocketAddress,
                           options = KeepAlive(true) :: Nil,
-                          timeout = Some(10.second),//connTimeout,
+                          timeout = connTimeout,
                           pullMode = true) //todo: check pullMode flag
 
     case DisconnectFrom(peer) =>
