@@ -18,13 +18,10 @@ import scala.util.{Failure, Try}
 class DeliveryTracker(system: ActorSystem,
                       deliveryTimeout: FiniteDuration,
                       maxDeliveryChecks: Int,
-                      nvsRef: ActorRef) extends ScorexLogging with ScorexEncoding {
+                      nvsRef: ActorRef) extends ModifiersStatusKeeper with ScorexLogging with ScorexEncoding {
 
-  protected type ModifierIdAsKey = scala.collection.mutable.WrappedArray.ofByte
 
   protected case class ExpectingStatus(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
-
-  protected def key(id: ModifierId): ModifierIdAsKey = new mutable.WrappedArray.ofByte(id)
 
   // when a remote peer is asked a modifier, we add the expected data to `expecting`
   // when a remote peer delivers expected data, it is removed from `expecting` and added to `delivered`.
@@ -52,6 +49,7 @@ class DeliveryTracker(system: ActorSystem,
     val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(cp, mtid, mid))
     val midAsKey = key(mid)
     expecting.put(midAsKey, ExpectingStatus(cp, cancellable, checks = checksDone))
+    toRequested(mid)
   }
 
   /**
@@ -70,6 +68,7 @@ class DeliveryTracker(system: ActorSystem,
       if (checks < maxDeliveryChecks) {
         expect(cp, mtid, mid, checks)
       } else {
+        toUnknown(mid)
         throw new StopExpectingError(mid, checks)
       }
     } else {
@@ -90,6 +89,7 @@ class DeliveryTracker(system: ActorSystem,
     if (isExpecting(mid)) {
       stopExpecting(mid)
       delivered(key(mid)) = cp
+      toReceived(mid)
     } else {
       deliveredSpam(key(mid)) = cp
     }

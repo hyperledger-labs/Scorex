@@ -4,6 +4,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
 import examples.commons.SimpleBoxTransactionMemPool
+import examples.hybrid.HybridApp
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.VersionTag
@@ -22,9 +23,12 @@ trait NodeViewSynchronizerGenerators {
   object NodeViewSynchronizerForTests {
     def props(networkControllerRef: ActorRef,
               viewHolderRef: ActorRef): Props =
-      NodeViewSynchronizerRef.props[TX, HSI, SIS, PM, HT, MP](networkControllerRef, viewHolderRef, HybridSyncInfoMessageSpec,
+      NodeViewSynchronizerRef.props[TX, HSI, SIS, PM, HT, MP](networkControllerRef,
+        viewHolderRef,
+        HybridSyncInfoMessageSpec,
         settings.scorexSettings.network,
-        new NetworkTimeProvider(settings.scorexSettings.ntp))
+        new NetworkTimeProvider(settings.scorexSettings.ntp)
+      ,HybridApp.modifierSerializers)
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):

@@ -1,19 +1,21 @@
 package examples.hybrid
 
 import akka.actor.ActorRef
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool}
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion, SimpleBoxTransactionMemPool}
 import examples.hybrid.api.http.{DebugApiRoute, StatsApiRoute, WalletApiRoute}
-import examples.hybrid.blocks.HybridBlock
+import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo, HybridSyncInfoMessageSpec}
 import examples.hybrid.mining._
 import examples.hybrid.wallet.SimpleBoxTransactionGeneratorRef
+import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApiRoute}
 import scorex.core.app.Application
 import scorex.core.network.message.MessageSpec
 import scorex.core.network.{NodeViewSynchronizerRef, PeerFeature}
-import scorex.core.serialization.SerializerRegistry
+import scorex.core.serialization.{Serializer, SerializerRegistry}
 import scorex.core.serialization.SerializerRegistry.SerializerRecord
 import scorex.core.settings.ScorexSettings
+import scorex.core.transaction.Transaction
 
 import scala.concurrent.duration._
 import scala.io.Source
@@ -60,7 +62,7 @@ class HybridApp(val settingsFilename: String) extends Application {
     actorSystem.actorOf(NodeViewSynchronizerRef.props[SimpleBoxTransaction, HybridSyncInfo, HybridSyncInfoMessageSpec.type,
       HybridBlock, HybridHistory, SimpleBoxTransactionMemPool]
       (networkControllerRef, nodeViewHolderRef,
-        HybridSyncInfoMessageSpec, settings.network, timeProvider))
+        HybridSyncInfoMessageSpec, settings.network, timeProvider, HybridApp.modifierSerializers))
 
   if (settings.network.nodeName.startsWith("generatorNode")) {
     log.info("Starting transactions generation")
@@ -70,6 +72,12 @@ class HybridApp(val settingsFilename: String) extends Application {
 }
 
 object HybridApp extends App {
+  def modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
+    Map(PosBlock.ModifierTypeId -> PosBlockCompanion,
+      PowBlock.ModifierTypeId -> PowBlockCompanion,
+      Transaction.ModifierTypeId -> SimpleBoxTransactionCompanion)
+
   private val settingsFilename = args.headOption.getOrElse("settings.conf")
   new HybridApp(settingsFilename).run()
+
 }

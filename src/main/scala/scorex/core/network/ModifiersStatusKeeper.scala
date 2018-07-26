@@ -8,14 +8,11 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 
 /**
-  * Class that keeps modifiers statuses when modifier is known, but is not applied yet.
+  * Trait that keeps modifiers statuses when modifier is known, but is not applied yet.
   */
-class ModifiersStatusKeeper() {
+trait ModifiersStatusKeeper {
 
-  type K = mutable.WrappedArray[Byte]
-
-  // TODO some LRU cache might be useful here to limit this size and remove outdated statuses
-  private val statuses: TrieMap[K, ModifiersStatus] = TrieMap[K, ModifiersStatus]()
+  private val statuses: TrieMap[ModifierIdAsKey, ModifiersStatus] = TrieMap[ModifierIdAsKey, ModifiersStatus]()
 
   /**
     * @return status of modifier `id`.
@@ -37,23 +34,26 @@ class ModifiersStatusKeeper() {
   /**
     * We do not keep applied modifiers status since we can get their status from history
     */
-  def applied(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
+  def toApplied(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
 
   /**
     * Modifier `id` was received from other peer
     */
-  def received(id: ModifierId): Option[ModifiersStatus] = set(id, Received)
+  def toReceived(id: ModifierId): Option[ModifiersStatus] = set(id, Received)
 
   /**
     * Modifier `id` was requested from other peer
     */
-  def requested(id: ModifierId): Option[ModifiersStatus] = set(id, Requested)
+  def toRequested(id: ModifierId): Option[ModifiersStatus] = set(id, Requested)
 
   /**
     * Remove status for modifier `id` for ModifiersStatusKeeper.
     * This may happen when received modifier bytes does not correspond to declared modifier id
     */
-  def remove(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
+  def toUnknown(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
 
-  protected def key(id: ModifierId) = new mutable.WrappedArray.ofByte(id)
+  protected type ModifierIdAsKey = mutable.WrappedArray[Byte]
+
+  protected def key(id: ModifierId): ModifierIdAsKey = new mutable.WrappedArray.ofByte(id)
+
 }

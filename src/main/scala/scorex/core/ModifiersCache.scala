@@ -54,11 +54,17 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
 
   def contains(key: K): Boolean = cache.contains(key) || rememberedKeys.contains(key)
 
-  def put(key: K, value: V): Unit = synchronized {
+  def put(key: K, value: V): Option[V] = synchronized {
     if(!contains(key)) {
       onPut(key)
       cache.put(key, value)
-      if (size > maxSize) remove(keyToRemove())
+      if (size > maxSize) {
+        remove(keyToRemove())
+      } else {
+        None
+      }
+    } else {
+      None
     }
   }
 

@@ -31,11 +31,6 @@ class HybridNodeViewHolder(hybridSettings: HybridSettings,
   override val scorexSettings: ScorexSettings = hybridSettings.scorexSettings
   private val minerSettings: HybridMiningSettings = hybridSettings.mining
 
-  override val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
-    Map(PosBlock.ModifierTypeId -> PosBlockCompanion,
-      PowBlock.ModifierTypeId -> PowBlockCompanion,
-      Transaction.ModifierTypeId -> SimpleBoxTransactionCompanion)
-
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     super.preRestart(reason, message)
     log.error("HybridNodeViewHolder has been restarted, not a valid situation!")

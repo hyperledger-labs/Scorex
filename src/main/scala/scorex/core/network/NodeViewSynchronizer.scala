@@ -5,21 +5,25 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.NodeViewHolder.DownloadRequest
-import scorex.core.NodeViewHolder.ReceivableMessages.IncorrectModifierFromRemote
+import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, IncorrectModifierFromRemote, LocallyGeneratedTransaction}
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
+import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.state.StateReader
 import scorex.core.transaction.wallet.VaultReader
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
+import scorex.core.validation.MalformedModifierError
 import scorex.core.{PersistentNodeViewModifier, _}
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
+import scala.util.{Failure, Success}
 
 /**
   * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
@@ -31,16 +35,17 @@ import scala.reflect.ClassTag
   * @tparam SIS SyncInfoMessage specification
   */
 class NodeViewSynchronizer[TX <: Transaction,
-                           SI <: SyncInfo,
-                           SIS <: SyncInfoMessageSpec[SI],
-                           PMOD <: PersistentNodeViewModifier,
-                           HR <: HistoryReader[PMOD, SI] : ClassTag,
-                           MR <: MempoolReader[TX] : ClassTag]
-  (networkControllerRef: ActorRef,
-  viewHolderRef: ActorRef,
-  syncInfoSpec: SIS,
-  networkSettings: NetworkSettings,
-  timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
+SI <: SyncInfo,
+SIS <: SyncInfoMessageSpec[SI],
+PMOD <: PersistentNodeViewModifier,
+HR <: HistoryReader[PMOD, SI] : ClassTag,
+MR <: MempoolReader[TX] : ClassTag]
+(networkControllerRef: ActorRef,
+ viewHolderRef: ActorRef,
+ syncInfoSpec: SIS,
+ networkSettings: NetworkSettings,
+ timeProvider: NetworkTimeProvider,
+ modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext) extends Actor
   with ScorexLogging with ScorexEncoding {
 
   import History._
@@ -49,13 +54,22 @@ class NodeViewSynchronizer[TX <: Transaction,
   import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
   import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
+  protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
+
+  protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
+
+  /**
+    * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
+    */
+  protected lazy val modifiersCache: ModifiersCache[PMOD, HR] =
+    new DefaultModifiersCache[PMOD, HR](networkSettings.maxModifiersCacheSize)
+
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
   protected val modifiersSpec = new ModifiersSpec(networkSettings.maxPacketSize)
 
-  protected val statusKeeper = new ModifiersStatusKeeper()
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
 
@@ -97,7 +111,7 @@ class NodeViewSynchronizer[TX <: Transaction,
     //todo: penalize source peer?
 
     case SyntacticallySuccessfulModifier(mod) =>
-      statusKeeper.applied(mod.id)
+      deliveryTracker.toApplied(mod.id)
 
     case SyntacticallyFailedModification(mod, throwable) =>
     //todo: penalize source peer?
@@ -201,13 +215,12 @@ class NodeViewSynchronizer[TX <: Transaction,
             case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
               mempool.notIn(invData._2)
             case _ =>
-              invData._2.filter(mid => statusKeeper.status(mid)(history) == ModifiersStatus.Unknown)
+              invData._2.filter(mid => deliveryTracker.status(mid)(history) == ModifiersStatus.Unknown)
           }
 
           if (modifierIds.nonEmpty) {
             val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
             peer.handlerRef ! msg
-            modifierIds.foreach(id => statusKeeper.requested(id))
             deliveryTracker.expect(peer, modifierTypeId, modifierIds)
           }
 
@@ -238,13 +251,13 @@ class NodeViewSynchronizer[TX <: Transaction,
   protected def incorrectModifiers: Receive = {
     case IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable) =>
       log.warn(s"Incorect modifier ${encoder.encode(id)} received: ${error.getMessage}")
-      statusKeeper.remove(id)
       penalizeMisbehavingPeer(source)
   }
 
   /**
     * Logic to process modifiers got from another peer
     */
+  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
       if spec.messageCode == ModifiersSpec.MessageCode =>
@@ -256,7 +269,6 @@ class NodeViewSynchronizer[TX <: Transaction,
       log.trace(s"Received modifier ids ${data._2.keySet.map(encoder.encode).mkString(",")}")
 
       modifiers.foreach { case (id, _) =>
-        statusKeeper.received(id)
         deliveryTracker.onReceive(typeId, id, remote)
       }
 
@@ -268,6 +280,46 @@ class NodeViewSynchronizer[TX <: Transaction,
         penalizeSpammingPeer(remote)
         val mids = spam.keys.toSeq
         deliveryTracker.deleteSpam(mids)
+      }
+
+      modifierSerializers.get(typeId) match {
+        case Some(companion) =>
+          fm.foreach { case (id, bytes) =>
+            companion.parseBytes(bytes) match {
+              case Success(mod) if !(id sameElements mod.id) =>
+                log.warn(s"Declared id ${encoder.encode(id)} is not equals to calculated one ${mod.encodedId}")
+                penalizeMisbehavingPeer(remote)
+                None
+              case Failure(e) =>
+                log.warn(s"Failed to parse modifier ${encoder.encode(id)}", e)
+                penalizeMisbehavingPeer(remote)
+                None
+              case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
+                viewHolderRef ! LocallyGeneratedTransaction[TX](tx)
+              case Success(pmod: PMOD@unchecked) =>
+                if (modifiersCache.contains(key(pmod.id)) || historyReaderOpt.exists(_.contains(pmod))) {
+                  log.error(s"Received modifier ${pmod.encodedId} that is already in cache or history.")
+                } else {
+                  historyReaderOpt match {
+                    case Some(hr) =>
+                      hr.applicableTry(pmod) match {
+                        case Failure(e) if e.isInstanceOf[MalformedModifierError] =>
+                          log.warn(s"Modifier ${pmod.encodedId} is permanently invalid", e)
+                          penalizeMisbehavingPeer(remote)
+                        case _ => modifiersCache.put(key(pmod.id), pmod)
+                      }
+                    case None =>
+                      log.warn("Got modifier while history reader is not ready")
+                      modifiersCache.put(key(pmod.id), pmod).foreach(removed => deliveryTracker.toUnknown(removed.id))
+                  }
+                }
+                pmod
+            }
+          }
+          if (typeId != Transaction.ModifierTypeId) {
+            viewHolderRef ! ChangedCache[PMOD, HR, ModifiersCache[PMOD, HR]](modifiersCache)
+          }
+        case None => log.error(s"Undefined serializer for modifier of type $typeId")
       }
 
       if (fm.nonEmpty) {
@@ -288,9 +340,7 @@ class NodeViewSynchronizer[TX <: Transaction,
           } else {
             log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
             penalizeNonDeliveringPeer(peer)
-            if (deliveryTracker.reexpect(Some(peer), modifierTypeId, modifierId).isFailure) {
-              statusKeeper.remove(modifierId)
-            }
+            deliveryTracker.reexpect(Some(peer), modifierTypeId, modifierId)
           }
         case None =>
           // Random peer did not delivered modifier we need, ask another peer
@@ -445,47 +495,50 @@ object NodeViewSynchronizer {
 
 object NodeViewSynchronizerRef {
   def props[TX <: Transaction,
-            SI <: SyncInfo,
-            SIS <: SyncInfoMessageSpec[SI],
-            PMOD <: PersistentNodeViewModifier,
-            HR <: HistoryReader[PMOD, SI] : ClassTag,
-            MR <: MempoolReader[TX] : ClassTag]
-      (networkControllerRef: ActorRef,
-       viewHolderRef: ActorRef,
-       syncInfoSpec: SIS,
-       networkSettings: NetworkSettings,
-       timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
+  SI <: SyncInfo,
+  SIS <: SyncInfoMessageSpec[SI],
+  PMOD <: PersistentNodeViewModifier,
+  HR <: HistoryReader[PMOD, SI] : ClassTag,
+  MR <: MempoolReader[TX] : ClassTag]
+  (networkControllerRef: ActorRef,
+   viewHolderRef: ActorRef,
+   syncInfoSpec: SIS,
+   networkSettings: NetworkSettings,
+   timeProvider: NetworkTimeProvider,
+   modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext): Props =
     Props(new NodeViewSynchronizer[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
-      networkSettings, timeProvider))
+      networkSettings, timeProvider, modifierSerializers))
 
   def apply[TX <: Transaction,
-            SI <: SyncInfo,
-            SIS <: SyncInfoMessageSpec[SI],
-            PMOD <: PersistentNodeViewModifier,
-            HR <: HistoryReader[PMOD, SI] : ClassTag,
-            MR <: MempoolReader[TX] : ClassTag]
-      (networkControllerRef: ActorRef,
-       viewHolderRef: ActorRef,
-       syncInfoSpec: SIS,
-       networkSettings: NetworkSettings,
-       timeProvider: NetworkTimeProvider)
-      (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+  SI <: SyncInfo,
+  SIS <: SyncInfoMessageSpec[SI],
+  PMOD <: PersistentNodeViewModifier,
+  HR <: HistoryReader[PMOD, SI] : ClassTag,
+  MR <: MempoolReader[TX] : ClassTag]
+  (networkControllerRef: ActorRef,
+   viewHolderRef: ActorRef,
+   syncInfoSpec: SIS,
+   networkSettings: NetworkSettings,
+   timeProvider: NetworkTimeProvider,
+   modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])
+  (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
-      syncInfoSpec, networkSettings, timeProvider))
+      syncInfoSpec, networkSettings, timeProvider, modifierSerializers))
 
   def apply[TX <: Transaction,
-            SI <: SyncInfo,
-            SIS <: SyncInfoMessageSpec[SI],
-            PMOD <: PersistentNodeViewModifier,
-            HR <: HistoryReader[PMOD, SI] : ClassTag,
-            MR <: MempoolReader[TX] : ClassTag]
-      (name: String,
-       networkControllerRef: ActorRef,
-       viewHolderRef: ActorRef,
-       syncInfoSpec: SIS,
-       networkSettings: NetworkSettings,
-       timeProvider: NetworkTimeProvider)
-      (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+  SI <: SyncInfo,
+  SIS <: SyncInfoMessageSpec[SI],
+  PMOD <: PersistentNodeViewModifier,
+  HR <: HistoryReader[PMOD, SI] : ClassTag,
+  MR <: MempoolReader[TX] : ClassTag]
+  (name: String,
+   networkControllerRef: ActorRef,
+   viewHolderRef: ActorRef,
+   syncInfoSpec: SIS,
+   networkSettings: NetworkSettings,
+   timeProvider: NetworkTimeProvider,
+   modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])
+  (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
-      syncInfoSpec, networkSettings, timeProvider), name)
+      syncInfoSpec, networkSettings, timeProvider, modifierSerializers), name)
 }

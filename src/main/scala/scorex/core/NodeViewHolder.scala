@@ -2,9 +2,9 @@ package scorex.core
 
 import akka.actor.Actor
 import scorex.core.consensus.History.ProgressInfo
-import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ConnectedPeer
-import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewChange, NodeViewHolderEvent}
 import scorex.core.network.message.BasicMsgDataTypes.ModifiersData
 import scorex.core.serialization.Serializer
 import scorex.core.settings.ScorexSettings
@@ -72,22 +72,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   protected def vault(): VL = nodeView._3
 
   protected def memoryPool(): MP = nodeView._4
-
-
-  /**
-    * Serializers for modifiers, to be provided by a concrete instantiation
-    */
-  val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
-
-  protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
-
-  protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
-
-  /**
-    * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
-    */
-  protected lazy val modifiersCache: ModifiersCache[PMOD, HIS] =
-    new DefaultModifiersCache[PMOD, HIS](scorexSettings.network.maxModifiersCacheSize)
 
   protected def txModify(tx: TX): Unit = {
     //todo: async validation?
@@ -174,9 +158,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
   private def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
     pi.toDownload.foreach { case (tid, id) =>
-      if (!modifiersCache.contains(id)) {
-        context.system.eventStream.publish(DownloadRequest(tid, id))
-      }
+      context.system.eventStream.publish(DownloadRequest(tid, id))
     }
 
   private def trimChainSuffix(suffix: IndexedSeq[PMOD], rollbackPoint: ModifierId): IndexedSeq[PMOD] = {
@@ -323,46 +305,26 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       log.warn(s"Trying to apply modifier ${pmod.encodedId} that's already in history")
     }
 
-  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
-  protected def processRemoteModifiers: Receive = {
-    case ModifiersFromRemote(remote, modifiersData) =>
-      modifierSerializers.get(modifiersData._1) foreach { companion =>
-        modifiersData._2.foreach { r =>
-          companion.parseBytes(r._2) match {
-            case Success(mod) if !(r._1 sameElements mod.id) =>
-              val e = new Error(s"Declared id ${encoder.encode(r._1)} is not equals to calculated one ${mod.encodedId}")
-              sender() ! IncorrectModifierFromRemote(remote, r._1, e)
-            case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
-              txModify(tx)
-            case Success(pmod: PMOD@unchecked) =>
-              if (modifiersCache.contains(key(pmod.id))) {
-                log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
-              } else if (history().contains(pmod)) {
-                log.warn(s"Received modifier ${pmod.encodedId} that is already in cache")
-              } else {
-                modifiersCache.put(key(pmod.id), pmod)
-              }
-            case Failure(e) =>
-              sender() ! IncorrectModifierFromRemote(remote, r._1, e)
-          }
+  protected def processUpdatedCache: Receive = {
+    case cc: ChangedCache[PMOD@unchecked, HIS@unchecked, ModifiersCache[PMOD, HIS]@unchecked] =>
+      val modifiersCache: ModifiersCache[PMOD, HIS] = cc.cache
+
+      log.debug(s"Cache size before: ${modifiersCache.size}")
+
+      var applied: Boolean = false
+      do {
+        modifiersCache.popCandidate(history()) match {
+          case Some(mod) =>
+            pmodModify(mod)
+            applied = true
+          case None =>
+            applied = false
         }
-
-        log.debug(s"Cache size before: ${modifiersCache.size}")
-
-        var applied: Boolean = false
-        do {
-          modifiersCache.popCandidate(history()) match {
-            case Some(mod) =>
-              pmodModify(mod)
-              applied = true
-            case None =>
-              applied = false
-          }
-        } while (applied)
+      } while (applied)
 
 
-        log.debug(s"Cache size after: ${modifiersCache.size}")
-      }
+      log.debug(s"Cache size after: ${modifiersCache.size}")
+
   }
 
   protected def processLocallyGeneratedModifiers: Receive = {
@@ -388,7 +350,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   }
 
   override def receive: Receive =
-      processRemoteModifiers orElse
+      processUpdatedCache orElse
       processLocallyGeneratedModifiers orElse
       getCurrentInfo orElse
       getNodeViewChanges orElse {
@@ -407,6 +369,11 @@ object NodeViewHolder {
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
     case class ModifiersFromRemote(source: ConnectedPeer, data: ModifiersData)
+
+    case class ChangedCache[PM <: PersistentNodeViewModifier,
+    HR <: HistoryReader[PM, _ <: SyncInfo],
+    MC <: ModifiersCache[PM, HR]](cache: MC) extends NodeViewChange
+
 
     case class IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable)
 
