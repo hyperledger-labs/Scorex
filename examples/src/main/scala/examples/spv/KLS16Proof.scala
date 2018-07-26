@@ -1,6 +1,7 @@
 package examples.spv
 
 import com.google.common.primitives.{Bytes, Shorts}
+import scorex.core.ModifierId
 import scorex.core.serialization.Serializer
 
 import scala.annotation.tailrec
@@ -15,28 +16,26 @@ case class KLS16Proof(m: Int,
   lazy val valid: Try[Unit] = Try {
     require(suffix.length == k, s"${suffix.length} == $k")
 
-    suffix.foldRight(Array[Byte]()) { (a, b) =>
-      if (b.nonEmpty) require(b sameElements a.id)
-      a.parentId
+    suffix.foldRight[Option[ModifierId]](None) { (a, b) =>
+      b foreach (id => require(id == a.id))
+      Some(a.parentId)
     }
 
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val firstSuffix = suffix.head
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val lastInnerchain = innerchain.last
-    require(firstSuffix.interlinks(i) sameElements lastInnerchain.id)
+    require(firstSuffix.interlinks(i) == lastInnerchain.id)
 
 
     val difficulty: BigInt = Constants.InitialDifficulty * Math.pow(2, i).toInt
     require(innerchain.length >= m, s"${innerchain.length} >= $m")
     innerchain.foreach(b => require(b.realDifficulty >= difficulty, s"$b: ${b.realDifficulty} >= $difficulty"))
 
-    innerchain.foldRight(Array[Byte]()) { (a, b) =>
-      if (b.nonEmpty) {
-        require(b sameElements a.id)
-      }
+    innerchain.foldRight[Option[ModifierId]](None) { (a, b) =>
+      b foreach (id => require(id == a.id))
       //last element may not contain a.interlinks(i)
-      Try(a.interlinks(i)).getOrElse(Array.fill(32)(0.toByte))
+      Try(a.interlinks(i)).toOption
     }
 
     //TODO check that genesis links are correct
@@ -49,10 +48,10 @@ case class KLS16Proof(m: Int,
     } else if (this.valid.isFailure) {
       -1
     } else {
-      val ourIndex = this.suffix.reverse.indexWhere(h => that.suffix.exists(_.id sameElements h.id))
+      val ourIndex = this.suffix.reverse.indexWhere(h => that.suffix.exists(_.id == h.id))
       if (ourIndex >= 0) {
         //there is common block in suffix
-        val theirIndex = that.suffix.reverse.indexWhere(h => this.suffix.exists(_.id sameElements h.id))
+        val theirIndex = that.suffix.reverse.indexWhere(h => this.suffix.exists(_.id == h.id))
         ourIndex - theirIndex
       } else {
         //no common block in suffix

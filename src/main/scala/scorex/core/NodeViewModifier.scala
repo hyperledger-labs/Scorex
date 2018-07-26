@@ -18,7 +18,7 @@ sealed trait NodeViewModifier extends BytesSerializable with ScorexEncoding {
   def encodedId: String = encoder.encode(id)
 
   override def equals(obj: scala.Any): Boolean = obj match {
-    case that: NodeViewModifier => (that.id sameElements id) && (that.modifierTypeId == modifierTypeId)
+    case that: NodeViewModifier => (that.id == id) && (that.modifierTypeId == modifierTypeId)
     case _ => false
   }
 }

@@ -8,7 +8,7 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.syntax._
-import scorex.core.ModifierId
+import scorex.core.bytesToId
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
@@ -30,7 +30,7 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
       withNodeView { view =>
         val result: Try[String] = for {
           id <- encoder.decode(encodedSignature)
-          delay <- view.history.averageDelay(ModifierId @@ id, count)
+          delay <- view.history.averageDelay(bytesToId(id), count)
         } yield delay.toString
         ApiResponse("delay" -> result.getOrElse("Undefined"))
       }
@@ -59,12 +59,12 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
       val pubkeys = view.vault.publicKeys
 
       def isMyPosBlock(b: HybridBlock): Boolean = b match {
-        case pos: PosBlock => pubkeys.exists(_.pubKeyBytes sameElements pos.generatorBox.proposition.pubKeyBytes)
+        case pos: PosBlock => pubkeys.exists(pk => java.util.Arrays.equals(pk.pubKeyBytes, pos.generatorBox.proposition.pubKeyBytes))
         case _ => false
       }
 
       def isMyPowBlock(b: HybridBlock): Boolean = b match {
-        case pow: PowBlock => pubkeys.exists(_.pubKeyBytes sameElements pow.generatorProposition.pubKeyBytes)
+        case pow: PowBlock => pubkeys.exists(pk => java.util.Arrays.equals(pk.pubKeyBytes, pow.generatorProposition.pubKeyBytes))
         case _ => false
       }
 

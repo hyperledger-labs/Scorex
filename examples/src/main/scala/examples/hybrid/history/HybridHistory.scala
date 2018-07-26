@@ -40,10 +40,10 @@ class HybridHistory(val storage: HistoryStorage,
   require(NodeViewModifier.ModifierIdSize == 32, "32 bytes ids assumed")
 
   lazy val pairCompleted: Boolean =
-    (storage.bestPowId sameElements settings.GenesisParentId, bestPosId sameElements settings.GenesisParentId) match {
+    (storage.bestPowId == settings.GenesisParentId, bestPosId == settings.GenesisParentId) match {
       case (true, true) => true
       case (false, true) => false
-      case (false, false) => bestPosBlock.parentId sameElements bestPowId
+      case (false, false) => bestPosBlock.parentId == bestPowId
       case (true, false) => ??? //shouldn't be
     }
 
@@ -92,8 +92,7 @@ class HybridHistory(val storage: HistoryStorage,
   override def modifierById(id: ModifierId): Option[HybridBlock with
     Block[SimpleBoxTransaction]] = storage.modifierById(id)
 
-  override def contains(id: ModifierId): Boolean =
-    if (id sameElements settings.GenesisParentId) true else modifierById(id).isDefined
+  override def contains(id: ModifierId): Boolean = id == settings.GenesisParentId || modifierById(id).isDefined
 
   private def powBlockAppend(powBlock: PowBlock): (HybridHistory, ProgressInfo[HybridBlock]) = {
     val progress: ProgressInfo[HybridBlock] = if (isGenesis(powBlock)) {
@@ -102,15 +101,14 @@ class HybridHistory(val storage: HistoryStorage,
     } else {
       storage.heightOf(powBlock.parentId) match {
         case Some(_) =>
-          val isBestBrother = (bestPosId sameElements powBlock.prevPosId) &&
+          val isBestBrother = (bestPosId == powBlock.prevPosId) &&
             (bestPowBlock.brothersCount < powBlock.brothersCount)
 
           //potentially the best block, if its not a block in a fork containing invalid block
           val isBest: Boolean = storage.height == storage.parentHeight(powBlock) || isBestBrother
 
           val mod: ProgressInfo[HybridBlock] = if (isBest) {
-            if (isGenesis(powBlock) ||
-              ((powBlock.parentId sameElements bestPowId) && (powBlock.prevPosId sameElements bestPosId))) {
+            if (isGenesis(powBlock) || (powBlock.parentId == bestPowId && powBlock.prevPosId == bestPosId)) {
               log.debug(s"New best PoW block ${encoder.encode(powBlock.id)}")
               //just apply one block to the end
               ProgressInfo(None, Seq(), Seq(powBlock), Seq())
@@ -148,10 +146,10 @@ class HybridHistory(val storage: HistoryStorage,
     val mod: ProgressInfo[HybridBlock] = if (!isBest) {
       log.debug(s"New orphaned PoS block ${encoder.encode(posBlock.id)}")
       ProgressInfo(None, Seq(), Seq(), Seq())
-    } else if (posBlock.parentId sameElements bestPowId) {
+    } else if (posBlock.parentId == bestPowId) {
       log.debug(s"New best PoS block ${encoder.encode(posBlock.id)}")
       ProgressInfo(None, Seq(), Seq(posBlock), Seq())
-    } else if (parent.prevPosId sameElements bestPowBlock.prevPosId) {
+    } else if (parent.prevPosId == bestPowBlock.prevPosId) {
       log.debug(s"New best PoS block with link to non-best brother ${encoder.encode(posBlock.id)}")
       //rollback to previous PoS block and apply parent block one more time
       ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq[HybridBlock](parent, posBlock), Seq())
@@ -279,7 +277,7 @@ class HybridHistory(val storage: HistoryStorage,
   def continuationIds(from: Seq[(ModifierTypeId, ModifierId)], size: Int): Option[ModifierIds] = {
     def inList(m: HybridBlock): Boolean = idInList(m.id) || isGenesis(m)
 
-    def idInList(id: ModifierId): Boolean = from.exists(f => f._2 sameElements id)
+    def idInList(id: ModifierId): Boolean = from.exists(f => f._2 == id)
 
     //Look without limit for case difference between nodes is bigger then size
     chainBack(bestBlock, inList) match {
@@ -340,8 +338,8 @@ class HybridHistory(val storage: HistoryStorage,
         // `dSuffix.head` is safe as `dSuffix.length` is 1
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val dSuffixHead = dSuffix.head
-        if (dSuffixHead sameElements bestPowId) {
-          if (other.lastPosBlockId sameElements bestPosId) Equal
+        if (dSuffixHead == bestPowId) {
+          if (other.lastPosBlockId == bestPosId) Equal
           else if (pairCompleted) Older
           else Younger
         }
@@ -438,7 +436,7 @@ class HybridHistory(val storage: HistoryStorage,
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val loserChain = chainBack(bestBlock, isGenesis, limit).get.map(_._2)
 
-    def in(m: HybridBlock): Boolean = loserChain.exists(s => s sameElements m.id)
+    def in(m: HybridBlock): Boolean = loserChain.exists(s => s == m.id)
 
     // TODO: Review me .get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
@@ -446,7 +444,7 @@ class HybridHistory(val storage: HistoryStorage,
     val i = loserChain.indexWhere { id =>
       winnerChain.headOption match {
         case None => false
-        case Some(winnerChainHead) => id sameElements winnerChainHead
+        case Some(winnerChainHead) => id == winnerChainHead
       }
     }
     (winnerChain, loserChain.takeRight(loserChain.length - i))
@@ -455,7 +453,7 @@ class HybridHistory(val storage: HistoryStorage,
     val r1 = r._1.head
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val r2 = r._2.head
-    r1 sameElements r2
+    r1 == r2
   }
 
   /**
