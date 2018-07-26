@@ -6,7 +6,7 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
-import scorex.core.ModifierId
+import scorex.core.{ModifierId, bytesToId, versionToId}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.hash.Blake2b256
@@ -82,7 +82,7 @@ trait ModifierGenerators {
   }
 
   def semanticallyValidModifier(state: HBoxStoredState): PosBlock =
-    validPosBlocks(state, Seq(ModifierId @@ state.version)).head
+    validPosBlocks(state, Seq(versionToId(state.version))).head
 
   def pairCompleted(curHistory: HybridHistory, blocks: Seq[HybridBlock]): Boolean =
     if (blocks.isEmpty) curHistory.pairCompleted
@@ -129,8 +129,8 @@ trait ModifierGenerators {
     }
 
   private def makeSyntacticallyInvalid(mod: HybridBlock): HybridBlock = mod match {
-    case pow: PowBlock => pow.copy(parentId = ModifierId @@ hf(pow.parentId))
-    case pos: PosBlock => pos.copy(parentId = ModifierId @@ hf(pos.parentId))
+    case pow: PowBlock => pow.copy(parentId = bytesToId(hf(pow.parentId)))
+    case pos: PosBlock => pos.copy(parentId = bytesToId(hf(pos.parentId)))
   }
 
   def syntacticallyInvalidModifier(curHistory: HybridHistory): HybridBlock =
@@ -188,9 +188,9 @@ trait ModifierGenerators {
     lazy val head = blocks.head
     lazy val headLinksValid = head match {
       case psb: PosBlock =>
-        history.bestPowId.sameElements(psb.parentId)
+        history.bestPowId == psb.parentId
       case pwb: PowBlock =>
-        history.bestPowId.sameElements(pwb.parentId) && history.bestPosId.sameElements(pwb.prevPosId)
+        history.bestPowId == pwb.parentId && history.bestPosId == pwb.prevPosId
     }
     headLinksValid && history.applicableTry(head).isSuccess
   }

@@ -9,7 +9,7 @@ import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier, bytesToId}
 import scorex.crypto.signatures.Curve25519
 
 import scala.util.Try
@@ -50,7 +50,7 @@ trait ObjectGenerators {
 
 
   lazy val modifierIdGen: Gen[ModifierId] = Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte])
-    .map(id => ModifierId @@ id.toArray)
+    .map(id => bytesToId(id.toArray))
 
   lazy val modifierTypeIdGen: Gen[ModifierTypeId] = Arbitrary.arbitrary[Byte].map(t => ModifierTypeId @@ t)
 

@@ -18,7 +18,7 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
       val ver = s.version
       val sTry = s.applyModifier(m)
         sTry.isSuccess shouldBe true
-      sTry.get.version.sameElements(ver) shouldBe false
+      sTry.get.version == ver shouldBe false
     }
   }
 
@@ -28,7 +28,7 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
       val sTry = s.applyModifier(m)
       sTry.isSuccess shouldBe true
       val s2 = sTry.get
-      s2.version.sameElements(ver) shouldBe false
+      s2.version == ver shouldBe false
       s2.applyModifier(m).isSuccess shouldBe false
     }
   }
@@ -46,17 +46,17 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
       val sTry = s.applyModifier(m)
       sTry.isSuccess shouldBe true
       val s2 = sTry.get
-      s2.version.sameElements(ver) shouldBe false
+      s2.version == ver shouldBe false
       val ver2 = s2.version
 
       val s3 = s2.rollbackTo(ver).get
-      s3.version.sameElements(ver) shouldBe true
+      s3.version == ver shouldBe true
 
       val sTry2 = s3.applyModifier(m)
       sTry2.isSuccess shouldBe true
       val s4 = sTry2.get
-      s4.version.sameElements(ver) shouldBe false
-      s4.version.sameElements(ver2) shouldBe true
+      s4.version == ver shouldBe false
+      s4.version == ver2 shouldBe true
     }
   }
 
@@ -79,7 +79,7 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
       val rollbackTry = s2.rollbackTo(ver)
       rollbackTry.toOption shouldBe defined
       val s3 = rollbackTry.get
-      s3.version.sameElements(ver) shouldBe true
+      s3.version == ver shouldBe true
 
       val s4 = buf.foldLeft(s3) { case (state, m) =>
         val sTry = state.applyModifier(m)
@@ -87,7 +87,7 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
         sTry.get
       }
 
-      s4.version.sameElements(lastVersion) shouldBe true
+      s4.version == lastVersion shouldBe true
     }
   }
 }

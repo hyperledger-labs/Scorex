@@ -11,6 +11,7 @@ import io.iohk.iodb.ByteArrayWrapper
 import io.iohk.iodb.Store.VersionID
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
+import scorex.core.idToVersion
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
@@ -64,11 +65,13 @@ object OneMinerSimulation extends App with Simulators {
   val genesisChanges: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
     BoxStateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
 
-  private var currentUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
+  private var currentUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, idToVersion(defaultId))
+    .applyChanges(genesisChanges, idToVersion(defaultId)).get
 
   private var miningHeight = 0
-  private var miningUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
-    .ensuring(_.rootHash sameElements currentUtxo.rootHash)
+  private var miningUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, idToVersion(defaultId))
+    .applyChanges(genesisChanges, idToVersion(defaultId)).get
+    .ensuring(s => java.util.Arrays.equals(s.rootHash, currentUtxo.rootHash))
 
   var generatingBoxes: Seq[PublicKey25519NoncedBox] = genesisBoxes
 
