@@ -368,8 +368,6 @@ object NodeViewHolder {
 
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
-    case class ModifiersFromRemote(source: ConnectedPeer, data: ModifiersData)
-
     case class ChangedCache[PM <: PersistentNodeViewModifier,
     HR <: HistoryReader[PM, _ <: SyncInfo],
     MC <: ModifiersCache[PM, HR]](cache: MC) extends NodeViewChange

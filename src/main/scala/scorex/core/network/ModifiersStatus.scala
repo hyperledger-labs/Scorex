@@ -25,4 +25,9 @@ object ModifiersStatus {
     */
   case object Applied extends ModifiersStatus
 
+  /**
+    * This modifier is permanently invalid - never try to download it
+    */
+  case object Invalid extends ModifiersStatus
+
 }

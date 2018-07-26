@@ -33,6 +33,7 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
     * but the value corresponding to the key is not stored. The motivation
     * to have this structure is to avoid repeatedly downloading modifiers
     * which are unquestionably invalid.
+    * TODO we already have this keys in ModifiersStatusKeeper, do not need it here
     */
   protected val rememberedKeys: mutable.HashSet[K] = mutable.HashSet[K]()
 

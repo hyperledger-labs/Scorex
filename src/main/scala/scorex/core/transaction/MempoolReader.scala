@@ -1,5 +1,6 @@
 package scorex.core.transaction
 
+import scorex.core.consensus.ModifierContaining
 import scorex.core.{ModifierId, NodeViewComponent}
 
 /**
@@ -7,9 +8,12 @@ import scorex.core.{ModifierId, NodeViewComponent}
   *
   * @tparam TX -type of transaction the pool contains
   */
-trait MempoolReader[TX <: Transaction] extends NodeViewComponent {
+trait MempoolReader[TX <: Transaction] extends NodeViewComponent with ModifierContaining[TX] {
 
   //getters
+  override def modifierById(modifierId: ModifierId): Option[TX] = getById(modifierId)
+
+  // TODO remove getById?
   def getById(id: ModifierId): Option[TX]
 
   def contains(id: ModifierId): Boolean

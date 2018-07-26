@@ -12,7 +12,7 @@ import scala.util.{Failure, Try}
 
 
 /**
-  * This class tracks modifier ids which are expected from and delivered by other peers
+  * This class tracks modifier ids which are expected from  other peers
   * in order to ban or de-prioritize peers which are delivering what is not expected
   */
 class DeliveryTracker(system: ActorSystem,
@@ -24,11 +24,7 @@ class DeliveryTracker(system: ActorSystem,
   protected case class ExpectingStatus(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
 
   // when a remote peer is asked a modifier, we add the expected data to `expecting`
-  // when a remote peer delivers expected data, it is removed from `expecting` and added to `delivered`.
-  // when a remote peer delivers unexpected data, it is added to `deliveredSpam`.
   protected val expecting = mutable.Map[ModifierIdAsKey, ExpectingStatus]()
-  protected val delivered = mutable.Map[ModifierIdAsKey, ConnectedPeer]()
-  protected val deliveredSpam = mutable.Map[ModifierIdAsKey, ConnectedPeer]()
 
   /**
     * Someone should have these modifiers, but we do not know who
@@ -42,6 +38,10 @@ class DeliveryTracker(system: ActorSystem,
   def expect(cp: ConnectedPeer, mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Try[Unit] =
     tryWithLogging(mids.foreach(mid => expect(Some(cp), mtid, mid)))
 
+  /**
+    * Put modifier id and corresponding peer to expecting map
+    * Set modifier to `Requested` state
+    */
   protected def expect(cp: Option[ConnectedPeer],
                        mtid: ModifierTypeId,
                        mid: ModifierId,
@@ -54,6 +54,7 @@ class DeliveryTracker(system: ActorSystem,
 
   /**
     *
+    * Expect modifier, if not expected yet.
     * Stops expecting, and expects again if the number of checks does not exceed the maximum
     *
     * @return `true` when expect again, `false` otherwise
@@ -65,7 +66,7 @@ class DeliveryTracker(system: ActorSystem,
       val midAsKey = key(mid)
       val checks = expecting(midAsKey).checks + 1
       stopExpecting(mid)
-      if (checks < maxDeliveryChecks) {
+      if (checks < maxDeliveryChecks || cp.isEmpty) {
         expect(cp, mtid, mid, checks)
       } else {
         toUnknown(mid)
@@ -85,23 +86,18 @@ class DeliveryTracker(system: ActorSystem,
   protected[network] def isExpecting(mid: ModifierId): Boolean =
     expecting.contains(key(mid))
 
-  def onReceive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Unit = tryWithLogging {
+  /**
+    * @return `true` if modifier was expected, `false` otherwise
+    */
+  def onReceive(mtid: ModifierTypeId, mid: ModifierId, cp: ConnectedPeer): Boolean = tryWithLogging {
     if (isExpecting(mid)) {
       stopExpecting(mid)
-      delivered(key(mid)) = cp
       toReceived(mid)
+      true
     } else {
-      deliveredSpam(key(mid)) = cp
+      false
     }
-  }
-
-  def delete(mid: ModifierId): Unit = tryWithLogging(delivered -= key(mid))
-
-  def deleteSpam(mids: Seq[ModifierId]): Unit = for (id <- mids) tryWithLogging(deliveredSpam -= key(id))
-
-  def isSpam(mid: ModifierId): Boolean = deliveredSpam contains key(mid)
-
-  def peerWhoDelivered(mid: ModifierId): Option[ConnectedPeer] = delivered.get(key(mid))
+  }.getOrElse(false)
 
   protected def tryWithLogging[T](fn: => T): Try[T] = {
     Try(fn).recoverWith {

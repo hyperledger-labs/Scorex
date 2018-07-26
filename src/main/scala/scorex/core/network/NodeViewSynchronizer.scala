@@ -24,6 +24,11 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
+import History._
+import NodeViewSynchronizer.ReceivableMessages._
+import scorex.core.NodeViewHolder.ReceivableMessages.GetNodeViewChanges
+import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
+import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
 /**
   * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
@@ -47,12 +52,6 @@ MR <: MempoolReader[TX] : ClassTag]
  timeProvider: NetworkTimeProvider,
  modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext) extends Actor
   with ScorexLogging with ScorexEncoding {
-
-  import History._
-  import NodeViewSynchronizer.ReceivableMessages._
-  import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, ModifiersFromRemote}
-  import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
-  import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
   protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
 
@@ -105,21 +104,24 @@ MR <: MempoolReader[TX] : ClassTag]
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def viewHolderEvents: Receive = {
     case SuccessfulTransaction(tx) =>
+      deliveryTracker.toApplied(tx.id)
       broadcastModifierInv(tx)
 
-    case FailedTransaction(tx, throwable) =>
+    case FailedTransaction(tx, _) =>
+      deliveryTracker.toApplied(tx.id)
     //todo: penalize source peer?
 
     case SyntacticallySuccessfulModifier(mod) =>
       deliveryTracker.toApplied(mod.id)
 
-    case SyntacticallyFailedModification(mod, throwable) =>
+    case SyntacticallyFailedModification(mod, _) =>
+      deliveryTracker.toApplied(mod.id)
     //todo: penalize source peer?
 
     case SemanticallySuccessfulModifier(mod) =>
       broadcastModifierInv(mod)
 
-    case SemanticallyFailedModification(mod, throwable) =>
+    case SemanticallyFailedModification(_, _) =>
     //todo: penalize source peer?
 
     case ChangedHistory(reader: HR) =>
@@ -213,9 +215,9 @@ MR <: MempoolReader[TX] : ClassTag]
           val modifierTypeId = invData._1
           val modifierIds = modifierTypeId match {
             case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-              mempool.notIn(invData._2)
+              invData._2.filter(mid => deliveryTracker.status(mid, mempool) == ModifiersStatus.Unknown)
             case _ =>
-              invData._2.filter(mid => deliveryTracker.status(mid)(history) == ModifiersStatus.Unknown)
+              invData._2.filter(mid => deliveryTracker.status(mid, history) == ModifiersStatus.Unknown)
           }
 
           if (modifierIds.nonEmpty) {
@@ -268,18 +270,14 @@ MR <: MempoolReader[TX] : ClassTag]
       log.info(s"Got modifiers of type $typeId from remote connected peer: $remote")
       log.trace(s"Received modifier ids ${data._2.keySet.map(encoder.encode).mkString(",")}")
 
-      modifiers.foreach { case (id, _) =>
+      val (fm, spam) = modifiers.partition { case (id, _) =>
         deliveryTracker.onReceive(typeId, id, remote)
       }
-
-      val (spam, fm) = modifiers.partition { case (id, _) => deliveryTracker.isSpam(id) }
 
       if (spam.nonEmpty) {
         log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
           s": ${spam.keys.map(encoder.encode)}")
         penalizeSpammingPeer(remote)
-        val mids = spam.keys.toSeq
-        deliveryTracker.deleteSpam(mids)
       }
 
       modifierSerializers.get(typeId) match {
@@ -289,15 +287,18 @@ MR <: MempoolReader[TX] : ClassTag]
               case Success(mod) if !(id sameElements mod.id) =>
                 log.warn(s"Declared id ${encoder.encode(id)} is not equals to calculated one ${mod.encodedId}")
                 penalizeMisbehavingPeer(remote)
+                deliveryTracker.toUnknown(id)
                 None
               case Failure(e) =>
                 log.warn(s"Failed to parse modifier ${encoder.encode(id)}", e)
                 penalizeMisbehavingPeer(remote)
+                deliveryTracker.toUnknown(id)
                 None
               case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
                 viewHolderRef ! LocallyGeneratedTransaction[TX](tx)
               case Success(pmod: PMOD@unchecked) =>
                 if (modifiersCache.contains(key(pmod.id)) || historyReaderOpt.exists(_.contains(pmod))) {
+                  // should never be here
                   log.error(s"Received modifier ${pmod.encodedId} that is already in cache or history.")
                 } else {
                   historyReaderOpt match {
@@ -305,15 +306,18 @@ MR <: MempoolReader[TX] : ClassTag]
                       hr.applicableTry(pmod) match {
                         case Failure(e) if e.isInstanceOf[MalformedModifierError] =>
                           log.warn(s"Modifier ${pmod.encodedId} is permanently invalid", e)
+                          deliveryTracker.toInvalid(id)
                           penalizeMisbehavingPeer(remote)
-                        case _ => modifiersCache.put(key(pmod.id), pmod)
+                        case _ =>
+                          modifiersCache.put(key(pmod.id), pmod)
+                            .foreach(removed => deliveryTracker.toUnknown(removed.id))
                       }
                     case None =>
-                      log.warn("Got modifier while history reader is not ready")
-                      modifiersCache.put(key(pmod.id), pmod).foreach(removed => deliveryTracker.toUnknown(removed.id))
+                      log.error("Got modifier while history reader is not ready")
+                      modifiersCache.put(key(pmod.id), pmod)
+                        .foreach(removed => deliveryTracker.toUnknown(removed.id))
                   }
                 }
-                pmod
             }
           }
           if (typeId != Transaction.ModifierTypeId) {
@@ -321,30 +325,23 @@ MR <: MempoolReader[TX] : ClassTag]
           }
         case None => log.error(s"Undefined serializer for modifier of type $typeId")
       }
-
-      if (fm.nonEmpty) {
-        viewHolderRef ! ModifiersFromRemote(remote, (typeId, fm))
-      }
   }
-
-  // todo: make DeliveryTracker an independent actor and move checkDelivery there?
 
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
   @SuppressWarnings(Array("org.wartremover.warts.JavaSerializable"))
   protected def checkDelivery: Receive = {
     case CheckDelivery(peerOpt, modifierTypeId, modifierId) =>
-      peerOpt match {
-        case Some(peer) =>
-          if (deliveryTracker.peerWhoDelivered(modifierId).contains(peer)) {
-            deliveryTracker.delete(modifierId)
-          } else {
+      if (deliveryTracker.status(modifierId, Seq()) == ModifiersStatus.Requested) {
+        peerOpt match {
+          case Some(peer) =>
             log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
             penalizeNonDeliveringPeer(peer)
             deliveryTracker.reexpect(Some(peer), modifierTypeId, modifierId)
-          }
-        case None =>
-          // Random peer did not delivered modifier we need, ask another peer
-          requestDownload(modifierTypeId, Seq(modifierId))
+          case None =>
+            // Random peer did not delivered modifier we need, ask another peer
+            // We need this modifier - no limit for number of attempts
+            requestDownload(modifierTypeId, Seq(modifierId))
+        }
       }
   }
 
@@ -395,7 +392,11 @@ MR <: MempoolReader[TX] : ClassTag]
 
   def onDownloadRequest: Receive = {
     case DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) =>
-      requestDownload(modifierTypeId, Seq(modifierId))
+      historyReaderOpt.foreach { hr =>
+        if (deliveryTracker.status(modifierId, hr) == ModifiersStatus.Unknown) {
+          requestDownload(modifierTypeId, Seq(modifierId))
+        }
+      }
   }
 
   override def receive: Receive =

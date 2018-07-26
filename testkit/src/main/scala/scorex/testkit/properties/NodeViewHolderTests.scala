@@ -6,15 +6,14 @@ import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.NodeViewHolder.CurrentView
-import scorex.core.NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView, IncorrectModifierFromRemote, LocallyGeneratedModifier, ModifiersFromRemote}
+import scorex.core.NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView, LocallyGeneratedModifier}
+import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SemanticallyFailedModification, SemanticallySuccessfulModifier, SyntacticallyFailedModification, SyntacticallySuccessfulModifier}
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexLogging
-import scorex.core.{ModifierId, NodeViewHolder, PersistentNodeViewModifier}
-import scorex.crypto.hash.Blake2b256
 import scorex.testkit.generators._
 import scorex.testkit.utils.AkkaFixture
 
@@ -64,27 +63,6 @@ MPool <: MemoryPool[TX, MPool]]
       GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, CurrentViewType] { view => view })
     val view = probe.expectMsgClass(10.seconds, classOf[CurrentViewType])
     f(view)
-  }
-
-  property("NodeViewHolder: IncorrectModifierFromRemote") {
-    withFixture { ctx =>
-      import ctx._
-      val p = TestProbe()
-      connectedPeerGen(TestProbe("PeerHandlerProbe").ref).sample.foreach { peer =>
-        // send bytes, serializer will be unable to parse
-        p.send(node, ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.id))))
-        p.expectMsgClass(classOf[IncorrectModifierFromRemote])
-
-        // send bytes, serializer will be able to parse, but with different id
-        val wrongId = ModifierId @@ Blake2b256("")
-        p.send(node, ModifiersFromRemote(peer, (mod.modifierTypeId, Map(wrongId -> mod.bytes))))
-        p.expectMsgClass(classOf[IncorrectModifierFromRemote])
-
-        // send correct id and bytes, expect no messages
-        p.send(node, ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.bytes))))
-        p.expectNoMsg()
-      }
-    }
   }
 
   property("NodeViewHolder syntactically valid modifier subscription") {
