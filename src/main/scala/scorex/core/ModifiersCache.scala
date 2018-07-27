@@ -42,6 +42,8 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
 
   /**
     * Remove elements from cache when it is overfull
+    *
+    * @return collection of just removed elements
     */
   def cleanOverfull(): Seq[V]
 
@@ -92,11 +94,12 @@ trait LRUCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]]
 
   def cleanOverfull(): Seq[V] = {
     @tailrec
-    def removeUntilCorrectSize(acc: Seq[V] ): Seq[V] = if(size < maxSize || evictionQueue.isEmpty) {
+    def removeUntilCorrectSize(acc: Seq[V]): Seq[V] = if (size <= maxSize || evictionQueue.isEmpty) {
       acc
     } else {
       removeUntilCorrectSize(remove(evictionQueue.dequeue()).toSeq ++ acc)
     }
+
     removeUntilCorrectSize(Seq())
   }
 }
@@ -122,8 +125,8 @@ class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryRea
         case Failure(e) =>
           // non-recoverable error - remove modifier from cache
           // TODO blaklist peer who sent it
-          log.warn(s"Modifier ${v.encodedId} is permanently invalid and will be removed from cache", e)
-          remove(k, rememberKey = true)
+          log.warn(s"Modifier ${v.encodedId} become permanently invalid and will be removed from cache", e)
+          remove(k)
           false
         case Success(_) =>
           true
