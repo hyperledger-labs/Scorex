@@ -5,6 +5,7 @@ import akka.testkit.TestProbe
 import org.scalacheck.Gen
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
+import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, GetNodeViewChanges}
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
 import scorex.core.consensus.{History, SyncInfo}
@@ -238,15 +239,13 @@ trait NodeViewSynchronizerTests[
   property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") {
     withFixture { ctx =>
       import ctx._
+      vhProbe.expectMsgType[GetNodeViewChanges]
 
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
       node ! DataFromPeer(new InvSpec(3), (mod.modifierTypeId, Seq(mod.id)), peer)
       node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-      vhProbe.fishForMessage(3 seconds) { case m =>
-          ???
-//        m == ModifiersFromRemote(peer, (mod.modifierTypeId, Map(mod.id -> mod.bytes)))
-      }
+      vhProbe.expectMsgType[ChangedCache[_, _, _]]
     }
   }
 

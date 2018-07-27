@@ -5,8 +5,12 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.NodeViewHolder.DownloadRequest
-import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, IncorrectModifierFromRemote, LocallyGeneratedTransaction}
+import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, GetNodeViewChanges, LocallyGeneratedTransaction}
+import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
+import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
+import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.serialization.Serializer
@@ -18,17 +22,11 @@ import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
 import scorex.core.validation.MalformedModifierError
 import scorex.core.{PersistentNodeViewModifier, _}
 
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
-import History._
-import NodeViewSynchronizer.ReceivableMessages._
-import scorex.core.NodeViewHolder.ReceivableMessages.GetNodeViewChanges
-import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
-import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 
 /**
   * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
@@ -243,12 +241,6 @@ MR <: MempoolReader[TX] : ClassTag]
           s"sending ${objs.length} modifiers ${idsToString(invData._1, objs.map(_.id))} ")
         self ! ResponseFromLocal(remote, invData._1, objs)
       }
-  }
-
-  protected def incorrectModifiers: Receive = {
-    case IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable) =>
-      log.warn(s"Incorect modifier ${encoder.encode(id)} received: ${error.getMessage}")
-      penalizeMisbehavingPeer(source)
   }
 
   /**

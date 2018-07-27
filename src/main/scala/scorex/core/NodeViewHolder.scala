@@ -372,9 +372,6 @@ object NodeViewHolder {
     HR <: HistoryReader[PM, _ <: SyncInfo],
     MC <: ModifiersCache[PM, HR]](cache: MC) extends NodeViewChange
 
-
-    case class IncorrectModifierFromRemote(source: ConnectedPeer, id: ModifierId, error: Throwable)
-
     case class LocallyGeneratedTransaction[TX <: Transaction](tx: TX)
 
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
