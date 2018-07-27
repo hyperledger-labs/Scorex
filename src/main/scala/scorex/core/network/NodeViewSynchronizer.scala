@@ -297,17 +297,17 @@ MR <: MempoolReader[TX] : ClassTag]
                           penalizeMisbehavingPeer(remote)
                         case _ =>
                           modifiersCache.put(pmod.id, pmod)
-                            .foreach(removed => deliveryTracker.toUnknown(removed.id))
                       }
                     case None =>
                       log.error("Got modifier while history reader is not ready")
                       modifiersCache.put(pmod.id, pmod)
-                        .foreach(removed => deliveryTracker.toUnknown(removed.id))
+
                   }
                 }
             }
           }
           if (typeId != Transaction.ModifierTypeId) {
+            modifiersCache.cleanOverfull().foreach(removed => deliveryTracker.toUnknown(removed.id))
             viewHolderRef ! ChangedCache[PMOD, HR, ModifiersCache[PMOD, HR]](modifiersCache)
           }
         case None => log.error(s"Undefined serializer for modifier of type $typeId")

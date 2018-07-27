@@ -10,6 +10,7 @@ import scala.util.{Failure, Success}
 
 /**
   * A cache which is storing persistent modifiers not applied to history yet.
+  *
   * @tparam PMOD - type of a persistent node view modifier (or a family of modifiers).
   */
 trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]] {
@@ -28,58 +29,40 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
   def maxSize: Int
 
   /**
-    * Keys to simulate objects residing a cache. So if key is stored here,
-    * the membership check (contains()) shows that the key is in the cache,
-    * but the value corresponding to the key is not stored. The motivation
-    * to have this structure is to avoid repeatedly downloading modifiers
-    * which are unquestionably invalid.
-    * TODO we already have this keys in ModifiersStatusKeeper, do not need it here
-    */
-  protected val rememberedKeys: mutable.HashSet[K] = mutable.HashSet[K]()
-
-  /**
     * Defines a best (and application-specific) candidate to be applied.
+    *
     * @param history - an interface to history which could be needed to define a candidate
     * @return - candidate if it is found
     */
   def findCandidateKey(history: H): Option[K]
 
   protected def onPut(key: K): Unit = {}
-  protected def onRemove(key: K, rememberKey: Boolean): Unit = {}
+
+  protected def onRemove(key: K): Unit = {}
 
   /**
-    * A cache element replacement strategy method, which defines a key to remove from cache when it is overfull
+    * Remove elements from cache when it is overfull
     */
-  protected def keyToRemove(): K
+  def cleanOverfull(): Seq[V]
 
+  def contains(key: K): Boolean = cache.contains(key)
 
-  def contains(key: K): Boolean = cache.contains(key) || rememberedKeys.contains(key)
-
-  def put(key: K, value: V): Option[V] = synchronized {
-    if(!contains(key)) {
+  def put(key: K, value: V): Unit = synchronized {
+    if (!contains(key)) {
       onPut(key)
       cache.put(key, value)
-      if (size > maxSize) {
-        remove(keyToRemove())
-      } else {
-        None
-      }
-    } else {
-      None
     }
   }
 
   /**
     * Remove an element from the cache.
+    *
     * @param key - modifier's key
-    * @param rememberKey - whether to remember the key as belonging to cache. E.g. invalid modifiers are
-    *                    to be remembered (for not to be requested from the network again).
-    * @return
+    * @return - removed value if existed
     */
-  def remove(key: K, rememberKey: Boolean = false): Option[V] = synchronized {
-    cache.remove(key).map {removed =>
-      onRemove(key, rememberKey)
-      if (rememberKey) rememberedKeys += key
+  def remove(key: K): Option[V] = synchronized {
+    cache.remove(key).map { removed =>
+      onRemove(key)
       removed
     }
   }
@@ -99,29 +82,27 @@ trait LRUCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]]
   // complete scan and cleaning of removed keys happen.
   private val cleaningThreshold = 50
 
-  @tailrec
-  private def evictionCandidate(): K = {
-    val k = evictionQueue.dequeue()
-    if(cache.contains(k)) k else evictionCandidate()
-  }
 
   override protected def onPut(key: K): Unit = {
     evictionQueue.enqueue(key)
-    if(evictionQueue.size > maxSize + cleaningThreshold){
+    if (evictionQueue.lengthCompare(maxSize + cleaningThreshold) > 0) {
       evictionQueue.dequeueAll(k => !cache.contains(k))
     }
   }
 
-  override protected def onRemove(key: K, rememberKey: Boolean): Unit = {
-  }
-
-  def keyToRemove(): K = {
-    evictionCandidate()
+  def cleanOverfull(): Seq[V] = {
+    @tailrec
+    def removeUntilCorrectSize(acc: Seq[V] ): Seq[V] = if(size < maxSize || evictionQueue.isEmpty) {
+      acc
+    } else {
+      removeUntilCorrectSize(remove(evictionQueue.dequeue()).toSeq ++ acc)
+    }
+    removeUntilCorrectSize(Seq())
   }
 }
 
 class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]]
-  (override val maxSize: Int) extends ModifiersCache[PMOD, HR] with LRUCache[PMOD, HR] with ScorexLogging {
+(override val maxSize: Int) extends ModifiersCache[PMOD, HR] with LRUCache[PMOD, HR] with ScorexLogging {
 
   /**
     * Default implementation is just about to scan. Not efficient at all and should be probably rewritten in a
