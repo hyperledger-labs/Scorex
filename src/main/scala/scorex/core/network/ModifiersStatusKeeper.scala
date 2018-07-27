@@ -12,15 +12,14 @@ import scala.collection.mutable
   */
 trait ModifiersStatusKeeper {
 
-  private val statuses: TrieMap[ModifierIdAsKey, ModifiersStatus] = TrieMap[ModifierIdAsKey, ModifiersStatus]()
+  private val statuses: TrieMap[ModifierId, ModifiersStatus] = TrieMap[ModifierId, ModifiersStatus]()
 
   /**
     * @return status of modifier `id`.
     *         Since we do not keep statuses for already applied modifiers, `history` is required here.
     */
   def status(id: ModifierId, modifierKeepers: Seq[ModifierContaining[_]]): ModifiersStatus = {
-    val mKey = key(id)
-    statuses.getOrElse(mKey,
+    statuses.getOrElse(id,
       if (modifierKeepers.exists(_.contains(id))) {
         Applied
       } else {
@@ -31,12 +30,12 @@ trait ModifiersStatusKeeper {
 
   def status(id: ModifierId, mk: ModifierContaining[_ <: NodeViewModifier]): ModifiersStatus = status(id, Seq(mk))
 
-  def set(id: ModifierId, status: ModifiersStatus): Option[ModifiersStatus] = statuses.put(key(id), status)
+  def set(id: ModifierId, status: ModifiersStatus): Option[ModifiersStatus] = statuses.put(id, status)
 
   /**
     * Stop tracking this modifier
     */
-  def toApplied(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
+  def toApplied(id: ModifierId): Option[ModifiersStatus] = statuses.remove(id)
 
   /**
     * Modifier `id` was received from other peer
@@ -52,12 +51,8 @@ trait ModifiersStatusKeeper {
     * Remove status for modifier `id` for ModifiersStatusKeeper.
     * This may happen when received modifier bytes does not correspond to declared modifier id
     */
-  def toUnknown(id: ModifierId): Option[ModifiersStatus] = statuses.remove(key(id))
+  def toUnknown(id: ModifierId): Option[ModifiersStatus] = statuses.remove(id)
 
   def toInvalid(id: ModifierId): Option[ModifiersStatus] = set(id, Invalid)
-
-  protected type ModifierIdAsKey = mutable.WrappedArray[Byte]
-
-  protected def key(id: ModifierId): ModifierIdAsKey = new mutable.WrappedArray.ofByte(id)
 
 }

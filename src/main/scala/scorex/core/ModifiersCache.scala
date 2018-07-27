@@ -15,7 +15,7 @@ import scala.util.{Failure, Success}
 trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]] {
   require(maxSize >= 1)
 
-  type K = mutable.WrappedArray[Byte]
+  type K = ModifierId
   type V = PMOD
 
   protected val cache: mutable.Map[K, V] = mutable.Map[K, V]()

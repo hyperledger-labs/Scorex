@@ -4,7 +4,8 @@ import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{BoxStateChanges, MinimalState, ModifierValidation, TransactionValidation}
-import scorex.core.{PersistentNodeViewModifier, VersionTag}
+import scorex.core.{PersistentNodeViewModifier, VersionTag, idToVersion}
+import scorex.crypto.authds.ADKey
 
 import scala.util.{Failure, Success, Try}
 
@@ -27,7 +28,7 @@ trait BoxMinimalState[P <: Proposition,
 
   override def applyModifier(mod: M): Try[BMS] = {
     validate(mod) flatMap {_ =>
-      changes(mod).flatMap(cs => applyChanges(cs, VersionTag @@ mod.id))
+      changes(mod).flatMap(cs => applyChanges(cs, idToVersion(mod.id)))
     }
   }
 

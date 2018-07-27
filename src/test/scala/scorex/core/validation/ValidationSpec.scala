@@ -1,17 +1,14 @@
 package scorex.core.validation
 
 import org.scalatest.{FlatSpec, Matchers}
-import scorex.core.ModifierId
+import scorex.core.bytesToId
 import scorex.core.consensus.ModifierSemanticValidity
+import scorex.core.utils.ScorexEncoding
 import scorex.core.validation.ValidationResult._
-import scorex.crypto.encode.{Base16, BytesEncoder}
 
 import scala.util.{Failure, Try}
 
-class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
-
-  override implicit val encoder: BytesEncoder = Base16
-
+class ValidationSpec extends FlatSpec with Matchers with ModifierValidator with ScorexEncoding {
 
   "ModifierValidation" should "be able to succeed when failing fast" in {
     val result = failFast
@@ -184,17 +181,17 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator {
     val len = 32
     val byte1 = 1.toByte
     val byte2 = 2.toByte
-    val id = ModifierId @@ Array.fill(len)(byte1)
+    val id = bytesToId(Array.fill(len)(byte1))
     val differentBytesMsg = "Different bytes"
     val differentLengthMsg = s"Different length"
     val result = accumulateErrors
-      .validateEqualIds(id, Array.fill(len)(byte1)) { detail =>
+      .validateEqualIds(id, bytesToId(Array.fill(len)(byte1))) { detail =>
         fatal(s"Should never happen. $detail")
       }
-      .validateEqualIds(id, Array.fill(len)(byte2)) { _ =>
+      .validateEqualIds(id, bytesToId(Array.fill(len)(byte2))) { _ =>
         fatal(differentBytesMsg)
       }
-      .validateEqualIds(id, Array.fill(len + 1)(byte1)) { _ =>
+      .validateEqualIds(id, bytesToId(Array.fill(len + 1)(byte1))) { _ =>
         fatal(differentLengthMsg)
       }
       .result

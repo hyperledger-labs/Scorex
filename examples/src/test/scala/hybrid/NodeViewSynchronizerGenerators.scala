@@ -7,7 +7,7 @@ import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.HybridApp
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.VersionTag
+import scorex.core._
 import scorex.core.app.Version
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{ChangedHistory, ChangedMempool}
 import scorex.core.network._
@@ -39,8 +39,8 @@ trait NodeViewSynchronizerGenerators {
     val sRaw = stateGen.sample.get
     val mempool = SimpleBoxTransactionMemPool.emptyPool
     val v = h.openSurfaceIds().last
-    sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
-    val s = sRaw.copy(version = VersionTag @@ v)
+    sRaw.store.update(ByteArrayWrapper(idToBytes(v)), Seq(), Seq())
+    val s = sRaw.copy(version = idToVersion(v))
 
     val ncProbe = TestProbe("NetworkControllerProbe")
     val vhProbe = TestProbe("ViewHolderProbe")

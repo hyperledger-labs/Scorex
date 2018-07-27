@@ -21,7 +21,7 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
     val magic = new Array[Byte](MagicLength)
     bytes.get(magic)
 
-    require(magic.sameElements(Message.MAGIC), "Wrong magic bytes" + magic.mkString)
+    require(java.util.Arrays.equals(magic, Message.MAGIC), "Wrong magic bytes" + magic.mkString)
 
     val msgCode = bytes.get
 
@@ -41,7 +41,7 @@ case class MessageHandler(specs: Seq[MessageSpec[_]]) {
       val digest = Blake2b256.hash(data).take(Message.ChecksumLength)
 
       //CHECK IF CHECKSUM MATCHES
-      if(!checksum.sameElements(digest)) throw new Error(s"Invalid data checksum length = $length")
+      if(!java.util.Arrays.equals(checksum, digest)) throw new Error(s"Invalid data checksum length = $length")
       data
     }
     else Array()

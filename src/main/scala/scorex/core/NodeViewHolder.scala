@@ -147,7 +147,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     val appliedTxs = blocksApplied.flatMap(extractTransactions)
 
     memPool.putWithoutCheck(rolledBackTxs).filter { tx =>
-      !appliedTxs.exists(t => t.id sameElements tx.id) && {
+      !appliedTxs.exists(t => t.id == tx.id) && {
         state match {
           case v: TransactionValidation[TX] => v.validate(tx).isSuccess
           case _ => true
@@ -162,7 +162,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     }
 
   private def trimChainSuffix(suffix: IndexedSeq[PMOD], rollbackPoint: ModifierId): IndexedSeq[PMOD] = {
-    val idx = suffix.indexWhere(_.id.sameElements(rollbackPoint))
+    val idx = suffix.indexWhere(_.id == rollbackPoint)
     if (idx == -1) IndexedSeq() else suffix.drop(idx)
   }
 
@@ -212,11 +212,11 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
                                  suffix: IndexedSeq[PMOD])
 
     val (stateToApplyTry: Try[MS], suffixTrimmed: IndexedSeq[PMOD]) = if (progressInfo.chainSwitchingNeeded) {
-      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-      val branchingPoint = VersionTag @@ progressInfo.branchPoint.get //todo: .get
-      if (!state.version.sameElements(branchingPoint)) {
-        state.rollbackTo(branchingPoint) -> trimChainSuffix(suffixApplied, branchingPoint)
-      } else Success(state) -> IndexedSeq()
+        @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
+        val branchingPoint = progressInfo.branchPoint.get //todo: .get
+        if (state.version != branchingPoint) {
+          state.rollbackTo(idToVersion(branchingPoint)) -> trimChainSuffix(suffixApplied, branchingPoint)
+        } else Success(state) -> IndexedSeq()
     } else Success(state) -> suffixApplied
 
     stateToApplyTry match {
@@ -280,7 +280,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
                 //we consider that vault always able to perform a rollback needed
                 @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
                 val newVault = if (progressInfo.chainSwitchingNeeded) {
-                  vault().rollback(VersionTag @@ progressInfo.branchPoint.get).get
+                  vault().rollback(idToVersion(progressInfo.branchPoint.get)).get
                 } else vault()
                 blocksApplied.foreach(newVault.scanPersistent)
 

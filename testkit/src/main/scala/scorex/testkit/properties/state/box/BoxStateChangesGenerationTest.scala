@@ -1,6 +1,6 @@
 package scorex.testkit.properties.state.box
 
-import scorex.core.{PersistentNodeViewModifier, VersionTag}
+import scorex.core.{PersistentNodeViewModifier, VersionTag, idToVersion}
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
@@ -34,7 +34,7 @@ ST <: BoxMinimalState[P, B, TX, PM, ST]]
         state1.closedBox(r.boxId).isDefined shouldBe true
       }
 
-      val state2 = state1.applyChanges(blockChanges, VersionTag @@ block.id).get
+      val state2 = state1.applyChanges(blockChanges, idToVersion(block.id)).get
 
       blockChanges.toAppend.foreach { case Insertion(b) =>
         state2.closedBox(b.id) shouldBe Some(b)

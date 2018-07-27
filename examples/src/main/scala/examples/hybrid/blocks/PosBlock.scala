@@ -4,13 +4,14 @@ import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Encoder
 import io.circe.syntax._
+import scorex.core.idToBytes
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
-import scorex.core.{ModifierId, ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier}
+import scorex.core.{ModifierId, ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier, bytesToId}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, Signature}
 
@@ -33,7 +34,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override lazy val modifierTypeId: ModifierTypeId = PosBlock.ModifierTypeId
 
   override lazy val id: ModifierId =
-    ModifierId @@ Blake2b256(parentId ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment)
+    bytesToId(Blake2b256(idToBytes(parentId) ++ Longs.toByteArray(timestamp) ++ generatorBox.id ++ attachment))
 
   override def toString: String = s"PoSBlock(${this.asJson.noSpaces})"
 }
@@ -43,14 +44,14 @@ object PosBlockCompanion extends Serializer[PosBlock] with ScorexEncoding {
     val txsBytes = b.transactions.sortBy(t => encoder.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }
-    Bytes.concat(b.parentId, Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes,
+    Bytes.concat(idToBytes(b.parentId), Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes,
       Ints.toByteArray(b.transactions.length), txsBytes, Ints.toByteArray(b.attachment.length), b.attachment)
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[PosBlock] = Try {
     require(bytes.length <= PosBlock.MaxBlockSize)
 
-    val parentId = ModifierId @@ bytes.slice(0, BlockIdLength)
+    val parentId = bytesToId(bytes.slice(0, BlockIdLength))
     var position = BlockIdLength
     val timestamp = Longs.fromByteArray(bytes.slice(position, position + 8))
     position = position + 8
@@ -99,7 +100,7 @@ object PosBlock extends ScorexEncoding {
              box: PublicKey25519NoncedBox,
              attachment: Array[Byte],
              privateKey: PrivateKey25519): PosBlock = {
-    require(box.proposition.pubKeyBytes sameElements privateKey.publicKeyBytes)
+    require(java.util.Arrays.equals(box.proposition.pubKeyBytes, privateKey.publicKeyBytes))
     val unsigned = PosBlock(parentId, timestamp, txs, box, attachment, Signature25519(Signature @@ Array[Byte]()))
     val signature = Curve25519.sign(privateKey.privKeyBytes, unsigned.bytes)
     unsigned.copy(signature = Signature25519(signature))

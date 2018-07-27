@@ -12,7 +12,7 @@ import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, PersistentNodeViewModifier}
+import scorex.core.{ModifierId, PersistentNodeViewModifier, bytesToId}
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
@@ -58,7 +58,7 @@ case class NodeViewApiRoute[TX <: Transaction]
     encoder.decode(encodedId) match {
       case Failure(_) => ApiError.NotExists
       case Success(rawId) =>
-        val id = ModifierId @@ rawId
+        val id = bytesToId(rawId)
 
         def f(v: CurrentView[HIS, MS, VL, MP]): Option[PM] = v.history.modifierById(id)
 

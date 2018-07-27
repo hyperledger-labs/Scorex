@@ -141,7 +141,7 @@ MPool <: MemoryPool[TX, MPool]]
       val p = TestProbe()
 
       p.send(node, GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
-        v.state.version.sameElements(s.version)
+        v.state.version == s.version
       })
       p.expectMsg(true)
     }
@@ -198,7 +198,7 @@ MPool <: MemoryPool[TX, MPool]]
       eventListener.expectMsgType[SyntacticallySuccessfulModifier[PM]]
 
       p.send(node, GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Boolean] { v =>
-        v.state.version.sameElements(s.version) && v.history.contains(mod.id)
+        v.state.version == s.version && v.history.contains(mod.id)
       })
 
       p.expectMsg(true)
@@ -271,7 +271,7 @@ MPool <: MemoryPool[TX, MPool]]
 
       p.send(node, GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, Seq[PM]] { v =>
         val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
-        assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
+        assert(mods.head.parentId == v.history.openSurfaceIds().head)
         mods
       })
       val fork1Mods = p.expectMsgClass(waitDuration, classOf[Seq[PersistentNodeViewModifier]])
@@ -307,7 +307,7 @@ MPool <: MemoryPool[TX, MPool]]
       // generate the first fork with valid blocks
       val fork1Mods = withView(node) { v =>
         val mods = totallyValidModifiers(v.history, v.state, fork1OpCount)
-        assert(mods.head.parentId.sameElements(v.history.openSurfaceIds().head))
+        assert(mods.head.parentId == v.history.openSurfaceIds().head)
         mods
       }
       // generate the second fork with the invalid block

@@ -53,10 +53,6 @@ MR <: MempoolReader[TX] : ClassTag]
  modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext) extends Actor
   with ScorexLogging with ScorexEncoding {
 
-  protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
-
-  protected def key(id: ModifierId): MapKey = new mutable.WrappedArray.ofByte(id)
-
   /**
     * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
     */
@@ -101,7 +97,6 @@ MR <: MempoolReader[TX] : ClassTag]
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def viewHolderEvents: Receive = {
     case SuccessfulTransaction(tx) =>
       deliveryTracker.toApplied(tx.id)
@@ -297,7 +292,7 @@ MR <: MempoolReader[TX] : ClassTag]
               case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
                 viewHolderRef ! LocallyGeneratedTransaction[TX](tx)
               case Success(pmod: PMOD@unchecked) =>
-                if (modifiersCache.contains(key(pmod.id)) || historyReaderOpt.exists(_.contains(pmod))) {
+                if (modifiersCache.contains(pmod.id) || historyReaderOpt.exists(_.contains(pmod))) {
                   // should never be here
                   log.error(s"Received modifier ${pmod.encodedId} that is already in cache or history.")
                 } else {
@@ -309,12 +304,12 @@ MR <: MempoolReader[TX] : ClassTag]
                           deliveryTracker.toInvalid(id)
                           penalizeMisbehavingPeer(remote)
                         case _ =>
-                          modifiersCache.put(key(pmod.id), pmod)
+                          modifiersCache.put(pmod.id, pmod)
                             .foreach(removed => deliveryTracker.toUnknown(removed.id))
                       }
                     case None =>
                       log.error("Got modifier while history reader is not ready")
-                      modifiersCache.put(key(pmod.id), pmod)
+                      modifiersCache.put(pmod.id, pmod)
                         .foreach(removed => deliveryTracker.toUnknown(removed.id))
                   }
                 }

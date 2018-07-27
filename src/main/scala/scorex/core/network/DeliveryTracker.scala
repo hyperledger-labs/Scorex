@@ -20,11 +20,10 @@ class DeliveryTracker(system: ActorSystem,
                       maxDeliveryChecks: Int,
                       nvsRef: ActorRef) extends ModifiersStatusKeeper with ScorexLogging with ScorexEncoding {
 
-
   protected case class ExpectingStatus(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
 
   // when a remote peer is asked a modifier, we add the expected data to `expecting`
-  protected val expecting = mutable.Map[ModifierIdAsKey, ExpectingStatus]()
+  protected val expecting = mutable.Map[ModifierId, ExpectingStatus]()
 
   /**
     * Someone should have these modifiers, but we do not know who
@@ -47,7 +46,7 @@ class DeliveryTracker(system: ActorSystem,
                        mid: ModifierId,
                        checksDone: Int = 0)(implicit ec: ExecutionContext): Unit = {
     val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(cp, mtid, mid))
-    val midAsKey = key(mid)
+    val midAsKey = mid
     expecting.put(midAsKey, ExpectingStatus(cp, cancellable, checks = checksDone))
     toRequested(mid)
   }
@@ -63,8 +62,7 @@ class DeliveryTracker(system: ActorSystem,
                mtid: ModifierTypeId,
                mid: ModifierId)(implicit ec: ExecutionContext): Try[Unit] = tryWithLogging {
     if (isExpecting(mid)) {
-      val midAsKey = key(mid)
-      val checks = expecting(midAsKey).checks + 1
+      val checks = expecting(mid).checks + 1
       stopExpecting(mid)
       if (checks < maxDeliveryChecks || cp.isEmpty) {
         expect(cp, mtid, mid, checks)
@@ -78,13 +76,12 @@ class DeliveryTracker(system: ActorSystem,
   }
 
   protected def stopExpecting(mid: ModifierId): Unit = {
-    val midAsKey = key(mid)
-    expecting(midAsKey).cancellable.cancel()
-    expecting.remove(midAsKey)
+    expecting(mid).cancellable.cancel()
+    expecting.remove(mid)
   }
 
   protected[network] def isExpecting(mid: ModifierId): Boolean =
-    expecting.contains(key(mid))
+    expecting.contains(mid)
 
   /**
     * @return `true` if modifier was expected, `false` otherwise
