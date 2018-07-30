@@ -94,13 +94,13 @@ trait LRUCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]]
 
   def cleanOverfull(): Seq[V] = {
     @tailrec
-    def removeUntilCorrectSize(acc: Seq[V]): Seq[V] = if (size <= maxSize || evictionQueue.isEmpty) {
+    def removeUntilCorrectSize(acc: List[V]): List[V] = if (size <= maxSize || evictionQueue.isEmpty) {
       acc
     } else {
-      removeUntilCorrectSize(remove(evictionQueue.dequeue()).toSeq ++ acc)
+      removeUntilCorrectSize(remove(evictionQueue.dequeue()).map(_ :: acc).getOrElse(acc))
     }
 
-    removeUntilCorrectSize(Seq())
+    removeUntilCorrectSize(List())
   }
 }
 

@@ -15,8 +15,8 @@ object ModifiersStatus {
   case object Requested extends ModifiersStatus
 
   /**
-    * Our node have received this modifier from other peers but is not applied yet.
-    * It might be ModifiersCache or on the way to it
+    * Our node have received this modifier from other peers but did not applied yet.
+    * The modifier might be in ModifiersCache or on the way to it
     */
   case object Received extends ModifiersStatus
 

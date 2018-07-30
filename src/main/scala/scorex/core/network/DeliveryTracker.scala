@@ -12,7 +12,7 @@ import scala.util.{Failure, Try}
 
 
 /**
-  * This class tracks modifier ids which are expected from  other peers
+  * This class tracks modifier ids which are expected from other peers
   * in order to ban or de-prioritize peers which are delivering what is not expected
   */
 class DeliveryTracker(system: ActorSystem,
@@ -46,8 +46,7 @@ class DeliveryTracker(system: ActorSystem,
                        mid: ModifierId,
                        checksDone: Int = 0)(implicit ec: ExecutionContext): Unit = {
     val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(cp, mtid, mid))
-    val midAsKey = mid
-    expecting.put(midAsKey, ExpectingStatus(cp, cancellable, checks = checksDone))
+    expecting.put(mid, ExpectingStatus(cp, cancellable, checks = checksDone))
     toRequested(mid)
   }
 

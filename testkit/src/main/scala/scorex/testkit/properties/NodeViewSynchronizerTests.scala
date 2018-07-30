@@ -225,14 +225,7 @@ trait NodeViewSynchronizerTests[
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
       node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-      val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) {
-        case m => m
-      }
-      assert(!messages.exists {
-//        case ModifiersFromRemote(p, _) if p == peer => true
-        case _ => false
-      })
-      // ncProbe.fishForMessage(3 seconds) { case m => ??? }
+      // todo complete at least after blacklist implementation
     }
   }
 
