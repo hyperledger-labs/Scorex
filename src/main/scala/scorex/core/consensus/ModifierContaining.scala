@@ -4,12 +4,10 @@ import scorex.core.{ModifierId, NodeViewModifier}
 
 trait ModifierContaining[MOD <: NodeViewModifier] {
 
-
   /**
-    * Whether the history contains the given modifier
     *
-    * @param persistentModifier - modifier
-    * @return
+    * @param persistentModifier -  modifier to check
+    * @return `true` if this object contains this modifier, `false` otherwise
     */
   def contains(persistentModifier: MOD): Boolean = contains(persistentModifier.id)
 
@@ -21,7 +19,7 @@ trait ModifierContaining[MOD <: NodeViewModifier] {
   def contains(id: ModifierId): Boolean = modifierById(id).isDefined
 
   /**
-    * @param modifierId - modifier id to get from this class
+    * @param modifierId - modifier id to get
     * @return modifier of type MOD with id == modifierId if exist
     */
   def modifierById(modifierId: ModifierId): Option[MOD]

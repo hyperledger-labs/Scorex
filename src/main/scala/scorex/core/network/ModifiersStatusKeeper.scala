@@ -8,7 +8,8 @@ import scorex.core.{ModifierId, NodeViewModifier}
 import scala.collection.concurrent.TrieMap
 
 /**
-  * Trait that keeps modifiers statuses when modifier is known, but is not applied yet.
+  * Trait that keeps intermediate modifiers statuses: from Unknown to Applied.
+  * It also keeps Invalid modifiers, that should not be downloaded and processed anymore.
   */
 trait ModifiersStatusKeeper extends ScorexLogging with ScorexEncoding {
 

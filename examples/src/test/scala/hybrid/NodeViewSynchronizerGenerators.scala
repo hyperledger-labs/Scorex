@@ -27,8 +27,8 @@ trait NodeViewSynchronizerGenerators {
         viewHolderRef,
         HybridSyncInfoMessageSpec,
         settings.scorexSettings.network,
-        new NetworkTimeProvider(settings.scorexSettings.ntp)
-      ,HybridApp.modifierSerializers)
+        new NetworkTimeProvider(settings.scorexSettings.ntp),
+        HybridApp.modifierSerializers)
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):

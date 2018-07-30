@@ -125,7 +125,7 @@ class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryRea
         case Failure(e) =>
           // non-recoverable error - remove modifier from cache
           // TODO blaklist peer who sent it
-          log.warn(s"Modifier ${v.encodedId} become permanently invalid and will be removed from cache", e)
+          log.warn(s"Modifier ${v.encodedId} became permanently invalid and will be removed from cache", e)
           remove(k)
           false
         case Success(_) =>

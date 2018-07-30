@@ -101,14 +101,14 @@ MR <: MempoolReader[TX] : ClassTag]
       broadcastModifierInv(tx)
 
     case FailedTransaction(tx, _) =>
-      deliveryTracker.toApplied(tx.id)
+      deliveryTracker.toUnknown(tx.id)
     //todo: penalize source peer?
 
     case SyntacticallySuccessfulModifier(mod) =>
       deliveryTracker.toApplied(mod.id)
 
     case SyntacticallyFailedModification(mod, _) =>
-      deliveryTracker.toApplied(mod.id)
+      deliveryTracker.toUnknown(mod.id)
     //todo: penalize source peer?
 
     case SemanticallySuccessfulModifier(mod) =>
@@ -207,7 +207,7 @@ MR <: MempoolReader[TX] : ClassTag]
         case (Some(mempool), Some(history)) =>
           val modifierTypeId = invData._1
           val modifierIds = modifierTypeId match {
-            case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
+            case Transaction.ModifierTypeId =>
               invData._2.filter(mid => deliveryTracker.status(mid, mempool) == ModifiersStatus.Unknown)
             case _ =>
               invData._2.filter(mid => deliveryTracker.status(mid, history) == ModifiersStatus.Unknown)
