@@ -331,6 +331,8 @@ MR <: MempoolReader[TX] : ClassTag]
           case None =>
             // Random peer did not delivered modifier we need, ask another peer
             // We need this modifier - no limit for number of attempts
+            log.info(s"Modifier ${encoder.encode(modifierId)} was not delivered on time")
+            deliveryTracker.stopProcessing(modifierId)
             requestDownload(modifierTypeId, Seq(modifierId))
         }
       }

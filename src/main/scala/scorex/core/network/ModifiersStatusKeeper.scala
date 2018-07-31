@@ -59,9 +59,9 @@ trait ModifiersStatusKeeper extends ScorexLogging with ScorexEncoding {
     * Self-check, that transition between states is correct
     */
   protected def isCorrectTransition(oldStatusOpt: Option[ModifiersStatus], newStatus: ModifiersStatus): Boolean = {
-    val oldStatus = oldStatusOpt.getOrElse(Unknown)
-    oldStatus match {
+    oldStatusOpt.getOrElse(Unknown) match {
       case old if old == newStatus => true
+      case old if newStatus == Applied => true
       case Unknown => newStatus == Requested
       case Requested => newStatus == Received || newStatus == Unknown
       case Received => newStatus == Applied || newStatus == Invalid || newStatus == Unknown

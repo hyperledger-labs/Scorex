@@ -6,6 +6,7 @@ import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.consensus.ModifierContaining
+import scorex.core.network.ModifiersStatus._
 import scorex.core.serialization.Serializer
 import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier, bytesToId}
 import scorex.crypto.hash.Blake2b256
@@ -57,44 +58,55 @@ class DeliveryTrackerSpecification extends PropSpec
     modids.foreach(id => tracker.isExpecting(id) shouldBe true)
   }
 
-  property("Normal workflow") {
+  property("locally generated modifier") {
     val tracker = genDeliveryTracker
     val history = new FakeHistory
 
     val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(bytesToId)
 
-    modids.foreach(id => tracker.status(id) shouldBe ModifiersStatus.Unknown)
+    modids.foreach(id => history.put(new FakeModifier(id)))
+    modids.foreach(id => tracker.onApply(id))
+    modids.foreach(id => tracker.status(id, history) shouldBe Applied)
+  }
+
+  property("persistent modifier workflow") {
+    val tracker = genDeliveryTracker
+    val history = new FakeHistory
+
+    val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(bytesToId)
+
+    modids.foreach(id => tracker.status(id) shouldBe Unknown)
     modids.foreach(id => tracker.isExpecting(id) shouldBe false)
 
     tracker.onRequest(Some(cp), mtid, modids)
-    modids.foreach(id => tracker.status(id) shouldBe ModifiersStatus.Requested)
+    modids.foreach(id => tracker.status(id) shouldBe Requested)
     modids.foreach(id => tracker.isExpecting(id) shouldBe true)
 
     // received correct modifier
     val received = modids.head
     tracker.isExpecting(received) shouldBe true
     tracker.onReceive(received)
-    tracker.status(received) shouldBe ModifiersStatus.Received
+    tracker.status(received) shouldBe Received
     tracker.isExpecting(received) shouldBe false
 
     history.put(new FakeModifier(received))
     tracker.onApply(received)
-    tracker.status(received, history) shouldBe ModifiersStatus.Applied
+    tracker.status(received, history) shouldBe Applied
 
     // received incorrect modifier
     val invalid = modids.last
     tracker.isExpecting(invalid) shouldBe true
     tracker.onReceive(invalid)
-    tracker.status(invalid) shouldBe ModifiersStatus.Received
+    tracker.status(invalid) shouldBe Received
     tracker.onInvalid(invalid)
-    tracker.status(invalid, history) shouldBe ModifiersStatus.Invalid
+    tracker.status(invalid, history) shouldBe Invalid
     tracker.isExpecting(invalid) shouldBe false
 
     // modifier was not delivered on time
     val nonDelivered = modids(1)
     tracker.isExpecting(nonDelivered) shouldBe true
     tracker.stopProcessing(nonDelivered)
-    tracker.status(nonDelivered, history) shouldBe ModifiersStatus.Unknown
+    tracker.status(nonDelivered, history) shouldBe Unknown
     tracker.isExpecting(nonDelivered) shouldBe false
 
   }
@@ -104,7 +116,7 @@ class DeliveryTrackerSpecification extends PropSpec
     val notAdded: ModifierId = bytesToId(Blake2b256("4"))
     tracker.isExpecting(notAdded) shouldBe false
     tracker.onReceive(notAdded) shouldBe false
-    tracker.status(notAdded) shouldBe ModifiersStatus.Unknown
+    tracker.status(notAdded) shouldBe Unknown
   }
 
   property("stop expecting after maximum number of retries") {
