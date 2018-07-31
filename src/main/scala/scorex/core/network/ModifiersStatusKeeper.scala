@@ -6,6 +6,7 @@ import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 import scorex.core.{ModifierId, NodeViewModifier}
 
 import scala.collection.concurrent.TrieMap
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * Trait that keeps intermediate modifiers statuses: from Unknown to Applied.
@@ -13,7 +14,14 @@ import scala.collection.concurrent.TrieMap
   */
 trait ModifiersStatusKeeper extends ScorexLogging with ScorexEncoding {
 
+  private val invalid: ArrayBuffer[ModifierId] = ArrayBuffer[ModifierId]()
+
   private val statuses: TrieMap[ModifierId, ModifiersStatus] = TrieMap[ModifierId, ModifiersStatus]()
+
+  /**
+    * Number of modifiers in intermediate state - already known, but not applied or marked invalid yet
+    */
+  def inProcessSize: Int = statuses.size
 
   /**
     * @return status of modifier `id`.
@@ -21,7 +29,9 @@ trait ModifiersStatusKeeper extends ScorexLogging with ScorexEncoding {
     */
   def status(id: ModifierId, modifierKeepers: Seq[ModifierContaining[_]]): ModifiersStatus = {
     statuses.getOrElse(id,
-      if (modifierKeepers.exists(_.contains(id))) {
+      if (invalid.contains(id)) {
+        Invalid
+      } else if (modifierKeepers.exists(_.contains(id))) {
         Applied
       } else {
         Unknown
@@ -31,39 +41,18 @@ trait ModifiersStatusKeeper extends ScorexLogging with ScorexEncoding {
 
   def status(id: ModifierId, mk: ModifierContaining[_ <: NodeViewModifier]): ModifiersStatus = status(id, Seq(mk))
 
+  def status(id: ModifierId): ModifiersStatus = status(id, Seq())
+
   def set(id: ModifierId, status: ModifiersStatus): Option[ModifiersStatus] = {
-    log.trace(s"Set modifier ${encoder.encode(id)} to status $status")
+    log.trace(s"Set modifier ${encoder.encode(id)} to status $status.")
     if (status == Unknown || status == Applied) {
+      statuses.remove(id)
+    } else if (status == Invalid) {
+      invalid.append(id)
       statuses.remove(id)
     } else {
       statuses.put(id, status)
     }
   }
-
-  /**
-    * Stop tracking this modifier
-    */
-  def toApplied(id: ModifierId): Option[ModifiersStatus] = set(id, Applied)
-
-  /**
-    * Modifier `id` was received from other peer
-    */
-  def toReceived(id: ModifierId): Option[ModifiersStatus] = set(id, Received)
-
-  /**
-    * Modifier `id` was requested from other peer
-    */
-  def toRequested(id: ModifierId): Option[ModifiersStatus] = set(id, Requested)
-
-  /**
-    * Remove status for modifier `id` for ModifiersStatusKeeper.
-    * This may happen when received modifier bytes does not correspond to declared modifier id
-    */
-  def toUnknown(id: ModifierId): Option[ModifiersStatus] = set(id, Unknown)
-
-  /**
-    * This modifier is permanently invalid - our not should not try to download and apply it
-    */
-  def toInvalid(id: ModifierId): Option[ModifiersStatus] = set(id, Invalid)
 
 }

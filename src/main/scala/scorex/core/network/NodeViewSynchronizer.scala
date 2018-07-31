@@ -97,18 +97,18 @@ MR <: MempoolReader[TX] : ClassTag]
 
   protected def viewHolderEvents: Receive = {
     case SuccessfulTransaction(tx) =>
-      deliveryTracker.toApplied(tx.id)
+      deliveryTracker.onApply(tx.id)
       broadcastModifierInv(tx)
 
     case FailedTransaction(tx, _) =>
-      deliveryTracker.toUnknown(tx.id)
+      deliveryTracker.onInvalid(tx.id)
     //todo: penalize source peer?
 
     case SyntacticallySuccessfulModifier(mod) =>
-      deliveryTracker.toApplied(mod.id)
+      deliveryTracker.onApply(mod.id)
 
     case SyntacticallyFailedModification(mod, _) =>
-      deliveryTracker.toUnknown(mod.id)
+      deliveryTracker.onInvalid(mod.id)
     //todo: penalize source peer?
 
     case SemanticallySuccessfulModifier(mod) =>
@@ -216,7 +216,7 @@ MR <: MempoolReader[TX] : ClassTag]
           if (modifierIds.nonEmpty) {
             val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
             peer.handlerRef ! msg
-            deliveryTracker.expect(peer, modifierTypeId, modifierIds)
+            deliveryTracker.onRequest(Some(peer), modifierTypeId, modifierIds)
           }
 
         case _ =>
@@ -243,6 +243,7 @@ MR <: MempoolReader[TX] : ClassTag]
       }
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   private def processExpectedModifier(remote: ConnectedPeer, id: ModifierId, pmod: PMOD) = {
     if (modifiersCache.contains(pmod.id) || historyReaderOpt.exists(_.contains(pmod))) {
       // should never be here
@@ -253,7 +254,7 @@ MR <: MempoolReader[TX] : ClassTag]
           hr.applicableTry(pmod) match {
             case Failure(e) if e.isInstanceOf[MalformedModifierError] =>
               log.warn(s"Modifier ${pmod.encodedId} is permanently invalid", e)
-              deliveryTracker.toInvalid(id)
+              deliveryTracker.onInvalid(id)
               penalizeMisbehavingPeer(remote)
             case _ =>
               modifiersCache.put(pmod.id, pmod)
@@ -268,7 +269,6 @@ MR <: MempoolReader[TX] : ClassTag]
   /**
     * Logic to process modifiers got from another peer
     */
-  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
       if spec.messageCode == ModifiersSpec.MessageCode =>
@@ -280,7 +280,7 @@ MR <: MempoolReader[TX] : ClassTag]
       log.trace(s"Received modifier ids ${data._2.keySet.map(encoder.encode).mkString(",")}")
 
       val (fm, spam) = modifiers.partition { case (id, _) =>
-        deliveryTracker.onReceive(typeId, id, remote)
+        deliveryTracker.onReceive(id)
       }
 
       if (spam.nonEmpty) {
@@ -296,12 +296,12 @@ MR <: MempoolReader[TX] : ClassTag]
               case Success(mod) if !(id sameElements mod.id) =>
                 log.warn(s"Declared id ${encoder.encode(id)} is not equals to calculated one ${mod.encodedId}")
                 penalizeMisbehavingPeer(remote)
-                deliveryTracker.toUnknown(id)
+                deliveryTracker.stopProcessing(id)
                 None
               case Failure(e) =>
                 log.warn(s"Failed to parse modifier ${encoder.encode(id)}", e)
                 penalizeMisbehavingPeer(remote)
-                deliveryTracker.toUnknown(id)
+                deliveryTracker.stopProcessing(id)
                 None
               case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
                 viewHolderRef ! LocallyGeneratedTransaction[TX](tx)
@@ -310,7 +310,7 @@ MR <: MempoolReader[TX] : ClassTag]
             }
           }
           if (typeId != Transaction.ModifierTypeId) {
-            modifiersCache.cleanOverfull().foreach(removed => deliveryTracker.toUnknown(removed.id))
+            modifiersCache.cleanOverfull().foreach(removed => deliveryTracker.stopProcessing(removed.id))
             viewHolderRef ! ChangedCache[PMOD, HR, ModifiersCache[PMOD, HR]](modifiersCache)
           }
         case None =>
@@ -372,10 +372,10 @@ MR <: MempoolReader[TX] : ClassTag]
     * it is unknown
     */
   protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
-    val reexpected = modifierIds.map(id => id -> deliveryTracker.reexpect(None, modifierTypeId, id))
-      .filter(_._2.isSuccess).map(_._1)
-    if (reexpected.nonEmpty) {
-      val msg = Message(requestModifierSpec, Right(modifierTypeId -> reexpected), None)
+    val toRequestIds = modifierIds.filter(id => deliveryTracker.status(id) == ModifiersStatus.Unknown)
+    if (toRequestIds.nonEmpty) {
+      deliveryTracker.onRequest(None, modifierTypeId, toRequestIds)
+      val msg = Message(requestModifierSpec, Right(modifierTypeId -> toRequestIds), None)
       //todo: A peer which is supposedly having the modifier should be here, not a random peer
       networkControllerRef ! SendToNetwork(msg, SendToRandom)
     }
