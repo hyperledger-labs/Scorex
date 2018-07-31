@@ -327,7 +327,7 @@ MR <: MempoolReader[TX] : ClassTag]
           case Some(peer) =>
             log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
             penalizeNonDeliveringPeer(peer)
-            deliveryTracker.reexpect(Some(peer), modifierTypeId, modifierId)
+            deliveryTracker.onStillWaiting(Some(peer), modifierTypeId, modifierId)
           case None =>
             // Random peer did not delivered modifier we need, ask another peer
             // We need this modifier - no limit for number of attempts

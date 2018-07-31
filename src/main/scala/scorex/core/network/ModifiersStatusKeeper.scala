@@ -14,9 +14,9 @@ import scala.collection.mutable.ArrayBuffer
   */
 trait ModifiersStatusKeeper extends ScorexLogging with ScorexEncoding {
 
-  private val invalid: ArrayBuffer[ModifierId] = ArrayBuffer[ModifierId]()
+  protected val invalid: ArrayBuffer[ModifierId] = ArrayBuffer[ModifierId]()
 
-  private val statuses: TrieMap[ModifierId, ModifiersStatus] = TrieMap[ModifierId, ModifiersStatus]()
+  protected val statuses: TrieMap[ModifierId, ModifiersStatus] = TrieMap[ModifierId, ModifiersStatus]()
 
   /**
     * Number of modifiers in intermediate state - already known, but not applied or marked invalid yet
@@ -52,6 +52,20 @@ trait ModifiersStatusKeeper extends ScorexLogging with ScorexEncoding {
       statuses.remove(id)
     } else {
       statuses.put(id, status)
+    }
+  }.ensuring(oldStatus => isCorrectTransition(oldStatus, status))
+
+  /**
+    * Self-check, that transition between states is correct
+    */
+  protected def isCorrectTransition(oldStatusOpt: Option[ModifiersStatus], newStatus: ModifiersStatus): Boolean = {
+    val oldStatus = oldStatusOpt.getOrElse(Unknown)
+    oldStatus match {
+      case old if old == newStatus => true
+      case Unknown => newStatus == Requested
+      case Requested => newStatus == Received || newStatus == Unknown
+      case Received => newStatus == Applied || newStatus == Invalid || newStatus == Unknown
+      case _ => false
     }
   }
 

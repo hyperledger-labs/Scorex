@@ -82,31 +82,27 @@ class DeliveryTracker(system: ActorSystem,
     * we stop trying to download this modifiers due to exceeded number of retries
     */
   def stopProcessing(id: ModifierId): Option[ModifiersStatus] = {
-    if (isExpecting(id)) stopExpecting(id)
+    stopExpecting(id)
     set(id, Unknown)
   }
 
   /**
     *
-    * Expect modifier, if not expected yet.
+    * Our node have requested a modifier, but did not received it yet
     * Stops expecting, and expects again if the number of checks does not exceed the maximum
     *
     * @return `true` when expect again, `false` otherwise
     */
-  def reexpect(cp: Option[ConnectedPeer],
-               mtid: ModifierTypeId,
-               mid: ModifierId)(implicit ec: ExecutionContext): Try[Unit] = tryWithLogging {
-    if (isExpecting(mid)) {
-      val checks = expecting(mid).checks + 1
+  def onStillWaiting(cp: Option[ConnectedPeer],
+                     mtid: ModifierTypeId,
+                     mid: ModifierId)(implicit ec: ExecutionContext): Try[Unit] = tryWithLogging {
+    val checks = expecting(mid).checks + 1
+    if (checks < maxDeliveryChecks || cp.isEmpty) {
       stopExpecting(mid)
-      if (checks < maxDeliveryChecks || cp.isEmpty) {
-        onRequest(cp, mtid, mid, checks)
-      } else {
-        stopProcessing(mid)
-        throw new StopExpectingError(mid, checks)
-      }
+      onRequest(cp, mtid, mid, checks)
     } else {
-      onRequest(cp, mtid, mid)
+      stopProcessing(mid)
+      throw new StopExpectingError(mid, checks)
     }
   }
 
