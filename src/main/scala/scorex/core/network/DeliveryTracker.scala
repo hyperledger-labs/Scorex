@@ -73,9 +73,9 @@ class DeliveryTracker(system: ActorSystem,
                           mtid: ModifierTypeId,
                           mid: ModifierId,
                           checksDone: Int = 0)(implicit ec: ExecutionContext): Unit = {
+    updateStatus(mid, Requested)
     val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(cp, mtid, mid))
     expecting.put(mid, ExpectingStatus(cp, cancellable, checks = checksDone))
-    set(mid, Requested)
   }
 
   /**
@@ -85,11 +85,10 @@ class DeliveryTracker(system: ActorSystem,
     */
   def onReceive(mid: ModifierId): Boolean = tryWithLogging {
     if (isExpecting(mid)) {
-      set(mid, Received)
-      stopExpecting(mid)
+      updateStatus(mid, Received)
       true
     } else {
-      set(mid, Unknown)
+      updateStatus(mid, Unknown)
       false
     }
   }.getOrElse(false)
@@ -98,14 +97,14 @@ class DeliveryTracker(system: ActorSystem,
     * Modifier was successfully applied to history - set it status to applied
     */
   def onApply(mid: ModifierId): Unit = {
-    set(mid, Applied)
+    updateStatus(mid, Applied)
   }
 
   /**
     * Modified is permanently invalid - set it status to invalid
     */
   def onInvalid(mid: ModifierId): Unit = {
-    set(mid, Invalid)
+    updateStatus(mid, Invalid)
   }
 
   /**
@@ -116,7 +115,7 @@ class DeliveryTracker(system: ActorSystem,
     */
   def stopProcessing(id: ModifierId): Unit = {
     stopExpecting(id)
-    set(id, Unknown)
+    updateStatus(id, Unknown)
   }
 
   /**
@@ -159,11 +158,14 @@ class DeliveryTracker(system: ActorSystem,
   }
 
   /**
-    * Set status to
+    * Set status of modifier with id `id` to `newStatus`
     */
-  protected def set(id: ModifierId, newStatus: ModifiersStatus): ModifiersStatus = {
+  protected def updateStatus(id: ModifierId, newStatus: ModifiersStatus): ModifiersStatus = {
     val oldStatus: ModifiersStatus = status(id)
     log.debug(s"Set modifier ${encoder.encode(id)} from status $oldStatus to status $newStatus.")
+    if (oldStatus == Requested) {
+      stopExpecting(id)
+    }
     if (newStatus == Unknown || newStatus == Applied || newStatus == Requested) {
       // no need to keep this status as soon as it is already kept in different storage
       statuses.remove(id)
