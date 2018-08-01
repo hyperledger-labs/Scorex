@@ -132,10 +132,10 @@ class DeliveryTrackerSpecification extends PropSpec
     tracker.isExpecting(modids.head) shouldBe false
 
 
-    tracker.onStillWaiting(Some(cp), mtid, modids(1))
+    tracker.onStillWaiting(cp, mtid, modids(1))
     tracker.isExpecting(modids(1)) shouldBe true
 
-    tracker.onStillWaiting(Some(cp), mtid, modids(1))
+    tracker.onStillWaiting(cp, mtid, modids(1))
     tracker.isExpecting(modids(1)) shouldBe false
   }
 

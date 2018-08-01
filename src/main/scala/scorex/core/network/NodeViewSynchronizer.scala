@@ -264,7 +264,7 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
-  private def processExpectedModifier(remote: ConnectedPeer, id: ModifierId, pmod: PMOD) = {
+  private def processExpectedModifier(remote: ConnectedPeer, id: ModifierId, pmod: PMOD): Unit = {
     if (modifiersCache.contains(pmod.id) || historyReaderOpt.exists(_.contains(pmod))) {
       // should never be here
       log.error(s"Received modifier ${pmod.encodedId} that is already in cache or history.")
@@ -318,15 +318,15 @@ MR <: MempoolReader[TX] : ClassTag]
                 penalizeMisbehavingPeer(remote)
                 deliveryTracker.stopProcessing(id)
                 None
+              case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
+                viewHolderRef ! TransactionFromRemote[TX](tx)
+              case Success(pmod: PMOD@unchecked) =>
+                processExpectedModifier(remote, id, pmod)
               case Failure(e) =>
                 log.warn(s"Failed to parse modifier ${encoder.encode(id)}", e)
                 penalizeMisbehavingPeer(remote)
                 deliveryTracker.stopProcessing(id)
                 None
-              case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
-                viewHolderRef ! TransactionFromRemote[TX](tx)
-              case Success(pmod: PMOD@unchecked) =>
-                processExpectedModifier(remote, id, pmod)
             }
           }
           if (typeId != Transaction.ModifierTypeId) {
@@ -351,7 +351,7 @@ MR <: MempoolReader[TX] : ClassTag]
           case Some(peer) =>
             log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
             penalizeNonDeliveringPeer(peer)
-            deliveryTracker.onStillWaiting(Some(peer), modifierTypeId, modifierId)
+            deliveryTracker.onStillWaiting(peer, modifierTypeId, modifierId)
           case None =>
             // Random peer did not delivered modifier we need, ask another peer
             // We need this modifier - no limit for number of attempts
@@ -409,10 +409,8 @@ MR <: MempoolReader[TX] : ClassTag]
 
   def onDownloadRequest: Receive = {
     case DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) =>
-      historyReaderOpt.foreach { hr =>
-        if (deliveryTracker.status(modifierId, hr) == ModifiersStatus.Unknown) {
-          requestDownload(modifierTypeId, Seq(modifierId))
-        }
+      if (deliveryTracker.status(modifierId, historyReaderOpt.toSeq) == ModifiersStatus.Unknown) {
+        requestDownload(modifierTypeId, Seq(modifierId))
       }
   }
 
