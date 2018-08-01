@@ -1,35 +1,64 @@
 package scorex.core.network
 
 import akka.actor.{ActorRef, ActorSystem, Cancellable}
+import scorex.core.consensus.ModifierContaining
 import scorex.core.network.ModifiersStatus._
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.CheckDelivery
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
-import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
 
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Try}
 
 
 /**
-  * This class tracks modifier ids which are expected from other peers
-  * in order to ban or de-prioritize peers which are delivering what is not expected
+  * This class tracks modifier statuses: from Unknown to Applied.
+  * It also keeps Invalid modifiers, that should not be downloaded and processed anymore.
   */
 class DeliveryTracker(system: ActorSystem,
                       deliveryTimeout: FiniteDuration,
                       maxDeliveryChecks: Int,
-                      nvsRef: ActorRef) extends ModifiersStatusKeeper with ScorexLogging with ScorexEncoding {
+                      nvsRef: ActorRef) extends ScorexLogging with ScorexEncoding {
 
   protected case class ExpectingStatus(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
 
   // when a remote peer is asked a modifier, we add the expected data to `expecting`
   protected val expecting: mutable.Map[ModifierId, ExpectingStatus] = mutable.Map[ModifierId, ExpectingStatus]()
 
+  protected val invalid: ArrayBuffer[ModifierId] = ArrayBuffer[ModifierId]()
+
+  protected val statuses: TrieMap[ModifierId, ModifiersStatus] = TrieMap[ModifierId, ModifiersStatus]()
+
   /**
     * @return size of expecting queue
     */
   def expectingSize: Int = expecting.size
+
+  /**
+    * @return status of modifier `id`.
+    *         Since we do not keep statuses for already applied modifiers, `history` is required here.
+    */
+  def status(id: ModifierId, modifierKeepers: Seq[ModifierContaining[_]]): ModifiersStatus = {
+    statuses.getOrElse(id,
+      if (invalid.contains(id)) {
+        Invalid
+      } else if (expecting.contains(id)) {
+        Requested
+      } else if (modifierKeepers.exists(_.contains(id))) {
+        Applied
+      } else {
+        Unknown
+      }
+    )
+  }
+
+  def status(id: ModifierId, mk: ModifierContaining[_ <: NodeViewModifier]): ModifiersStatus = status(id, Seq(mk))
+
+  def status(id: ModifierId): ModifiersStatus = status(id, Seq())
 
   /**
     * Someone should have these modifiers, but we do not know who
@@ -39,7 +68,6 @@ class DeliveryTracker(system: ActorSystem,
 
   /**
     * Put modifier id and corresponding peer to expecting map
-    * Set modifier to `Requested` state
     */
   protected def onRequest(cp: Option[ConnectedPeer],
                           mtid: ModifierTypeId,
@@ -47,7 +75,6 @@ class DeliveryTracker(system: ActorSystem,
                           checksDone: Int = 0)(implicit ec: ExecutionContext): Unit = {
     val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(cp, mtid, mid))
     expecting.put(mid, ExpectingStatus(cp, cancellable, checks = checksDone))
-    set(mid, Requested)
   }
 
   /**
@@ -57,8 +84,8 @@ class DeliveryTracker(system: ActorSystem,
     */
   def onReceive(mid: ModifierId): Boolean = tryWithLogging {
     if (isExpecting(mid)) {
-      stopExpecting(mid)
       set(mid, Received)
+      stopExpecting(mid)
       true
     } else {
       set(mid, Unknown)
@@ -86,7 +113,7 @@ class DeliveryTracker(system: ActorSystem,
     * this modifier was removed from cache because cache is overfull or
     * we stop trying to download this modifiers due to exceeded number of retries
     */
-  def stopProcessing(id: ModifierId): Option[ModifiersStatus] = {
+  def stopProcessing(id: ModifierId): Unit = {
     stopExpecting(id)
     set(id, Unknown)
   }
@@ -127,6 +154,38 @@ class DeliveryTracker(system: ActorSystem,
       case e =>
         log.warn("Unexpected error", e)
         Failure(e)
+    }
+  }
+
+  /**
+    * Set status to
+    */
+  protected def set(id: ModifierId, newStatus: ModifiersStatus): ModifiersStatus = {
+    val oldStatus: ModifiersStatus = status(id)
+    log.info(s"Set modifier ${encoder.encode(id)} from status $oldStatus to status $newStatus.")
+    if (newStatus == Unknown || newStatus == Applied || newStatus == Requested) {
+      // no need to keep this status as soon as it is already kept in different storage
+      statuses.remove(id)
+    } else if (newStatus == Invalid) {
+      invalid.append(id)
+      statuses.remove(id)
+    } else {
+      statuses.put(id, newStatus)
+    }
+    oldStatus
+  }.ensuring(oldStatus => isCorrectTransition(oldStatus, newStatus))
+
+  /**
+    * Self-check, that transition between states is correct
+    */
+  protected def isCorrectTransition(oldStatus: ModifiersStatus, newStatus: ModifiersStatus): Boolean = {
+    oldStatus match {
+      case old if old == newStatus => true
+      case old if newStatus == Applied => true
+      case Unknown => newStatus == Requested
+      case Requested => newStatus == Received || newStatus == Unknown
+      case Received => newStatus == Applied || newStatus == Invalid || newStatus == Unknown
+      case _ => false
     }
   }
 

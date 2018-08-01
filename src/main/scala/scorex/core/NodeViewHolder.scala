@@ -311,6 +311,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
       log.debug(s"Cache size before: ${modifiersCache.size}")
 
+      @tailrec
       def applyLoop(applied: Seq[PMOD]): Seq[PMOD] = {
         modifiersCache.popCandidate(history()) match {
           case Some(mod) =>
