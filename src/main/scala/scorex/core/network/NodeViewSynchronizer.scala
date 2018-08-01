@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.NodeViewHolder.DownloadRequest
-import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, GetNodeViewChanges, LocallyGeneratedTransaction}
+import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, GetNodeViewChanges, TransactionFromRemote}
 import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
@@ -324,7 +324,7 @@ MR <: MempoolReader[TX] : ClassTag]
                 deliveryTracker.stopProcessing(id)
                 None
               case Success(tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
-                viewHolderRef ! LocallyGeneratedTransaction[TX](tx)
+                viewHolderRef ! TransactionFromRemote[TX](tx)
               case Success(pmod: PMOD@unchecked) =>
                 processExpectedModifier(remote, id, pmod)
             }

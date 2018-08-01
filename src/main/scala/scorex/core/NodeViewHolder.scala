@@ -328,7 +328,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   }
 
   protected def processLocallyGeneratedModifiers: Receive = {
-    case lt: LocallyGeneratedTransaction[TX] =>
+    case lt: NewTransaction[TX] =>
       txModify(lt.tx)
 
     case lm: LocallyGeneratedModifier[PMOD] =>
@@ -372,7 +372,13 @@ object NodeViewHolder {
     HR <: HistoryReader[PM, _ <: SyncInfo],
     MC <: ModifiersCache[PM, HR]](cache: MC) extends NodeViewChange
 
-    case class LocallyGeneratedTransaction[TX <: Transaction](tx: TX)
+    sealed trait NewTransaction[TX <: Transaction]{
+      val tx: TX
+    }
+
+    case class LocallyGeneratedTransaction[TX <: Transaction](tx: TX) extends NewTransaction[TX]
+
+    case class TransactionFromRemote[TX <: Transaction](tx: TX) extends NewTransaction[TX]
 
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
 
