@@ -311,20 +311,19 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
       log.debug(s"Cache size before: ${modifiersCache.size}")
 
-      var applied: Boolean = false
-      do {
+      def applyLoop(applied: Seq[PMOD]): Seq[PMOD] = {
         modifiersCache.popCandidate(history()) match {
           case Some(mod) =>
             pmodModify(mod)
-            applied = true
+            applyLoop(mod +: applied)
           case None =>
-            applied = false
+            applied
         }
-      } while (applied)
+      }
 
-
+      val applied = applyLoop(Seq())
+      context.system.eventStream.publish(CompletedPersistentModifiersApplication(applied))
       log.debug(s"Cache size after: ${modifiersCache.size}")
-
   }
 
   protected def processLocallyGeneratedModifiers: Receive = {

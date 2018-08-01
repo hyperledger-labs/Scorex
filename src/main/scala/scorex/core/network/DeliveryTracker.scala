@@ -27,6 +27,11 @@ class DeliveryTracker(system: ActorSystem,
   protected val expecting: mutable.Map[ModifierId, ExpectingStatus] = mutable.Map[ModifierId, ExpectingStatus]()
 
   /**
+    * @return size of expecting queue
+    */
+  def expectingSize: Int = expecting.size
+
+  /**
     * Someone should have these modifiers, but we do not know who
     */
   def onRequest(cp: Option[ConnectedPeer], mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Try[Unit] =

@@ -65,6 +65,10 @@ MR <: MempoolReader[TX] : ClassTag]
 
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
+  /**
+    * Approximate number of modifiers to be downloaded simultaneously
+    */
+  protected val desiredSizeOfExpectingQueue: Int = networkSettings.desiredInvObjects
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
@@ -83,6 +87,7 @@ MR <: MempoolReader[TX] : ClassTag]
     context.system.eventStream.subscribe(self, classOf[ChangedMempool[MR]])
     context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
     context.system.eventStream.subscribe(self, classOf[DownloadRequest])
+    context.system.eventStream.subscribe(self, classOf[CompletedPersistentModifiersApplication[PMOD]])
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     statusTracker.scheduleSendSyncInfo()
@@ -122,6 +127,21 @@ MR <: MempoolReader[TX] : ClassTag]
 
     case ChangedMempool(reader: MR) =>
       mempoolReaderOpt = Some(reader)
+
+    case CompletedPersistentModifiersApplication(applied: Seq[PMOD]) =>
+      requestMoreModifiers(applied)
+  }
+
+  /**
+    * Batch of modifiers where applied - request more modifiers if processing queue is empty
+    */
+  protected def requestMoreModifiers(applied: Seq[PMOD]): Unit = {
+    if (deliveryTracker.expectingSize < desiredSizeOfExpectingQueue / 2) {
+      // Our expecting queue is half empty - send sync message to receive more Inv messages
+      historyReaderOpt foreach { h =>
+        sendSync(statusTracker, h)
+      }
+    }
   }
 
   protected def peerManagerEvents: Receive = {
@@ -151,7 +171,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
       historyReaderOpt match {
         case Some(historyReader) =>
-          val extensionOpt = historyReader.continuationIds(syncInfo, networkSettings.maxInvObjects)
+          val extensionOpt = historyReader.continuationIds(syncInfo, networkSettings.desiredInvObjects)
           val ext = extensionOpt.getOrElse(Seq())
           val comparison = historyReader.compare(syncInfo)
           log.debug(s"Comparison with $remote having starting points ${idsToString(syncInfo.startingPoints)}. " +
@@ -467,6 +487,11 @@ object NodeViewSynchronizer {
     case class NewOpenSurface(newSurface: Seq[ModifierId]) extends NodeViewHolderEvent
 
     case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
+
+    /**
+      * All possible modifiers from ModifiersCache where applied to History
+      */
+    case class CompletedPersistentModifiersApplication[PMOD <: PersistentNodeViewModifier](modifiers: Seq[PMOD])
 
     //hierarchy of events regarding modifiers application outcome
     trait ModificationOutcome extends NodeViewHolderEvent
