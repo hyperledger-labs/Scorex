@@ -75,6 +75,7 @@ class DeliveryTracker(system: ActorSystem,
                           checksDone: Int = 0)(implicit ec: ExecutionContext): Unit = {
     val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(cp, mtid, mid))
     expecting.put(mid, ExpectingStatus(cp, cancellable, checks = checksDone))
+    set(mid, Requested)
   }
 
   /**
@@ -162,7 +163,7 @@ class DeliveryTracker(system: ActorSystem,
     */
   protected def set(id: ModifierId, newStatus: ModifiersStatus): ModifiersStatus = {
     val oldStatus: ModifiersStatus = status(id)
-    log.info(s"Set modifier ${encoder.encode(id)} from status $oldStatus to status $newStatus.")
+    log.debug(s"Set modifier ${encoder.encode(id)} from status $oldStatus to status $newStatus.")
     if (newStatus == Unknown || newStatus == Applied || newStatus == Requested) {
       // no need to keep this status as soon as it is already kept in different storage
       statuses.remove(id)

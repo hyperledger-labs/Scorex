@@ -330,7 +330,11 @@ MR <: MempoolReader[TX] : ClassTag]
             }
           }
           if (typeId != Transaction.ModifierTypeId) {
-            modifiersCache.cleanOverfull().foreach(removed => deliveryTracker.stopProcessing(removed.id))
+            val cleared = modifiersCache.cleanOverfull()
+            if (cleared.nonEmpty) {
+              log.debug(s"${cleared.size} modifiers ${cleared.map(_.encodedId)} where removed from overfull cache")
+              cleared.foreach(removed => deliveryTracker.stopProcessing(removed.id))
+            }
             viewHolderRef ! ChangedCache[PMOD, HR, ModifiersCache[PMOD, HR]](modifiersCache)
           }
         case None =>

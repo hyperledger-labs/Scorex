@@ -47,7 +47,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
     val count = Ints.fromByteArray(bytes.slice(1, 5))
 
     require(count > 0, "empty inv list")
-    require(count <= maxInvObjects, s"more invs than $maxInvObjects in a message")
+    require(count <= maxInvObjects, s"$count in a message while limit is $maxInvObjects")
 
     val elems = (0 until count).map { c =>
       bytesToId(bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize))
