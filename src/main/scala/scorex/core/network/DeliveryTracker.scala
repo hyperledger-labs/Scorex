@@ -1,7 +1,7 @@
 package scorex.core.network
 
 import akka.actor.{ActorRef, ActorSystem, Cancellable}
-import scorex.core.consensus.ModifierContaining
+import scorex.core.consensus.ContainsModifiers
 import scorex.core.network.ModifiersStatus._
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.CheckDelivery
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
@@ -46,7 +46,7 @@ class DeliveryTracker(system: ActorSystem,
     * @return status of modifier `id`.
     *         Since we do not keep statuses for already applied modifiers, `history` is required here.
     */
-  def status(id: ModifierId, modifierKeepers: Seq[ModifierContaining[_]]): ModifiersStatus = {
+  def status(id: ModifierId, modifierKeepers: Seq[ContainsModifiers[_]]): ModifiersStatus = {
     if (received.contains(id)) {
       Received
     } else if (requested.contains(id)) {
@@ -60,7 +60,7 @@ class DeliveryTracker(system: ActorSystem,
     }
   }
 
-  def status(id: ModifierId, mk: ModifierContaining[_ <: NodeViewModifier]): ModifiersStatus = status(id, Seq(mk))
+  def status(id: ModifierId, mk: ContainsModifiers[_ <: NodeViewModifier]): ModifiersStatus = status(id, Seq(mk))
 
   def status(id: ModifierId): ModifiersStatus = status(id, Seq())
 

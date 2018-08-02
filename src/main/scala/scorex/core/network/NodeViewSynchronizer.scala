@@ -312,9 +312,9 @@ MR <: MempoolReader[TX] : ClassTag]
       }
 
       modifierSerializers.get(typeId) match {
-        case Some(companion) =>
+        case Some(serializer) =>
           fm.foreach { case (id, bytes) =>
-            companion.parseBytes(bytes) match {
+            serializer.parseBytes(bytes) match {
               case Success(mod) if !(id sameElements mod.id) =>
                 log.warn(s"Declared id ${encoder.encode(id)} is not equals to calculated one ${mod.encodedId}")
                 penalizeMisbehavingPeer(remote)

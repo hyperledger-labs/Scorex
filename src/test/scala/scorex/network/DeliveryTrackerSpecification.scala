@@ -5,7 +5,7 @@ import akka.testkit.TestProbe
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
-import scorex.core.consensus.ModifierContaining
+import scorex.core.consensus.ContainsModifiers
 import scorex.core.network.ModifiersStatus._
 import scorex.core.serialization.Serializer
 import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier, bytesToId}
@@ -37,7 +37,7 @@ class DeliveryTrackerSpecification extends PropSpec
     override def serializer: Serializer[FakeModifier.this.type] = ???
   }
 
-  class FakeHistory extends ModifierContaining[FakeModifier] {
+  class FakeHistory extends ContainsModifiers[FakeModifier] {
     private val mods: TrieMap[ModifierId, FakeModifier] = TrieMap[ModifierId, FakeModifier]()
 
     override def modifierById(modifierId: ModifierId): Option[FakeModifier] = mods.get(modifierId)

@@ -6,7 +6,7 @@ import scala.util.Try
 
 
 trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends NodeViewComponent
-  with ModifierContaining[PM] {
+  with ContainsModifiers[PM] {
 
   import History._
 
