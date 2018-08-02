@@ -6,7 +6,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, ModifiersSpec, RequestModifierSpec}
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
+import scorex.core.{ModifierId, ModifierTypeId}
 
 import scala.util.Try
 
@@ -15,7 +15,7 @@ class MessageSpecification extends PropSpec
   with GeneratorDrivenPropertyChecks
   with Matchers
   with ObjectGenerators {
-  
+
   private val maxInvObjects = 500
 
   property("InvData should remain the same after serialization/deserialization") {
@@ -61,22 +61,32 @@ class MessageSpecification extends PropSpec
 
   property("ModifiersSpec serialization/deserialization") {
     forAll(modifiersGen) { data: (ModifierTypeId, Map[ModifierId, Array[Byte]]) =>
-      whenever(data._2.nonEmpty && data._2.forall { case (id, m) => id.length == NodeViewModifier.ModifierIdSize && m.length > 0 }) {
-        val bytes = ModifiersSpec.toBytes(data)
-        val recovered = ModifiersSpec.parseBytes(bytes).get
+      whenever(data._2.nonEmpty) {
+        val modifiersSpec = new ModifiersSpec(1024 * 1024)
+
+        val bytes = modifiersSpec.toBytes(data)
+        val recovered = modifiersSpec.parseBytes(bytes).get
 
         recovered._1 shouldEqual data._1
         recovered._2.keys.size shouldEqual data._2.keys.size
 
         recovered._2.keys.foreach { id =>
-          data._2.keys.exists(_.sameElements(id)) shouldEqual true
+          data._2.get(id).isDefined shouldEqual true
         }
 
         recovered._2.values.toSet.foreach { v: Array[Byte] =>
           data._2.values.toSet.exists(_.sameElements(v)) shouldEqual true
         }
 
-        ModifiersSpec.toBytes(data) shouldEqual bytes
+        modifiersSpec.toBytes(data) shouldEqual bytes
+
+        val modifiersSpecLimited = new ModifiersSpec(6)
+        val bytes2 = modifiersSpecLimited.toBytes(data)
+        val recovered2 = modifiersSpecLimited.parseBytes(bytes2).get
+
+        recovered2._1 shouldEqual data._1
+        (recovered2._2.keys.size == data._2.keys.size) shouldEqual false
+        recovered2._2.keys.size shouldEqual 0
       }
     }
   }

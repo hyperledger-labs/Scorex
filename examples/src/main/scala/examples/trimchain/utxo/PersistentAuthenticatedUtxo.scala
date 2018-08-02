@@ -2,18 +2,17 @@ package examples.trimchain.utxo
 
 import java.io.File
 
-import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction}
+import examples.commons._
 import examples.trimchain.modifiers.{BlockHeader, TBlock, TModifier, UtxoSnapshot}
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo.ProverType
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.VersionTag
+import scorex.core._
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, Insertion, Removal}
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, Remove}
-import scorex.crypto.authds.{ADKey, ADValue, SerializedAdProof}
-import scorex.crypto.encode.Base58
+import scorex.crypto.authds.{ADDigest, ADKey, ADValue, SerializedAdProof}
 import scorex.crypto.hash.{Blake2b256, Digest32}
 import scorex.mid.state.BoxMinimalState
 import scorex.util.ScorexLogging
@@ -60,8 +59,8 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
   import PublicKey25519NoncedBox.{BoxKeyLength, BoxLength}
 
   require(size >= 0)
-  require(store.lastVersionID.map(_.data).getOrElse(version) sameElements version,
-    s"${encoder.encode(store.lastVersionID.map(_.data).getOrElse(version))} != ${encoder.encode(version)}")
+  require(store.lastVersionID.map(w => bytesToVersion(w.data)).getOrElse(version) == version,
+    s"${encoder.encode(store.lastVersionID.map(w => bytesToVersion(w.data)).getOrElse(version))} != ${encoder.encode(version)}")
 
   override lazy val prover = proverOpt.getOrElse {
     val p = new ProverType(keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength)) //todo: feed it with genesis state
@@ -74,7 +73,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     p
   }
 
-  lazy val rootHash: VersionTag = VersionTag @@ prover.digest
+  lazy val rootHash: ADDigest = prover.digest
 
   override type NVCT = PersistentAuthenticatedUtxo
 
@@ -124,29 +123,29 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
     prover.generateProof()
 
-    val newVersion = rootHash
+    val newVersion = bytesToVersion(rootHash)
 
     log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encode(newVersion)}")
 
     val toRemove = boxIdsToRemove.map(ByteArrayWrapper.apply)
     val toAdd = boxesToAdd.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    store.update(ByteArrayWrapper(newVersion), toRemove, toAdd)
+    store.update(versionToBAW(newVersion), toRemove, toAdd)
 
     PersistentAuthenticatedUtxo(store, size + toAdd.size - toRemove.size, Some(prover), newVersion)
       .ensuring(newSt => boxIdsToRemove.forall(box => newSt.closedBox(box).isEmpty), s"Removed box is still in state")
   } ensuring {
-    _.toOption.forall(_.version sameElements newVersion)
+    _.toOption.forall(_.version == newVersion)
   }
 
   override def maxRollbackDepth: Int = store.keepVersions
 
   override def rollbackTo(version: VersionTag): Try[PersistentAuthenticatedUtxo] = Try {
-    if (store.lastVersionID.exists(_.data sameElements version)) {
+    if (store.lastVersionID.exists(w => bytesToVersion(w.data) == version)) {
       this
     } else {
       log.debug(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")
-      store.rollback(ByteArrayWrapper(version))
+      store.rollback(versionToBAW(version))
       PersistentAuthenticatedUtxo(store, store.getAll().size, None, version) //todo: more efficient rollback, rollback prover
     }
   }
@@ -220,7 +219,7 @@ object PersistentAuthenticatedUtxo {
         stateStorage.close()
       }
     })
-    val version = VersionTag @@ stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray)
+    val version = bytesToVersion(stateStorage.lastVersionID.map(_.data).getOrElse(Array.emptyByteArray))
 
     //todo: more efficient size detection, prover init
     PersistentAuthenticatedUtxo(stateStorage, stateStorage.getAll().size, None, version)
@@ -228,7 +227,7 @@ object PersistentAuthenticatedUtxo {
 
   def genesisState(settings: ScorexSettings, initialBlocks: Seq[TModifier]): PersistentAuthenticatedUtxo = {
     initialBlocks.foldLeft(readOrGenerate(settings)) { (state, mod) =>
-      state.changes(mod).flatMap(cs => state.applyChanges(cs, VersionTag @@ mod.id)).get
+      state.changes(mod).flatMap(cs => state.applyChanges(cs, idToVersion(mod.id))).get
     }
   }
 }

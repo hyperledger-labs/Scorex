@@ -33,7 +33,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address, None)) {
-        val defaultPeerInfo = PeerInfo(timeProvider.time(), None)
+        val defaultPeerInfo = PeerInfo(timeProvider.time(), None, None, Seq())
         peerDatabase.addOrUpdateKnownPeer(address, defaultPeerInfo)
       }
     }
@@ -46,9 +46,9 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   }
 
   private def peerListOperations: Receive = {
-    case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt) =>
+    case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt, features) =>
       if (!isSelf(address, None)) {
-        val peerInfo = PeerInfo(timeProvider.time(), peerNameOpt, connTypeOpt)
+        val peerInfo = PeerInfo(timeProvider.time(), peerNameOpt, connTypeOpt, features)
         peerDatabase.addOrUpdateKnownPeer(address, peerInfo)
       }
 
@@ -132,7 +132,9 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
           peer.handlerRef ! CloseConnection
         } else {
           if (peer.publicPeer) {
-            self ! AddOrUpdatePeer(peer.socketAddress, Some(peer.handshake.nodeName), Some(peer.direction))
+            val peerName = Some(peer.handshake.nodeName)
+            val peerFeats = peer.handshake.features
+            self ! AddOrUpdatePeer(peer.socketAddress, peerName, Some(peer.direction), peerFeats)
           } else {
             peerDatabase.remove(peer.socketAddress)
           }
@@ -175,7 +177,10 @@ object PeerManager {
     case class AddToBlacklist(remote: InetSocketAddress)
 
     // peerListOperations messages
-    case class AddOrUpdatePeer(address: InetSocketAddress, peerName: Option[String], direction: Option[ConnectionType])
+    case class AddOrUpdatePeer(address: InetSocketAddress,
+                               peerName: Option[String],
+                               direction: Option[ConnectionType],
+                               features: Seq[PeerFeature])
     case object KnownPeers
     case object RandomPeer
     case class RandomPeers(hawMany: Int)

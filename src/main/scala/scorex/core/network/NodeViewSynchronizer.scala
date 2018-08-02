@@ -4,6 +4,7 @@ package scorex.core.network
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import scorex.core.NodeViewHolder.DownloadRequest
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
@@ -18,6 +19,8 @@ import scorex.util.ScorexLogging
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.reflect.ClassTag
+import scala.util.Success
 
 /**
   * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
@@ -28,17 +31,17 @@ import scala.language.postfixOps
   * @tparam TX  transaction
   * @tparam SIS SyncInfoMessage specification
   */
-class NodeViewSynchronizer[
-TX <: Transaction,
-SI <: SyncInfo,
-SIS <: SyncInfoMessageSpec[SI],
-PMOD <: PersistentNodeViewModifier,
-HR <: HistoryReader[PMOD, SI],
-MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
-                         viewHolderRef: ActorRef,
-                         syncInfoSpec: SIS,
-                         networkSettings: NetworkSettings,
-                         timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
+class NodeViewSynchronizer[TX <: Transaction,
+                           SI <: SyncInfo,
+                           SIS <: SyncInfoMessageSpec[SI],
+                           PMOD <: PersistentNodeViewModifier,
+                           HR <: HistoryReader[PMOD, SI] : ClassTag,
+                           MR <: MempoolReader[TX] : ClassTag]
+  (networkControllerRef: ActorRef,
+  viewHolderRef: ActorRef,
+  syncInfoSpec: SIS,
+  networkSettings: NetworkSettings,
+  timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends Actor
   with ScorexLogging with ScorexEncoding {
 
   import History._
@@ -51,6 +54,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
+  protected val modifiersSpec = new ModifiersSpec(networkSettings.maxPacketSize)
 
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
@@ -60,7 +64,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
 
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
-    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, ModifiersSpec, syncInfoSpec)
+    val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, modifiersSpec, syncInfoSpec)
     networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
@@ -71,6 +75,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     context.system.eventStream.subscribe(self, classOf[ChangedHistory[HR]])
     context.system.eventStream.subscribe(self, classOf[ChangedMempool[MR]])
     context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
+    context.system.eventStream.subscribe(self, classOf[DownloadRequest])
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     statusTracker.scheduleSendSyncInfo()
@@ -83,7 +88,6 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   protected def viewHolderEvents: Receive = {
     case SuccessfulTransaction(tx) =>
       broadcastModifierInv(tx)
@@ -101,12 +105,10 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     case SemanticallyFailedModification(mod, throwable) =>
     //todo: penalize source peer?
 
-    case ChangedHistory(reader: HR@unchecked) if reader.isInstanceOf[HR] =>
-      //TODO isInstanceOf, type erasure
+    case ChangedHistory(reader: HR) =>
       historyReaderOpt = Some(reader)
 
-    case ChangedMempool(reader: MR@unchecked) if reader.isInstanceOf[MR] =>
-      //TODO isInstanceOf, type erasure
+    case ChangedMempool(reader: MR) =>
       mempoolReaderOpt = Some(reader)
   }
 
@@ -217,7 +219,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
     */
   protected def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
-      if spec.messageCode == ModifiersSpec.messageCode =>
+      if spec.messageCode == ModifiersSpec.MessageCode =>
 
       val typeId = data._1
       val modifiers = data._2
@@ -259,13 +261,19 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
   //scheduler asking node view synchronizer to check whether requested messages have been delivered
   @SuppressWarnings(Array("org.wartremover.warts.JavaSerializable"))
   protected def checkDelivery: Receive = {
-    case CheckDelivery(peer, modifierTypeId, modifierId) =>
-      if (deliveryTracker.peerWhoDelivered(modifierId).contains(peer)) {
-        deliveryTracker.delete(modifierId)
-      } else {
-        log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
-        penalizeNonDeliveringPeer(peer)
-        deliveryTracker.reexpect(peer, modifierTypeId, modifierId)
+    case CheckDelivery(peerOpt, modifierTypeId, modifierId) =>
+      peerOpt match {
+        case Some(peer) =>
+          if (deliveryTracker.peerWhoDelivered(modifierId).contains(peer)) {
+            deliveryTracker.delete(modifierId)
+          } else {
+            log.info(s"Peer $peer has not delivered asked modifier ${encoder.encode(modifierId)} on time")
+            penalizeNonDeliveringPeer(peer)
+            deliveryTracker.reexpect(Some(peer), modifierTypeId, modifierId)
+          }
+        case None =>
+          // Random peer did not delivered modifier we need, ask another peer
+          requestDownload(modifierTypeId, Seq(modifierId))
       }
   }
 
@@ -291,13 +299,33 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val modType = modifiers.head.modifierTypeId
         val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
-        val msg = Message(ModifiersSpec, Right(m), None)
+        val msg = Message(modifiersSpec, Right(m), None)
         peer.handlerRef ! msg
       }
   }
 
+  /**
+    * Our node needs for modifiers of type `modifierTypeId` with ids `modifierIds` but peer that can deliver
+    * it is unknown
+    */
+  protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
+    val reexpected = modifierIds.map(id => id -> deliveryTracker.reexpect(None, modifierTypeId, id))
+      .filter(_._2.isSuccess).map(_._1)
+    if (reexpected.nonEmpty) {
+      val msg = Message(requestModifierSpec, Right(modifierTypeId -> reexpected), None)
+      //todo: A peer which is supposedly having the modifier should be here, not a random peer
+      networkControllerRef ! SendToNetwork(msg, SendToRandom)
+    }
+  }
+
+  def onDownloadRequest: Receive = {
+    case DownloadRequest(modifierTypeId: ModifierTypeId, modifierId: ModifierId) =>
+      requestDownload(modifierTypeId, Seq(modifierId))
+  }
+
   override def receive: Receive =
-    getLocalSyncInfo orElse
+    onDownloadRequest orElse
+      getLocalSyncInfo orElse
       processSync orElse
       processSyncStatus orElse
       processInv orElse
@@ -310,6 +338,7 @@ MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
       checkDelivery orElse {
       case a: Any => log.error("Strange input: " + a)
     }
+
 }
 
 object NodeViewSynchronizer {
@@ -333,7 +362,13 @@ object NodeViewSynchronizer {
 
     case class ResponseFromLocal[M <: NodeViewModifier](source: ConnectedPeer, modifierTypeId: ModifierTypeId, localObjects: Seq[M])
 
-    case class CheckDelivery(source: ConnectedPeer,
+    /**
+      * Check delivery of modifier with type `modifierTypeId` and id `modifierId`.
+      * `source` may be defined if we expect modifier from concrete peer or None if
+      * we just need some modifier, but don't know who have it
+      *
+      */
+    case class CheckDelivery(source: Option[ConnectedPeer],
                              modifierTypeId: ModifierTypeId,
                              modifierId: ModifierId)
 
@@ -387,48 +422,48 @@ object NodeViewSynchronizer {
 }
 
 object NodeViewSynchronizerRef {
-  def props[
-  TX <: Transaction,
-  SI <: SyncInfo,
-  SIS <: SyncInfoMessageSpec[SI],
-  PMOD <: PersistentNodeViewModifier,
-  HR <: HistoryReader[PMOD, SI],
-  MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
-                           viewHolderRef: ActorRef,
-                           syncInfoSpec: SIS,
-                           networkSettings: NetworkSettings,
-                           timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
+  def props[TX <: Transaction,
+            SI <: SyncInfo,
+            SIS <: SyncInfoMessageSpec[SI],
+            PMOD <: PersistentNodeViewModifier,
+            HR <: HistoryReader[PMOD, SI] : ClassTag,
+            MR <: MempoolReader[TX] : ClassTag]
+      (networkControllerRef: ActorRef,
+       viewHolderRef: ActorRef,
+       syncInfoSpec: SIS,
+       networkSettings: NetworkSettings,
+       timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new NodeViewSynchronizer[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
       networkSettings, timeProvider))
 
-  def apply[
-  TX <: Transaction,
-  SI <: SyncInfo,
-  SIS <: SyncInfoMessageSpec[SI],
-  PMOD <: PersistentNodeViewModifier,
-  HR <: HistoryReader[PMOD, SI],
-  MR <: MempoolReader[TX]](networkControllerRef: ActorRef,
-                           viewHolderRef: ActorRef,
-                           syncInfoSpec: SIS,
-                           networkSettings: NetworkSettings,
-                           timeProvider: NetworkTimeProvider)
-                          (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+  def apply[TX <: Transaction,
+            SI <: SyncInfo,
+            SIS <: SyncInfoMessageSpec[SI],
+            PMOD <: PersistentNodeViewModifier,
+            HR <: HistoryReader[PMOD, SI] : ClassTag,
+            MR <: MempoolReader[TX] : ClassTag]
+      (networkControllerRef: ActorRef,
+       viewHolderRef: ActorRef,
+       syncInfoSpec: SIS,
+       networkSettings: NetworkSettings,
+       timeProvider: NetworkTimeProvider)
+      (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider))
 
-  def apply[
-  TX <: Transaction,
-  SI <: SyncInfo,
-  SIS <: SyncInfoMessageSpec[SI],
-  PMOD <: PersistentNodeViewModifier,
-  HR <: HistoryReader[PMOD, SI],
-  MR <: MempoolReader[TX]](name: String,
-                           networkControllerRef: ActorRef,
-                           viewHolderRef: ActorRef,
-                           syncInfoSpec: SIS,
-                           networkSettings: NetworkSettings,
-                           timeProvider: NetworkTimeProvider)
-                          (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+  def apply[TX <: Transaction,
+            SI <: SyncInfo,
+            SIS <: SyncInfoMessageSpec[SI],
+            PMOD <: PersistentNodeViewModifier,
+            HR <: HistoryReader[PMOD, SI] : ClassTag,
+            MR <: MempoolReader[TX] : ClassTag]
+      (name: String,
+       networkControllerRef: ActorRef,
+       viewHolderRef: ActorRef,
+       syncInfoSpec: SIS,
+       networkSettings: NetworkSettings,
+       timeProvider: NetworkTimeProvider)
+      (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider), name)
 }

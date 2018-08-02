@@ -45,7 +45,7 @@ class SerializationTests extends PropSpec
       val parsed = b.serializer.parseBytes(b.bytes).get
       parsed.brothersCount shouldBe b.brothersCount
       parsed.brothersHash shouldEqual b.brothersHash
-      parsed.brothers.headOption.forall(ph => ph.brothersHash sameElements b.brothers.head.brothersHash) shouldBe true
+      parsed.brothers.headOption.forall(ph => java.util.Arrays.equals(ph.brothersHash, b.brothers.head.brothersHash)) shouldBe true
       parsed.bytes shouldEqual b.bytes
     }
   }

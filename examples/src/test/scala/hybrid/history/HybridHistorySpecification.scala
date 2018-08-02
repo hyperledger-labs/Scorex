@@ -7,7 +7,7 @@ import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.consensus.History.{Equal, HistoryComparisonResult, Older, Younger}
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.core.{ModifierId, ModifierTypeId, bytesToId}
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
 class HybridHistorySpecification extends PropSpec
@@ -39,7 +39,7 @@ class HybridHistorySpecification extends PropSpec
       }
     }
 
-    val startFrom = Seq((ModifierTypeId @@ 2.toByte, ModifierId @@ ids.head))
+    val startFrom = Seq((ModifierTypeId @@ 2.toByte, ids.head))
 
     history.continuationIds(startFrom, ids.length).get.map(_._2).map(encoder.encode) shouldEqual ids.map(encoder.encode)
 
@@ -57,9 +57,9 @@ class HybridHistorySpecification extends PropSpec
       val limit = 5
       val continuation = history.continuationIds(startList, limit).get
       continuation.length shouldBe Math.min(limit, restIds.length)
-      startList.exists(sl => sl._2 sameElements continuation.head._2) shouldBe true
+      startList.exists(sl => sl._2 == continuation.head._2) shouldBe true
       continuation.tail.foreach { c =>
-        startList.exists(sl => sl._2 sameElements c._2) shouldBe false
+        startList.exists(sl => sl._2 == c._2) shouldBe false
       }
     }
   }

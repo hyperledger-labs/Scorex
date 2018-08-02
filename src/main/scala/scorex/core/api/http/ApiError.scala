@@ -19,9 +19,10 @@ case class ApiError(statusCode: StatusCode, reason: String = "") {
 
 object ApiError {
   def apply(s: String): Route = InternalError(s)
-  def apply(e: Throwable): Route = InternalError(e.getMessage)
+  def apply(e: Throwable): Route = InternalError(safeMessage(e))
   def apply(causes: Seq[Throwable]): Route = InternalError(mkString(causes))
-  def mkString(causes: Seq[Throwable]): String = causes.map(_.getMessage).mkString(", ")
+  def mkString(causes: Seq[Throwable]): String = causes.map(safeMessage).mkString(", ")
+  private def safeMessage(e: Throwable): String = Option(e.getMessage).getOrElse(e.toString)
 
   implicit def toRoute(error: ApiError): Route = error.defaultRoute
 

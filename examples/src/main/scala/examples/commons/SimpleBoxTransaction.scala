@@ -14,6 +14,7 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.{Proof, Signature25519}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.ScorexEncoding
+import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
 
@@ -32,14 +33,14 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 
   override type M = SimpleBoxTransaction
 
-  lazy val boxIdsToOpen: IndexedSeq[ModifierId] = from.map { case (prop, nonce) =>
+  lazy val boxIdsToOpen: IndexedSeq[ADKey] = from.map { case (prop, nonce) =>
     PublicKeyNoncedBox.idFromBox(prop, nonce)
   }
 
   override lazy val unlockers: Traversable[BoxUnlocker[PublicKey25519Proposition]] = boxIdsToOpen.zip(signatures).map {
     case (boxId, signature) =>
       new BoxUnlocker[PublicKey25519Proposition] {
-        override val closedBoxId: ModifierId = boxId
+        override val closedBoxId: ADKey = boxId
         override val boxKey: Proof[PublicKey25519Proposition] = signature
       }
   }
@@ -122,7 +123,7 @@ object SimpleBoxTransaction extends ScorexEncoding {
     val amount = to.map(_._2.toLong).sum
 
     val from: IndexedSeq[(PrivateKey25519, Nonce, Value)] = w.boxes()
-      .filter(b => !boxesIdsToExclude.exists(_ sameElements b.box.id)).sortBy(_.createdAt).takeWhile { b =>
+      .filter(b => !boxesIdsToExclude.exists(id => java.util.Arrays.equals(id, b.box.id))).sortBy(_.createdAt).takeWhile { b =>
       s = s + b.box.value
       s < amount + b.box.value
     }.flatMap { b =>

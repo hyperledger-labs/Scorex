@@ -10,7 +10,6 @@ import scorex.core.network.message._
 import scorex.core.network.peer.PeerManagerRef
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
 import scorex.util.ScorexLogging
@@ -21,7 +20,6 @@ trait Application extends ScorexLogging {
 
   import scorex.core.network.NetworkController.ReceivableMessages.ShutdownNetwork
 
-  type P <: Proposition
   type TX <: Transaction
   type PMOD <: PersistentNodeViewModifier
   type NVHT <: NodeViewHolder[TX, PMOD]
@@ -39,6 +37,7 @@ trait Application extends ScorexLogging {
   protected implicit lazy val actorSystem = ActorSystem(settings.network.agentName)
   implicit val executionContext: ExecutionContext = actorSystem.dispatchers.lookup("scorex.executionContext")
 
+  protected val features: Seq[PeerFeature]
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
   //p2p
@@ -47,12 +46,13 @@ trait Application extends ScorexLogging {
   private lazy val basicSpecs = {
     val invSpec = new InvSpec(settings.network.maxInvObjects)
     val requestModifierSpec = new RequestModifierSpec(settings.network.maxInvObjects)
+    val modifiersSpec = new ModifiersSpec(settings.network.maxPacketSize)
     Seq(
       GetPeersSpec,
       PeersSpec,
       invSpec,
       requestModifierSpec,
-      ModifiersSpec
+      modifiersSpec
     )
   }
 
@@ -70,8 +70,9 @@ trait Application extends ScorexLogging {
 
   val peerManagerRef = PeerManagerRef(settings, timeProvider)
 
-  val networkControllerRef: ActorRef = NetworkControllerRef("networkController",settings.network,
-                                                            messagesHandler, upnp, peerManagerRef, timeProvider)
+  val networkControllerRef: ActorRef = NetworkControllerRef("networkController", settings.network,
+                                                            messagesHandler, features, upnp,
+                                                            peerManagerRef, timeProvider)
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 

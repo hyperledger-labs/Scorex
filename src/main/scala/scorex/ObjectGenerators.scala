@@ -4,13 +4,30 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.app.Version
+import scorex.core.network.PeerFeature
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
+import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier, bytesToId}
 import scorex.crypto.signatures.Curve25519
 
+import scala.util.Try
+
 trait ObjectGenerators {
+
+  object FullNodePeerFeature extends PeerFeature {
+    override val featureId: PeerFeature.Id = 1: Byte
+
+    override def serializer: Serializer[PeerFeature] = new Serializer[PeerFeature] {
+      override def toBytes(obj: PeerFeature): Array[Byte] = Array(1: Byte, 2: Byte, 3: Byte)
+
+      override def parseBytes(bytes: Array[Byte]): Try[PeerFeature] = Try {
+        require(bytes(0) == 1 && bytes(1) == 2 && bytes(2) == 3)
+        FullNodePeerFeature
+      }
+    }
+  }
 
   val MaxVersion = 999
   val MaxIp = 255
@@ -33,7 +50,7 @@ trait ObjectGenerators {
 
 
   lazy val modifierIdGen: Gen[ModifierId] = Gen.listOfN(NodeViewModifier.ModifierIdSize, Arbitrary.arbitrary[Byte])
-    .map(id => ModifierId @@ id.toArray)
+    .map(id => bytesToId(id.toArray))
 
   lazy val modifierTypeIdGen: Gen[ModifierTypeId] = Arbitrary.arbitrary[Byte].map(t => ModifierTypeId @@ t)
 
@@ -51,8 +68,6 @@ trait ObjectGenerators {
     modifierTypeId: ModifierTypeId <- modifierTypeIdGen
     modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
   } yield modifierTypeId -> modifiers
-
-
 
   lazy val appVersionGen = for {
     fd <- Gen.choose(0: Byte, Byte.MaxValue)

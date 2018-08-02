@@ -5,7 +5,7 @@ import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.VersionTag
+import scorex.core._
 import scorex.core.app.Version
 import scorex.core.network._
 import scorex.core.utils.NetworkTimeProvider
@@ -32,8 +32,8 @@ trait NodeViewSynchronizerGenerators {
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val sRaw = stateGen.sample.get
     val v = h.openSurfaceIds().last
-    sRaw.store.update(ByteArrayWrapper(v), Seq(), Seq())
-    val s = sRaw.copy(version = VersionTag @@ v)
+    sRaw.store.update(ByteArrayWrapper(idToBytes(v)), Seq(), Seq())
+    val s = sRaw.copy(version = idToVersion(v))
 
     val ncProbe = TestProbe("NetworkControllerProbe")
     val vhProbe = TestProbe("ViewHolderProbe")
@@ -46,7 +46,7 @@ trait NodeViewSynchronizerGenerators {
     val tx = simpleBoxTransactionGen.sample.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref, Outgoing,
-      Handshake("", Version(0,1,2), "", None, 0L))
+      Handshake("", Version(0,1,2), "", None, Seq(), 0L))
 
     (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, eventListener)
   }

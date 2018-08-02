@@ -6,7 +6,7 @@ import java.net.InetSocketAddress
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
-import scorex.core.utils.{ByteStr, NetworkTimeProviderSettings}
+import scorex.core.utils.NetworkTimeProviderSettings
 import scorex.util.ScorexLogging
 
 import scala.concurrent.duration._
@@ -32,7 +32,8 @@ case class NetworkSettings(nodeName: String,
                            maxDeliveryChecks: Int,
                            appVersion: String,
                            agentName: String,
-                           maxPacketLen: Int,
+                           maxPacketSize: Int,
+                           maxHandshakeSize: Int,
                            maxInvObjects: Int,
                            syncInterval: FiniteDuration,
                            syncStatusRefresh: FiniteDuration,

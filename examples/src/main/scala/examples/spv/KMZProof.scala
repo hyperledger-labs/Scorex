@@ -1,6 +1,7 @@
 package examples.spv
 
 import com.google.common.primitives.{Bytes, Shorts}
+import scorex.core._
 import scorex.core.serialization.Serializer
 import scorex.core.utils.ScorexEncoding
 
@@ -12,9 +13,9 @@ case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[
     require(suffix.length >= k, "Wrong suffix length")
     prefixProofs.foreach(p => require(p.length == m, s"${p.length} == $m"))
 
-    suffix.foldRight(Array[Byte]()) { (a, b) =>
-      if (b.nonEmpty) require(b sameElements a.id)
-      a.parentId
+    suffix.foldRight[Option[ModifierId]](None) { (a, b) =>
+      b foreach (id => require(id == a.id))
+      Some(a.parentId)
     }
   }
 }
@@ -33,7 +34,7 @@ object KMZProofSerializer extends Serializer[KMZProof] with ScorexEncoding {
       Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
     }.toArray
     val prefixIdsBytes: Array[Byte] = scorex.core.utils.concatBytes(obj.prefixProofs.map { chain =>
-      Shorts.toByteArray(chain.length.toShort) ++ chain.flatMap(_.id)
+      Shorts.toByteArray(chain.length.toShort) ++ chain.flatMap(c => idToBytes(c.id))
     })
 
     // TODO: fixme, What should we do if `obj.suffix` is empty?

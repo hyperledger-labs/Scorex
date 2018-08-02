@@ -29,8 +29,8 @@ class HybridNodeViewHolder(hybridSettings: HybridSettings,
   override type VL = HBoxWallet
   override type MP = SimpleBoxTransactionMemPool
 
-  override val scorexSettings: ScorexSettings = hybridSettings.scorexSettings
-  private val minerSettings: HybridMiningSettings = hybridSettings.mining
+  override lazy val scorexSettings: ScorexSettings = hybridSettings.scorexSettings
+  private lazy val minerSettings: HybridMiningSettings = hybridSettings.mining
 
   override val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
     Map(PosBlock.ModifierTypeId -> PosBlockCompanion,
@@ -156,7 +156,7 @@ object HybridNodeViewHolder extends ScorexLogging with ScorexEncoding {
     val gs = HBoxStoredState.genesisState(settings, Seq[HybridBlock](posGenesis, powGenesis))
     val gw = HBoxWallet.genesisWallet(hybridSettings.walletSettings, Seq[HybridBlock](posGenesis, powGenesis))
       .ensuring(_.boxes().map(_.box.value.toLong).sum >= GenesisBalance ||
-        !encoder.encode(hybridSettings.walletSettings.seed.arr).startsWith("genesis"))
+        !encoder.encode(hybridSettings.walletSettings.seed).startsWith("genesis"))
       .ensuring(_.boxes().forall(b => gs.closedBox(b.box.id).isDefined))
 
     (history, gs, gw, SimpleBoxTransactionMemPool.emptyPool)

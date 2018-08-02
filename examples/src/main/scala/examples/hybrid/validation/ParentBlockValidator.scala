@@ -21,7 +21,7 @@ class ParentBlockValidator(storage: HistoryStorage)
         val posBlock = storage.modifierById(powBlock.prevPosId).get
 
         //check referenced PoS block points to parent PoW block
-        require(posBlock.parentId sameElements posBlock.parentId, "ref rule broken")
+        require(posBlock.parentId == posBlock.parentId, "ref rule broken")
       }
       case posBlock: PosBlock =>
         //check PoW block exists
