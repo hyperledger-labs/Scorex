@@ -15,21 +15,31 @@ import scala.util.{Failure, Try}
 
 /**
   * This class tracks modifier statuses.
-  * Applied modifiers are not kept in this class as soon as we can get this status from history or mempool
-  * Invalid are kept in invalid set forever and should not be downloaded and processed anymore.
-  * Modifiers, requested from other peers are kept in `requested` map containing info about peer and number of retries
-  * Modifiers, received from other peers are kept in `received` set
-  * Valid transitions are described in `isCorrectTransition` function.
+  * Modifier can be in one of the following states: Unknown, Requested, Received, Applied, Invalid. See
+  * ModifiersStatus for states description.
+  * Modifiers in `Requested` state are kept in `requested` map containing info about peer and number of retries.
+  * Modifiers in `Received` state are kept in `received` set.
+  * Modifiers in `Invalid` state are kept in `invalid` set to prevent this modifier download and processing.
+  * Modifiers in `Applied` state are not kept in this class - we can get this status from object, that contains
+  * these modifiers (History for PersistentNodeViewModifier, Mempool for EphemerealNodeViewModifier).
+  * If we can't identify modifiers status based on the rules above, it's status is Unknown.
+  *
+  * In success path modifier changes his statuses `Unknown`->`Requested`->`Received`->`Applied`.
+  * If something went wrong (e.g. modifier was not delivered) it goes back to `Unknown` state
+  * (if we are going to receive it in future) or to `Invalid` state (if we are not going to receive
+  * this modifier anymore)
+  * Locally generated modifiers may go to `Applied` or `Invalid` states at any time.
+  * These rules are also described in `isCorrectTransition` function.
   */
 class DeliveryTracker(system: ActorSystem,
                       deliveryTimeout: FiniteDuration,
                       maxDeliveryChecks: Int,
                       nvsRef: ActorRef) extends ScorexLogging with ScorexEncoding {
 
-  protected case class ExpectingStatus(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
+  protected case class RequestedInfo(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
 
   // when a remote peer is asked a modifier, we add the expected data to `requested`
-  protected val requested: mutable.Map[ModifierId, ExpectingStatus] = mutable.Map[ModifierId, ExpectingStatus]()
+  protected val requested: mutable.Map[ModifierId, RequestedInfo] = mutable.Map[ModifierId, RequestedInfo]()
 
   // when our node received invalid modidier, we put it to `invalid`
   protected val invalid: mutable.HashSet[ModifierId] = mutable.HashSet[ModifierId]()
@@ -79,7 +89,7 @@ class DeliveryTracker(system: ActorSystem,
                           mid: ModifierId,
                           checksDone: Int)(implicit ec: ExecutionContext): Unit = {
     val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(cp, mtid, mid))
-    updateStatus(mid, Requested, Some(ExpectingStatus(cp, cancellable, checksDone)))
+    updateStatus(mid, Requested, Some(RequestedInfo(cp, cancellable, checksDone)))
   }
 
   /**
@@ -146,7 +156,7 @@ class DeliveryTracker(system: ActorSystem,
     */
   protected def updateStatus(id: ModifierId,
                              newStatus: ModifiersStatus,
-                             expectingStatusOpt: Option[ExpectingStatus] = None): ModifiersStatus = {
+                             expectingStatusOpt: Option[RequestedInfo] = None): ModifiersStatus = {
     val oldStatus: ModifiersStatus = status(id)
     log.debug(s"Set modifier ${encoder.encode(id)} from status $oldStatus to status $newStatus.")
     if (oldStatus == Requested) {
@@ -154,6 +164,7 @@ class DeliveryTracker(system: ActorSystem,
     } else if (oldStatus == Received) {
       received.remove(id)
     }
+    assert(status(id) == Unknown, "Intermediate check, that modifier status was cleared")
     if (newStatus == Received) {
       received.add(id)
     } else if (newStatus == Requested) {
