@@ -66,10 +66,6 @@ MR <: MempoolReader[TX] : ClassTag]
 
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
-  /**
-    * Approximate number of modifiers to be downloaded simultaneously
-    */
-  protected val desiredSizeOfRequestedQueue: Int = networkSettings.desiredInvObjects
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
@@ -134,16 +130,12 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   /**
-    * Batch of modifiers were applied - request more modifiers if processing queue is empty
+    * Application-specific logic to request more modifiers after application if needed to
+    * speed-up synchronization process, e.g. send Sync message for unknown or older peers
+    * when our modifier is not synced yet, but no modifiers are expected from other peers
+    * or request modifiers we need with known ids, that are not applied yet.
     */
-  protected def requestMoreModifiers(applied: Seq[PMOD]): Unit = {
-    if (deliveryTracker.requestedSize < desiredSizeOfRequestedQueue / 2) {
-      // Our requested queue is half empty - send sync message to receive more Inv messages
-      historyReaderOpt foreach { h =>
-        sendSync(statusTracker, h.syncInfo, sendToRandomIfEmpty = true)
-      }
-    }
-  }
+  protected def requestMoreModifiers(applied: Seq[PMOD]): Unit = {}
 
   protected def peerManagerEvents: Receive = {
     case HandshakedPeer(remote) =>

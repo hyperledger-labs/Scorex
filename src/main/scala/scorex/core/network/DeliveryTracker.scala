@@ -48,11 +48,6 @@ class DeliveryTracker(system: ActorSystem,
   protected val received: mutable.HashSet[ModifierId] = mutable.HashSet[ModifierId]()
 
   /**
-    * @return number of requested modifiers
-    */
-  def requestedSize: Int = requested.size
-
-  /**
     * @return status of modifier `id`.
     *         Since we do not keep statuses for already applied modifiers,
     *         `modifierKeepers` are required here to check that modifier was already applied
