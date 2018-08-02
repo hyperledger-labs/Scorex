@@ -87,7 +87,7 @@ MR <: MempoolReader[TX] : ClassTag]
     context.system.eventStream.subscribe(self, classOf[ChangedMempool[MR]])
     context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
     context.system.eventStream.subscribe(self, classOf[DownloadRequest])
-    context.system.eventStream.subscribe(self, classOf[CompletedPersistentModifiersApplication[PMOD]])
+    context.system.eventStream.subscribe(self, classOf[ModifiersAppliedFromCache[PMOD]])
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     statusTracker.scheduleSendSyncInfo()
@@ -128,7 +128,7 @@ MR <: MempoolReader[TX] : ClassTag]
     case ChangedMempool(reader: MR) =>
       mempoolReaderOpt = Some(reader)
 
-    case CompletedPersistentModifiersApplication(applied: Seq[PMOD]) =>
+    case ModifiersAppliedFromCache(applied: Seq[PMOD]) =>
       requestMoreModifiers(applied)
   }
 
@@ -524,9 +524,10 @@ object NodeViewSynchronizer {
     case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
 
     /**
-      * All possible modifiers from ModifiersCache were applied to History
+      * After application of batch of modifiers from cache to History,
+      * NodeViewHolder sends this message, containing all just applied modifiers
       */
-    case class CompletedPersistentModifiersApplication[PMOD <: PersistentNodeViewModifier](modifiers: Seq[PMOD])
+    case class ModifiersAppliedFromCache[PMOD <: PersistentNodeViewModifier](modifiers: Seq[PMOD])
 
     //hierarchy of events regarding modifiers application outcome
     trait ModificationOutcome extends NodeViewHolderEvent

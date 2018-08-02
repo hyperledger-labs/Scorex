@@ -301,6 +301,11 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       log.warn(s"Trying to apply modifier ${pmod.encodedId} that's already in history")
     }
 
+  /**
+    * Received cache, updated by NodeViewSynchronizer.
+    * Try to apply as much modifiers as possible and publish `ModifiersAppliedFromCache` message
+    * with all just applied modifiers
+    */
   protected def processUpdatedCache: Receive = {
     case cc: ChangedCache[PMOD@unchecked, HIS@unchecked, ModifiersCache[PMOD, HIS]@unchecked] =>
       val modifiersCache: ModifiersCache[PMOD, HIS] = cc.cache
@@ -319,7 +324,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       }
 
       val applied = applyLoop(Seq())
-      context.system.eventStream.publish(CompletedPersistentModifiersApplication(applied))
+      context.system.eventStream.publish(ModifiersAppliedFromCache(applied))
       log.debug(s"Cache size after: ${modifiersCache.size}")
   }
 

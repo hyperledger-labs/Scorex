@@ -6,10 +6,10 @@ import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.NodeViewHolder.CurrentView
-import scorex.core.NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView, LocallyGeneratedModifier}
-import scorex.core.PersistentNodeViewModifier
+import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, GetDataFromCurrentView, LocallyGeneratedModifier}
+import scorex.core.{DefaultModifiersCache, ModifiersCache, PersistentNodeViewModifier}
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{SemanticallyFailedModification, SemanticallySuccessfulModifier, SyntacticallyFailedModification, SyntacticallySuccessfulModifier}
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
@@ -63,6 +63,18 @@ MPool <: MemoryPool[TX, MPool]]
       GetDataFromCurrentView[HT, ST, Vault[TX, PM, _], MPool, CurrentViewType] { view => view })
     val view = probe.expectMsgClass(10.seconds, classOf[CurrentViewType])
     f(view)
+  }
+
+  property("NodeViewHolder: modifiers from remote") {
+    withFixture { ctx =>
+      import ctx._
+      val p = TestProbe()
+
+      system.eventStream.subscribe(eventListener.ref, classOf[ModifiersAppliedFromCache[PM]])
+      val modifiersCache = new DefaultModifiersCache[PM, HT](1)
+      p.send(node, ChangedCache[PM, HT, DefaultModifiersCache[PM, HT]](modifiersCache))
+      eventListener.expectMsgType[ModifiersAppliedFromCache[PM]]
+    }
   }
 
   property("NodeViewHolder syntactically valid modifier subscription") {
