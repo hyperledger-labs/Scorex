@@ -7,6 +7,7 @@ import io.circe.syntax._
 import scorex.core.serialization.Serializer
 import scorex.core.utils.ScorexEncoding
 import scorex.core._
+import scorex.util._
 
 import scala.util.Try
 

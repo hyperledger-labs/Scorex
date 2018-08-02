@@ -6,10 +6,10 @@ import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.ValueReader
-import scorex.core.bytesToId
 import scorex.core.settings.ScorexSettings.readConfigFromPath
 import scorex.core.settings._
 import scorex.core.utils.ScorexLogging
+import scorex.util._
 
 import scala.concurrent.duration._
 

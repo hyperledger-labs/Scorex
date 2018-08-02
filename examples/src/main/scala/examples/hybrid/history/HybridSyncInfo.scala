@@ -5,6 +5,7 @@ import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.SyncInfoMessageSpec
 import scorex.core.serialization.Serializer
 import scorex.core._
+import scorex.util._
 
 import scala.util.Try
 

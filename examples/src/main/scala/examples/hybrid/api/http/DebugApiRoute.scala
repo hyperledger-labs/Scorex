@@ -8,10 +8,10 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.syntax._
-import scorex.core.bytesToId
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.util._
 
 import scala.util.Try
 

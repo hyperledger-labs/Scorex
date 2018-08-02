@@ -4,6 +4,7 @@ import com.typesafe.config.ConfigFactory
 import scorex.core.serialization.BytesSerializable
 import scorex.core.transaction.Transaction
 import scorex.core.utils.ScorexEncoding
+import scorex.util.ModifierId
 
 import scala.util.Try
 

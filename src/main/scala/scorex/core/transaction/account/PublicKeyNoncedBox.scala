@@ -1,7 +1,6 @@
 package scorex.core.transaction.account
 
 import com.google.common.primitives.Longs
-import scorex.core.ModifierId
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.crypto.authds.{ADKey, _}

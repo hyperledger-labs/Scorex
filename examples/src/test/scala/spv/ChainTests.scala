@@ -6,11 +6,11 @@ import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.ModifierId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.crypto.hash
 import scorex.crypto.hash.Blake2b256
+import scorex.util.ModifierId
 
 import scala.util.{Failure, Try}
 

@@ -4,16 +4,16 @@ import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core.idToBytes
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
-import scorex.core.{ModifierId, ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier, bytesToId}
+import scorex.core.{ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, Signature}
+import scorex.util._
 
 import scala.util.Try
 

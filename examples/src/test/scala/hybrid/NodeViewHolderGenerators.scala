@@ -8,6 +8,7 @@ import examples.hybrid.wallet.HBoxWallet
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core._
 import scorex.core.utils.NetworkTimeProvider
+import scorex.util._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

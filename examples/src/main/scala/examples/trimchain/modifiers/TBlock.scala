@@ -7,7 +7,8 @@ import io.circe.syntax._
 import scorex.core.block.Block
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.serialization.Serializer
-import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.core.ModifierTypeId
+import scorex.util.ModifierId
 
 import scala.annotation.tailrec
 import scala.util.Try

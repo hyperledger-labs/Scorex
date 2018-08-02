@@ -15,6 +15,7 @@ import scorex.crypto.authds.avltree.batch.{BatchAVLVerifier, Lookup}
 import scorex.crypto.authds.{ADDigest, ADKey}
 import scorex.crypto.hash.{Blake2b256, Digest32}
 import scorex.crypto.signatures.{Curve25519, PublicKey}
+import scorex.util._
 
 import scala.util.{Failure, Random, Success, Try}
 

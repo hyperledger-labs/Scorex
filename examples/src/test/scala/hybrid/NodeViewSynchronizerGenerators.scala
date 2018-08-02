@@ -10,6 +10,7 @@ import scorex.core.app.Version
 import scorex.core.network._
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
+import scorex.util._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

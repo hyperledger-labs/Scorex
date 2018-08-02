@@ -7,6 +7,7 @@ import examples.trimchain.modifiers.TBlock
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo
 import scorex.core._
 import scorex.core.transaction.state.PrivateKey25519Companion
+import scorex.util._
 
 trait Simulators {
 

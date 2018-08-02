@@ -4,6 +4,7 @@ import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core._
 import scorex.core.serialization.Serializer
 import scorex.core.utils.ScorexEncoding
+import scorex.util._
 
 import scala.annotation.tailrec
 import scala.util.Try

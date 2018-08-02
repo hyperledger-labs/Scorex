@@ -10,9 +10,10 @@ import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, _}
+import scorex.core._
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey}
+import scorex.util._
 
 import scala.util.Try
 

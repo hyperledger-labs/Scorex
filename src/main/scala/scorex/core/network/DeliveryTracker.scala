@@ -3,7 +3,8 @@ package scorex.core.network
 import akka.actor.{ActorRef, ActorSystem, Cancellable}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.CheckDelivery
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
-import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.core.ModifierTypeId
+import scorex.util.ModifierId
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext

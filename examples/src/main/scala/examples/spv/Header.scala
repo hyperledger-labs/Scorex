@@ -9,6 +9,7 @@ import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.utils.ScorexEncoding
 import scorex.core._
+import scorex.util._
 
 import scala.annotation.tailrec
 import scala.util.Try

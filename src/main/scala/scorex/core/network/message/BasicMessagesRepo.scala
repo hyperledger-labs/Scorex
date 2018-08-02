@@ -9,6 +9,7 @@ import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.utils.ScorexLogging
 import scorex.core._
+import scorex.util._
 
 import scala.util.Try
 
