@@ -38,13 +38,13 @@ class DeliveryTracker(system: ActorSystem,
 
   protected case class RequestedInfo(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
 
-  // when a remote peer is asked a modifier, we add the expected data to `requested`
+  // when a remote peer is asked a modifier we add the requested data to `requested`
   protected val requested: mutable.Map[ModifierId, RequestedInfo] = mutable.Map[ModifierId, RequestedInfo]()
 
-  // when our node received invalid modidier, we put it to `invalid`
+  // when our node received invalid modifier we put it to `invalid`
   protected val invalid: mutable.HashSet[ModifierId] = mutable.HashSet[ModifierId]()
 
-  // when our node received a modifier, from remote peer, we put it to `received`
+  // when our node received a modifier we put it to `received`
   protected val received: mutable.HashSet[ModifierId] = mutable.HashSet[ModifierId]()
 
   /**
@@ -71,13 +71,13 @@ class DeliveryTracker(system: ActorSystem,
   def status(id: ModifierId): ModifiersStatus = status(id, Seq())
 
   /**
-    * Someone should have these modifiers, but we do not know who
+    * Put modifier ids and corresponding peer to requested map
     */
   def onRequest(cp: Option[ConnectedPeer], mtid: ModifierTypeId, mids: Seq[ModifierId])(implicit ec: ExecutionContext): Try[Unit] =
     tryWithLogging(mids.foreach(mid => onRequest(cp, mtid, mid, 0)))
 
   /**
-    * Put modifier id and corresponding peer to expecting map
+    * Put modifier id and corresponding peer to requested map
     */
   protected def onRequest(cp: Option[ConnectedPeer],
                           mtid: ModifierTypeId,
@@ -89,20 +89,19 @@ class DeliveryTracker(system: ActorSystem,
 
   /**
     *
-    * Our node have requested a modifier, but did not received it yet
-    * Stops expecting, and expects again if the number of checks does not exceed the maximum
+    * Our node have requested a modifier, but did not received it yet.
+    * Stops processing and if the number of checks did not exceed the maximum continue to waiting.
     *
-    * @return `true` when expect again, `false` otherwise
+    * @return `true` if number of checks was not exceed, `false` otherwise
     */
   def onStillWaiting(cp: ConnectedPeer,
                      mtid: ModifierTypeId,
                      mid: ModifierId)(implicit ec: ExecutionContext): Try[Unit] = tryWithLogging {
     val checks = requested(mid).checks + 1
+    stopProcessing(mid)
     if (checks < maxDeliveryChecks) {
-      stopExpecting(mid)
       onRequest(Some(cp), mtid, mid, checks)
     } else {
-      stopProcessing(mid)
       throw new StopExpectingError(mid, checks)
     }
   }

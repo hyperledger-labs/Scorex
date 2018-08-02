@@ -213,7 +213,11 @@ MR <: MempoolReader[TX] : ClassTag]
       }
   }
 
-  //object ids coming from other node
+  /**
+    * Object ids coming from other node.
+    * Filter out modifier ids that are already in process (requested, received or applied),
+    * request unknown ids from peer and set this ids to requested state.
+    */
   protected def processInv: Receive = {
     case DataFromPeer(spec, invData: InvData@unchecked, peer)
       if spec.messageCode == InvSpec.MessageCode =>
@@ -221,17 +225,17 @@ MR <: MempoolReader[TX] : ClassTag]
       (mempoolReaderOpt, historyReaderOpt) match {
         case (Some(mempool), Some(history)) =>
           val modifierTypeId = invData._1
-          val modifierIds = modifierTypeId match {
+          val newModifierIds = modifierTypeId match {
             case Transaction.ModifierTypeId =>
               invData._2.filter(mid => deliveryTracker.status(mid, mempool) == ModifiersStatus.Unknown)
             case _ =>
               invData._2.filter(mid => deliveryTracker.status(mid, history) == ModifiersStatus.Unknown)
           }
 
-          if (modifierIds.nonEmpty) {
-            val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
+          if (newModifierIds.nonEmpty) {
+            val msg = Message(requestModifierSpec, Right(modifierTypeId -> newModifierIds), None)
             peer.handlerRef ! msg
-            deliveryTracker.onRequest(Some(peer), modifierTypeId, modifierIds)
+            deliveryTracker.onRequest(Some(peer), modifierTypeId, newModifierIds)
           }
 
         case _ =>
@@ -259,7 +263,9 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   /**
-    * Logic to process modifiers got from another peer
+    * Logic to process modifiers got from another peer.
+    * Filter out non-requested modifiers (with a penalty to spamming peer),
+    * parse modifiers and send valid modifiers to NodeViewHolder
     */
   protected def modifiersFromRemote: Receive = {
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
@@ -299,7 +305,7 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   /**
-    * Put `pmod` to `modifiersCache` if `pmod` is valid or may be valid in future,
+    * Put `pmod` to `modifiersCache` if `pmod` is valid or may be valid in the future,
     * penalize peer if `pmod` is permanently invalid
     */
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
@@ -321,7 +327,7 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   /**
-    * Parse modifiers using specified serializer, check that it's id equals to declared one,
+    * Parse modifiers using specified serializer, check that it's id is equal to the declared one,
     * penalize misbehaving peer for every incorrect modifier,
     * call deliveryTracker.onReceive() for every correct modifier to update it's status
     *
@@ -347,7 +353,7 @@ MR <: MempoolReader[TX] : ClassTag]
     * Get modifiers from remote peer,
     * filter out spam modifiers and penalize peer for spam
     *
-    * @return ids and bytes of modifiers that we were waiting for
+    * @return ids and bytes of modifiers that were requested by our node
     */
   private def processSpam(remote: ConnectedPeer,
                           typeId: ModifierTypeId,
@@ -367,9 +373,9 @@ MR <: MempoolReader[TX] : ClassTag]
 
   /**
     * Scheduler asking node view synchronizer to check whether requested modifiers have been delivered.
-    * Do nothing, if modifier is already in different status (it might be already received, applied, etc.),
-    * wait for delivery until the number of checks does not exceed the maximum if peer sent `Inv` for this modifier
-    * re-request modifier from different random peer, if our node do not know peer who have it
+    * Do nothing, if modifier is already in a different state (it might be already received, applied, etc.),
+    * wait for delivery until the number of checks does not exceed the maximum if the peer sent `Inv` for this modifier
+    * re-request modifier from a different random peer, if our node do not know a peer who have it
     */
   protected def checkDelivery: Receive = {
     case CheckDelivery(peerOpt, modifierTypeId, modifierId) =>

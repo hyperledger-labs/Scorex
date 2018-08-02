@@ -302,7 +302,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     }
 
   /**
-    * Received cache, updated by NodeViewSynchronizer.
+    * Received cache with new modifiers.
     * Try to apply as much modifiers as possible and publish `ModifiersAppliedFromCache` message
     * with all just applied modifiers
     */
@@ -372,6 +372,7 @@ object NodeViewHolder {
 
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
+    // ModifiersCache with new elements in it
     case class ChangedCache[PM <: PersistentNodeViewModifier,
     HR <: HistoryReader[PM, _ <: SyncInfo],
     MC <: ModifiersCache[PM, HR]](cache: MC) extends NodeViewChange
