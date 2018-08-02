@@ -139,7 +139,7 @@ MR <: MempoolReader[TX] : ClassTag]
     if (deliveryTracker.expectingSize < desiredSizeOfExpectingQueue / 2) {
       // Our expecting queue is half empty - send sync message to receive more Inv messages
       historyReaderOpt foreach { h =>
-        sendSync(statusTracker, h)
+        sendSync(statusTracker, h.syncInfo, sendToRandomIfEmpty = true)
       }
     }
   }
@@ -154,13 +154,15 @@ MR <: MempoolReader[TX] : ClassTag]
 
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      historyReaderOpt.foreach(r => sendSync(statusTracker, r))
+      historyReaderOpt.foreach(r => sendSync(statusTracker, r.syncInfo))
   }
 
-  protected def sendSync(syncTracker: SyncTracker, history: HR): Unit = {
+  protected def sendSync(syncTracker: SyncTracker, syncInfo: SI, sendToRandomIfEmpty: Boolean = false): Unit = {
     val peers = statusTracker.peersToSyncWith()
     if (peers.nonEmpty) {
-      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(history.syncInfo), None), SendToPeers(peers))
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
+    } else if (sendToRandomIfEmpty) {
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToRandom)
     }
   }
 
