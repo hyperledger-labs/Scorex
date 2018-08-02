@@ -50,7 +50,7 @@ class DeliveryTracker(system: ActorSystem,
   /**
     * @return number of requested modifiers
     */
-  def expectingSize: Int = requested.size
+  def requestedSize: Int = requested.size
 
   /**
     * @return status of modifier `id`.
@@ -148,15 +148,12 @@ class DeliveryTracker(system: ActorSystem,
     requested.remove(mid)
   }
 
-  protected[network] def isExpecting(mid: ModifierId): Boolean =
-    requested.contains(mid)
-
   /**
     * Set status of modifier with id `id` to `newStatus`
     */
   protected def updateStatus(id: ModifierId,
                              newStatus: ModifiersStatus,
-                             expectingStatusOpt: Option[RequestedInfo] = None): ModifiersStatus = {
+                             requestedInfoOpt: Option[RequestedInfo] = None): ModifiersStatus = {
     val oldStatus: ModifiersStatus = status(id)
     log.debug(s"Set modifier ${encoder.encode(id)} from status $oldStatus to status $newStatus.")
     if (oldStatus == Requested) {
@@ -168,7 +165,7 @@ class DeliveryTracker(system: ActorSystem,
     if (newStatus == Received) {
       received.add(id)
     } else if (newStatus == Requested) {
-      expectingStatusOpt.foreach(s => requested.put(id, s))
+      requestedInfoOpt.foreach(s => requested.put(id, s))
     } else if (newStatus == Invalid) {
       invalid.add(id)
     }

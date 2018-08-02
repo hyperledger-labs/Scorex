@@ -8,6 +8,7 @@ import scorex.core.NodeViewHolder.DownloadRequest
 import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, GetNodeViewChanges, TransactionsFromRemote}
 import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
+import scorex.core.network.ModifiersStatus.Requested
 import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
@@ -68,7 +69,7 @@ MR <: MempoolReader[TX] : ClassTag]
   /**
     * Approximate number of modifiers to be downloaded simultaneously
     */
-  protected val desiredSizeOfExpectingQueue: Int = networkSettings.desiredInvObjects
+  protected val desiredSizeOfRequestedQueue: Int = networkSettings.desiredInvObjects
 
   protected var historyReaderOpt: Option[HR] = None
   protected var mempoolReaderOpt: Option[MR] = None
@@ -136,8 +137,8 @@ MR <: MempoolReader[TX] : ClassTag]
     * Batch of modifiers were applied - request more modifiers if processing queue is empty
     */
   protected def requestMoreModifiers(applied: Seq[PMOD]): Unit = {
-    if (deliveryTracker.expectingSize < desiredSizeOfExpectingQueue / 2) {
-      // Our expecting queue is half empty - send sync message to receive more Inv messages
+    if (deliveryTracker.requestedSize < desiredSizeOfRequestedQueue / 2) {
+      // Our requested queue is half empty - send sync message to receive more Inv messages
       historyReaderOpt foreach { h =>
         sendSync(statusTracker, h.syncInfo, sendToRandomIfEmpty = true)
       }
@@ -277,18 +278,18 @@ MR <: MempoolReader[TX] : ClassTag]
       log.info(s"Got ${modifiers.size} modifiers of type $typeId from remote connected peer: $remote")
       log.trace(s"Received modifier ids ${modifiers.keySet.map(encoder.encode).mkString(",")}")
 
-      // filter out non-expected modifiers
-      val expectedModifiers = processSpam(remote, typeId, modifiers)
+      // filter out non-requested modifiers
+      val requestedModifiers = processSpam(remote, typeId, modifiers)
 
       modifierSerializers.get(typeId) match {
         case Some(serializer: Serializer[TX]@unchecked) if typeId == Transaction.ModifierTypeId =>
           // parse all transactions and send them to node view holder
-          val parsed: Iterable[TX] = parseModifiers(expectedModifiers, serializer, remote)
+          val parsed: Iterable[TX] = parseModifiers(requestedModifiers, serializer, remote)
           viewHolderRef ! TransactionsFromRemote(parsed)
 
         case Some(serializer: Serializer[PMOD]@unchecked) =>
           // parse all modifiers and put them to modifiers cache
-          val parsed: Iterable[PMOD] = parseModifiers(expectedModifiers, serializer, remote)
+          val parsed: Iterable[PMOD] = parseModifiers(requestedModifiers, serializer, remote)
           parsed.foreach(pmod => putToCacheIfValid(remote, pmod))
           if (parsed.nonEmpty) {
             // remove elements from cache if it's size exceeds the limit, reset status for removed modifiers
@@ -334,10 +335,10 @@ MR <: MempoolReader[TX] : ClassTag]
     *
     * @return collection of parsed modifiers
     */
-  private def parseModifiers[M <: NodeViewModifier](expectedModifiers: Map[ModifierId, Array[Byte]],
+  private def parseModifiers[M <: NodeViewModifier](modifiers: Map[ModifierId, Array[Byte]],
                                                     serializer: Serializer[M],
                                                     remote: ConnectedPeer): Iterable[M] = {
-    expectedModifiers.flatMap { case (id, bytes) =>
+    modifiers.flatMap { case (id, bytes) =>
       serializer.parseBytes(bytes) match {
         case Success(mod) if id == mod.id =>
           deliveryTracker.onReceive(id)
@@ -360,8 +361,8 @@ MR <: MempoolReader[TX] : ClassTag]
                           typeId: ModifierTypeId,
                           modifiers: Map[ModifierId, Array[Byte]]): Map[ModifierId, Array[Byte]] = {
 
-    val (expected, spam) = modifiers.partition { case (id, _) =>
-      deliveryTracker.isExpecting(id)
+    val (requested, spam) = modifiers.partition { case (id, _) =>
+      deliveryTracker.status(id) == Requested
     }
 
     if (spam.nonEmpty) {
@@ -369,7 +370,7 @@ MR <: MempoolReader[TX] : ClassTag]
         s": ${spam.keys.map(encoder.encode)}")
       penalizeSpammingPeer(remote)
     }
-    expected
+    requested
   }
 
   /**

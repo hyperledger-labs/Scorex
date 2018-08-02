@@ -51,11 +51,11 @@ class DeliveryTrackerSpecification extends PropSpec
     val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(bytesToId)
 
     tracker.onRequest(None, mtid, modids)
-    modids.foreach(id => tracker.isExpecting(id) shouldBe true)
+    modids.foreach(id => tracker.status(id) shouldBe Requested)
 
     // reexpect
     tracker.onRequest(None, mtid, modids)
-    modids.foreach(id => tracker.isExpecting(id) shouldBe true)
+    modids.foreach(id => tracker.status(id) shouldBe Requested)
   }
 
   property("locally generated modifier") {
@@ -76,18 +76,18 @@ class DeliveryTrackerSpecification extends PropSpec
     val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(bytesToId)
 
     modids.foreach(id => tracker.status(id) shouldBe Unknown)
-    modids.foreach(id => tracker.isExpecting(id) shouldBe false)
+    modids.foreach(id => tracker.status(id) should not be Requested)
 
     tracker.onRequest(Some(cp), mtid, modids)
     modids.foreach(id => tracker.status(id) shouldBe Requested)
-    modids.foreach(id => tracker.isExpecting(id) shouldBe true)
+    modids.foreach(id => tracker.status(id) shouldBe Requested)
 
     // received correct modifier
     val received = modids.head
-    tracker.isExpecting(received) shouldBe true
+    tracker.status(received) shouldBe Requested
     tracker.onReceive(received)
     tracker.status(received) shouldBe Received
-    tracker.isExpecting(received) shouldBe false
+    tracker.status(received) should not be Requested
 
     history.put(new FakeModifier(received))
     tracker.onApply(received)
@@ -95,19 +95,19 @@ class DeliveryTrackerSpecification extends PropSpec
 
     // received incorrect modifier
     val invalid = modids.last
-    tracker.isExpecting(invalid) shouldBe true
+    tracker.status(invalid) shouldBe Requested
     tracker.onReceive(invalid)
     tracker.status(invalid) shouldBe Received
     tracker.onInvalid(invalid)
     tracker.status(invalid, history) shouldBe Invalid
-    tracker.isExpecting(invalid) shouldBe false
+    tracker.status(invalid) should not be Requested
 
     // modifier was not delivered on time
     val nonDelivered = modids(1)
-    tracker.isExpecting(nonDelivered) shouldBe true
+    tracker.status(nonDelivered) shouldBe Requested
     tracker.stopProcessing(nonDelivered)
     tracker.status(nonDelivered, history) shouldBe Unknown
-    tracker.isExpecting(nonDelivered) shouldBe false
+    tracker.status(nonDelivered) should not be Requested
   }
 
   property("stop expecting after maximum number of retries") {
@@ -116,18 +116,18 @@ class DeliveryTrackerSpecification extends PropSpec
     val modids: Seq[ModifierId] = Seq(Blake2b256("1"), Blake2b256("2"), Blake2b256("3")).map(bytesToId)
 
     tracker.onRequest(Some(cp), mtid, modids)
-    tracker.isExpecting(modids.head) shouldBe true
+    tracker.status(modids.head) shouldBe Requested
 
     tracker.onReceive(modids.head)
 
-    tracker.isExpecting(modids.head) shouldBe false
+    tracker.status(modids.head) should not be Requested
 
 
     tracker.onStillWaiting(cp, mtid, modids(1))
-    tracker.isExpecting(modids(1)) shouldBe true
+    tracker.status(modids(1)) shouldBe Requested
 
     tracker.onStillWaiting(cp, mtid, modids(1))
-    tracker.isExpecting(modids(1)) shouldBe false
+    tracker.status(modids(1)) should not be Requested
   }
 
   private def genDeliveryTracker = {
