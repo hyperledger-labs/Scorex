@@ -3,10 +3,7 @@ package scorex.core
 import akka.actor.Actor
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
-import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewChange, NodeViewHolderEvent}
-import scorex.core.network.message.BasicMsgDataTypes.ModifiersData
-import scorex.core.serialization.Serializer
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
@@ -14,7 +11,6 @@ import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 

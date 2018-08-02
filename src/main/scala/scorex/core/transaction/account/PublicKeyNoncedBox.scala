@@ -1,10 +1,9 @@
 package scorex.core.transaction.account
 
 import com.google.common.primitives.Longs
-import scorex.core.ModifierId
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.crypto.authds.{ADKey, _}
+import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Blake2b256
 
 trait PublicKeyNoncedBox[PKP <: PublicKey25519Proposition] extends Box[PKP] {

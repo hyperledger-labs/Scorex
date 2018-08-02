@@ -5,7 +5,6 @@ import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state.{BoxStateChanges, MinimalState, ModifierValidation, TransactionValidation}
 import scorex.core.{PersistentNodeViewModifier, VersionTag, idToVersion}
-import scorex.crypto.authds.ADKey
 
 import scala.util.{Failure, Success, Try}
 

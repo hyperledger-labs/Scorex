@@ -87,7 +87,7 @@ trait LRUCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, _]]
 
   override protected def onPut(key: K): Unit = {
     evictionQueue.enqueue(key)
-    if (evictionQueue.lengthCompare(maxSize + cleaningThreshold) > 0) {
+    if (evictionQueue.size > maxSize + cleaningThreshold) {
       evictionQueue.dequeueAll(k => !cache.contains(k))
     }
   }

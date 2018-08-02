@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
-import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
+import scorex.core.network.message.{GetPeersSpec, Message, PeersSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeers}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging

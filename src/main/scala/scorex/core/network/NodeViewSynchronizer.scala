@@ -133,7 +133,7 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   /**
-    * Batch of modifiers where applied - request more modifiers if processing queue is empty
+    * Batch of modifiers were applied - request more modifiers if processing queue is empty
     */
   protected def requestMoreModifiers(applied: Seq[PMOD]): Unit = {
     if (deliveryTracker.expectingSize < desiredSizeOfExpectingQueue / 2) {
@@ -334,7 +334,7 @@ MR <: MempoolReader[TX] : ClassTag]
           if (typeId != Transaction.ModifierTypeId) {
             val cleared = modifiersCache.cleanOverfull()
             if (cleared.nonEmpty) {
-              log.debug(s"${cleared.size} modifiers ${cleared.map(_.encodedId)} where removed from overfull cache")
+              log.debug(s"${cleared.size} modifiers ${cleared.map(_.encodedId)} were removed from overfull cache")
               cleared.foreach(removed => deliveryTracker.stopProcessing(removed.id))
             }
             viewHolderRef ! ChangedCache[PMOD, HR, ModifiersCache[PMOD, HR]](modifiersCache)
@@ -493,7 +493,7 @@ object NodeViewSynchronizer {
     case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
 
     /**
-      * All possible modifiers from ModifiersCache where applied to History
+      * All possible modifiers from ModifiersCache were applied to History
       */
     case class CompletedPersistentModifiersApplication[PMOD <: PersistentNodeViewModifier](modifiers: Seq[PMOD])
 
