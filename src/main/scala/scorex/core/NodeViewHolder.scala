@@ -323,10 +323,12 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       log.debug(s"Cache size after: ${modifiersCache.size}")
   }
 
-  protected def processLocallyGeneratedModifiers: Receive = {
-    case lt: NewTransaction[TX] =>
-      txModify(lt.tx)
+  protected def processNewTransactions: Receive = {
+    case newTxs: NewTransactions[TX] =>
+      newTxs.txs.foreach(tx => txModify(tx))
+  }
 
+  protected def processLocallyGeneratedModifiers: Receive = {
     case lm: LocallyGeneratedModifier[PMOD] =>
       log.info(s"Got locally generated modifier ${lm.pmod.encodedId} of type ${lm.pmod.modifierTypeId}")
       pmodModify(lm.pmod)
@@ -346,8 +348,9 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   }
 
   override def receive: Receive =
-      processUpdatedCache orElse
+    processUpdatedCache orElse
       processLocallyGeneratedModifiers orElse
+      processNewTransactions orElse
       getCurrentInfo orElse
       getNodeViewChanges orElse {
       case a: Any => log.error("Strange input: " + a)
@@ -368,13 +371,15 @@ object NodeViewHolder {
     HR <: HistoryReader[PM, _ <: SyncInfo],
     MC <: ModifiersCache[PM, HR]](cache: MC) extends NodeViewChange
 
-    sealed trait NewTransaction[TX <: Transaction]{
-      val tx: TX
+    sealed trait NewTransactions[TX <: Transaction]{
+      val txs: Iterable[TX]
     }
 
-    case class LocallyGeneratedTransaction[TX <: Transaction](tx: TX) extends NewTransaction[TX]
+    case class LocallyGeneratedTransaction[TX <: Transaction](tx: TX) extends NewTransactions[TX] {
+      override val txs: Iterable[TX] = Iterable(tx)
+    }
 
-    case class TransactionFromRemote[TX <: Transaction](tx: TX) extends NewTransaction[TX]
+    case class TransactionsFromRemote[TX <: Transaction](txs: Iterable[TX]) extends NewTransactions[TX]
 
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
 

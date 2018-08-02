@@ -44,7 +44,8 @@ class DeliveryTracker(system: ActorSystem,
 
   /**
     * @return status of modifier `id`.
-    *         Since we do not keep statuses for already applied modifiers, `history` is required here.
+    *         Since we do not keep statuses for already applied modifiers,
+    *         `modifierKeepers` are required here to check, that modifier was already applied
     */
   def status(id: ModifierId, modifierKeepers: Seq[ContainsModifiers[_]]): ModifiersStatus = {
     if (received.contains(id)) {
@@ -103,18 +104,10 @@ class DeliveryTracker(system: ActorSystem,
 
   /**
     * Modifier was received from remote peer.
-    *
-    * @return `true` if modifier was expected, `false` otherwise
     */
-  def onReceive(mid: ModifierId): Boolean = tryWithLogging {
-    if (isExpecting(mid)) {
-      updateStatus(mid, Received)
-      true
-    } else {
-      updateStatus(mid, Unknown)
-      false
-    }
-  }.getOrElse(false)
+  def onReceive(mid: ModifierId): Unit = tryWithLogging {
+    updateStatus(mid, Received)
+  }
 
   /**
     * Modifier was successfully applied to history - set it status to applied

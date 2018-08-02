@@ -108,15 +108,6 @@ class DeliveryTrackerSpecification extends PropSpec
     tracker.stopProcessing(nonDelivered)
     tracker.status(nonDelivered, history) shouldBe Unknown
     tracker.isExpecting(nonDelivered) shouldBe false
-
-  }
-
-  property("Spam attempt") {
-    val tracker = genDeliveryTracker
-    val notAdded: ModifierId = bytesToId(Blake2b256("4"))
-    tracker.isExpecting(notAdded) shouldBe false
-    tracker.onReceive(notAdded) shouldBe false
-    tracker.status(notAdded) shouldBe Unknown
   }
 
   property("stop expecting after maximum number of retries") {
