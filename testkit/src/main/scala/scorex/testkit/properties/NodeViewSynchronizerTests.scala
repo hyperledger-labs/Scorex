@@ -30,18 +30,18 @@ import scala.util.Failure
 
 @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
 trait NodeViewSynchronizerTests[
-  TX <: Transaction,
-  PM <: PersistentNodeViewModifier,
-  ST <: MinimalState[PM, ST],
-  SI <: SyncInfo,
-  HT <: History[PM, SI, HT],
-  MP <: MemoryPool[TX, MP]
+TX <: Transaction,
+PM <: PersistentNodeViewModifier,
+ST <: MinimalState[PM, ST],
+SI <: SyncInfo,
+HT <: History[PM, SI, HT],
+MP <: MemoryPool[TX, MP]
 ] extends PropSpec
-    with Matchers
-    with PropertyChecks
-    with ScorexLogging
-    with SyntacticallyTargetedModifierProducer[PM, SI, HT]
-    with TotallyValidModifierProducer[PM, ST, SI, HT] {
+  with Matchers
+  with PropertyChecks
+  with ScorexLogging
+  with SyntacticallyTargetedModifierProducer[PM, SI, HT]
+  with TotallyValidModifierProducer[PM, ST, SI, HT] {
 
   val historyGen: Gen[HT]
   val memPool: MP
@@ -63,7 +63,6 @@ trait NodeViewSynchronizerTests[
       Await.result(fixture.system.terminate(), Duration.Inf)
     }
   }
-
 
   property("NodeViewSynchronizer: SuccessfulTransaction") {
     withFixture { ctx =>
@@ -218,14 +217,15 @@ trait NodeViewSynchronizerTests[
     }
   }
 
-  ignore("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") {
+  property("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") {
     withFixture { ctx =>
       import ctx._
 
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
       node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-      // todo complete at least after blacklist implementation
+      val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) { case m => m }
+      assert(!messages.exists(_.isInstanceOf[ChangedCache[PM, HT, _]]))
     }
   }
 
@@ -238,7 +238,10 @@ trait NodeViewSynchronizerTests[
 
       node ! DataFromPeer(new InvSpec(3), (mod.modifierTypeId, Seq(mod.id)), peer)
       node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-      vhProbe.expectMsgType[ChangedCache[_, _, _]]
+      vhProbe.fishForMessage(3 seconds) {
+        case m: ChangedCache[PM, HT, _] => m.cache.contains(mod.id)
+        case _ => false
+      }
     }
   }
 

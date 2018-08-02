@@ -45,7 +45,7 @@ class DeliveryTracker(system: ActorSystem,
   /**
     * @return status of modifier `id`.
     *         Since we do not keep statuses for already applied modifiers,
-    *         `modifierKeepers` are required here to check, that modifier was already applied
+    *         `modifierKeepers` are required here to check that modifier was already applied
     */
   def status(id: ModifierId, modifierKeepers: Seq[ContainsModifiers[_]]): ModifiersStatus = {
     if (received.contains(id)) {

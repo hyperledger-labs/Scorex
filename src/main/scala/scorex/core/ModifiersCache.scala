@@ -1,6 +1,6 @@
 package scorex.core
 
-import scorex.core.consensus.HistoryReader
+import scorex.core.consensus.{ContainsModifiers, HistoryReader}
 import scorex.core.utils.ScorexLogging
 import scorex.core.validation.RecoverableModifierError
 
@@ -13,13 +13,15 @@ import scala.util.{Failure, Success}
   *
   * @tparam PMOD - type of a persistent node view modifier (or a family of modifiers).
   */
-trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]] {
+trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]] extends ContainsModifiers[PMOD] {
   require(maxSize >= 1)
 
   type K = ModifierId
   type V = PMOD
 
   protected val cache: mutable.Map[K, V] = mutable.Map[K, V]()
+
+  override def modifierById(modifierId: ModifierId): Option[PMOD] = cache.get(modifierId)
 
   def size: Int = cache.size
 
@@ -46,8 +48,6 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
     * @return collection of just removed elements
     */
   def cleanOverfull(): Seq[V]
-
-  def contains(key: K): Boolean = cache.contains(key)
 
   def put(key: K, value: V): Unit = synchronized {
     if (!contains(key)) {

@@ -274,6 +274,8 @@ MR <: MempoolReader[TX] : ClassTag]
 
       val typeId = data._1
       val modifiers = data._2
+      log.info(s"Got ${modifiers.size} modifiers of type $typeId from remote connected peer: $remote")
+      log.trace(s"Received modifier ids ${modifiers.keySet.map(encoder.encode).mkString(",")}")
 
       // filter out non-expected modifiers
       val expectedModifiers = processSpam(remote, typeId, modifiers)
@@ -288,15 +290,16 @@ MR <: MempoolReader[TX] : ClassTag]
           // parse all modifiers and put them to modifiers cache
           val parsed: Iterable[PMOD] = parseModifiers(expectedModifiers, serializer, remote)
           parsed.foreach(pmod => putToCacheIfValid(remote, pmod))
-          // remove elements from cache if it's size exceeds the limit, reset status for removed modifiers
-          val cleared = modifiersCache.cleanOverfull()
-          if (cleared.nonEmpty) {
-            log.debug(s"${cleared.size} modifiers ${cleared.map(_.encodedId)} were removed from overfull cache")
-            cleared.foreach(removed => deliveryTracker.stopProcessing(removed.id))
+          if (parsed.nonEmpty) {
+            // remove elements from cache if it's size exceeds the limit, reset status for removed modifiers
+            val cleared = modifiersCache.cleanOverfull()
+            if (cleared.nonEmpty) {
+              log.debug(s"${cleared.size} modifiers ${idsToString(typeId, cleared.map(_.id))} were removed from cache")
+              cleared.foreach(removed => deliveryTracker.stopProcessing(removed.id))
+            }
+            // send changed cache to node view holder to try to apply new modifiers
+            viewHolderRef ! ChangedCache[PMOD, HR, ModifiersCache[PMOD, HR]](modifiersCache)
           }
-          // send changed cache to node view holder to try to apply new modifiers
-          viewHolderRef ! ChangedCache[PMOD, HR, ModifiersCache[PMOD, HR]](modifiersCache)
-
         case _ =>
           log.error(s"Undefined serializer for modifier of type $typeId")
       }
@@ -357,9 +360,6 @@ MR <: MempoolReader[TX] : ClassTag]
                           typeId: ModifierTypeId,
                           modifiers: Map[ModifierId, Array[Byte]]): Map[ModifierId, Array[Byte]] = {
 
-    log.info(s"Got ${modifiers.size} modifiers of type $typeId from remote connected peer: $remote")
-    log.trace(s"Received modifier ids ${modifiers.keySet.map(encoder.encode).mkString(",")}")
-
     val (expected, spam) = modifiers.partition { case (id, _) =>
       deliveryTracker.isExpecting(id)
     }
@@ -380,7 +380,7 @@ MR <: MempoolReader[TX] : ClassTag]
     */
   protected def checkDelivery: Receive = {
     case CheckDelivery(peerOpt, modifierTypeId, modifierId) =>
-      if (deliveryTracker.status(modifierId, Seq()) == ModifiersStatus.Requested) {
+      if (deliveryTracker.status(modifierId) == ModifiersStatus.Requested) {
         peerOpt match {
           case Some(peer) =>
             log.info(s"Peer ${peer.toString} has not delivered asked modifier ${encoder.encode(modifierId)} on time")
