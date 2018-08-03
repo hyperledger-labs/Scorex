@@ -2,10 +2,9 @@ package examples.spv.simulation
 
 import examples.spv.{Header, KMZProofSerializer, SpvAlgos}
 import scorex.core.transaction.state.PrivateKey25519Companion
-import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Blake2b256
 
-object SPVSimulator extends App with ScorexLogging with SimulatorFuctions {
+object SPVSimulator extends App with SimulatorFuctions {
 
   private val Height = 500000
   private val Difficulty = BigInt(1)

@@ -11,7 +11,8 @@ import scorex.core.app.Version
 import scorex.core.network.PeerConnectionHandler.{AwaitingHandshake, WorkingCycle}
 import scorex.core.network.message.MessageHandler
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.NetworkTimeProvider
+import scorex.util.ScorexLogging
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

@@ -8,8 +8,8 @@ import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import scorex.core.{ModifierId, bytesToId, idToBytes}
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.consensus.ModifierSemanticValidity.{Absent, Unknown}
-import scorex.core.utils.ScorexLogging
 import scorex.crypto.hash.Sha256
+import scorex.util.ScorexLogging
 
 import scala.util.{Failure, Random, Try}
 

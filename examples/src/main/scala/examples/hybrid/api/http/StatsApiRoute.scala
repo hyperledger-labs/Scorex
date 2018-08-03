@@ -10,7 +10,7 @@ import io.circe.syntax._
 import scorex.core.ModifierId
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView, ApiTry}
 import scorex.core.settings.RESTApiSettings
-import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core.utils.ScorexEncoding
 
 import scala.util.Try
 

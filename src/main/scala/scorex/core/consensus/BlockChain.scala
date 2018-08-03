@@ -2,8 +2,8 @@ package scorex.core.consensus
 
 import scorex.core.block.Block
 import scorex.core.transaction.Transaction
-import scorex.core.utils.ScorexLogging
 import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.util.ScorexLogging
 
 import scala.util.Try
 

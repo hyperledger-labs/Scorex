@@ -7,7 +7,7 @@ import java.util
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
-import scorex.core.utils.ScorexLogging
+import scorex.util.ScorexLogging
 import scorex.core._
 
 import scala.util.Try

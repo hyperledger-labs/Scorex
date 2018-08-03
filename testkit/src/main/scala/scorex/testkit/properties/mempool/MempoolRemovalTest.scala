@@ -6,9 +6,9 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.utils.ScorexLogging
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.ArbitraryTransactionsCarryingModifierProducer
+import scorex.util.ScorexLogging
 
 trait MempoolRemovalTest[
 TX <: Transaction,
