@@ -2,6 +2,7 @@
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
+  resolvers += Resolver.sonatypeRepo("public"),
   wartremoverErrors ++= Seq(
     Wart.Recursion,
     Wart.TraversableOps,
@@ -50,8 +51,6 @@ git.gitUncommittedChanges in ThisBuild := true
 
 scalaVersion := "2.12.3"
 organization := "org.scorexfoundation"
-
-resolvers += Resolver.sonatypeRepo("public")
 
 val circeVersion = "0.8.0"
 
