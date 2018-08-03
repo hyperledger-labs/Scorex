@@ -8,14 +8,14 @@ dependencyOverrides in ThisBuild ++= Seq(
   "com.google.guava" % "guava" % "19.0",
   "com.iheart" % "ficus_2.12" % "1.4.2",
   "com.sun.mail" % "javax.mail" % "1.6.0",
-  "com.typesafe" % "config" % "1.3.2",
+  "com.typesafe" % "config" % "1.3.3",
   "com.typesafe" % "ssl-config-core_2.12" % "0.2.3",
-  "com.typesafe.akka" % "akka-actor_2.12" % "2.5.13",
+  "com.typesafe.akka" % "akka-actor_2.12" % "2.5.14",
   "com.typesafe.akka" % "akka-http-core_2.12" % "10.1.3",
   "com.typesafe.akka" % "akka-http_2.12" % "10.1.3",
   "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.3",
-  "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.13",
-  "com.typesafe.akka" % "akka-stream_2.12" % "2.5.13",
+  "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.14",
+  "com.typesafe.akka" % "akka-stream_2.12" % "2.5.14",
   "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.9.0",
   "commons-net" % "commons-net" % "3.6",
   "de.heikoseeberger" % "akka-http-circe_2.12" % "1.19.0",
@@ -33,7 +33,7 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.scala-lang.modules" % "scala-parser-combinators_2.12" % "1.1.0",
   "org.scala-sbt" % "test-interface" % "1.0",
   "org.scalacheck" % "scalacheck_2.12" % "1.13.5",
-  "org.scorexfoundation" % "scorex-util_2.12" % "1.0.0",
+  "org.scorexfoundation" % "scorex-util_2.12" % "0.1.0-SNAPSHOT",
   "org.scorexfoundation" % "scrypto_2.12" % "2.1.2",
   "org.slf4j" % "slf4j-api" % "1.8.0-beta1",
   "org.spire-math" % "jawn-parser_2.12" % "0.11.0",
@@ -44,4 +44,4 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.typelevel" % "macro-compat_2.12" % "1.1.1",
   "org.whispersystems" % "curve25519-java" % "0.5.0"
 )
-// LIBRARY_DEPENDENCIES_HASH aebed209d3605c23eb0efd0b71e127d0f854fab0
+// LIBRARY_DEPENDENCIES_HASH ef44d35ca037c0b275c55012b0cd0d23209384cd

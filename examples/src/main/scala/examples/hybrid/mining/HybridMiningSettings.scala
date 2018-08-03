@@ -10,7 +10,6 @@ import scorex.core.bytesToId
 import scorex.core.settings.ScorexSettings.readConfigFromPath
 import scorex.core.settings._
 import scorex.util.ScorexLogging
-import scorex.core.utils.ByteStr
 
 import scala.concurrent.duration._
 
