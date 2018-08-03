@@ -51,10 +51,7 @@ git.gitUncommittedChanges in ThisBuild := true
 scalaVersion := "2.12.3"
 organization := "org.scorexfoundation"
 
-resolvers ++= Seq(
-  "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/",
-  "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
-)
+resolvers += Resolver.sonatypeRepo("public")
 
 val circeVersion = "0.8.0"
 
