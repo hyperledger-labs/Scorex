@@ -8,7 +8,8 @@ import scala.util.{Failure, Success, Try}
 
 package object utils {
 
-  type ScorexLogging = scorex.utils.ScryptoLogging
+  @Deprecated("Use scorex.util.ScorexLogging instead.")
+  type ScorexLogging = scorex.util.ScorexLogging
 
   /**
     * @param block - function to profile
