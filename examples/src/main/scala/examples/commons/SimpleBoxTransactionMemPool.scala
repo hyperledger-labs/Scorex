@@ -1,9 +1,9 @@
 package examples.commons
 
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.ModifierId
 import scorex.core.transaction.MemoryPool
 import scorex.core.utils.ScorexLogging
+import scorex.util.ModifierId
 
 import scala.collection.concurrent.TrieMap
 import scala.util.{Success, Try}

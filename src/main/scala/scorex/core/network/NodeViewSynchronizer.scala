@@ -14,6 +14,7 @@ import scorex.core.transaction.wallet.VaultReader
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
 import scorex.core.{PersistentNodeViewModifier, _}
+import scorex.util.ModifierId
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

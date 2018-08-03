@@ -3,6 +3,7 @@ package examples.spv
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core._
 import scorex.core.utils.ScorexEncoding
+import scorex.util._
 
 import scala.annotation.tailrec
 import scala.util.Try

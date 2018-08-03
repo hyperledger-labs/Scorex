@@ -15,6 +15,7 @@ import scorex.core.transaction.wallet.{BoxWallet, BoxWalletTransaction, WalletBo
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.Blake2b256
+import scorex.util._
 
 import scala.util.Try
 

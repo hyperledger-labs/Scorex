@@ -1,10 +1,10 @@
 package scorex.core.validation
 
 import org.scalatest.{FlatSpec, Matchers}
-import scorex.core.bytesToId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.utils.ScorexEncoding
 import scorex.core.validation.ValidationResult._
+import scorex.util._
 
 import scala.util.{Failure, Try}
 

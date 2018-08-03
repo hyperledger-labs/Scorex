@@ -7,8 +7,9 @@ import akka.testkit.TestProbe
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
-import scorex.core.{ModifierId, ModifierTypeId, bytesToId}
+import scorex.core.ModifierTypeId
 import scorex.crypto.hash.Blake2b256
+import scorex.util._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

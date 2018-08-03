@@ -1,6 +1,7 @@
 package scorex.core.transaction
 
-import scorex.core.{ModifierId, NodeViewComponent}
+import scorex.core.NodeViewComponent
+import scorex.util.ModifierId
 
 /**
   * Unconfirmed transactions pool

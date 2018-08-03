@@ -6,6 +6,7 @@ import scorex.core.consensus.{History, HistoryReader, ModifierSemanticValidity, 
 import scorex.core.consensus.History.ModifierIds
 import scorex.core.serialization.Serializer
 import scorex.crypto.hash.Blake2b256
+import scorex.util._
 
 import scala.util.Try
 

@@ -7,7 +7,8 @@ import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.consensus.History.{Equal, HistoryComparisonResult, Older, Younger}
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
-import scorex.core.{ModifierId, ModifierTypeId, bytesToId}
+import scorex.core.ModifierTypeId
+import scorex.util.ModifierId
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
 class HybridHistorySpecification extends PropSpec

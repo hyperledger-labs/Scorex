@@ -9,6 +9,7 @@ import scorex.core.block.Block._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
 import scorex.core._
+import scorex.util._
 
 import scala.annotation.tailrec
 import scala.util.Random

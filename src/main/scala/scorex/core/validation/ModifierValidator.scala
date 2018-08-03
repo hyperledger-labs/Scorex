@@ -1,11 +1,11 @@
 package scorex.core.validation
 
 
-import scorex.core.ModifierId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.utils.{ScorexEncoder, ScorexLogging}
 import scorex.core.validation.ValidationResult._
 import scorex.crypto.encode.BytesEncoder
+import scorex.util.ModifierId
 
 import scala.util.Try
 

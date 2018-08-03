@@ -13,6 +13,7 @@ import scorex.core.transaction.state.{BoxStateChangeOperation, BoxStateChanges, 
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
 import scorex.crypto.authds._
 import scorex.mid.state.BoxMinimalState
+import scorex.util._
 
 import scala.util.{Failure, Success, Try}
 

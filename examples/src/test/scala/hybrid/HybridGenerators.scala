@@ -14,10 +14,11 @@ import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
 import scorex.core.transaction.wallet.WalletBox
-import scorex.core.{ModifierId, NodeViewModifier}
+import scorex.core.NodeViewModifier
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Signature
 import scorex.testkit.utils.{FileUtils, NoShrink}
+import scorex.util.ModifierId
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration._

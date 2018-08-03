@@ -1,8 +1,8 @@
 package examples.spv
 
 import com.google.common.primitives.{Bytes, Shorts}
-import scorex.core.ModifierId
 import scorex.core.serialization.Serializer
+import scorex.util.ModifierId
 
 import scala.annotation.tailrec
 import scala.util.Try

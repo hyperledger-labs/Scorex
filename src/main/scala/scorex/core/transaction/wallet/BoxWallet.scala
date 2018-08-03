@@ -8,6 +8,7 @@ import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Pro
 import scorex.core.transaction.state.Secret
 import scorex.core.utils.ScorexEncoding
 import scorex.core._
+import scorex.util._
 
 import scala.util.Try
 

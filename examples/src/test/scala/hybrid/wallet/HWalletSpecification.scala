@@ -6,11 +6,11 @@ import examples.hybrid.wallet.HBoxWallet
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.bytesToId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.signatures.Signature
+import scorex.util._
 
 import scala.annotation.tailrec
 import scala.util.Random

@@ -2,7 +2,8 @@ package examples.trimchain.modifiers
 
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo
 import scorex.core.serialization.Serializer
-import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.core.ModifierTypeId
+import scorex.util.ModifierId
 
 class UtxoSnapshot(override val parentId: ModifierId,
                    header: BlockHeader,

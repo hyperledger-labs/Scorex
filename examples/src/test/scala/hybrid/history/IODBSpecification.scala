@@ -7,9 +7,9 @@ import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, Outcome, fixture}
-import scorex.core.ModifierId
 import scorex.core.utils.ScorexEncoding
 import scorex.testkit.utils.FileUtils
+import scorex.util.ModifierId
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class IODBSpecification extends fixture.PropSpec

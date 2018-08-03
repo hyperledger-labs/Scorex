@@ -11,6 +11,8 @@ import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.util.ModifierId
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}

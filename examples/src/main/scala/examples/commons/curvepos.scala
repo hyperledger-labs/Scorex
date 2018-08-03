@@ -2,6 +2,7 @@ package examples
 
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core._
+import scorex.util._
 import supertagged.TaggedType
 
 package object commons {

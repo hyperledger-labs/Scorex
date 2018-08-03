@@ -7,10 +7,10 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.syntax._
-import scorex.core.ModifierId
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView, ApiTry}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.util.ModifierId
 
 import scala.util.Try
 

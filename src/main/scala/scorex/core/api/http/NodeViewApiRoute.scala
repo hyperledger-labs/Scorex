@@ -12,7 +12,8 @@ import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, PersistentNodeViewModifier, bytesToId}
+import scorex.core.PersistentNodeViewModifier
+import scorex.util._
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
