@@ -4,7 +4,6 @@ import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicLong
 
 import org.apache.commons.net.ntp.NTPUDPClient
-import scorex.util.ScorexLogging
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -20,7 +19,7 @@ object NetworkTime {
 case class NetworkTimeProviderSettings(server: String, updateEvery: FiniteDuration, timeout: FiniteDuration)
 
 class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings)(implicit ec: ExecutionContext)
-  extends ScorexLogging {
+  extends scorex.util.ScorexLogging {
 
   private val lastUpdate = new AtomicLong(0)
   private var offset = new AtomicLong(0)
