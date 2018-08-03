@@ -8,7 +8,7 @@ import scala.util.{Failure, Success, Try}
 
 package object utils {
 
-  @Deprecated("Use scorex.util.ScorexLogging instead.")
+  @deprecated("Use scorex.util.ScorexLogging instead.", "scorex-util 0.1.0")
   type ScorexLogging = scorex.util.ScorexLogging
 
   /**
