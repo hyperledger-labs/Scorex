@@ -10,8 +10,9 @@ import scorex.core.network.message._
 import scorex.core.network.peer.PeerManagerRef
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.NetworkTimeProvider
 import scorex.core.{NodeViewHolder, PersistentNodeViewModifier}
+import scorex.util.ScorexLogging
 
 import scala.concurrent.ExecutionContext
 

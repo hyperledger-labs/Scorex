@@ -52,8 +52,6 @@ git.gitUncommittedChanges in ThisBuild := true
 scalaVersion := "2.12.3"
 organization := "org.scorexfoundation"
 
-resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
-
 val circeVersion = "0.8.0"
 
 val networkDependencies = Seq(
@@ -73,7 +71,6 @@ val apiDependencies = Seq(
 
 val loggingDependencies = Seq(
   "org.scorexfoundation" %% "scorex-util" % "0.1.1-SNAPSHOT",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.+",
   "ch.qos.logback" % "logback-classic" % "1.+"
 )
 

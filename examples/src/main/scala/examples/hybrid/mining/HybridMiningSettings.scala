@@ -9,7 +9,7 @@ import net.ceedubs.ficus.readers.ValueReader
 import scorex.core.bytesToId
 import scorex.core.settings.ScorexSettings.readConfigFromPath
 import scorex.core.settings._
-import scorex.core.utils.ScorexLogging
+import scorex.util.ScorexLogging
 
 import scala.concurrent.duration._
 

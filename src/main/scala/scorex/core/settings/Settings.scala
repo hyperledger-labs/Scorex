@@ -6,7 +6,8 @@ import java.net.InetSocketAddress
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
-import scorex.core.utils.{NetworkTimeProviderSettings, ScorexLogging}
+import scorex.core.utils.NetworkTimeProviderSettings
+import scorex.util.ScorexLogging
 
 import scala.concurrent.duration._
 
