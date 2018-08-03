@@ -8,6 +8,8 @@ import scala.util.{Failure, Success, Try}
 
 package object utils {
 
+  type ScorexLogging = scorex.utils.ScryptoLogging
+
   /**
     * @param block - function to profile
     * @return - execution time in seconds and function result

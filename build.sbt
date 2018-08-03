@@ -2,6 +2,7 @@
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
+  resolvers += Resolver.sonatypeRepo("public"),
   wartremoverErrors ++= Seq(
     Wart.Recursion,
     Wart.TraversableOps,
@@ -71,6 +72,7 @@ val apiDependencies = Seq(
 )
 
 val loggingDependencies = Seq(
+  "org.scorexfoundation" %% "scorex-util" % "0.1.0-SNAPSHOT",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.+",
   "ch.qos.logback" % "logback-classic" % "1.+"
 )
