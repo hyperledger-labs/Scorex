@@ -29,7 +29,7 @@ case class PublicKey25519Proposition(pubKeyBytes: PublicKey)
   override def serializer: Serializer[PublicKey25519Proposition] = PublicKey25519PropositionSerializer
 
   override def equals(obj: scala.Any): Boolean = obj match {
-    case p: PublicKey25519Proposition => p.pubKeyBytes sameElements pubKeyBytes
+    case p: PublicKey25519Proposition => java.util.Arrays.equals(p.pubKeyBytes, pubKeyBytes)
     case _ => false
   }
 
@@ -60,7 +60,7 @@ object PublicKey25519Proposition extends ScorexEncoding {
 
         val checkSumGenerated = calcCheckSum(addressBytes.dropRight(ChecksumLength))
 
-        if (checkSum.sameElements(checkSumGenerated))
+        if (java.util.Arrays.equals(checkSum, checkSumGenerated))
           Success(PublicKey25519Proposition(PublicKey @@ addressBytes.dropRight(ChecksumLength).tail))
         else Failure(new Exception("Wrong checksum"))
       }

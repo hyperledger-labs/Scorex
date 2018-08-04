@@ -17,7 +17,7 @@ class SemanticBlockValidator(hash: CryptographicHash[_ <: Digest]) extends Block
         //check brothers data
         require(powBlock.brothers.size == powBlock.brothersCount)
         if (powBlock.brothersCount > 0) {
-          require(hash(powBlock.brotherBytes) sameElements powBlock.brothersHash)
+          require(java.util.Arrays.equals(hash(powBlock.brotherBytes), powBlock.brothersHash))
         }
       case posBlock: PosBlock =>
         require(posBlock.timestamp >= 0)

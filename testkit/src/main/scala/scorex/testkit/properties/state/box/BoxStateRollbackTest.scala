@@ -1,44 +1,45 @@
 package scorex.testkit.properties.state.box
 
 import org.scalacheck.Gen
-import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier, VersionTag}
+import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.state._
-import scorex.core.transaction.BoxTransaction
+import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier, VersionTag, idToVersion}
 import scorex.mid.state.BoxMinimalState
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.SemanticallyValidTransactionsCarryingModifier
 
 @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 trait BoxStateRollbackTest[P <: Proposition,
-                            TX <: BoxTransaction[P, B],
-                            PM <: PersistentNodeViewModifier,
-                            CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[TX],
-                            B <: Box[P],
-                            ST <: BoxMinimalState[P, B, TX, PM, ST]]
+TX <: BoxTransaction[P, B],
+PM <: PersistentNodeViewModifier,
+CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[TX],
+B <: Box[P],
+ST <: BoxMinimalState[P, B, TX, PM, ST]]
   extends BoxStateTests[P, B, TX, PM, ST]
     with SemanticallyValidTransactionsCarryingModifier[TX, PM, CTM, ST]
     with TestkitHelpers {
 
   def stateChangesGenerator(state: ST): Gen[BoxStateChanges[P, B]]
+
   val transactionGenerator: Gen[TX]
 
   property("State version updates as expected") {
 
-    forAll(stateGen, minSuccessful(2)) {state =>
+    forAll(stateGen, minSuccessful(2)) { state =>
       var lastVersion = state.version
       var newState = state
 
-        forAll(versionTagGen) {newVersion: VersionTag =>
-          lastVersion shouldEqual newState.version
+      forAll(versionTagGen) { newVersion: VersionTag =>
+        lastVersion shouldEqual newState.version
 
-          val c = stateChangesGenerator(newState).sample.get
+        val c = stateChangesGenerator(newState).sample.get
 
-          newState = newState.applyChanges(c, newVersion).get
-          newState.version shouldBe newVersion
-          lastVersion = newVersion
-        }
+        newState = newState.applyChanges(c, newVersion).get
+        newState.version shouldBe newVersion
+        lastVersion = newVersion
+      }
     }
   }
 
@@ -92,7 +93,7 @@ trait BoxStateRollbackTest[P <: Proposition,
                 case _ => Some(op)
               }
             })
-            newState = newState.applyChanges(changes, VersionTag @@ block.id).get
+            newState = newState.applyChanges(changes, idToVersion(block.id)).get
             rollbackVersionOpt = Some(newState.version)
 
           case Some(rollbackVersion) =>
@@ -106,7 +107,7 @@ trait BoxStateRollbackTest[P <: Proposition,
                 case _ => Some(op)
               }
             })
-            newState = newState.applyChanges(changes, VersionTag @@ block.id).get
+            newState = newState.applyChanges(changes, idToVersion(block.id)).get
 
             changes.toAppend.foreach { b =>
               newState.closedBox(b.box.id).isDefined shouldBe true

@@ -8,13 +8,13 @@ import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier}
+import scorex.core._
 
 import scala.annotation.tailrec
 import scala.util.Try
 
 case class Header(parentId: BlockId,
-                  interlinks: Seq[Array[Byte]],
+                  interlinks: Seq[ModifierId],
                   stateRoot: Array[Byte],
                   transactionsRoot: Array[Byte],
                   timestamp: Block.Timestamp,
@@ -22,7 +22,7 @@ case class Header(parentId: BlockId,
 
   override val modifierTypeId: ModifierTypeId = ModifierTypeId @@ 100.toByte
 
-  override lazy val id: ModifierId = ModifierId @@ hashfn(bytes)
+  override lazy val id: ModifierId = bytesToId(hashfn(bytes))
 
   lazy val realDifficulty: BigInt = SpvAlgos.blockIdDifficulty(id)
 
@@ -49,15 +49,15 @@ object Header extends ScorexEncoding {
 object HeaderSerializer extends Serializer[Header] {
   override def toBytes(h: Header): Array[Byte] = {
     @tailrec
-    def interlinkBytes(links: Seq[Array[Byte]], acc: Array[Byte]): Array[Byte] = {
+    def interlinkBytes(links: Seq[ModifierId], acc: Array[Byte]): Array[Byte] = {
       if (links.isEmpty) {
         acc
       } else {
         // `links` is not empty, it is safe to call head
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-        val headLink: Array[Byte] = links.head
-        val repeating: Byte = links.count(_ sameElements headLink).toByte
-        interlinkBytes(links.drop(repeating), Bytes.concat(acc, Array(repeating), headLink))
+        val headLink: ModifierId = links.head
+        val repeating: Byte = links.count(_ == headLink).toByte
+        interlinkBytes(links.drop(repeating), Bytes.concat(acc, Array(repeating), idToBytes(headLink)))
       }
     }
     Bytes.concat(bytesWithoutInterlinks(h), interlinkBytes(h.interlinks, Array[Byte]()))
@@ -66,21 +66,21 @@ object HeaderSerializer extends Serializer[Header] {
   val BytesWithoutInterlinksLength: Int = 108
 
   def bytesWithoutInterlinks(h: Header): Array[Byte] = {
-    Bytes.concat(h.parentId, h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce))
+    Bytes.concat(idToBytes(h.parentId), h.transactionsRoot, h.stateRoot, Longs.toByteArray(h.timestamp), Ints.toByteArray(h.nonce))
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Header] = Try {
-    val parentId = ModifierId @@ bytes.slice(0, 32)
+    val parentId = bytesToId(bytes.slice(0, 32))
     val transactionsRoot = bytes.slice(32, 64)
     val stateRoot = bytes.slice(64, 96)
     val timestamp = Longs.fromByteArray(bytes.slice(96, 104))
     val nonce = Ints.fromByteArray(bytes.slice(104, 108))
 
     @tailrec
-    def parseInnerchainLinks(index: Int, acc: Seq[Array[Byte]]): Seq[Array[Byte]] = if (bytes.length > index) {
+    def parseInnerchainLinks(index: Int, acc: Seq[ModifierId]): Seq[ModifierId] = if (bytes.length > index) {
       val repeatN: Int = bytes.slice(index, index + 1).head
-      val link: Array[Byte] = bytes.slice(index + 1, index + 33)
-      val links: Seq[Array[Byte]] = Array.fill(repeatN)(link)
+      val link: ModifierId = bytesToId(bytes.slice(index + 1, index + 33))
+      val links: Seq[ModifierId] = Array.fill(repeatN)(link)
       parseInnerchainLinks(index + 33, acc ++ links)
     } else {
       acc

@@ -4,9 +4,10 @@ import com.google.common.primitives.{Ints, Longs}
 import examples.commons.{Nonce, PublicKey25519NoncedBox, Value}
 import examples.trimchain.core.Constants._
 import examples.trimchain.core.{Algos, Constants}
-import scorex.core.VersionTag
+import scorex.core.idToVersion
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{BoxStateChanges, Insertion}
+import scorex.crypto.authds.ADDigest
 
 object ValidationSimulator extends App with Simulators {
 
@@ -29,8 +30,9 @@ object ValidationSimulator extends App with Simulators {
   val genesisChanges: BoxStateChanges[PublicKey25519Proposition, PublicKey25519NoncedBox] =
     BoxStateChanges(genesisBoxes.map(box => Insertion[PublicKey25519Proposition, PublicKey25519NoncedBox](box)))
 
-  val genesisUtxo: InMemoryAuthenticatedUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, defaultId).applyChanges(genesisChanges, defaultId).get
-  val rootHash: VersionTag = genesisUtxo.rootHash
+  val genesisUtxo: InMemoryAuthenticatedUtxo = InMemoryAuthenticatedUtxo(genesisBoxes.size, None, idToVersion(defaultId))
+    .applyChanges(genesisChanges, idToVersion(defaultId)).get
+  val rootHash: ADDigest = genesisUtxo.rootHash
 
   var validationTime: Long = 0L
   (0 until ValidationNum) foreach { _ =>

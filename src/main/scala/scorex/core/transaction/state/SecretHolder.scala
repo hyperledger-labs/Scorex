@@ -64,7 +64,7 @@ object PrivateKey25519Companion extends SecretCompanion[PrivateKey25519] {
 
   override def owns(secret: PrivateKey25519, box: Box[_]): Boolean = {
     box.proposition match {
-      case p: PublicKey25519Proposition => p.pubKeyBytes sameElements secret.publicKeyBytes
+      case p: PublicKey25519Proposition => java.util.Arrays.equals(p.pubKeyBytes, secret.publicKeyBytes)
       case _ => false
     }
   }

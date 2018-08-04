@@ -90,7 +90,7 @@ class SyncTracker(nvsRef: ActorRef,
   def elapsedTimeSinceLastSync(): Long = timeProvider.time() - lastSyncInfoSentTime
 
   private def outdatedPeers(): Seq[ConnectedPeer] =
-    lastSyncSentTime.filter(t => (System.currentTimeMillis() - t._2).millis > maxInterval()).keys.toSeq
+    lastSyncSentTime.filter(t => (timeProvider.time() - t._2).millis > maxInterval()).keys.toSeq
 
   private def numOfSeniors(): Int = statuses.count(_._2 == Older)
 

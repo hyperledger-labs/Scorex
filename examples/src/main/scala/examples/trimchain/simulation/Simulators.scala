@@ -15,7 +15,9 @@ trait Simulators {
   val minerPubKey = minerKeys._2
   val minerPrivKey = minerKeys._1
 
-  val defaultId = VersionTag @@ (ModifierId @@ Array.fill(32)(0: Byte))
+  val defaultBytes = Array.fill(32)(0: Byte)
+  val defaultId = bytesToId(defaultBytes)
+  val defaultVersion = bytesToVersion(defaultBytes)
 
   def generateBlock(txs: Seq[SimpleBoxTransaction],
                     currentUtxo: InMemoryAuthenticatedUtxo,
@@ -24,7 +26,7 @@ trait Simulators {
     val txsHash = TransactionsRoot @@ hashfn(scorex.core.utils.concatBytes(txs.map(_.bytes)))
 
     val changes = PersistentAuthenticatedUtxo.changes(txs).get
-    val updUtxo = currentUtxo.applyChanges(changes, VersionTag @@ scorex.utils.Random.randomBytes()).get
+    val updUtxo = currentUtxo.applyChanges(changes, bytesToVersion(scorex.utils.Random.randomBytes())).get
 
     // TODO: review me - .get.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
