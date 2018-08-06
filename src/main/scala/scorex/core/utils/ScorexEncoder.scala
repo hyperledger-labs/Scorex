@@ -1,6 +1,6 @@
 package scorex.core.utils
 
-import scorex.crypto.encode.{Base16, BytesEncoder}
+import scorex.util.encode.{Base16, BytesEncoder}
 
 import scala.util.Try
 

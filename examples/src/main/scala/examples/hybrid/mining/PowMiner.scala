@@ -12,7 +12,7 @@ import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexEncoding
-import scorex.crypto.encode.Base58
+import scorex.util.encode.Base58
 import scorex.crypto.hash.Blake2b256
 import scorex.util.ScorexLogging
 

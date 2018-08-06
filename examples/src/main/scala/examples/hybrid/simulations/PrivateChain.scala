@@ -11,7 +11,7 @@ import examples.hybrid.wallet.HBoxWallet
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
-import scorex.crypto.encode.Base58
+import scorex.util.encode.Base58
 import scorex.crypto.signatures.PublicKey
 import scorex.util.ScorexLogging
 
