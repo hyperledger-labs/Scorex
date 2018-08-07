@@ -98,6 +98,7 @@ class SyncTracker(nvsRef: ActorRef,
     * Return the peers to which this node should send a sync signal, including:
     * outdated peers, if any, otherwise, all the peers with unknown status plus a random peer with
     * `Older` status.
+    * Updates lastSyncSentTime for all returned peers as a side effect
     */
   def peersToSyncWith(): Seq[ConnectedPeer] = {
     val outdated = outdatedPeers()

@@ -27,7 +27,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 /**
   * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
@@ -147,15 +147,13 @@ MR <: MempoolReader[TX] : ClassTag]
 
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      historyReaderOpt.foreach(r => sendSync(statusTracker, r.syncInfo))
+      historyReaderOpt.foreach(r => sendSync(statusTracker, r))
   }
 
-  protected def sendSync(syncTracker: SyncTracker, syncInfo: SI, sendToRandomIfEmpty: Boolean = false): Unit = {
+  protected def sendSync(syncTracker: SyncTracker, history: HR): Unit = {
     val peers = statusTracker.peersToSyncWith()
     if (peers.nonEmpty) {
-      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToPeers(peers))
-    } else if (sendToRandomIfEmpty) {
-      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(syncInfo), None), SendToRandom)
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(history.syncInfo), None), SendToPeers(peers))
     }
   }
 
@@ -288,8 +286,9 @@ MR <: MempoolReader[TX] : ClassTag]
         case Some(serializer: Serializer[PMOD]@unchecked) =>
           // parse all modifiers and put them to modifiers cache
           val parsed: Iterable[PMOD] = parseModifiers(requestedModifiers, serializer, remote)
-          parsed.foreach(pmod => putToCacheIfValid(remote, pmod))
           if (parsed.nonEmpty) {
+            parsed.foreach(pmod => putToCacheIfValid(remote, pmod))
+
             // remove elements from cache if it's size exceeds the limit, reset status for removed modifiers
             val cleared = modifiersCache.cleanOverfull()
             if (cleared.nonEmpty) {
@@ -342,6 +341,7 @@ MR <: MempoolReader[TX] : ClassTag]
           deliveryTracker.onReceive(id)
           Some(mod)
         case _ =>
+          // Penalize peer and do nothing - it will be switched to correct state on CheckDelivery
           penalizeMisbehavingPeer(remote)
           log.warn(s"Failed to parse modifier with declared id ${encoder.encode(id)} from ${remote.toString}")
           None
