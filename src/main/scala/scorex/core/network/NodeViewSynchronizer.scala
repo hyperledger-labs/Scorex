@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.NodeViewHolder.DownloadRequest
-import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, GetNodeViewChanges, TransactionsFromRemote}
+import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, ModifiersFromRemote, TransactionsFromRemote}
 import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ModifiersStatus.Requested
@@ -52,12 +52,6 @@ MR <: MempoolReader[TX] : ClassTag]
  modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext) extends Actor
   with ScorexLogging with ScorexEncoding {
 
-  /**
-    * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
-    */
-  protected lazy val modifiersCache: ModifiersCache[PMOD, HR] =
-    new DefaultModifiersCache[PMOD, HR](networkSettings.maxModifiersCacheSize)
-
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
@@ -84,7 +78,7 @@ MR <: MempoolReader[TX] : ClassTag]
     context.system.eventStream.subscribe(self, classOf[ChangedMempool[MR]])
     context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
     context.system.eventStream.subscribe(self, classOf[DownloadRequest])
-    context.system.eventStream.subscribe(self, classOf[ModifiersAppliedFromCache[PMOD]])
+    context.system.eventStream.subscribe(self, classOf[ModifiersProcessingResult[PMOD]])
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     statusTracker.scheduleSendSyncInfo()
@@ -125,7 +119,10 @@ MR <: MempoolReader[TX] : ClassTag]
     case ChangedMempool(reader: MR) =>
       mempoolReaderOpt = Some(reader)
 
-    case ModifiersAppliedFromCache(applied: Seq[PMOD]) =>
+    case ModifiersProcessingResult(applied: Seq[PMOD], cleared: Seq[PMOD]) =>
+      // stop processing for cleared modifiers
+      // applied modifiers state was already changed at `SyntacticallySuccessfulModifier`
+      cleared.foreach(m => deliveryTracker.stopProcessing(m.id))
       requestMoreModifiers(applied)
   }
 
@@ -286,29 +283,19 @@ MR <: MempoolReader[TX] : ClassTag]
         case Some(serializer: Serializer[PMOD]@unchecked) =>
           // parse all modifiers and put them to modifiers cache
           val parsed: Iterable[PMOD] = parseModifiers(requestedModifiers, serializer, remote)
-          if (parsed.nonEmpty) {
-            parsed.foreach(pmod => putToCacheIfValid(remote, pmod))
+          val valid: Iterable[PMOD] = parsed.filter(pmod => validateAndSetStatus(remote, pmod))
+          if (valid.nonEmpty) viewHolderRef ! ModifiersFromRemote[PMOD](valid)
 
-            // remove elements from cache if it's size exceeds the limit, reset status for removed modifiers
-            val cleared = modifiersCache.cleanOverfull()
-            if (cleared.nonEmpty) {
-              log.debug(s"${cleared.size} modifiers ${idsToString(typeId, cleared.map(_.id))} were removed from cache")
-              cleared.foreach(removed => deliveryTracker.stopProcessing(removed.id))
-            }
-            // send changed cache to node view holder to try to apply new modifiers
-            viewHolderRef ! ChangedCache[PMOD, HR, ModifiersCache[PMOD, HR]](modifiersCache)
-          }
         case _ =>
           log.error(s"Undefined serializer for modifier of type $typeId")
       }
   }
 
   /**
-    * Put `pmod` to `modifiersCache` if `pmod` is valid or may be valid in the future,
-    * penalize peer if `pmod` is permanently invalid
+    * Move `pmod` to `Invalid` if it is permanently invalid, to `Received` otherwise
     */
   @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
-  private def putToCacheIfValid(remote: ConnectedPeer, pmod: PMOD): Unit = {
+  private def validateAndSetStatus(remote: ConnectedPeer, pmod: PMOD): Boolean = {
     historyReaderOpt match {
       case Some(hr) =>
         hr.applicableTry(pmod) match {
@@ -316,12 +303,15 @@ MR <: MempoolReader[TX] : ClassTag]
             log.warn(s"Modifier ${pmod.encodedId} is permanently invalid", e)
             deliveryTracker.onInvalid(pmod.id)
             penalizeMisbehavingPeer(remote)
+            false
           case _ =>
-            modifiersCache.put(pmod.id, pmod)
+            deliveryTracker.onReceive(pmod.id)
+            true
         }
       case None =>
         log.error("Got modifier while history reader is not ready")
-        modifiersCache.put(pmod.id, pmod)
+        deliveryTracker.onReceive(pmod.id)
+        true
     }
   }
 
@@ -338,7 +328,6 @@ MR <: MempoolReader[TX] : ClassTag]
     modifiers.flatMap { case (id, bytes) =>
       serializer.parseBytes(bytes) match {
         case Success(mod) if id == mod.id =>
-          deliveryTracker.onReceive(id)
           Some(mod)
         case _ =>
           // Penalize peer and do nothing - it will be switched to correct state on CheckDelivery
@@ -523,10 +512,10 @@ object NodeViewSynchronizer {
     case class StartingPersistentModifierApplication[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends NodeViewHolderEvent
 
     /**
-      * After application of batch of modifiers from cache to History,
-      * NodeViewHolder sends this message, containing all just applied modifiers
+      * After application of batch of modifiers from cache to History, NodeViewHolder sends this message,
+      * containing all just applied modifiers and cleared from cache
       */
-    case class ModifiersAppliedFromCache[PMOD <: PersistentNodeViewModifier](modifiers: Seq[PMOD])
+    case class ModifiersProcessingResult[PMOD <: PersistentNodeViewModifier](applied: Seq[PMOD], cleared: Seq[PMOD])
 
     //hierarchy of events regarding modifiers application outcome
     trait ModificationOutcome extends NodeViewHolderEvent

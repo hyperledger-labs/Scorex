@@ -5,7 +5,7 @@ import akka.testkit.TestProbe
 import org.scalacheck.Gen
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.NodeViewHolder.ReceivableMessages.{ChangedCache, GetNodeViewChanges}
+import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, ModifiersFromRemote}
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
 import scorex.core.consensus.{History, SyncInfo}
@@ -225,7 +225,7 @@ MP <: MemoryPool[TX, MP]
 
       node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
       val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) { case m => m }
-      assert(!messages.exists(_.isInstanceOf[ChangedCache[PM, HT, _]]))
+      assert(!messages.exists(_.isInstanceOf[ModifiersFromRemote[PM]]))
     }
   }
 
@@ -239,7 +239,7 @@ MP <: MemoryPool[TX, MP]
       node ! DataFromPeer(new InvSpec(3), (mod.modifierTypeId, Seq(mod.id)), peer)
       node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
       vhProbe.fishForMessage(3 seconds) {
-        case m: ChangedCache[PM, HT, _] => m.cache.contains(mod.id)
+        case m: ModifiersFromRemote[PM] => m.modifiers.toSeq.contains(mod)
         case _ => false
       }
     }

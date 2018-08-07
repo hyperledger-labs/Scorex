@@ -2,8 +2,8 @@ package scorex.core
 
 import akka.actor.Actor
 import scorex.core.consensus.History.ProgressInfo
-import scorex.core.consensus.{History, HistoryReader, SyncInfo}
-import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{NodeViewChange, NodeViewHolderEvent}
+import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
@@ -40,6 +40,12 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   type NodeView = (HIS, MS, VL, MP)
 
   val scorexSettings: ScorexSettings
+
+  /**
+    * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
+    */
+  protected lazy val modifiersCache: ModifiersCache[PMOD, HIS] =
+    new DefaultModifiersCache[PMOD, HIS](scorexSettings.network.maxModifiersCacheSize)
 
   /**
     * The main data structure a node software is taking care about, a node view consists
@@ -306,9 +312,9 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     * Try to apply as much modifiers as possible and publish `ModifiersAppliedFromCache` message
     * with all just applied modifiers
     */
-  protected def processUpdatedCache: Receive = {
-    case cc: ChangedCache[PMOD@unchecked, HIS@unchecked, ModifiersCache[PMOD, HIS]@unchecked] =>
-      val modifiersCache: ModifiersCache[PMOD, HIS] = cc.cache
+  protected def processRemoteModifiers: Receive = {
+    case ModifiersFromRemote(mods: Seq[PMOD]) =>
+      mods.foreach(m => modifiersCache.put(m.id, m))
 
       log.debug(s"Cache size before: ${modifiersCache.size}")
 
@@ -324,7 +330,9 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       }
 
       val applied = applyLoop(Seq())
-      context.system.eventStream.publish(ModifiersAppliedFromCache(applied))
+      val cleared = modifiersCache.cleanOverfull()
+
+      context.system.eventStream.publish(ModifiersProcessingResult(applied, cleared))
       log.debug(s"Cache size after: ${modifiersCache.size}")
   }
 
@@ -353,7 +361,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   }
 
   override def receive: Receive =
-    processUpdatedCache orElse
+    processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
       processNewTransactions orElse
       getCurrentInfo orElse
@@ -372,10 +380,8 @@ object NodeViewHolder {
 
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
-    // ModifiersCache with new elements in it
-    case class ChangedCache[PM <: PersistentNodeViewModifier,
-    HR <: HistoryReader[PM, _ <: SyncInfo],
-    MC <: ModifiersCache[PM, HR]](cache: MC) extends NodeViewChange
+    // Modifiers received from the remote peer with new elements in it
+    case class ModifiersFromRemote[PM <: PersistentNodeViewModifier](modifiers: Iterable[PM])
 
     sealed trait NewTransactions[TX <: Transaction]{
       val txs: Iterable[TX]
