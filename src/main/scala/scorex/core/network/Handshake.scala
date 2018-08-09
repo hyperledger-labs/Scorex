@@ -18,7 +18,7 @@ case class Handshake(applicationName: String,
   require(Option(protocolVersion).isDefined)
 }
 
-class HandshakeSerializer(featureSerializers: Map[PeerFeature.Id, Serializer[_ <: PeerFeature]],
+class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
                           maxHandshakeSize: Int) extends Serializer[Handshake] {
 
   override def toBytes(obj: Handshake): Array[Byte] = {

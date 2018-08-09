@@ -17,6 +17,7 @@ import scala.util.Try
 trait ObjectGenerators {
 
   object FullNodePeerFeature extends PeerFeature {
+    override type M = PeerFeature
     override val featureId: PeerFeature.Id = 1: Byte
 
     override def serializer: Serializer[PeerFeature] = new Serializer[PeerFeature] {

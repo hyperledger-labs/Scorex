@@ -13,11 +13,13 @@ import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers, GetConnectedPeers}
 import scorex.core.settings.RESTApiSettings
+import scorex.core.utils.NetworkTimeProvider
 
 import scala.concurrent.ExecutionContext
 
 case class PeersApiRoute(peerManager: ActorRef,
                          networkController: ActorRef,
+                         timeProvider: NetworkTimeProvider,
                          override val settings: RESTApiSettings)
                         (implicit val context: ActorRefFactory, val ec: ExecutionContext) extends ApiRoute {
 
@@ -55,7 +57,8 @@ case class PeersApiRoute(peerManager: ActorRef,
       case Some(addressAndPort) =>
         val host = InetAddress.getByName(addressAndPort.group(1))
         val port = addressAndPort.group(2).toInt
-        networkController ! ConnectTo(new InetSocketAddress(host, port))
+        val peerInfo = PeerInfo(timeProvider.time(), new InetSocketAddress(host, port), None, None, Seq())
+        networkController ! ConnectTo(peerInfo)
         ApiResponse.OK
     }
   }

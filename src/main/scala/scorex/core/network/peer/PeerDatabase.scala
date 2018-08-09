@@ -7,7 +7,7 @@ import scorex.core.utils.NetworkTime
 trait PeerDatabase {
   def isEmpty():Boolean
 
-  def addOrUpdateKnownPeer(peer: InetSocketAddress, peerInfo: PeerInfo): Unit
+  def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit
 
   def knownPeers(): Map[InetSocketAddress, PeerInfo]
 

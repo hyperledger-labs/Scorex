@@ -1,8 +1,8 @@
 package scorex.core.network
 
-import java.net.InetAddress
+import java.net.{InetAddress, InetSocketAddress}
 
-import org.bitlet.weupnp.{GatewayDevice, GatewayDiscover}
+import org.bitlet.weupnp.{GatewayDevice, GatewayDiscover, PortMappingEntry}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
 
@@ -63,5 +63,21 @@ class UPnP(settings: NetworkSettings) extends ScorexLogging {
     }
   }.recover { case t: Throwable =>
     log.error("Unable to delete mapping for port " + port + ": " + t.toString)
+  }
+
+  def getLocalAddressForExternalPort(extrenalPort: Int):Option[InetSocketAddress] = {
+    try {
+      val entry = new PortMappingEntry
+      if (gateway.get.getSpecificPortMappingEntry(extrenalPort, "TCP", entry)) {
+        val host = entry.getInternalClient
+        Some(new InetSocketAddress(InetAddress.getByName(host), entry.getInternalPort))
+      } else {
+        None
+      }
+    } catch {
+      case t: Throwable =>
+        log.error("Unable to get local address for external port " + extrenalPort + ": " + t.toString)
+        None
+    }
   }
 }

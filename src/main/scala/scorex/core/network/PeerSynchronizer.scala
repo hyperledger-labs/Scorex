@@ -8,6 +8,7 @@ import akka.util.Timeout
 import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
+import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeers}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.ScorexLogging
@@ -43,9 +44,19 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 
       //todo: externalize the number, check on receiving
       (peerManager ? RandomPeers(3))
-        .mapTo[Seq[InetSocketAddress]]
+        .mapTo[Seq[PeerInfo]]
         .foreach { peers =>
-          val msg = Message(PeersSpec, Right(peers), None)
+          val peerAddrs = if (remote.socketAddress.getAddress.isSiteLocalAddress) {
+            peers.map { peer =>
+              peer.features
+                .collectFirst { case LocalAddressPeerFeature(addr) => addr }
+                .getOrElse(peer.decalerdAddress)
+            }
+          } else {
+            peers.map(_.decalerdAddress)
+          }
+
+          val msg = Message(PeersSpec, Right(peerAddrs), None)
           networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(remote)))
         }
 

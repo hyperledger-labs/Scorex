@@ -1,6 +1,6 @@
 package scorex.core.network
 
-import java.net.{InetAddress, InetSocketAddress, NetworkInterface, URI}
+import java.net._
 
 import akka.actor._
 import akka.io.Tcp.SO.KeepAlive
@@ -9,6 +9,8 @@ import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
+import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerInfo}
+import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
 
@@ -28,7 +30,8 @@ class NetworkController(settings: NetworkSettings,
                         features: Seq[PeerFeature],
                         upnp: UPnP,
                         peerManagerRef: ActorRef,
-                        timeProvider: NetworkTimeProvider
+                        timeProvider: NetworkTimeProvider,
+                        tcpManager: ActorRef
                        )(implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
   import NetworkController.ReceivableMessages._
@@ -38,7 +41,10 @@ class NetworkController(settings: NetworkSettings,
 
   private implicit val system: ActorSystem = context.system
 
-  private val featureSerializers: PeerFeature.Serializers = features.map(f => f.featureId -> f.serializer).toMap
+  val a  = LocalAddressPeerFeature.featureId -> LocalAddressPeerFeatureSerializer
+  private val featureSerializers: PeerFeature.Serializers =
+    (features.map(f => f.featureId -> (f.serializer:Serializer[_ <: PeerFeature])) :+ a).toMap
+
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
 
   //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
@@ -47,8 +53,6 @@ class NetworkController(settings: NetworkSettings,
   private implicit val timeout: Timeout = Timeout(settings.controllerTimeout.getOrElse(5 seconds))
 
   private val messageHandlers = mutable.Map[Seq[Message.MessageCode], ActorRef]()
-
-  private val tcpManager = IO(Tcp)
 
   //check own declared address for validity
   if (!settings.localOnly) {
@@ -70,7 +74,7 @@ class NetworkController(settings: NetworkSettings,
     }
   }
 
-  lazy val localAddress = settings.bindAddress
+  lazy val bindAddress = settings.bindAddress
 
   //an address to send to peers
   lazy val externalSocketAddress: Option[InetSocketAddress] = {
@@ -78,16 +82,33 @@ class NetworkController(settings: NetworkSettings,
       if (settings.upnpEnabled) {
         upnp.externalAddress.map(a => new InetSocketAddress(a, settings.bindAddress.getPort))
       } else None
+    } orElse {
+      getPublicAddress
+    }
+  }
+
+  private def getPublicAddress = {
+    if (bindAddress.getAddress.isAnyLocalAddress) {
+      val allAddrs = NetworkInterface.getNetworkInterfaces.asScala
+        .flatMap(_.getInetAddresses.asScala)
+        .collect { case a: Inet4Address => a}
+        .toList
+
+      val addr = allAddrs.filterNot(a => a.isSiteLocalAddress || a.isLoopbackAddress).headOption
+      addr.map(a => new InetSocketAddress(a, bindAddress.getPort))
+    } else if (!bindAddress.getAddress.isSiteLocalAddress) {
+      Some(bindAddress)
+    } else {
+      None
     }
   }
 
   log.info(s"Declared address: $externalSocketAddress")
 
-
   lazy val connTimeout = Some(settings.connectionTimeout)
 
   //bind to listen incoming connections
-  tcpManager ! Bind(self, localAddress, options = KeepAlive(true) :: Nil, pullMode = false)
+  tcpManager ! Bind(self, bindAddress, options = KeepAlive(true) :: Nil, pullMode = false)
 
   private def bindingLogic: Receive = {
     case Bound(_) =>
@@ -129,8 +150,10 @@ class NetworkController(settings: NetworkSettings,
   private val outgoing = mutable.Set[InetSocketAddress]()
 
   def peerLogic: Receive = {
-    case ConnectTo(remote) =>
-      log.info(s"Connecting to: $remote")
+    case ConnectTo(peer) =>
+      log.info(s"Connecting to peer: $peer")
+      val remote = getPeerAddress(peer)
+
       outgoing += remote
       tcpManager ! Connect(remote,
                           options = KeepAlive(true) :: Nil,
@@ -156,7 +179,16 @@ class NetworkController(settings: NetworkSettings,
       }
       log.info(logMsg)
       val connection = sender()
-      val connectionDescription = ConnectionDescription(connection, direction, externalSocketAddress, remote, features)
+
+      val peerFeatures = if (remote.getAddress.isSiteLocalAddress() || remote.getAddress.isLoopbackAddress()) {
+        features :+ LocalAddressPeerFeature(new InetSocketAddress(local.getAddress, settings.bindAddress.getPort))
+      } else {
+        features
+      }
+
+      val connectionDescription = ConnectionDescription(
+        connection, direction, externalSocketAddress, remote, peerFeatures)
+
       val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
         messageHandler, handshakeSerializer, connectionDescription, timeProvider)
       context.actorOf(handlerProps) // launch connection handler
@@ -195,6 +227,21 @@ class NetworkController(settings: NetworkSettings,
     case nonsense: Any =>
       log.warn(s"NetworkController: got something strange $nonsense")
   }
+
+  private def getPeerAddress(peer: PeerInfo): InetSocketAddress = {
+    val peerLocalAddress = peer.features.collectFirst { case LocalAddressPeerFeature(addr) => addr }
+    val remote = peerLocalAddress match {
+      case Some(addr) =>
+        addr
+
+      case None if settings.upnpEnabled && externalSocketAddress.exists(_.getAddress == peer.decalerdAddress.getAddress) =>
+        val addr = upnp.getLocalAddressForExternalPort(peer.decalerdAddress.getPort)
+        addr.getOrElse(peer.decalerdAddress)
+
+      case _ => peer.decalerdAddress
+    }
+    remote
+  }
 }
 
 object NetworkController {
@@ -202,7 +249,7 @@ object NetworkController {
     case class RegisterMessagesHandler(specs: Seq[MessageSpec[_]], handler: ActorRef)
     case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
     case object ShutdownNetwork
-    case class ConnectTo(address: InetSocketAddress)
+    case class ConnectTo(peer: PeerInfo)
     case class DisconnectFrom(peer: ConnectedPeer)
     case class Blacklist(peer: ConnectedPeer)
   }
@@ -214,8 +261,9 @@ object NetworkControllerRef {
             features: Seq[PeerFeature],
             upnp: UPnP,
             peerManagerRef: ActorRef,
-            timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
-    Props(new NetworkController(settings, messageHandler, features, upnp, peerManagerRef, timeProvider))
+            timeProvider: NetworkTimeProvider,
+            tcpManager: ActorRef)(implicit ec: ExecutionContext): Props =
+    Props(new NetworkController(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, tcpManager))
 
   def apply(settings: NetworkSettings,
             messageHandler: MessageHandler,
@@ -224,7 +272,18 @@ object NetworkControllerRef {
             peerManagerRef: ActorRef,
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider))
+    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, IO(Tcp)))
+
+  def apply(name: String,
+            settings: NetworkSettings,
+            messageHandler: MessageHandler,
+            features: Seq[PeerFeature],
+            upnp: UPnP,
+            peerManagerRef: ActorRef,
+            timeProvider: NetworkTimeProvider,
+            tcpManager: ActorRef)
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, tcpManager), name)
 
   def apply(name: String,
             settings: NetworkSettings,
@@ -234,5 +293,5 @@ object NetworkControllerRef {
             peerManagerRef: ActorRef,
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider), name)
+    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, IO(Tcp)), name)
 }

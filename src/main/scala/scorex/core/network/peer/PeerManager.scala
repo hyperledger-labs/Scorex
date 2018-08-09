@@ -32,14 +32,14 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address, None)) {
-        val defaultPeerInfo = PeerInfo(timeProvider.time(), None, None, Seq())
-        peerDatabase.addOrUpdateKnownPeer(address, defaultPeerInfo)
+        val defaultPeerInfo = PeerInfo(timeProvider.time(), address, None, None, Seq())
+        peerDatabase.addOrUpdateKnownPeer(defaultPeerInfo)
       }
     }
   }
 
-  private def randomPeer(): Option[InetSocketAddress] = {
-    val peers = peerDatabase.knownPeers().keys.toSeq
+  private def randomPeer(): Option[PeerInfo] = {
+    val peers = peerDatabase.knownPeers().values.toSeq
     if (peers.nonEmpty) Some(peers(Random.nextInt(peers.size)))
     else None
   }
@@ -47,8 +47,8 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   private def peerListOperations: Receive = {
     case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt, features) =>
       if (!isSelf(address, None)) {
-        val peerInfo = PeerInfo(timeProvider.time(), peerNameOpt, connTypeOpt, features)
-        peerDatabase.addOrUpdateKnownPeer(address, peerInfo)
+        val peerInfo = PeerInfo(timeProvider.time(), address, peerNameOpt, connTypeOpt, features)
+        peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 
     case KnownPeers =>
@@ -58,7 +58,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
       sender() ! randomPeer()
 
     case RandomPeers(howMany: Int) =>
-      sender() ! Random.shuffle(peerDatabase.knownPeers().keys.toSeq).take(howMany)
+      sender() ! Random.shuffle(peerDatabase.knownPeers().values.toSeq).take(howMany)
 
     case FilterPeers(sendingStrategy: SendingStrategy) =>
       sender() ! sendingStrategy.choose(connectedPeers.values.toSeq)
@@ -156,11 +156,13 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
   override def receive: Receive = ({
     case CheckPeers =>
       if (connectedPeers.size + connectingPeers.size < settings.network.maxConnections) {
-        randomPeer().foreach { address =>
+        randomPeer().foreach { peerInfo =>
           //todo: avoid picking too many peers from the same bucket, see Bitcoin ref. impl.
-          if (!connectedPeers.exists(_._1 == address) &&
-            !connectingPeers.exists(_.getHostName == address.getHostName)) {
-            sender() ! ConnectTo(address)
+          val connectedPeersAddrs = connectedPeers.values.flatMap(_.handshake.declaredAddress)
+          if (!connectedPeersAddrs.exists(_ == peerInfo.decalerdAddress) /*&&
+            !connectedPeersAddrs.exists(_.getHostName == peerInfo.decalerdAddress.getHostName)*/) {
+
+            sender() ! ConnectTo(peerInfo)
           }
         }
       }
