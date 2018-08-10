@@ -155,7 +155,7 @@ class DeliveryTracker(system: ActorSystem,
     } else if (oldStatus == Received) {
       received.remove(id)
     }
-    assert(status(id) == Unknown, "Intermediate check, that modifier status was cleared")
+    assert(status(id) == Unknown, "Intermediate check that modifier status was cleared")
     if (newStatus == Received) {
       received.add(id)
     } else if (newStatus == Requested) {
@@ -167,7 +167,7 @@ class DeliveryTracker(system: ActorSystem,
   }.ensuring(oldStatus => isCorrectTransition(oldStatus, newStatus))
 
   /**
-    * Self-check, that transition between states is correct.
+    * Self-check that transition between states is correct.
     *
     * Modifier may stay in current state,
     * go to Requested state form Unknown

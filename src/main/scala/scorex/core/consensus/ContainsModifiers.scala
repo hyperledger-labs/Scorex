@@ -3,7 +3,7 @@ package scorex.core.consensus
 import scorex.core.{ModifierId, NodeViewModifier}
 
 /**
-  * Object, that contains modifiers of type `MOD`
+  * Object that contains modifiers of type `MOD`
   */
 trait ContainsModifiers[MOD <: NodeViewModifier] {
 
