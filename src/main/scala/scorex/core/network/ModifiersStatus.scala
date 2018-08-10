@@ -21,7 +21,8 @@ object ModifiersStatus {
   case object Received extends ModifiersStatus
 
   /**
-    * This modifier was already applied to history
+    * This modifier is already on NodeViewHoder - applied to History if it is PersistentModifier or
+    * in MemPool if it is Ephemereal modifier.
     */
   case object Applied extends ModifiersStatus
 
