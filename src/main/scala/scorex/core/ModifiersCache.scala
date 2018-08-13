@@ -11,6 +11,9 @@ import scala.util.{Failure, Success}
 /**
   * A cache which is storing persistent modifiers not applied to history yet.
   *
+  * This trait is not thread-save so it should be used only as a local field of an actor
+  * and its methods should not be called from lambdas, Future, Future.map, etc.
+  *
   * @tparam PMOD - type of a persistent node view modifier (or a family of modifiers).
   */
 trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]] extends ContainsModifiers[PMOD] {

@@ -30,6 +30,9 @@ import scala.util.{Failure, Try}
   * this modifier anymore)
   * Locally generated modifiers may go to `Held` or `Invalid` states at any time.
   * These rules are also described in `isCorrectTransition` function.
+  *
+  * This class is not thread-save so it should be used only as a local field of an actor
+  * and its methods should not be called from lambdas, Future, Future.map, etc.
   */
 class DeliveryTracker(system: ActorSystem,
                       deliveryTimeout: FiniteDuration,

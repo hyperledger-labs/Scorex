@@ -316,9 +316,9 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   /**
-    * Parse modifiers using specified serializer, check that it's id is equal to the declared one,
+    * Parse modifiers using specified serializer, check that its id is equal to the declared one,
     * penalize misbehaving peer for every incorrect modifier,
-    * call deliveryTracker.onReceive() for every correct modifier to update it's status
+    * call deliveryTracker.onReceive() for every correct modifier to update its status
     *
     * @return collection of parsed modifiers
     */
@@ -363,8 +363,8 @@ MR <: MempoolReader[TX] : ClassTag]
   /**
     * Scheduler asking node view synchronizer to check whether requested modifiers have been delivered.
     * Do nothing, if modifier is already in a different state (it might be already received, applied, etc.),
-    * wait for delivery until the number of checks does not exceed the maximum if the peer sent `Inv` for this modifier
-    * re-request modifier from a different random peer, if our node do not know a peer who have it
+    * wait for delivery until the number of checks exceeds the maximum if the peer sent `Inv` for this modifier
+    * re-request modifier from a different random peer, if our node does not know a peer who have it
     */
   protected def checkDelivery: Receive = {
     case CheckDelivery(peerOpt, modifierTypeId, modifierId) =>

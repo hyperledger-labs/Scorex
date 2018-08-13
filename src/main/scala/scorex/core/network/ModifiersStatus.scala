@@ -1,8 +1,8 @@
 package scorex.core.network
 
-object ModifiersStatus {
+sealed trait ModifiersStatus
 
-  sealed trait ModifiersStatus
+object ModifiersStatus {
 
   /**
     * This modifier is unknown to our node
