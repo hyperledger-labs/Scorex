@@ -20,15 +20,15 @@ import scala.util.{Failure, Try}
   * Modifiers in `Requested` state are kept in `requested` map containing info about peer and number of retries.
   * Modifiers in `Received` state are kept in `received` set.
   * Modifiers in `Invalid` state are kept in `invalid` set to prevent this modifier download and processing.
-  * Modifiers in `Applied` state are not kept in this class - we can get this status from object, that contains
+  * Modifiers in `Held` state are not kept in this class - we can get this status from object, that contains
   * these modifiers (History for PersistentNodeViewModifier, Mempool for EphemerealNodeViewModifier).
   * If we can't identify modifiers status based on the rules above, it's status is Unknown.
   *
-  * In success path modifier changes his statuses `Unknown`->`Requested`->`Received`->`Applied`.
+  * In success path modifier changes his statuses `Unknown`->`Requested`->`Received`->`Held`.
   * If something went wrong (e.g. modifier was not delivered) it goes back to `Unknown` state
   * (if we are going to receive it in future) or to `Invalid` state (if we are not going to receive
   * this modifier anymore)
-  * Locally generated modifiers may go to `Applied` or `Invalid` states at any time.
+  * Locally generated modifiers may go to `Held` or `Invalid` states at any time.
   * These rules are also described in `isCorrectTransition` function.
   */
 class DeliveryTracker(system: ActorSystem,
@@ -60,7 +60,7 @@ class DeliveryTracker(system: ActorSystem,
     } else if (invalid.contains(id)) {
       Invalid
     } else if (modifierKeepers.exists(_.contains(id))) {
-      Applied
+      Held
     } else {
       Unknown
     }
@@ -117,7 +117,7 @@ class DeliveryTracker(system: ActorSystem,
     * Modifier was successfully applied to history - set it status to applied
     */
   def onApply(mid: ModifierId): Unit = {
-    updateStatus(mid, Applied)
+    updateStatus(mid, Held)
   }
 
   /**
@@ -179,7 +179,7 @@ class DeliveryTracker(system: ActorSystem,
   protected def isCorrectTransition(oldStatus: ModifiersStatus, newStatus: ModifiersStatus): Boolean = {
     oldStatus match {
       case old if old == newStatus => true
-      case old if newStatus == Invalid || newStatus == Applied => true
+      case old if newStatus == Invalid || newStatus == Held => true
       case Unknown => newStatus == Requested
       case Requested => newStatus == Unknown || newStatus == Received
       case Received => newStatus == Unknown

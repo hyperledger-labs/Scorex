@@ -24,7 +24,7 @@ object ModifiersStatus {
     * This modifier is already on NodeViewHoder - applied to History if it is PersistentModifier or
     * in MemPool if it is Ephemereal modifier.
     */
-  case object Applied extends ModifiersStatus
+  case object Held extends ModifiersStatus
 
   /**
     * This modifier is permanently invalid - never try to download it

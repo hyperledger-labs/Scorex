@@ -66,7 +66,7 @@ class DeliveryTrackerSpecification extends PropSpec
 
     modids.foreach(id => history.put(new FakeModifier(id)))
     modids.foreach(id => tracker.onApply(id))
-    modids.foreach(id => tracker.status(id, history) shouldBe Applied)
+    modids.foreach(id => tracker.status(id, history) shouldBe Held)
   }
 
   property("persistent modifier workflow") {
@@ -91,7 +91,7 @@ class DeliveryTrackerSpecification extends PropSpec
 
     history.put(new FakeModifier(received))
     tracker.onApply(received)
-    tracker.status(received, history) shouldBe Applied
+    tracker.status(received, history) shouldBe Held
 
     // received incorrect modifier
     val invalid = modids.last
