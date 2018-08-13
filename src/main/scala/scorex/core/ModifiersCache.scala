@@ -52,7 +52,7 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
     */
   def cleanOverfull(): Seq[V]
 
-  def put(key: K, value: V): Unit = synchronized {
+  def put(key: K, value: V): Unit = {
     if (!contains(key)) {
       onPut(key)
       cache.put(key, value)
@@ -65,14 +65,14 @@ trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD
     * @param key - modifier's key
     * @return - removed value if existed
     */
-  def remove(key: K): Option[V] = synchronized {
+  def remove(key: K): Option[V] = {
     cache.remove(key).map { removed =>
       onRemove(key)
       removed
     }
   }
 
-  def popCandidate(history: H): Option[V] = synchronized {
+  def popCandidate(history: H): Option[V] = {
     findCandidateKey(history).flatMap(k => remove(k))
   }
 }
