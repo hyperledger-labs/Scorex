@@ -5,7 +5,8 @@ import scorex.core._
 import scala.util.Try
 
 
-trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends NodeViewComponent {
+trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends NodeViewComponent
+  with ContainsModifiers[PM] {
 
   import History._
 
@@ -14,38 +15,13 @@ trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends No
     */
   def isEmpty: Boolean
 
-  /**
-    * Whether the history contains the given modifier
-    *
-    * @param persistentModifier - modifier
-    * @return
-    */
-  def contains(persistentModifier: PM): Boolean = contains(persistentModifier.id)
-
-  /**
-    * Whether the history contains a modifier with the given id
-    *
-    * @param id - modifier's id
-    * @return
-    */
-  def contains(id: ModifierId): Boolean = modifierById(id).isDefined
-
-  /**
+   /**
     * Whether a modifier could be applied to the history
     *
     * @param modifier  - modifier to apply
     * @return `Success` if modifier can be applied, `Failure(ModifierError)` if can not
     */
   def applicableTry(modifier: PM): Try[Unit]
-
-
-    /**
-    * Return modifier of type PM with id == modifierId
-    *
-    * @param modifierId - modifier id to get from history
-    * @return
-    */
-  def modifierById(modifierId: ModifierId): Option[PM]
 
   /**
     * Return semantic validity status of modifier with id == modifierId

@@ -6,8 +6,8 @@ import scorex.core.api.http.ApiError
 import scorex.core.validation.ValidationResult.{Invalid, Valid}
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
 import scala.language.implicitConversions
+import scala.util.{Failure, Success, Try}
 
 /** Base trait for the result of validation
   */

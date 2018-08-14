@@ -5,10 +5,10 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
+import scorex.core._
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.utils.ScorexLogging
-import scorex.core._
 
 import scala.util.Try
 
@@ -47,7 +47,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
     val count = Ints.fromByteArray(bytes.slice(1, 5))
 
     require(count > 0, "empty inv list")
-    require(count <= maxInvObjects, s"more invs than $maxInvObjects in a message")
+    require(count <= maxInvObjects, s"$count elements in a message while limit is $maxInvObjects")
 
     val elems = (0 until count).map { c =>
       bytesToId(bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize))
