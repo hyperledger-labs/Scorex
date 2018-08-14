@@ -11,10 +11,10 @@ import scorex.core.{ModifierId, NodeViewComponent}
 trait MempoolReader[TX <: Transaction] extends NodeViewComponent with ContainsModifiers[TX] {
 
   //getters
-  override def modifierById(modifierId: ModifierId): Option[TX] = getById(modifierId)
+  override def modifierById(modifierId: ModifierId): Option[TX]
 
-  // TODO remove getById?
-  def getById(id: ModifierId): Option[TX]
+  @deprecated("use modifierById instead", "2018-08-14")
+  def getById(id: ModifierId): Option[TX] = modifierById(id)
 
   def contains(id: ModifierId): Boolean
 

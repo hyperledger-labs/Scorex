@@ -308,9 +308,10 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     }
 
   /**
-    * Received cache with new modifiers.
-    * Try to apply as much modifiers as possible and publish `ModifiersAppliedFromCache` message
-    * with all just applied modifiers
+    * Process new modifiers from remote.
+    * Put all candidates to modifiersCache and then try to apply as much modifiers from cache as possible.
+    * Clear cache if it's size exceeds size limit.
+    * Publish `ModifiersProcessingResult` message with all just applied and removed from cache modifiers.
     */
   protected def processRemoteModifiers: Receive = {
     case ModifiersFromRemote(mods: Seq[PMOD]) =>

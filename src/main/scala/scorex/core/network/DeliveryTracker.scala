@@ -15,8 +15,8 @@ import scala.util.{Failure, Try}
 
 /**
   * This class tracks modifier statuses.
-  * Modifier can be in one of the following states: Unknown, Requested, Received, Applied, Invalid. See
-  * ModifiersStatus for states description.
+  * Modifier can be in one of the following states: Unknown, Requested, Received, Held, Invalid.
+  * See ModifiersStatus for states description.
   * Modifiers in `Requested` state are kept in `requested` map containing info about peer and number of retries.
   * Modifiers in `Received` state are kept in `received` set.
   * Modifiers in `Invalid` state are kept in `invalid` set to prevent this modifier download and processing.
@@ -52,8 +52,8 @@ class DeliveryTracker(system: ActorSystem,
 
   /**
     * @return status of modifier `id`.
-    *         Since we do not keep statuses for already applied modifiers,
-    *         `modifierKeepers` are required here to check that modifier was already applied
+    *         Since this class do not keep statuses for modifiers that are already in NodeViewHolder,
+    *         `modifierKeepers` are required here to check that modifier is in `Held` status
     */
   def status(id: ModifierId, modifierKeepers: Seq[ContainsModifiers[_]]): ModifiersStatus = {
     if (received.contains(id)) {
