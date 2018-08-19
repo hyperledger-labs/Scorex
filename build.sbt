@@ -174,3 +174,5 @@ pomExtra in ThisBuild :=
 //FindBugs settings
 
 findbugsReportType := Some(FindbugsReport.PlainHtml)
+
+connectInput in run := true
