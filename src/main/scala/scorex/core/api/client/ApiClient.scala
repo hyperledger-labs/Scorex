@@ -24,7 +24,7 @@ class ApiClient(settings: RESTApiSettings) {
       } else ""
 
       // fixme: magic string "http://127.0.0.1:" should come from settings.
-      // fixme: Shouldn' we use the address from the bind address instead of 127.0.0.1?
+      // fixme: Shouldn't we use the address from the bind address instead of 127.0.0.1?
       val url = new URL("http://127.0.0.1:" + settings.bindAddress.getPort + "/" + path)
       val connection = url.openConnection().asInstanceOf[HttpURLConnection]
       connection.setRequestMethod(method)

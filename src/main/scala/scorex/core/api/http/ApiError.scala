@@ -1,6 +1,6 @@
 package scorex.core.api.http
 
-import akka.http.scaladsl.model.{StatusCode, StatusCodes}
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCode, StatusCodes}
 import akka.http.scaladsl.server.{Directives, Route}
 
 import scala.language.implicitConversions
@@ -12,8 +12,9 @@ case class ApiError(statusCode: StatusCode, reason: String = "") {
 
   def complete(detail: String = ""): Route = {
     val nonEmptyReason = if (reason.isEmpty) statusCode.reason else reason
-    val body = if (detail.isEmpty) nonEmptyReason else s"$nonEmptyReason $detail"
-    Directives.complete(statusCode.intValue() -> body)
+    val result = if (detail.isEmpty) nonEmptyReason else s"$nonEmptyReason $detail"
+    val httpEntity = HttpEntity(ContentTypes.`application/json`, result)
+    Directives.complete(statusCode.intValue() -> httpEntity)
   }
 }
 
