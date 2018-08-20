@@ -5,6 +5,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import com.google.common.primitives.{Bytes, Ints, Longs, Shorts}
 import scorex.core.app.{ApplicationVersionSerializer, Version}
 import scorex.core.serialization.Serializer
+
 import scala.util.Try
 
 case class Handshake(applicationName: String,

@@ -32,17 +32,17 @@ trait ExamplesCommonGenerators extends CoreGenerators {
     txs <- smallInt.flatMap(i => Gen.listOfN(i, simpleBoxTransactionGen))
   } yield txs
 
-  def simpleBoxTransactionGenCustomMakeBoxes (toBoxes: IndexedSeq[(PublicKey25519Proposition, Value)]): Gen[SimpleBoxTransaction] = for {
+  def simpleBoxTransactionGenCustomMakeBoxes(toBoxes: IndexedSeq[(PublicKey25519Proposition, Value)]): Gen[SimpleBoxTransaction] = for {
     fee <- positiveLongGen
     timestamp <- positiveLongGen
-    from: IndexedSeq[(PrivateKey25519, Nonce)] <- Gen.choose(1,1).flatMap(i => Gen.listOfN(i + 1, privGen).map(_.toIndexedSeq))
+    from: IndexedSeq[(PrivateKey25519, Nonce)] <- Gen.choose(1, 1).flatMap(i => Gen.listOfN(i + 1, privGen).map(_.toIndexedSeq))
     to = toBoxes
   } yield SimpleBoxTransaction(from, to, fee, timestamp)
 
-  def simpleBoxTransactionGenCustomUseBoxes (fromBoxes: IndexedSeq[(PrivateKey25519, Nonce)]): Gen[SimpleBoxTransaction] = for {
+  def simpleBoxTransactionGenCustomUseBoxes(fromBoxes: IndexedSeq[(PrivateKey25519, Nonce)]): Gen[SimpleBoxTransaction] = for {
     fee <- positiveLongGen
     timestamp <- positiveLongGen
     from = fromBoxes
-    to: IndexedSeq[(PublicKey25519Proposition, Value)] <- Gen.choose(1,1).flatMap(i => Gen.listOfN(i, pGen).map(_.toIndexedSeq))
+    to: IndexedSeq[(PublicKey25519Proposition, Value)] <- Gen.choose(1, 1).flatMap(i => Gen.listOfN(i, pGen).map(_.toIndexedSeq))
   } yield SimpleBoxTransaction(from, to, fee, timestamp)
 }

@@ -1,6 +1,5 @@
 package examples.commons
 
-import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.ModifierId
 import scorex.core.transaction.MemoryPool
 import scorex.core.utils.ScorexLogging
@@ -14,8 +13,7 @@ case class SimpleBoxTransactionMemPool(unconfirmed: TrieMap[ModifierId, SimpleBo
   override type NVCT = SimpleBoxTransactionMemPool
 
   //getters
-  override def getById(id: ModifierId): Option[SimpleBoxTransaction] =
-  unconfirmed.get(id)
+  override def modifierById(id: ModifierId): Option[SimpleBoxTransaction] = unconfirmed.get(id)
 
   override def contains(id: ModifierId): Boolean = unconfirmed.contains(id)
 

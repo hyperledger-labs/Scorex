@@ -1,13 +1,13 @@
 package scorex.core.transaction.wallet
 
 import com.google.common.primitives.{Bytes, Longs}
+import scorex.core._
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
 import scorex.core.utils.ScorexEncoding
-import scorex.core._
 
 import scala.util.Try
 
