@@ -1,7 +1,8 @@
 package scorex.core.network.peer
 
 import java.net.InetSocketAddress
-import scorex.core.utils.{NetworkTime, ScorexLogging}
+
+import scorex.core.utils.{NetworkTime, ScorexLogging, TimeProvider}
 
 import scala.collection.mutable
 
@@ -11,7 +12,7 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with Score
 
   private val whitelistPersistence = mutable.Map[InetSocketAddress, PeerInfo]()
 
-  private val blacklist = mutable.Map[String, NetworkTime.Time]()
+  private val blacklist = mutable.Map[String, TimeProvider.Time]()
 
   override def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit = {
     log.trace(s"Add or Update known peer: ${peerInfo}")
@@ -28,7 +29,7 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with Score
     whitelistPersistence.put(peerInfo.decalerdAddress, updatedPeerInfo)
   }
 
-  override def blacklistPeer(address: InetSocketAddress, time: NetworkTime.Time): Unit = {
+  override def blacklistPeer(address: InetSocketAddress, time: TimeProvider.Time): Unit = {
     log.warn(s"Black list peer: ${address.toString}")
     whitelistPersistence.remove(address)
     if (!isBlacklisted(address)) blacklist += address.getHostName -> time

@@ -3,7 +3,7 @@ package scorex.core.network.peer
 import java.net.InetSocketAddress
 
 import org.scalatest.{FlatSpec, Matchers}
-import scorex.core.utils.NetworkTime
+import scorex.core.utils.{NetworkTime, TimeProvider}
 
 class PeerDatabaseImplSpec extends FlatSpec
   with Matchers {
@@ -11,7 +11,7 @@ class PeerDatabaseImplSpec extends FlatSpec
   private val peerAddress1 = new InetSocketAddress("1.1.1.1",27017)
   private val peerAddress2 = new InetSocketAddress("2.2.2.2",27017)
 
-  private def currentTime(): NetworkTime.Time = System.currentTimeMillis()
+  private def currentTime(): TimeProvider.Time = System.currentTimeMillis()
 
   "new DB" should "be empty" in {
     val db = new PeerDatabaseImpl(None)

@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging, TimeProvider}
 
 import scala.collection.mutable
 import scala.util.Random
@@ -14,7 +14,7 @@ import scala.util.Random
   * Peer manager takes care of peers connected and in process, and also chooses a random peer to connect
   * Must be singleton
   */
-class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) extends Actor with ScorexLogging {
+class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider) extends Actor with ScorexLogging {
 
   import PeerManager.ReceivableMessages._
   import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
@@ -38,8 +38,17 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
     }
   }
 
+  private def notConnectedPeers = {
+    peerDatabase.knownPeers().filterNot { case (addr, _) =>
+      val connected = connectedPeers.values.exists(p =>
+        p.localAddress.contains(addr) || p.handshake.declaredAddress.contains(addr)
+      )
+      connected || connectingPeers.contains(addr)
+    }.values.toSeq
+  }
+
   private def randomPeer(): Option[PeerInfo] = {
-    val peers = peerDatabase.knownPeers().values.toSeq
+    val peers = notConnectedPeers
     if (peers.nonEmpty) Some(peers(Random.nextInt(peers.size)))
     else None
   }
@@ -132,10 +141,10 @@ class PeerManager(settings: ScorexSettings, timeProvider: NetworkTimeProvider) e
         if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
           peer.handlerRef ! CloseConnection
         } else {
-          if (peer.publicPeer) {
+          if (peer.reachablePeer) {
             val peerName = Some(peer.handshake.nodeName)
             val peerFeats = peer.handshake.features
-            val address = peer.handshake.declaredAddress.getOrElse(peer.socketAddress)
+            val address = peer.handshake.declaredAddress.orElse(peer.localAddress).getOrElse(peer.socketAddress)
             self ! AddOrUpdatePeer(address, peerName, Some(peer.direction), peerFeats)
           } else {
             peerDatabase.remove(peer.socketAddress)
@@ -203,12 +212,12 @@ object PeerManager {
 }
 
 object PeerManagerRef {
-  def props(settings: ScorexSettings, timeProvider: NetworkTimeProvider): Props =
+  def props(settings: ScorexSettings, timeProvider: TimeProvider): Props =
     Props(new PeerManager(settings, timeProvider))
 
-  def apply(settings: ScorexSettings, timeProvider: NetworkTimeProvider)
+  def apply(settings: ScorexSettings, timeProvider: TimeProvider)
            (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider))
 
-  def apply(name: String, settings: ScorexSettings, timeProvider: NetworkTimeProvider)
+  def apply(name: String, settings: ScorexSettings, timeProvider: TimeProvider)
            (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider), name)
 }

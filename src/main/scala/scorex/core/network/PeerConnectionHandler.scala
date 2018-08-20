@@ -10,8 +10,9 @@ import com.google.common.primitives.Ints
 import scorex.core.app.Version
 import scorex.core.network.PeerConnectionHandler.{AwaitingHandshake, WorkingCycle}
 import scorex.core.network.message.MessageHandler
+import scorex.core.network.peer.LocalAddressPeerFeature
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{NetworkTimeProvider, ScorexLogging, TimeProvider}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -30,7 +31,13 @@ case class ConnectedPeer(socketAddress: InetSocketAddress,
 
   import shapeless.syntax.typeable._
 
-  def publicPeer: Boolean = handshake.declaredAddress.isDefined
+  def reachablePeer: Boolean = {
+    handshake.declaredAddress.isDefined || localAddress.isDefined
+  }
+
+  def localAddress: Option[InetSocketAddress] = {
+    handshake.features.collectFirst { case LocalAddressPeerFeature(addr) => addr }
+  }
 
   override def hashCode(): Int = socketAddress.hashCode()
 
@@ -56,7 +63,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
                             messageHandler: MessageHandler,
                             handshakeSerializer: HandshakeSerializer,
                             connectionDescription: ConnectionDescription,
-                            timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext)
+                            timeProvider: TimeProvider)(implicit ec: ExecutionContext)
   extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler.ReceivableMessages._
@@ -257,7 +264,7 @@ object PeerConnectionHandlerRef {
             messagesHandler: MessageHandler,
             handshakeSerializer: HandshakeSerializer,
             connectionDescription: ConnectionDescription,
-            timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
+            timeProvider: TimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, messagesHandler,
                                     handshakeSerializer, connectionDescription, timeProvider))
 
@@ -267,7 +274,7 @@ object PeerConnectionHandlerRef {
             messagesHandler: MessageHandler,
             handshakeSerializer: HandshakeSerializer,
             connectionDescription: ConnectionDescription,
-            timeProvider: NetworkTimeProvider)
+            timeProvider: TimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, handshakeSerializer,
                          connectionDescription, timeProvider))
@@ -279,7 +286,7 @@ object PeerConnectionHandlerRef {
             messagesHandler: MessageHandler,
             handshakeSerializer: HandshakeSerializer,
             connectionDescription: ConnectionDescription,
-            timeProvider: NetworkTimeProvider)
+            timeProvider: TimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, handshakeSerializer,
                          connectionDescription, timeProvider), name)

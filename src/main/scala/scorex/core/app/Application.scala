@@ -40,7 +40,8 @@ trait Application extends ScorexLogging {
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
   //p2p
-  lazy val upnp = new UPnP(settings.network)
+  lazy val upnpGetway = if (settings.network.upnpEnabled) UPnP.getValidGateway(settings.network) else None
+  upnpGetway.map(_.addPort(settings.network.bindAddress.getPort))
 
   private lazy val basicSpecs = {
     val invSpec = new InvSpec(settings.network.maxInvObjects)
@@ -70,7 +71,7 @@ trait Application extends ScorexLogging {
   val peerManagerRef = PeerManagerRef(settings, timeProvider)
 
   val networkControllerRef: ActorRef = NetworkControllerRef("networkController", settings.network,
-                                                            messagesHandler, features, upnp,
+                                                            messagesHandler, features, upnpGetway,
                                                             peerManagerRef, timeProvider)
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
@@ -98,7 +99,7 @@ trait Application extends ScorexLogging {
 
   def stopAll(): Unit = synchronized {
     log.info("Stopping network services")
-    if (settings.network.upnpEnabled) upnp.deletePort(settings.network.bindAddress.getPort)
+    upnpGetway.map(_.deletePort(settings.network.bindAddress.getPort))
     networkControllerRef ! ShutdownNetwork
 
     log.info("Stopping actors (incl. block generator)")

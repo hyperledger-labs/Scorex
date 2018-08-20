@@ -11,21 +11,24 @@ import scala.util.{Failure, Success}
 
 object NetworkTime {
   def localWithOffset(offset: Long): Long = System.currentTimeMillis() + offset
-
   type Offset = Long
-  type Time = Long
 }
 
 case class NetworkTimeProviderSettings(server: String, updateEvery: FiniteDuration, timeout: FiniteDuration)
 
 class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings)(implicit ec: ExecutionContext)
-  extends ScorexLogging {
+  extends  TimeProvider with ScorexLogging {
 
   private val lastUpdate = new AtomicLong(0)
   private var offset = new AtomicLong(0)
   private val client = new NTPUDPClient()
   client.setDefaultTimeout(ntpSettings.timeout.toMillis.toInt)
   client.open()
+
+  override def time(): TimeProvider.Time = {
+    checkUpdateRequired()
+    NetworkTime.localWithOffset(offset.get())
+  }
 
   private def updateOffset(): Future[NetworkTime.Offset] = Future {
     val info = client.getTime(InetAddress.getByName(ntpSettings.server))
@@ -52,11 +55,5 @@ class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings)(implicit ec:
       // No update required. Set lastUpdate back to it's initial value
       lastUpdate.compareAndSet(time, lu)
     }
-  }
-
-
-  def time(): NetworkTime.Time = {
-    checkUpdateRequired()
-    NetworkTime.localWithOffset(offset.get())
   }
 }

@@ -7,7 +7,7 @@ import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.SendLocalSyncInfo
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging}
+import scorex.core.utils.{ScorexLogging, TimeProvider}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -20,10 +20,10 @@ import scala.concurrent.duration.{FiniteDuration, _}
 class SyncTracker(nvsRef: ActorRef,
                   context: ActorContext,
                   networkSettings: NetworkSettings,
-                  timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends ScorexLogging {
+                  timeProvider: TimeProvider)(implicit ec: ExecutionContext) extends ScorexLogging {
 
   import History._
-  import scorex.core.utils.NetworkTime.Time
+  import scorex.core.utils.TimeProvider.Time
 
   private var schedule: Option[Cancellable] = None
 

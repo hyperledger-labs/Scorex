@@ -5,7 +5,7 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.io.Tcp
-import akka.io.Tcp.{Bind, Bound, Connected, Write}
+import akka.io.Tcp.{Message => _, _}
 import akka.io.Tcp.SO.KeepAlive
 import akka.testkit.TestActor.RealMessage
 import akka.testkit.TestProbe
@@ -16,7 +16,7 @@ import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerManagerRef}
 import scorex.core.settings.{NetworkSettings, ScorexSettings}
-import scorex.core.utils.NetworkTimeProvider
+import scorex.core.utils.{LocalTimeProvider, TimeProvider}
 import org.scalatest.TryValues._
 import org.scalatest.OptionValues._
 import org.scalatest.EitherValues._
@@ -30,7 +30,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
   import scala.concurrent.ExecutionContext.Implicits.global
   private val settings = ScorexSettings.read(None)
 
-  "A NetworkController" should "send local address on handshake when peer and node address is loopback" in {
+  "A NetworkController" should "send local address on handshake when peer and node address is localhost" in {
     implicit val system = ActorSystem()
 
     val tcpManagerProbe = TestProbe()
@@ -164,7 +164,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     system.terminate()
   }
 
-  it should "not send known local peers when public node is not in local network" in {
+  it should "not send known local address of peer when node is not in local network" in {
     implicit val system = ActorSystem()
 
     val tcpManagerProbe = TestProbe()
@@ -189,23 +189,74 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     testPeer2.sendHandshake(Some(peer2DeclaredAddr), None)
 
     testPeer2.sendGetPeers
-    testPeer2.receivePeers should contain theSameElementsAs Seq(peer1DecalredAddr, peer2DeclaredAddr)
+    testPeer2.receivePeers should not contain peer1LocalAddr
 
     system.terminate()
   }
+
+
+  it should "receive external address from UPnP gateway" in {
+    implicit val system = ActorSystem()
+
+    val tcpManagerProbe = TestProbe()
+
+    val upnp = DummyUPnPGateway(
+      InetAddress.getByName("88.44.33.11"),
+      InetAddress.getByName("192.169.1.11")
+    ) { _ => None }
+
+    val networkControllerRef: ActorRef = createNetworkController(settings, tcpManagerProbe, Some(upnp))
+
+    val testPeer1 = new TestPeer(settings, networkControllerRef, tcpManagerProbe)
+    val peer1DecalredAddr = new InetSocketAddress("88.77.66.55", 5678)
+    val peer1LocalAddr = new InetSocketAddress("192.168.1.55", 5678)
+    testPeer1.connect(peer1LocalAddr)
+    val handshakeFromPeer1 = testPeer1.receiveHandshake.success.value
+    handshakeFromPeer1.declaredAddress.value.getAddress should be (InetAddress.getByName("88.44.33.11"))
+    handshakeFromPeer1.declaredAddress.value.getPort should be (settings.network.bindAddress.getPort)
+
+    system.terminate()
+  }
+
+  it should "connect to local address of peer received from UPnP Gateway" in {
+    implicit val system = ActorSystem()
+
+    val tcpManagerProbe = TestProbe()
+
+    val knownPeerLocalAddress = new InetSocketAddress("192.168.1.56", 12345)
+    val knownPeerExternalAddress = new InetSocketAddress("88.44.33.11", 4567)
+
+    val settings2 = settings.copy(network = settings.network.copy(knownPeers = Seq(knownPeerExternalAddress)))
+
+    val upnp = DummyUPnPGateway(
+      InetAddress.getByName("88.44.33.11"),
+      InetAddress.getByName("192.169.1.11")
+    ) { _ => Some(knownPeerLocalAddress) }
+
+    val networkControllerRef: ActorRef = createNetworkController(settings2, tcpManagerProbe, Some(upnp))
+
+    import scala.concurrent.duration._
+    val connectAddr = tcpManagerProbe.expectMsgPF(10.seconds) {
+      case Tcp.Connect(addr, _, _, _, _) => addr
+    }
+
+    connectAddr should be (knownPeerLocalAddress)
+
+    system.terminate()
+  }
+
+
 
   private def extractLocalAddrFeat(handshakeFromNode: Try[Handshake]) = {
     handshakeFromNode.success.value.features.collectFirst { case a: LocalAddressPeerFeature => a }
   }
 
-  private def createNetworkController(settings: ScorexSettings, tcpManagerProbe: TestProbe)(implicit system:ActorSystem) = {
-    val timeProvider = new NetworkTimeProvider(settings.ntp)
+  private def createNetworkController(settings: ScorexSettings, tcpManagerProbe: TestProbe, upnp: Option[UPnPGateway] = None)(implicit system:ActorSystem) = {
+    val timeProvider = LocalTimeProvider
     val peerManagerRef = PeerManagerRef(settings, timeProvider)
 
     val messageSpecs = Seq(GetPeersSpec, PeersSpec)
     val messagesHandler = MessageHandler(messageSpecs)
-    val upnp = new UPnP(settings.network)
-
 
     val networkControllerRef: ActorRef = NetworkControllerRef("networkController", settings.network,
       messagesHandler, Seq.empty, upnp,
@@ -219,10 +270,23 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
   }
 }
 
+case class DummyUPnPGateway(override val externalAddress: InetAddress,
+                            override val localAddress: InetAddress)
+                           (getLocalAddrForExtPort: (Int => Option[InetSocketAddress])) extends UPnPGateway {
+
+  override def addPort(port: Int): Unit = {}
+
+  override def deletePort(port: Int): Unit = {}
+
+  override def getLocalAddressForExternalPort(extrenalPort: Int): Option[InetSocketAddress] = {
+    getLocalAddrForExtPort(extrenalPort)
+  }
+}
+
 class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpManagerProbe: TestProbe)
               (implicit ec:ExecutionContext) extends Matchers {
 
-  private val timeProvider = new NetworkTimeProvider(settings.ntp)
+  private val timeProvider = LocalTimeProvider
   private val featureSerializers = Map(LocalAddressPeerFeature.featureId -> LocalAddressPeerFeatureSerializer)
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.network.maxHandshakeSize)
   private val messageSpecs = Seq(GetPeersSpec, PeersSpec)
