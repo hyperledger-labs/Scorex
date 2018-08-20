@@ -245,7 +245,30 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     system.terminate()
   }
 
+  it should "not connect to it self" in {
+    implicit val system = ActorSystem()
 
+    val tcpManagerProbe = TestProbe()
+
+    val networkControllerRef: ActorRef = createNetworkController(settings, tcpManagerProbe, None)
+    val testPeer = new TestPeer(settings, networkControllerRef, tcpManagerProbe)
+
+    val peerLocalAddress = new InetSocketAddress("192.168.1.2", settings.network.bindAddress.getPort)
+
+    testPeer.connect(new InetSocketAddress("192.168.1.2", 5678))
+
+    val handshakeFromNode  = testPeer.receiveHandshake
+    val nodeLocalAddress = extractLocalAddrFeat(handshakeFromNode).value.address
+    testPeer.sendHandshake(None, Some(peerLocalAddress))
+    testPeer.sendPeers(Seq(nodeLocalAddress))
+
+    testPeer.sendGetPeers
+    val peers = testPeer.receivePeers
+
+    peers should contain theSameElementsAs (Seq(peerLocalAddress))
+    Thread.sleep(10000000000l)
+    system.terminate()
+  }
 
   private def extractLocalAddrFeat(handshakeFromNode: Try[Handshake]) = {
     handshakeFromNode.success.value.features.collectFirst { case a: LocalAddressPeerFeature => a }
