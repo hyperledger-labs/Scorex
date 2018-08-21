@@ -1,13 +1,10 @@
 package scorex.network
 
-import java.net
 import java.net.{InetAddress, InetSocketAddress}
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.io.Tcp
 import akka.io.Tcp.{Message => _, _}
 import akka.io.Tcp.SO.KeepAlive
-import akka.testkit.TestActor.RealMessage
 import akka.testkit.TestProbe
 import akka.util.ByteString
 import com.google.common.primitives.Ints
@@ -16,7 +13,7 @@ import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerManagerRef}
 import scorex.core.settings.{NetworkSettings, ScorexSettings}
-import scorex.core.utils.{LocalTimeProvider, TimeProvider}
+import scorex.core.utils.LocalTimeProvider
 import org.scalatest.TryValues._
 import org.scalatest.OptionValues._
 import org.scalatest.EitherValues._
@@ -84,7 +81,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     system.terminate()
   }
 
-  it should "send declared address when node and peer is public" in {
+  it should "send declared address when node and peer are public" in {
     implicit val system = ActorSystem()
 
     val tcpManagerProbe = TestProbe()
