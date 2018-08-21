@@ -27,7 +27,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
   import scala.concurrent.ExecutionContext.Implicits.global
   private val settings = ScorexSettings.read(None)
 
-  "A NetworkController" should "send local address on handshake when peer and node address is localhost" in {
+  "A NetworkController" should "send local address on handshake when peer and node address are in localhost" in {
     implicit val system = ActorSystem()
 
     val tcpManagerProbe = TestProbe()
@@ -242,7 +242,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     system.terminate()
   }
 
-  it should "not connect to it self" in {
+  it should "not connect to itself" in {
     implicit val system = ActorSystem()
 
     val tcpManagerProbe = TestProbe()
@@ -298,8 +298,8 @@ case class DummyUPnPGateway(override val externalAddress: InetAddress,
 
   override def deletePort(port: Int): Unit = {}
 
-  override def getLocalAddressForExternalPort(extrenalPort: Int): Option[InetSocketAddress] = {
-    getLocalAddrForExtPort(extrenalPort)
+  override def getLocalAddressForExternalPort(externalPort: Int): Option[InetSocketAddress] = {
+    getLocalAddrForExtPort(externalPort)
   }
 }
 
@@ -346,7 +346,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     handshakeFromNode
   }
 
-  def sendGetPeers: Unit = {
+  def sendGetPeers(): Unit = {
     val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
     sendMessage(msg)
   }
