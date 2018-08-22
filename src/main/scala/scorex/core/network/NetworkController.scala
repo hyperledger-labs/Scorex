@@ -12,7 +12,7 @@ import scorex.core.network.message.{Message, MessageHandler, MessageSpec}
 import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerInfo}
 import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging, TimeProvider}
+import scorex.core.utils.{NetworkTimeProvider, NetworkUtils, ScorexLogging, TimeProvider}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -31,7 +31,8 @@ class NetworkController(settings: NetworkSettings,
                         upnp: Option[UPnPGateway],
                         peerManagerRef: ActorRef,
                         timeProvider: TimeProvider,
-                        tcpManager: ActorRef
+                        tcpManager: ActorRef,
+                        externalNodeAddress: Option[InetSocketAddress]
                        )(implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
   import NetworkController.ReceivableMessages._
@@ -48,12 +49,18 @@ class NetworkController(settings: NetworkSettings,
 
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
 
-  //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
-  private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
-
   private implicit val timeout: Timeout = Timeout(settings.controllerTimeout.getOrElse(5 seconds))
 
   private val messageHandlers = mutable.Map[Message.MessageCode, ActorRef]()
+
+  lazy val bindAddress = settings.bindAddress
+
+  //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
+  private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
+
+  private def isSelf(peerAddress: InetSocketAddress): Boolean = {
+    NetworkUtils.isSelf(peerAddress, bindAddress, externalNodeAddress)
+  }
 
   //check own declared address for validity
   if (!settings.localOnly) {
@@ -63,30 +70,15 @@ class NetworkController(settings: NetworkSettings,
         val myHost = uri.getHost
         val myAddrs = InetAddress.getAllByName(myHost)
 
-        NetworkInterface.getNetworkInterfaces.asScala.exists { intf =>
-          intf.getInterfaceAddresses.asScala.exists { intfAddr =>
-            val extAddr = intfAddr.getAddress
-            myAddrs.contains(extAddr)
-          }
-        } || (upnp.exists(u => myAddrs.exists(_ == u.externalAddress)))
+        NetworkUtils.getListenAddresses(bindAddress).exists(myAddrs.contains) ||
+          (upnp.exists(u => myAddrs.exists(_ == u.externalAddress)))
       } recover { case t: Throwable =>
         log.error("Declared address validation failed: ", t)
       }
     }
   }
 
-  lazy val bindAddress = settings.bindAddress
-
-  //an address to send to peers
-  lazy val externalSocketAddress: Option[InetSocketAddress] = {
-    settings.declaredAddress orElse {
-      upnp.map(u => new InetSocketAddress(u.externalAddress, settings.bindAddress.getPort))
-    } orElse {
-      getPublicAddress
-    }
-  }
-
-  log.info(s"Declared address: $externalSocketAddress")
+  log.info(s"Declared address: $externalNodeAddress")
 
   lazy val connTimeout = Some(settings.connectionTimeout)
 
@@ -170,7 +162,7 @@ class NetworkController(settings: NetworkSettings,
       }
 
       val connectionDescription = ConnectionDescription(
-        connection, direction, externalSocketAddress, remote, peerFeatures)
+        connection, direction, getNodeAddressForPeer(local), remote, peerFeatures)
 
       val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
         messageHandler, handshakeSerializer, connectionDescription, timeProvider)
@@ -211,35 +203,51 @@ class NetworkController(settings: NetworkSettings,
       log.warn(s"NetworkController: got something strange $nonsense")
   }
 
-  private def getPublicAddress = {
-    if (bindAddress.getAddress.isAnyLocalAddress) {
-      val allAddrs = NetworkInterface.getNetworkInterfaces.asScala
-        .flatMap(_.getInetAddresses.asScala)
-        .collect { case a: Inet4Address => a}
-        .toList
-
-      val addr = allAddrs.filterNot(a => a.isSiteLocalAddress || a.isLoopbackAddress).headOption
-      addr.map(a => new InetSocketAddress(a, bindAddress.getPort))
-    } else if (!bindAddress.getAddress.isSiteLocalAddress) {
-      Some(bindAddress)
-    } else {
-      None
-    }
-  }
-
+  /**
+    * Get address for connect to peer. Returns local address for local connections and declared address for
+    * external connections. When local address is not known, try to ask it at the UPnP gateway
+    * @param peer - known information about peer
+    * @return socket address of the peer
+    */
   private def getPeerAddress(peer: PeerInfo): InetSocketAddress = {
     val peerLocalAddress = peer.features.collectFirst { case LocalAddressPeerFeature(addr) => addr }
     val remote = peerLocalAddress match {
       case Some(addr) =>
         addr
 
-      case None if externalSocketAddress.exists(_.getAddress == peer.decalerdAddress.getAddress) =>
+      case None if externalNodeAddress.exists(_.getAddress == peer.decalerdAddress.getAddress) =>
         val addr = upnp.flatMap(_.getLocalAddressForExternalPort(peer.decalerdAddress.getPort))
         addr.getOrElse(peer.decalerdAddress)
 
       case _ => peer.decalerdAddress
     }
     remote
+  }
+
+  /**
+    * Get the node address reachable from Internet
+    * @param localSocketAddress - local socket address of the connection to the peer
+    * @return - socket address of the node
+    */
+  private def getNodeAddressForPeer(localSocketAddress: InetSocketAddress) = {
+    val localAddr = localSocketAddress.getAddress
+    externalNodeAddress match {
+      case Some(extAddr) =>
+        Some(extAddr)
+
+      case None =>
+        if (!localAddr.isSiteLocalAddress && !localAddr.isLoopbackAddress) {
+          if (localSocketAddress.getPort == settings.bindAddress.getPort) {
+            Some(localSocketAddress)
+          } else {
+            NetworkUtils.getListenAddresses(settings.bindAddress)
+              .find(addr => addr.getAddress == addr.getAddress)
+          }
+        } else {
+          NetworkUtils.getListenAddresses(settings.bindAddress)
+            .find(addr => !addr.getAddress.isSiteLocalAddress && !addr.getAddress.isLoopbackAddress)
+        }
+    }
   }
 }
 
@@ -261,17 +269,24 @@ object NetworkControllerRef {
             upnp: Option[UPnPGateway],
             peerManagerRef: ActorRef,
             timeProvider: TimeProvider,
-            tcpManager: ActorRef)(implicit ec: ExecutionContext): Props =
-    Props(new NetworkController(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, tcpManager))
+            tcpManager: ActorRef,
+            externalNodeAddress: Option[InetSocketAddress])(implicit ec: ExecutionContext): Props = {
+    Props(new NetworkController(settings, messageHandler, features, upnp, peerManagerRef,
+      timeProvider, tcpManager, externalNodeAddress))
+  }
 
   def apply(settings: NetworkSettings,
             messageHandler: MessageHandler,
             features: Seq[PeerFeature],
             upnp: Option[UPnPGateway],
             peerManagerRef: ActorRef,
-            timeProvider: TimeProvider)
-           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, IO(Tcp)))
+            timeProvider: TimeProvider,
+            externalNodeAddress: Option[InetSocketAddress])
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef = {
+    system.actorOf(
+      props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, IO(Tcp),externalNodeAddress)
+    )
+  }
 
   def apply(name: String,
             settings: NetworkSettings,
@@ -280,9 +295,13 @@ object NetworkControllerRef {
             upnp: Option[UPnPGateway],
             peerManagerRef: ActorRef,
             timeProvider: TimeProvider,
-            tcpManager: ActorRef)
-           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, tcpManager), name)
+            tcpManager: ActorRef,
+            externalNodeAddress: Option[InetSocketAddress])
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef = {
+    system.actorOf(
+      props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, tcpManager, externalNodeAddress),
+      name)
+  }
 
   def apply(name: String,
             settings: NetworkSettings,
@@ -290,7 +309,12 @@ object NetworkControllerRef {
             features: Seq[PeerFeature],
             upnp: Option[UPnPGateway],
             peerManagerRef: ActorRef,
-            timeProvider: NetworkTimeProvider)
-           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, IO(Tcp)), name)
+            timeProvider: NetworkTimeProvider,
+            externalNodeAddress: Option[InetSocketAddress])
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef = {
+
+    system.actorOf(
+      props(settings, messageHandler, features, upnp, peerManagerRef, timeProvider, IO(Tcp), externalNodeAddress),
+      name)
+  }
 }

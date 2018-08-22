@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging, TimeProvider}
+import scorex.core.utils.{NetworkTimeProvider, NetworkUtils, ScorexLogging, TimeProvider}
 
 import scala.collection.mutable
 import scala.util.Random
@@ -14,7 +14,8 @@ import scala.util.Random
   * Peer manager takes care of peers connected and in process, and also chooses a random peer to connect
   * Must be singleton
   */
-class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider) extends Actor with ScorexLogging {
+class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider,
+                  externalNodeAddress: Option[InetSocketAddress]) extends Actor with ScorexLogging {
 
   import PeerManager.ReceivableMessages._
   import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
@@ -31,7 +32,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider) extends 
 
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
-      if (!isSelf(address, None)) {
+      if (!isSelf(address)) {
         val defaultPeerInfo = PeerInfo(timeProvider.time(), address, None, None, Seq())
         peerDatabase.addOrUpdateKnownPeer(defaultPeerInfo)
       }
@@ -55,7 +56,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider) extends 
 
   private def peerListOperations: Receive = {
     case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt, features) =>
-      if (!isSelf(address, None)) {
+      if (!isSelf(address)) {
         val peerInfo = PeerInfo(timeProvider.time(), address, peerNameOpt, connTypeOpt, features)
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
@@ -93,17 +94,11 @@ class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider) extends 
 
 
   /**
-    * Given a peer's address and declared address, returns `true` iff the peer is the same is this node.
+    * Given a peer's address, returns `true` if the peer is the same is this node.
     */
-  private def isSelf(address: InetSocketAddress, declaredAddress: Option[InetSocketAddress]): Boolean = {
-    // TODO: should the peer really be considered the same as self iff one of the following conditions hold?? Check carefully.
-    settings.network.bindAddress == address ||
-      settings.network.declaredAddress.exists(da => declaredAddress.contains(da)) ||
-      declaredAddress.contains(settings.network.bindAddress) ||
-      settings.network.declaredAddress.contains(address)
+  private def isSelf(peerAddress: InetSocketAddress): Boolean = {
+    NetworkUtils.isSelf(peerAddress, settings.network.bindAddress, externalNodeAddress)
   }
-
-  private var lastIdUsed = 0
 
   private def peerCycle: Receive = connecting orElse handshaked orElse disconnected
 
@@ -124,7 +119,6 @@ class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider) extends 
             connectingPeers += remote
           }
           peerHandlerRef ! StartInteraction
-          lastIdUsed += 1
         }
       }
   }
@@ -138,7 +132,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider) extends 
       } else {
         log.trace(s"Got handshake from $peer")
         //drop connection to self if occurred
-        if (peer.direction == Outgoing && isSelf(peer.socketAddress, peer.handshake.declaredAddress)) {
+        if (peer.direction == Outgoing && isSelf(peer.socketAddress)) {
           peer.handlerRef ! CloseConnection
         } else {
           if (peer.reachablePeer) {
@@ -212,12 +206,20 @@ object PeerManager {
 }
 
 object PeerManagerRef {
-  def props(settings: ScorexSettings, timeProvider: TimeProvider): Props =
-    Props(new PeerManager(settings, timeProvider))
+  def props(settings: ScorexSettings, timeProvider: TimeProvider,
+            externalNodeAddress: Option[InetSocketAddress]): Props = {
+    Props(new PeerManager(settings, timeProvider, externalNodeAddress))
+  }
 
-  def apply(settings: ScorexSettings, timeProvider: TimeProvider)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider))
+  def apply(settings: ScorexSettings, timeProvider: TimeProvider,
+            externalNodeAddress: Option[InetSocketAddress])
+           (implicit system: ActorSystem): ActorRef = {
+    system.actorOf(props(settings, timeProvider, externalNodeAddress))
+  }
 
-  def apply(name: String, settings: ScorexSettings, timeProvider: TimeProvider)
-           (implicit system: ActorSystem): ActorRef = system.actorOf(props(settings, timeProvider), name)
+  def apply(name: String, settings: ScorexSettings, timeProvider: TimeProvider,
+            externalNodeAddress: Option[InetSocketAddress])
+           (implicit system: ActorSystem): ActorRef = {
+    system.actorOf(props(settings, timeProvider, externalNodeAddress), name)
+  }
 }

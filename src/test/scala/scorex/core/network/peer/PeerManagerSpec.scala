@@ -29,8 +29,9 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
 
     val settings = ScorexSettings.read(None)
     val timeProvider = new NetworkTimeProvider(settings.ntp)
-    val peerManager = PeerManagerRef(settings, timeProvider)(system)
+
     val selfAddress = settings.network.bindAddress
+    val peerManager = PeerManagerRef(settings, timeProvider, Some(selfAddress))(system)
 
     peerManager ! AddOrUpdatePeer(selfAddress, None, None, Seq())
     peerManager ! GetAllPeers
@@ -47,7 +48,7 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
 
     val settings = ScorexSettings.read(None)
     val timeProvider = new NetworkTimeProvider(settings.ntp)
-    val peerManager = PeerManagerRef(settings, timeProvider)(system)
+    val peerManager = PeerManagerRef(settings, timeProvider, None)(system)
     val peerAddress = new InetSocketAddress("1.1.1.1", DefaultPort)
 
     peerManager ! AddOrUpdatePeer(peerAddress, None, None, Seq())
@@ -67,7 +68,7 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
 
     val settings = ScorexSettings.read(None)
     val timeProvider = new NetworkTimeProvider(settings.ntp)
-    val peerManager = PeerManagerRef(settings, timeProvider)(system)
+    val peerManager = PeerManagerRef(settings, timeProvider, None)(system)
     val pa1 = new InetSocketAddress("1.1.1.1", DefaultPort)
     val pa2 = new InetSocketAddress("some_host.com", DefaultPort)
 

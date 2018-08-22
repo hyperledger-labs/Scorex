@@ -1,5 +1,7 @@
 package scorex.core.app
 
+import java.net.InetSocketAddress
+
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.ExceptionHandler
@@ -40,8 +42,9 @@ trait Application extends ScorexLogging {
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
   //p2p
-  lazy val upnpGetway = if (settings.network.upnpEnabled) UPnP.getValidGateway(settings.network) else None
-  upnpGetway.map(_.addPort(settings.network.bindAddress.getPort))
+  lazy val upnpGateway = if (settings.network.upnpEnabled) UPnP.getValidGateway(settings.network) else None
+  // TODO use available port on gateway instead settings.network.bindAddress.getPort
+  upnpGateway.map(_.addPort(settings.network.bindAddress.getPort))
 
   private lazy val basicSpecs = {
     val invSpec = new InvSpec(settings.network.maxInvObjects)
@@ -67,12 +70,19 @@ trait Application extends ScorexLogging {
 
   val timeProvider = new NetworkTimeProvider(settings.ntp)
 
+  //an address to send to peers
+  lazy val externalSocketAddress: Option[InetSocketAddress] = {
+    settings.network.declaredAddress orElse {
+      // TODO use available port on gateway instead settings.bindAddress.getPort
+      upnpGateway.map(u => new InetSocketAddress(u.externalAddress, settings.network.bindAddress.getPort))
+    }
+  }
 
-  val peerManagerRef = PeerManagerRef(settings, timeProvider)
+  val peerManagerRef = PeerManagerRef(settings, timeProvider, externalSocketAddress)
 
   val networkControllerRef: ActorRef = NetworkControllerRef("networkController", settings.network,
-                                                            messagesHandler, features, upnpGetway,
-                                                            peerManagerRef, timeProvider)
+                                                            messagesHandler, features, upnpGateway,
+                                                            peerManagerRef, timeProvider, externalSocketAddress)
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 
@@ -99,7 +109,7 @@ trait Application extends ScorexLogging {
 
   def stopAll(): Unit = synchronized {
     log.info("Stopping network services")
-    upnpGetway.map(_.deletePort(settings.network.bindAddress.getPort))
+    upnpGateway.map(_.deletePort(settings.network.bindAddress.getPort))
     networkControllerRef ! ShutdownNetwork
 
     log.info("Stopping actors (incl. block generator)")

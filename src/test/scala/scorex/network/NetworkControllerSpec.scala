@@ -34,43 +34,47 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     val networkControllerRef: ActorRef = createNetworkController(settings, tcpManagerProbe)
     val testPeer = new TestPeer(settings, networkControllerRef, tcpManagerProbe)
 
-    testPeer.connect(new InetSocketAddress("127.0.0.1", 5678))
+    val peerAddr = new InetSocketAddress("127.0.0.1", 5678)
+    val nodeAddr = new InetSocketAddress("127.0.0.1", settings.network.bindAddress.getPort)
+    testPeer.connect(peerAddr, nodeAddr)
 
     val handshakeFromNode  = testPeer.receiveHandshake
     handshakeFromNode.success.value.declaredAddress shouldBe empty
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
-    localAddressFeature.value.address should be (new InetSocketAddress("127.0.0.1", settings.network.bindAddress.getPort))
+    localAddressFeature.value.address should be (nodeAddr)
 
     testPeer.sendHandshake(None, None)
     system.terminate()
   }
 
-  it should "send local address on handshake when the peer in local network" in {
+  it should "send local address on handshake when the peer are in local network" in {
     implicit val system = ActorSystem()
 
     val tcpManagerProbe = TestProbe()
     val networkControllerRef: ActorRef = createNetworkController(settings, tcpManagerProbe)
     val testPeer = new TestPeer(settings, networkControllerRef, tcpManagerProbe)
 
-    testPeer.connect(new InetSocketAddress("192.168.0.1", 5678))
+    val nodeAddr = new InetSocketAddress("127.0.0.1", settings.network.bindAddress.getPort)
+    testPeer.connect(new InetSocketAddress("192.168.0.1", 5678), nodeAddr)
 
     val handshakeFromNode  = testPeer.receiveHandshake
     handshakeFromNode.success.value.declaredAddress shouldBe empty
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
-    localAddressFeature.value.address should be (new InetSocketAddress("127.0.0.1", settings.network.bindAddress.getPort))
+    localAddressFeature.value.address should be (nodeAddr)
 
     testPeer.sendHandshake(None, None)
     system.terminate()
   }
 
-  it should "not send local address on handshake when peer is external" in {
+  it should "not send local address on handshake when the peer is external" in {
     implicit val system = ActorSystem()
 
     val tcpManagerProbe = TestProbe()
     val networkControllerRef: ActorRef = createNetworkController(settings, tcpManagerProbe)
     val testPeer = new TestPeer(settings, networkControllerRef, tcpManagerProbe)
 
-    testPeer.connect(new InetSocketAddress("88.77.66.55", 5678))
+    val nodeAddr = new InetSocketAddress("127.0.0.1", settings.network.bindAddress.getPort)
+    testPeer.connect(new InetSocketAddress("88.77.66.55", 5678), nodeAddr)
 
     val handshakeFromNode  = testPeer.receiveHandshake
     handshakeFromNode.success.value.declaredAddress shouldBe empty
@@ -91,7 +95,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     val networkControllerRef: ActorRef = createNetworkController(settings2, tcpManagerProbe)
     val testPeer = new TestPeer(settings2, networkControllerRef, tcpManagerProbe)
 
-    testPeer.connect(new InetSocketAddress("88.77.66.55", 5678))
+    testPeer.connect(new InetSocketAddress("88.77.66.55", 5678), bindAddress)
 
     val handshakeFromNode  = testPeer.receiveHandshake
     handshakeFromNode.success.value.declaredAddress.value should be (bindAddress)
@@ -107,12 +111,12 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
 
     val tcpManagerProbe = TestProbe()
 
-    val bindAddress = new InetSocketAddress("88.77.66.55", 12345)
-    val settings2 = settings.copy(network = settings.network.copy(bindAddress = bindAddress))
+    val nodeAddr = new InetSocketAddress("88.77.66.55", 12345)
+    val settings2 = settings.copy(network = settings.network.copy(bindAddress = nodeAddr))
     val networkControllerRef: ActorRef = createNetworkController(settings2, tcpManagerProbe)
     val testPeer1 = new TestPeer(settings2, networkControllerRef, tcpManagerProbe)
     val peer1Addr = new InetSocketAddress("88.77.66.55", 5678)
-    testPeer1.connect(peer1Addr)
+    testPeer1.connect(peer1Addr, nodeAddr)
     testPeer1.receiveHandshake
     testPeer1.sendHandshake(Some(peer1Addr), None)
     testPeer1.receiveGetPeers
@@ -120,7 +124,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
 
     val peer2Addr = new InetSocketAddress("88.77.66.56", 5678)
     val testPeer2 = new TestPeer(settings2, networkControllerRef, tcpManagerProbe)
-    testPeer2.connect(peer2Addr)
+    testPeer2.connect(peer2Addr, nodeAddr)
     testPeer2.receiveHandshake
     testPeer2.sendHandshake(Some(peer2Addr), None)
 
@@ -135,14 +139,14 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
 
     val tcpManagerProbe = TestProbe()
 
-    val bindAddress = new InetSocketAddress("88.77.66.55", 12345)
-    val settings2 = settings.copy(network = settings.network.copy(bindAddress = bindAddress))
+    val nodeAddr = new InetSocketAddress("88.77.66.55", 12345)
+    val settings2 = settings.copy(network = settings.network.copy(bindAddress = nodeAddr))
     val networkControllerRef: ActorRef = createNetworkController(settings2, tcpManagerProbe)
 
     val testPeer1 = new TestPeer(settings2, networkControllerRef, tcpManagerProbe)
     val peer1DecalredAddr = new InetSocketAddress("88.77.66.55", 5678)
     val peer1LocalAddr = new InetSocketAddress("192.168.1.55", 5678)
-    testPeer1.connect(peer1LocalAddr)
+    testPeer1.connect(peer1LocalAddr, nodeAddr)
     testPeer1.receiveHandshake
     testPeer1.sendHandshake(Some(peer1DecalredAddr), Some(peer1LocalAddr))
     testPeer1.receiveGetPeers
@@ -151,7 +155,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     val peer2DeclaredAddr = new InetSocketAddress("88.77.66.56", 5678)
     val peer2LocalAddr = new InetSocketAddress("192.168.1.56", 5678)
     val testPeer2 = new TestPeer(settings2, networkControllerRef, tcpManagerProbe)
-    testPeer2.connect(peer2LocalAddr)
+    testPeer2.connect(peer2LocalAddr, nodeAddr)
     testPeer2.receiveHandshake
     testPeer2.sendHandshake(Some(peer2DeclaredAddr), Some(peer2LocalAddr))
 
@@ -166,14 +170,14 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
 
     val tcpManagerProbe = TestProbe()
 
-    val bindAddress = new InetSocketAddress("88.77.66.55", 12345)
-    val settings2 = settings.copy(network = settings.network.copy(bindAddress = bindAddress))
+    val nodeAddr = new InetSocketAddress("88.77.66.55", 12345)
+    val settings2 = settings.copy(network = settings.network.copy(bindAddress = nodeAddr))
     val networkControllerRef: ActorRef = createNetworkController(settings2, tcpManagerProbe)
 
     val testPeer1 = new TestPeer(settings2, networkControllerRef, tcpManagerProbe)
     val peer1DecalredAddr = new InetSocketAddress("88.77.66.55", 5678)
     val peer1LocalAddr = new InetSocketAddress("192.168.1.55", 5678)
-    testPeer1.connect(peer1LocalAddr)
+    testPeer1.connect(peer1LocalAddr, nodeAddr)
     testPeer1.receiveHandshake
     testPeer1.sendHandshake(Some(peer1DecalredAddr), Some(peer1LocalAddr))
     testPeer1.receiveGetPeers
@@ -181,7 +185,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
 
     val peer2DeclaredAddr = new InetSocketAddress("88.77.66.56", 5678)
     val testPeer2 = new TestPeer(settings2, networkControllerRef, tcpManagerProbe)
-    testPeer2.connect(peer2DeclaredAddr)
+    testPeer2.connect(peer2DeclaredAddr, nodeAddr)
     testPeer2.receiveHandshake
     testPeer2.sendHandshake(Some(peer2DeclaredAddr), None)
 
@@ -197,17 +201,19 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
 
     val tcpManagerProbe = TestProbe()
 
+    val gatewayAddr = InetAddress.getByName("88.44.33.11")
     val upnp = DummyUPnPGateway(
-      InetAddress.getByName("88.44.33.11"),
+      gatewayAddr,
       InetAddress.getByName("192.169.1.11")
     ) { _ => None }
 
+    val nodeAddr = new InetSocketAddress(gatewayAddr, settings.network.bindAddress.getPort)
     val networkControllerRef: ActorRef = createNetworkController(settings, tcpManagerProbe, Some(upnp))
 
     val testPeer1 = new TestPeer(settings, networkControllerRef, tcpManagerProbe)
     val peer1DecalredAddr = new InetSocketAddress("88.77.66.55", 5678)
     val peer1LocalAddr = new InetSocketAddress("192.168.1.55", 5678)
-    testPeer1.connect(peer1LocalAddr)
+    testPeer1.connect(peer1LocalAddr, nodeAddr)
     val handshakeFromPeer1 = testPeer1.receiveHandshake.success.value
     handshakeFromPeer1.declaredAddress.value.getAddress should be (InetAddress.getByName("88.44.33.11"))
     handshakeFromPeer1.declaredAddress.value.getPort should be (settings.network.bindAddress.getPort)
@@ -247,12 +253,13 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
 
     val tcpManagerProbe = TestProbe()
 
+    val nodeAddr = new InetSocketAddress("127.0.0.1", settings.network.bindAddress.getPort)
     val networkControllerRef: ActorRef = createNetworkController(settings, tcpManagerProbe, None)
     val testPeer = new TestPeer(settings, networkControllerRef, tcpManagerProbe)
 
     val peerLocalAddress = new InetSocketAddress("192.168.1.2", settings.network.bindAddress.getPort)
 
-    testPeer.connect(new InetSocketAddress("192.168.1.2", 5678))
+    testPeer.connect(new InetSocketAddress("192.168.1.2", 5678), nodeAddr)
 
     val handshakeFromNode  = testPeer.receiveHandshake
     val nodeLocalAddress = extractLocalAddrFeat(handshakeFromNode).value.address
@@ -263,7 +270,6 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     val peers = testPeer.receivePeers
 
     peers should contain theSameElementsAs (Seq(peerLocalAddress))
-    Thread.sleep(10000000000l)
     system.terminate()
   }
 
@@ -271,16 +277,22 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     handshakeFromNode.success.value.features.collectFirst { case a: LocalAddressPeerFeature => a }
   }
 
+  /**
+    * Create NetworkControllerActor
+    */
   private def createNetworkController(settings: ScorexSettings, tcpManagerProbe: TestProbe, upnp: Option[UPnPGateway] = None)(implicit system:ActorSystem) = {
     val timeProvider = LocalTimeProvider
-    val peerManagerRef = PeerManagerRef(settings, timeProvider)
+    val externalAddr = settings.network.declaredAddress
+      .orElse(upnp.map(u => new InetSocketAddress(u.externalAddress, settings.network.bindAddress.getPort)))
+    val peerManagerRef = PeerManagerRef(settings, timeProvider, externalAddr)
 
     val messageSpecs = Seq(GetPeersSpec, PeersSpec)
     val messagesHandler = MessageHandler(messageSpecs)
 
-    val networkControllerRef: ActorRef = NetworkControllerRef("networkController", settings.network,
+    val networkControllerRef: ActorRef = NetworkControllerRef(
+      "networkController", settings.network,
       messagesHandler, Seq.empty, upnp,
-      peerManagerRef, timeProvider, tcpManagerProbe.testActor)
+      peerManagerRef, timeProvider, tcpManagerProbe.testActor, externalAddr)
 
 
     tcpManagerProbe.expectMsg(Bind(networkControllerRef, settings.network.bindAddress, options = KeepAlive(true) :: Nil))
@@ -290,6 +302,12 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
   }
 }
 
+/**
+  * Stub for UpNP gateway
+  * @param externalAddress - WAN gateway address
+  * @param localAddress - LAN getaway address
+  * @param getLocalAddrForExtPort - lambda function for returns LAN address for given WAN port
+  */
 case class DummyUPnPGateway(override val externalAddress: InetAddress,
                             override val localAddress: InetAddress)
                            (getLocalAddrForExtPort: (Int => Option[InetSocketAddress])) extends UPnPGateway {
@@ -303,6 +321,9 @@ case class DummyUPnPGateway(override val externalAddress: InetAddress,
   }
 }
 
+/**
+  * Helper class that emulates peers
+  */
 class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpManagerProbe: TestProbe)
               (implicit ec:ExecutionContext) extends Matchers {
 
@@ -317,8 +338,13 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
 
   private var connectionHandler:ActorRef = _
 
-  def connect(peerAddr: InetSocketAddress): Tcp.ResumeReading.type = {
-    tcpManagerProbe.send(networkControllerRef, Connected(peerAddr, new InetSocketAddress("127.0.0.1", settings.network.bindAddress.getPort)))
+  /**
+    * Connect peer to node
+    * @param peerAddr - peer address
+    * @param nodeAddr - node address
+    */
+  def connect(peerAddr: InetSocketAddress, nodeAddr: InetSocketAddress): Unit = {
+    tcpManagerProbe.send(networkControllerRef, Connected(peerAddr, nodeAddr))
 
     connectionHandler = tcpManagerProbe.expectMsgPF() {
       case Tcp.Register(handler, _, _) => handler
@@ -327,6 +353,12 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)
   }
 
+  /**
+    * Send handshake message to node
+    * @param declaredAddress
+    * @param localAddress
+    * @return
+    */
   def sendHandshake(declaredAddress: Option[InetSocketAddress], localAddress: Option[InetSocketAddress]): Tcp.ResumeReading.type = {
     val features = localAddress.map(LocalAddressPeerFeature(_)).toSeq
     val handshakeToNode = Handshake(settings.network.agentName,
@@ -338,6 +370,10 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)
   }
 
+  /**
+    * Receive handshake message from node
+    * @return Success with handshake message if received valid handshake message and Fail for invalid message
+    */
   def receiveHandshake: Try[Handshake] = {
     val handshakeFromNode = tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(data, e) =>
@@ -346,34 +382,55 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     handshakeFromNode
   }
 
+  /**
+    * Send GetPeers message to node
+    */
   def sendGetPeers(): Unit = {
     val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
     sendMessage(msg)
   }
 
+  /**
+    * Receive GetPeer message from node
+    * @return
+    */
   def receiveGetPeers: Message[_] = {
     val message = receiveMessage
     message.spec.messageCode should be (GetPeersSpec.messageCode)
     message
   }
 
+  /**
+    * Receive sequence of peer addresses from node
+    */
   def receivePeers: Seq[InetSocketAddress] = {
     val message = receiveMessage
     message.spec.messageCode should be (PeersSpec.messageCode)
     PeersSpec.parseBytes(message.input.left.value).success.value
   }
 
+  /**
+    * Send sequence of peer addresses to node
+    */
   def sendPeers(peers: Seq[InetSocketAddress]): Unit = {
     val msg = Message(PeersSpec, Right(peers), None)
     sendMessage(msg)
   }
 
+  /**
+    * Send message to node
+    * @param msg
+    */
   def sendMessage(msg: Message[_]): Unit = {
     val bytes = msg.bytes
     tcpManagerProbe.send(connectionHandler, Tcp.Received(ByteString(Ints.toByteArray(bytes.length) ++ bytes)))
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)
   }
 
+  /**
+    * Receive message from node
+    * @param msg
+    */
   def receiveMessage: Message[_] = {
     tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(b, _) =>
