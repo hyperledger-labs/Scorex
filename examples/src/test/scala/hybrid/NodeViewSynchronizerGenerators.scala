@@ -3,10 +3,13 @@ package hybrid
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
+import examples.commons.SimpleBoxTransactionMemPool
+import examples.hybrid.HybridApp
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core._
 import scorex.core.app.Version
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{ChangedHistory, ChangedMempool}
 import scorex.core.network._
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
@@ -20,9 +23,12 @@ trait NodeViewSynchronizerGenerators {
   object NodeViewSynchronizerForTests {
     def props(networkControllerRef: ActorRef,
               viewHolderRef: ActorRef): Props =
-      NodeViewSynchronizerRef.props[TX, HSI, SIS, PM, HT, MP](networkControllerRef, viewHolderRef, HybridSyncInfoMessageSpec,
-                                                                 settings.scorexSettings.network,
-                                                                 new NetworkTimeProvider(settings.scorexSettings.ntp))
+      NodeViewSynchronizerRef.props[TX, HSI, SIS, PM, HT, MP](networkControllerRef,
+        viewHolderRef,
+        HybridSyncInfoMessageSpec,
+        settings.scorexSettings.network,
+        new NetworkTimeProvider(settings.scorexSettings.ntp),
+        HybridApp.modifierSerializers)
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
@@ -31,6 +37,7 @@ trait NodeViewSynchronizerGenerators {
     val h = historyGen.sample.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val sRaw = stateGen.sample.get
+    val mempool = SimpleBoxTransactionMemPool.emptyPool
     val v = h.openSurfaceIds().last
     sRaw.store.update(ByteArrayWrapper(idToBytes(v)), Seq(), Seq())
     val s = sRaw.copy(version = idToVersion(v))
@@ -41,12 +48,13 @@ trait NodeViewSynchronizerGenerators {
     val eventListener = TestProbe("EventListener")
 
     val ref = system.actorOf(NodeViewSynchronizerForTests.props(ncProbe.ref, vhProbe.ref))
+    ref ! ChangedHistory(h)
+    ref ! ChangedMempool(mempool)
     val m = totallyValidModifier(h, s)
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val tx = simpleBoxTransactionGen.sample.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-    val p : ConnectedPeer = ConnectedPeer(inetSocketAddressGen.sample.get, pchProbe.ref, Outgoing,
-      Handshake("", Version(0,1,2), "", None, Seq(), 0L))
+    val p: ConnectedPeer = connectedPeerGen(pchProbe.ref).sample.get
 
     (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, eventListener)
   }

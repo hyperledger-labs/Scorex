@@ -66,8 +66,8 @@ class DefaultModifiersCacheSpecification extends PropSpec
     cache.put(v2, new FakeModifier)
     cache.size shouldBe 2
     cache.contains(v2) shouldBe true
-    cache.remove(v2, rememberKey = true)
-    cache.contains(v2) shouldBe true
+    cache.remove(v2)
+    cache.contains(v2) shouldBe false
     cache.size shouldBe 1
   }
 
@@ -91,12 +91,14 @@ class DefaultModifiersCacheSpecification extends PropSpec
     cache.size shouldBe limit
 
     cache.put(v4, new FakeModifier)
+    cache.cleanOverfull().length shouldBe 1
     cache.contains(v1) shouldBe false
     cache.size shouldBe limit
 
     cache.put(v1, new FakeModifier)
     cache.contains(v1) shouldBe true
-    cache.size shouldBe limit
+    cache.cleanOverfull().length shouldBe 1
     cache.contains(v2) shouldBe false
+    cache.size shouldBe limit
   }
 }

@@ -113,11 +113,11 @@ class NetworkController(settings: NetworkSettings,
               handler ! DataFromPeer(spec, content, remote)
 
             case None =>
-              log.error("No handlers found for message: " + msgId)
+              log.error(s"No handlers found for message $remote: " + msgId)
             //todo: ban a peer
           }
         case Failure(e) =>
-          log.error("Failed to deserialize data: ", e)
+          log.error(s"Failed to deserialize data from $remote: ", e)
         //todo: ban peer
       }
 

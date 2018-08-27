@@ -2,10 +2,11 @@ package scorex
 
 import java.net.{InetAddress, InetSocketAddress}
 
+import akka.actor.ActorRef
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.app.Version
-import scorex.core.network.PeerFeature
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.network.{ConnectedPeer, Handshake, Outgoing, PeerFeature}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
@@ -87,4 +88,9 @@ trait ObjectGenerators {
     .map(s => PrivateKey25519Companion.generateKeys(s))
 
   lazy val propositionGen: Gen[PublicKey25519Proposition] = key25519Gen.map(_._2)
+
+  def connectedPeerGen(peerRef: ActorRef): Gen[ConnectedPeer] = for {
+    address <- inetSocketAddressGen
+  } yield ConnectedPeer(address, peerRef, Outgoing, Handshake("", Version(0, 1, 2), "", None, Seq(), 0L))
+
 }

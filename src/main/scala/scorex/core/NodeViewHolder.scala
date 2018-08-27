@@ -3,9 +3,7 @@ package scorex.core
 import akka.actor.Actor
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.network.ConnectedPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
-import scorex.core.serialization.Serializer
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
@@ -13,7 +11,6 @@ import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexEncoding
 import scorex.util.ScorexLogging
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 
@@ -45,6 +42,12 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   val scorexSettings: ScorexSettings
 
   /**
+    * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
+    */
+  protected lazy val modifiersCache: ModifiersCache[PMOD, HIS] =
+    new DefaultModifiersCache[PMOD, HIS](scorexSettings.network.maxModifiersCacheSize)
+
+  /**
     * The main data structure a node software is taking care about, a node view consists
     * of four elements to be updated atomically: history (log of persistent modifiers),
     * state (result of log's modifiers application to pre-historical(genesis) state,
@@ -71,20 +74,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   protected def vault(): VL = nodeView._3
 
   protected def memoryPool(): MP = nodeView._4
-
-
-  /**
-    * Serializers for modifiers, to be provided by a concrete instantiation
-    */
-  val modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]]
-
-  protected type MapKey = scala.collection.mutable.WrappedArray.ofByte
-
-  /**
-    * Cache for modifiers. If modifiers are coming out-of-order, they are to be stored in this cache.
-    */
-  protected lazy val modifiersCache: ModifiersCache[PMOD, HIS] =
-    new DefaultModifiersCache[PMOD, HIS](scorexSettings.network.maxModifiersCacheSize)
 
   protected def txModify(tx: TX): Unit = {
     //todo: async validation?
@@ -171,9 +160,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
   private def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
     pi.toDownload.foreach { case (tid, id) =>
-      if(!modifiersCache.contains(id)) {
-        context.system.eventStream.publish(DownloadRequest(tid, id))
-      }
+      context.system.eventStream.publish(DownloadRequest(tid, id))
     }
 
   private def trimChainSuffix(suffix: IndexedSeq[PMOD], rollbackPoint: ModifierId): IndexedSeq[PMOD] = {
@@ -239,8 +226,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
         val u0 = UpdateInformation(history, stateToApply, None, None, suffixTrimmed)
 
-        val uf = progressInfo.toApply.foldLeft(u0) {case (u, modToApply) =>
-          if(u.failedMod.isEmpty) {
+        val uf = progressInfo.toApply.foldLeft(u0) { case (u, modToApply) =>
+          if (u.failedMod.isEmpty) {
             u.state.applyModifier(modToApply) match {
               case Success(stateAfterApply) =>
                 val newHis = history.reportModifierIsValid(modToApply)
@@ -320,57 +307,42 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       log.warn(s"Trying to apply modifier ${pmod.encodedId} that's already in history")
     }
 
+  /**
+    * Process new modifiers from remote.
+    * Put all candidates to modifiersCache and then try to apply as much modifiers from cache as possible.
+    * Clear cache if it's size exceeds size limit.
+    * Publish `ModifiersProcessingResult` message with all just applied and removed from cache modifiers.
+    */
+  protected def processRemoteModifiers: Receive = {
+    case ModifiersFromRemote(mods: Seq[PMOD]) =>
+      mods.foreach(m => modifiersCache.put(m.id, m))
 
-  protected def compareViews: Receive = {
-    case CompareViews(peer, modifierTypeId, modifierIds) =>
-      val ids = modifierTypeId match {
-        case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-          memoryPool().notIn(modifierIds)
-        case _ =>
-          modifierIds.filterNot(mid => history().contains(mid) || modifiersCache.contains(mid))
+      log.debug(s"Cache size before: ${modifiersCache.size}")
+
+      @tailrec
+      def applyLoop(applied: Seq[PMOD]): Seq[PMOD] = {
+        modifiersCache.popCandidate(history()) match {
+          case Some(mod) =>
+            pmodModify(mod)
+            applyLoop(mod +: applied)
+          case None =>
+            applied
+        }
       }
 
-      sender() ! RequestFromLocal(peer, modifierTypeId, ids)
+      val applied = applyLoop(Seq())
+      val cleared = modifiersCache.cleanOverfull()
+
+      context.system.eventStream.publish(ModifiersProcessingResult(applied, cleared))
+      log.debug(s"Cache size after: ${modifiersCache.size}")
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
-  protected def processRemoteModifiers: Receive = {
-    case ModifiersFromRemote(remote, modifierTypeId, remoteObjects) =>
-      modifierSerializers.get(modifierTypeId) foreach { companion =>
-        remoteObjects.flatMap(r => companion.parseBytes(r).toOption).foreach {
-          case (tx: TX@unchecked) if tx.modifierTypeId == Transaction.ModifierTypeId =>
-            txModify(tx)
-
-          case pmod: PMOD@unchecked =>
-            if (history().contains(pmod) || modifiersCache.contains(pmod.id)) {
-              log.warn(s"Received modifier ${pmod.encodedId} that is already in history")
-            } else {
-              modifiersCache.put(pmod.id, pmod)
-            }
-        }
-
-        log.debug(s"Cache size before: ${modifiersCache.size}")
-
-        var applied: Boolean = false
-        do {
-          modifiersCache.popCandidate(history()) match {
-            case Some(mod) =>
-              pmodModify(mod)
-              applied = true
-            case None =>
-              applied = false
-          }
-        } while (applied)
-
-
-        log.debug(s"Cache size after: ${modifiersCache.size}")
-      }
+  protected def processNewTransactions: Receive = {
+    case newTxs: NewTransactions[TX] =>
+      newTxs.txs.foreach(tx => txModify(tx))
   }
 
   protected def processLocallyGeneratedModifiers: Receive = {
-    case lt: LocallyGeneratedTransaction[TX] =>
-      txModify(lt.tx)
-
     case lm: LocallyGeneratedModifier[PMOD] =>
       log.info(s"Got locally generated modifier ${lm.pmod.encodedId} of type ${lm.pmod.modifierTypeId}")
       pmodModify(lm.pmod)
@@ -390,9 +362,9 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   }
 
   override def receive: Receive =
-      compareViews orElse
-      processRemoteModifiers orElse
+    processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
+      processNewTransactions orElse
       getCurrentInfo orElse
       getNodeViewChanges orElse {
       case a: Any => log.error("Strange input: " + a)
@@ -406,14 +378,24 @@ object NodeViewHolder {
 
     // Explicit request of NodeViewChange events of certain types.
     case class GetNodeViewChanges(history: Boolean, state: Boolean, vault: Boolean, mempool: Boolean)
+
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
-    // Moved from NodeViewSynchronizer as this was only received here
-    case class CompareViews(source: ConnectedPeer, modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId])
-    case class ModifiersFromRemote(source: ConnectedPeer, modifierTypeId: ModifierTypeId, remoteObjects: Seq[Array[Byte]])
+    // Modifiers received from the remote peer with new elements in it
+    case class ModifiersFromRemote[PM <: PersistentNodeViewModifier](modifiers: Iterable[PM])
 
-    case class LocallyGeneratedTransaction[TX <: Transaction](tx: TX)
+    sealed trait NewTransactions[TX <: Transaction]{
+      val txs: Iterable[TX]
+    }
+
+    case class LocallyGeneratedTransaction[TX <: Transaction](tx: TX) extends NewTransactions[TX] {
+      override val txs: Iterable[TX] = Iterable(tx)
+    }
+
+    case class TransactionsFromRemote[TX <: Transaction](txs: Iterable[TX]) extends NewTransactions[TX]
+
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
+
   }
 
   // fixme: No actor is expecting this ModificationApplicationStarted and DownloadRequest messages

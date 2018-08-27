@@ -1,7 +1,9 @@
 package scorex.core.network.peer
 
 import java.net.InetSocketAddress
+
 import scorex.core.utils.NetworkTime
+
 import scala.collection.mutable
 
 
