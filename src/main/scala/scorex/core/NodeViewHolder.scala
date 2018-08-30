@@ -8,8 +8,8 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction._
 import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
-import scorex.core.utils.{ScorexEncoding, ScorexLogging}
-
+import scorex.core.utils.ScorexEncoding
+import scorex.util.ScorexLogging
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
 

@@ -5,6 +5,8 @@ import scorex.core.ModifierId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.utils.ScorexEncoder
 import scorex.core.validation.ValidationResult._
+import scorex.util.encode.BytesEncoder
+import scorex.util.ScorexLogging
 
 import scala.util.Try
 

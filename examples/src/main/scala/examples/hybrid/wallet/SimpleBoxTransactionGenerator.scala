@@ -5,7 +5,7 @@ import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool, Valu
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import scorex.core.NodeViewHolder.CurrentView
-import scorex.core.utils.ScorexLogging
+import scorex.util.ScorexLogging
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext

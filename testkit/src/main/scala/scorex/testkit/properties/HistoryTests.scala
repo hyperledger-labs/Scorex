@@ -8,9 +8,9 @@ import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.consensus.ModifierSemanticValidity.Valid
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.utils.ScorexLogging
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.SyntacticallyTargetedModifierProducer
+import scorex.util.ScorexLogging
 
 
 trait HistoryTests[TX <: Transaction, PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]]

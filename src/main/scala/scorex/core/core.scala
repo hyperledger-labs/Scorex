@@ -2,7 +2,7 @@ package scorex
 
 import scorex.core.network.message.BasicMsgDataTypes.InvData
 import scorex.core.utils.ScorexEncoder
-import scorex.crypto.encode.Base16
+import scorex.util.encode.Base16
 import supertagged.TaggedType
 
 package object core {
@@ -10,13 +10,12 @@ package object core {
   //TODO implement ModifierTypeId as a trait
   object ModifierTypeId extends TaggedType[Byte]
 
-  object ModifierId extends TaggedType[String]
+  type ModifierId = scorex.util.ModifierId.Type
+  val ModifierId: scorex.util.ModifierId.type = scorex.util.ModifierId
 
   object VersionTag extends TaggedType[String]
 
   type ModifierTypeId = ModifierTypeId.Type
-
-  type ModifierId = ModifierId.Type
 
   type VersionTag = VersionTag.Type
 
@@ -33,10 +32,9 @@ package object core {
 
   def idsToString(invData: InvData)(implicit encoder: ScorexEncoder): String = idsToString(invData._1, invData._2)
 
+  def bytesToId: Array[Byte] => util.ModifierId = scorex.util.bytesToId
 
-  def bytesToId(bytes: Array[Byte]): ModifierId = ModifierId @@ Base16.encode(bytes)
-
-  def idToBytes(id: ModifierId): Array[Byte] = Base16.decode(id).get
+  def idToBytes: util.ModifierId => Array[Byte] = scorex.util.idToBytes
 
   def bytesToVersion(bytes: Array[Byte]): VersionTag = VersionTag @@ Base16.encode(bytes)
 
