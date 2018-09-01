@@ -6,6 +6,7 @@ import akka.actor.ActorRef
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.app.Version
 import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.network.peer.PeerInfo
 import scorex.core.network.{ConnectedPeer, Handshake, Outgoing, PeerFeature}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -92,6 +93,9 @@ trait ObjectGenerators {
 
   def connectedPeerGen(peerRef: ActorRef): Gen[ConnectedPeer] = for {
     address <- inetSocketAddressGen
-  } yield ConnectedPeer(address, peerRef, Outgoing, Handshake("", Version(0, 1, 2), "", None, Seq(), 0L))
-
+  } yield ConnectedPeer(
+    address,
+    peerRef,
+    None
+  )
 }

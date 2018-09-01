@@ -24,7 +24,7 @@ class PeerDatabaseImplSpec extends FlatSpec
 
    it should "be non-empty after adding a peer" in {
     val db = new PeerDatabaseImpl(None)
-    db.addOrUpdateKnownPeer(PeerInfo(currentTime(), peerAddress1))
+    db.addOrUpdateKnownPeer(PeerInfo(currentTime(), Some(peerAddress1)))
 
     db.isEmpty() shouldBe false
     db.blacklistedPeers().isEmpty shouldBe true
@@ -33,7 +33,7 @@ class PeerDatabaseImplSpec extends FlatSpec
 
   it should "return a peer after adding a peer" in {
     val db = new PeerDatabaseImpl(None)
-    val peerInfo = PeerInfo(currentTime(), decalerdAddress = peerAddress1)
+    val peerInfo = PeerInfo(currentTime(), declaredAddress = Some(peerAddress1))
     db.addOrUpdateKnownPeer(peerInfo)
 
     db.knownPeers() shouldBe Map(peerAddress1 -> peerInfo)
@@ -41,9 +41,9 @@ class PeerDatabaseImplSpec extends FlatSpec
 
   it should "return an updated peer after updating a peer" in {
     val db = new PeerDatabaseImpl(None)
-    val peerInfo = PeerInfo(currentTime(), peerAddress1)
+    val peerInfo = PeerInfo(currentTime(), Some(peerAddress1))
     db.addOrUpdateKnownPeer(peerInfo)
-    val newPeerInfo = PeerInfo(currentTime(),peerAddress1)
+    val newPeerInfo = PeerInfo(currentTime(),Some(peerAddress1))
     db.addOrUpdateKnownPeer(newPeerInfo)
 
     db.knownPeers() shouldBe Map(peerAddress1 -> newPeerInfo)
@@ -51,8 +51,8 @@ class PeerDatabaseImplSpec extends FlatSpec
 
   it should "return a blacklisted peer after blacklisting" in {
     val db = new PeerDatabaseImpl(None)
-    db.addOrUpdateKnownPeer(PeerInfo(currentTime(), peerAddress1))
-    db.addOrUpdateKnownPeer(PeerInfo(currentTime(), peerAddress2))
+    db.addOrUpdateKnownPeer(PeerInfo(currentTime(), Some(peerAddress1)))
+    db.addOrUpdateKnownPeer(PeerInfo(currentTime(), Some(peerAddress2)))
     db.blacklistPeer(peerAddress1, currentTime())
 
     db.isBlacklisted(peerAddress1) shouldBe true
@@ -62,9 +62,9 @@ class PeerDatabaseImplSpec extends FlatSpec
 
   it should "the blacklisted peer be absent in knownPeers" in {
     val db = new PeerDatabaseImpl(None)
-    val peerInfo1 = PeerInfo(currentTime(), peerAddress1)
+    val peerInfo1 = PeerInfo(currentTime(), Some(peerAddress1))
     db.addOrUpdateKnownPeer(peerInfo1)
-    db.addOrUpdateKnownPeer(PeerInfo(currentTime(), peerAddress2))
+    db.addOrUpdateKnownPeer(PeerInfo(currentTime(), Some(peerAddress2)))
     db.blacklistPeer(peerAddress2, currentTime())
 
     db.knownPeers() shouldBe Map(peerAddress1 -> peerInfo1)
@@ -75,7 +75,7 @@ class PeerDatabaseImplSpec extends FlatSpec
 
       db.remove(peerAddress1) shouldBe false
 
-      db.addOrUpdateKnownPeer(PeerInfo(currentTime(), peerAddress1))
+      db.addOrUpdateKnownPeer(PeerInfo(currentTime(), Some(peerAddress1)))
       db.isEmpty() shouldBe false
       db.blacklistedPeers().isEmpty shouldBe true
       db.knownPeers().isEmpty shouldBe false

@@ -38,26 +38,26 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
     case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, remote)
       if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[InetSocketAddress]].isDefined =>
 
-      peers.foreach(isa => peerManager ! AddOrUpdatePeer(isa, None, Some(remote.direction), Seq()))
+      peers.foreach(isa => peerManager ! AddOrUpdatePeer(isa, None, None, Seq()))
 
-    case DataFromPeer(spec, _, remote) if spec.messageCode == GetPeersSpec.messageCode =>
+    case DataFromPeer(spec, _, peer) if spec.messageCode == GetPeersSpec.messageCode =>
 
       //todo: externalize the number, check on receiving
       (peerManager ? RandomPeers(3))
         .mapTo[Seq[PeerInfo]]
         .foreach { peers =>
-          val peerAddrs = if (remote.socketAddress.getAddress.isSiteLocalAddress) {
-            peers.map { peer =>
+          val peerAddrs = if (peer.remote.getAddress.isSiteLocalAddress) {
+            peers.flatMap { peer =>
               peer.features
                 .collectFirst { case LocalAddressPeerFeature(addr) => addr }
-                .getOrElse(peer.decalerdAddress)
+                .orElse(peer.declaredAddress)
             }
           } else {
-            peers.map(_.decalerdAddress)
+            peers.flatMap(_.declaredAddress)
           }
 
           val msg = Message(PeersSpec, Right(peerAddrs), None)
-          networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(remote)))
+          networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(peer)))
         }
 
     case nonsense: Any => log.warn(s"PeerSynchronizer: got something strange $nonsense")

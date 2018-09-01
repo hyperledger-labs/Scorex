@@ -8,11 +8,12 @@ import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
 import com.google.common.primitives.Ints
 import scorex.core.app.Version
-import scorex.core.network.PeerConnectionHandler.{AwaitingHandshake, WorkingCycle}
+import scorex.core.network.PeerConnectionHandler.{AwaitingHandshake, Handshaked, WorkingCycle}
 import scorex.core.network.message.MessageHandler
-import scorex.core.network.peer.LocalAddressPeerFeature
+import scorex.core.network.peer.PeerInfo
+import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTimeProvider, ScorexLogging, TimeProvider}
+import scorex.core.utils.{ScorexLogging, TimeProvider}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -24,29 +25,19 @@ case object Incoming extends ConnectionType
 case object Outgoing extends ConnectionType
 
 
-case class ConnectedPeer(socketAddress: InetSocketAddress,
+case class ConnectedPeer(remote: InetSocketAddress,
                          handlerRef: ActorRef,
-                         direction: ConnectionType,
-                         handshake: Handshake) {
+                         peerInfo: Option[PeerInfo]) {
 
   import shapeless.syntax.typeable._
 
-  def reachablePeer: Boolean = {
-    handshake.declaredAddress.isDefined || localAddress.isDefined
-  }
-
-  def localAddress: Option[InetSocketAddress] = {
-    handshake.features.collectFirst { case LocalAddressPeerFeature(addr) => addr }
-  }
-
-  override def hashCode(): Int = socketAddress.hashCode()
+  override def hashCode(): Int = remote.hashCode()
 
   override def equals(obj: Any): Boolean =
-    obj.cast[ConnectedPeer].exists(p => p.socketAddress == this.socketAddress && p.direction == this.direction)
+    obj.cast[ConnectedPeer].exists(p => p.remote == this.remote && peerInfo == this.peerInfo)
 
-  override def toString: String = s"ConnectedPeer($socketAddress)"
+  override def toString: String = s"ConnectedPeer($remote)"
 }
-
 
 case object Ack extends Event
 
@@ -67,7 +58,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   extends Actor with Buffering with ScorexLogging {
 
   import PeerConnectionHandler.ReceivableMessages._
-  import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Disconnected, DoConnecting, Handshaked}
 
   private lazy val connection = connectionDescription.connection
   private lazy val direction = connectionDescription.direction
@@ -94,7 +84,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private var chunksBuffer: ByteString = CompactByteString()
 
-
   private def handshake: Receive =
     startInteraction orElse
       receivedData orElse
@@ -111,7 +100,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeWriting
 
     case cc: ConnectionClosed =>
-      peerManagerRef ! Disconnected(remote)
       log.info("Connection closed to : " + remote + ": " + cc.getErrorCause + s" in state $stateName")
       context stop self
 
@@ -162,10 +150,18 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       require(receivedHandshake.isDefined)
 
       @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-      val peer = ConnectedPeer(remote, self, direction, receivedHandshake.get)
+      val handshake = receivedHandshake.get
+      val peerInfo = PeerInfo(
+        timeProvider.time(),
+        handshake.declaredAddress,
+        Some(handshake.nodeName),
+        Some(direction),
+        handshake.features
+      )
+      val peer = ConnectedPeer(remote, self, Some(peerInfo))
       selfPeer = Some(peer)
 
-      peerManagerRef ! Handshaked(peer)
+      networkControllerRef ! Handshaked(peerInfo)
       handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading
       context become workingCycle
@@ -228,11 +224,11 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       reportStrangeInput
 
   override def preStart: Unit = {
-    peerManagerRef ! DoConnecting(remote, direction)
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
     (self ! HandshakeTimeout))
     connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
     connection ! ResumeReading
+    self ! StartInteraction
   }
 
   override def receive: Receive = handshake
@@ -247,6 +243,7 @@ object PeerConnectionHandler {
   sealed trait CommunicationState
   case object AwaitingHandshake extends CommunicationState
   case object WorkingCycle extends CommunicationState
+  case class Handshaked(peer: PeerInfo)
 
   object ReceivableMessages {
     private[PeerConnectionHandler] object HandshakeDone
