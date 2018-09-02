@@ -3,9 +3,10 @@ package scorex.core.network.peer
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import scorex.core.app.ScorexContext
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
-import scorex.core.utils.{NetworkUtils, ScorexLogging, TimeProvider}
+import scorex.core.utils.{NetworkUtils, ScorexLogging}
 
 import scala.util.Random
 
@@ -13,8 +14,7 @@ import scala.util.Random
   * Peer manager takes care of peers connected and in process, and also chooses a random peer to connect
   * Must be singleton
   */
-class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider,
-                  externalNodeAddress: Option[InetSocketAddress]) extends Actor with ScorexLogging {
+class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extends Actor with ScorexLogging {
 
   import PeerManager.ReceivableMessages._
 
@@ -23,7 +23,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider,
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address)) {
-        val defaultPeerInfo = PeerInfo(timeProvider.time(), Some(address), None, None, Seq())
+        val defaultPeerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), None, None, Seq())
         peerDatabase.addOrUpdateKnownPeer(defaultPeerInfo)
       }
     }
@@ -38,7 +38,7 @@ class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider,
   private def peerListOperations: Receive = {
     case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt, features) =>
       if (!isSelf(address)) {
-        val peerInfo = PeerInfo(timeProvider.time(), Some(address), peerNameOpt, connTypeOpt, features)
+        val peerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), peerNameOpt, connTypeOpt, features)
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 
@@ -79,14 +79,14 @@ class PeerManager(settings: ScorexSettings, timeProvider: TimeProvider,
     * Given a peer's address, returns `true` if the peer is the same is this node.
     */
   private def isSelf(peerAddress: InetSocketAddress): Boolean = {
-    NetworkUtils.isSelf(peerAddress, settings.network.bindAddress, externalNodeAddress)
+    NetworkUtils.isSelf(peerAddress, settings.network.bindAddress, scorexContext.externalNodeAddress)
   }
 
   override def receive: Receive = ({
 
     case AddToBlacklist(peer) =>
       log.info(s"Blacklist peer $peer")
-      peerDatabase.blacklistPeer(peer, timeProvider.time())
+      peerDatabase.blacklistPeer(peer, scorexContext.timeProvider.time())
       // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
   }: Receive) orElse peerListOperations orElse apiInterface //orElse peerCycle
 }
@@ -114,20 +114,17 @@ object PeerManager {
 }
 
 object PeerManagerRef {
-  def props(settings: ScorexSettings, timeProvider: TimeProvider,
-            externalNodeAddress: Option[InetSocketAddress]): Props = {
-    Props(new PeerManager(settings, timeProvider, externalNodeAddress))
+  def props(settings: ScorexSettings, scorexContext: ScorexContext): Props = {
+    Props(new PeerManager(settings, scorexContext))
   }
 
-  def apply(settings: ScorexSettings, timeProvider: TimeProvider,
-            externalNodeAddress: Option[InetSocketAddress])
+  def apply(settings: ScorexSettings, scorexContext: ScorexContext)
            (implicit system: ActorSystem): ActorRef = {
-    system.actorOf(props(settings, timeProvider, externalNodeAddress))
+    system.actorOf(props(settings, scorexContext))
   }
 
-  def apply(name: String, settings: ScorexSettings, timeProvider: TimeProvider,
-            externalNodeAddress: Option[InetSocketAddress])
+  def apply(name: String, settings: ScorexSettings, scorexContext: ScorexContext)
            (implicit system: ActorSystem): ActorRef = {
-    system.actorOf(props(settings, timeProvider, externalNodeAddress), name)
+    system.actorOf(props(settings, scorexContext), name)
   }
 }

@@ -1,15 +1,18 @@
 package scorex.core.network.message
 
-import com.google.common.primitives.{Bytes, Ints}
+import java.nio.ByteOrder
+
+import akka.util.ByteString
+import com.google.common.primitives.Bytes
 import scorex.core.network.ConnectedPeer
-import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.{Success, Try}
 
 case class Message[Content](spec: MessageSpec[Content],
                             input: Either[Array[Byte], Content],
-                            source: Option[ConnectedPeer]) extends BytesSerializable {
+                            source: Option[ConnectedPeer]) {
+  import Message._
 
   lazy val dataBytes = input match {
     case Left(db) => db
@@ -23,26 +26,67 @@ case class Message[Content](spec: MessageSpec[Content],
 
   lazy val dataLength: Int = dataBytes.length
 
-  override type M = Message[Content]
-
-  override def serializer: Serializer[Message[Content]] = new MessageSerializer[Content]
+  def messageLength: Int = {
+    if (dataLength > 0) HeaderLength + ChecksumLength + dataLength else HeaderLength
+  }
 }
 
-class MessageSerializer[Content] extends Serializer[Message[Content]] {
+class MessageSerializer(specs: Seq[MessageSpec[_]]) {
 
-  import Message.{ChecksumLength, MAGIC}
+  import Message.{ChecksumLength, HeaderLength, MAGIC, MagicLength}
 
-  override def toBytes(obj: Message[Content]): Array[Byte] = {
-    val dataWithChecksum = if (obj.dataLength > 0) {
+  import scala.language.existentials
+  private implicit val byteOrder = ByteOrder.BIG_ENDIAN
+
+  private val specsMap = Map(specs.map(s => s.messageCode -> s): _*)
+    .ensuring(m => m.size == specs.size, "Duplicate message codes")
+
+  def serialize(obj: Message[_]): ByteString = {
+    val builder = ByteString.createBuilder
+      .putBytes(MAGIC)
+      .putByte(obj.spec.messageCode)
+      .putInt(obj.dataLength)
+
+    if (obj.dataLength > 0) {
       val checksum = Blake2b256.hash(obj.dataBytes).take(ChecksumLength)
       Bytes.concat(checksum, obj.dataBytes)
-    } else obj.dataBytes //empty array
+      builder.putBytes(checksum).putBytes(obj.dataBytes)
+    }
 
-    MAGIC ++ Array(obj.spec.messageCode) ++ Ints.toByteArray(obj.dataLength) ++ dataWithChecksum
+    builder.result()
   }
 
-  //TODO move MessageHandler.parseBytes here
-  override def parseBytes(bytes: Array[Byte]): Try[Message[Content]] = ???
+  //MAGIC ++ Array(spec.messageCode) ++ Ints.toByteArray(dataLength) ++ dataWithChecksum
+  def deserialize(byteString: ByteString, sourceOpt: Option[ConnectedPeer]): Try[Option[Message[_]]] = Try {
+    if (byteString.length < HeaderLength) {
+      None
+    } else {
+      val it = byteString.iterator
+      val magic = it.getBytes(MagicLength)
+      val msgCode = it.getByte
+      val length = it.getInt
+      require(java.util.Arrays.equals(magic, Message.MAGIC), "Wrong magic bytes" + magic.mkString)
+      require(length >= 0, "Data length is negative!")
+
+      val spec = specsMap.getOrElse(msgCode, throw new Error(s"No message handler found for $msgCode"))
+
+      if (length != 0 && length < byteString.length - HeaderLength - ChecksumLength) {
+        None
+      } else {
+        val msgData = if (length > 0) {
+          val checksum = it.getBytes(ChecksumLength)
+          val data = it.getBytes(length)
+          val digest = Blake2b256.hash(data).take(ChecksumLength)
+          if (!java.util.Arrays.equals(checksum, digest)) throw new Error(s"Invalid data checksum length = $length")
+          data
+        } else {
+          Array.empty[Byte]
+        }
+
+        Some(Message(spec, Left(msgData), sourceOpt))
+      }
+    }
+  }
 }
 
 object Message {
@@ -53,4 +97,5 @@ object Message {
   val MagicLength: Int = MAGIC.length
 
   val ChecksumLength: Int = 4
+  val HeaderLength = MagicLength + 5
 }

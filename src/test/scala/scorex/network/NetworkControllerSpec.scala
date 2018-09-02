@@ -1,13 +1,13 @@
 package scorex.network
 
 import java.net.{InetAddress, InetSocketAddress}
+
 import akka.actor.{ActorRef, ActorSystem}
 import akka.io.Tcp
 import akka.io.Tcp.{Message => _, _}
 import akka.io.Tcp.SO.KeepAlive
 import akka.testkit.TestProbe
 import akka.util.ByteString
-import com.google.common.primitives.Ints
 import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.network._
 import scorex.core.network.message._
@@ -17,7 +17,7 @@ import scorex.core.utils.LocalTimeProvider
 import org.scalatest.TryValues._
 import org.scalatest.OptionValues._
 import org.scalatest.EitherValues._
-import scorex.core.app.Version
+import scorex.core.app.{ScorexContext, Version}
 
 import scala.concurrent.ExecutionContext
 import scala.util.Try
@@ -308,15 +308,15 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     val timeProvider = LocalTimeProvider
     val externalAddr = settings.network.declaredAddress
       .orElse(upnp.map(u => new InetSocketAddress(u.externalAddress, settings.network.bindAddress.getPort)))
-    val peerManagerRef = PeerManagerRef(settings, timeProvider, externalAddr)
 
     val messageSpecs = Seq(GetPeersSpec, PeersSpec)
-    val messagesHandler = MessageHandler(messageSpecs)
+    val scorexContext = ScorexContext(messageSpecs, Seq.empty, upnp, timeProvider, externalAddr)
+
+    val peerManagerRef = PeerManagerRef(settings, scorexContext)
 
     val networkControllerRef: ActorRef = NetworkControllerRef(
       "networkController", settings.network,
-      messagesHandler, Seq.empty, upnp,
-      peerManagerRef, timeProvider, tcpManagerProbe.testActor, externalAddr)
+      peerManagerRef, scorexContext, tcpManagerProbe.testActor)
 
 
     tcpManagerProbe.expectMsg(Bind(networkControllerRef, settings.network.bindAddress, options = KeepAlive(true) :: Nil))
@@ -355,10 +355,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   private val featureSerializers = Map(LocalAddressPeerFeature.featureId -> LocalAddressPeerFeatureSerializer)
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.network.maxHandshakeSize)
   private val messageSpecs = Seq(GetPeersSpec, PeersSpec)
-  private val messagesHandler = MessageHandler(messageSpecs)
-  private val buffering = new Buffering {
-    override def settings: NetworkSettings = TestPeer.this.settings.network
-  }
+  private val messagesSerializer = new MessageSerializer(messageSpecs)
 
   private var connectionHandler:ActorRef = _
 
@@ -390,7 +387,6 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
       declaredAddress, features, timeProvider.time())
 
     tcpManagerProbe.send(connectionHandler, Tcp.Received(ByteString(handshakeSerializer.toBytes(handshakeToNode))))
-    tcpManagerProbe.expectMsg(Tcp.ResumeReading)
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)
   }
 
@@ -446,8 +442,8 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     * @param msg
     */
   def sendMessage(msg: Message[_]): Unit = {
-    val bytes = msg.bytes
-    tcpManagerProbe.send(connectionHandler, Tcp.Received(ByteString(Ints.toByteArray(bytes.length) ++ bytes)))
+    val byteString = messagesSerializer.serialize(msg)
+    tcpManagerProbe.send(connectionHandler, Tcp.Received(byteString))
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)
   }
 
@@ -458,8 +454,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   def receiveMessage: Message[_] = {
     tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(b, _) =>
-        val bytes = buffering.getPacket(b)._1.headOption.value.toByteBuffer
-        messagesHandler.parseBytes(bytes, None).success.value
+        messagesSerializer.deserialize(b, None).success.value.value
     }
   }
 }

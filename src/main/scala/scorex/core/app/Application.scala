@@ -42,7 +42,7 @@ trait Application extends ScorexLogging {
   protected val additionalMessageSpecs: Seq[MessageSpec[_]]
 
   //p2p
-  lazy val upnpGateway = if (settings.network.upnpEnabled) UPnP.getValidGateway(settings.network) else None
+  private val upnpGateway: Option[UPnPGateway] = if (settings.network.upnpEnabled) UPnP.getValidGateway(settings.network) else None
   // TODO use available port on gateway instead settings.network.bindAddress.getPort
   upnpGateway.map(_.addPort(settings.network.bindAddress.getPort))
 
@@ -58,8 +58,6 @@ trait Application extends ScorexLogging {
       modifiersSpec
     )
   }
-
-  lazy val messagesHandler: MessageHandler = MessageHandler(basicSpecs ++ additionalMessageSpecs)
 
   val nodeViewHolderRef: ActorRef
   val nodeViewSynchronizer: ActorRef
@@ -78,11 +76,18 @@ trait Application extends ScorexLogging {
     }
   }
 
-  val peerManagerRef = PeerManagerRef(settings, timeProvider, externalSocketAddress)
+  val scorexContext = ScorexContext(
+    messageSpecs = basicSpecs ++ additionalMessageSpecs,
+    features = features,
+    upnpGateway = upnpGateway,
+    timeProvider = timeProvider,
+    externalNodeAddress = externalSocketAddress
+  )
 
-  val networkControllerRef: ActorRef = NetworkControllerRef("networkController", settings.network,
-                                                            messagesHandler, features, upnpGateway,
-                                                            peerManagerRef, timeProvider, externalSocketAddress)
+  val peerManagerRef = PeerManagerRef(settings, scorexContext)
+
+  val networkControllerRef: ActorRef = NetworkControllerRef(
+    "networkController", settings.network, peerManagerRef, scorexContext)
 
   lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 

@@ -6,15 +6,17 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Cancellable, Props, SupervisorS
 import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
-import com.google.common.primitives.Ints
-import scorex.core.app.Version
-import scorex.core.network.PeerConnectionHandler.{AwaitingHandshake, Handshaked, WorkingCycle}
-import scorex.core.network.message.MessageHandler
+import scorex.core.app.{ScorexContext, Version}
+import scorex.core.network.NetworkController.ReceivableMessages.Handshaked
+import scorex.core.network.PeerFeature.Serializers
+import scorex.core.network.message.MessageSerializer
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
+import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{ScorexLogging, TimeProvider}
+import scorex.core.utils.ScorexLogging
 
+import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
@@ -51,45 +53,102 @@ case class ConnectionDescription(connection: ActorRef,
 class PeerConnectionHandler(val settings: NetworkSettings,
                             networkControllerRef: ActorRef,
                             peerManagerRef: ActorRef,
-                            messageHandler: MessageHandler,
-                            handshakeSerializer: HandshakeSerializer,
-                            connectionDescription: ConnectionDescription,
-                            timeProvider: TimeProvider)(implicit ec: ExecutionContext)
-  extends Actor with Buffering with ScorexLogging {
+                            scorexContext: ScorexContext,
+                            connectionDescription: ConnectionDescription
+                           )(implicit ec: ExecutionContext)
+  extends Actor with ScorexLogging {
 
   import PeerConnectionHandler.ReceivableMessages._
 
-  private lazy val connection = connectionDescription.connection
-  private lazy val direction = connectionDescription.direction
-  private lazy val ownSocketAddress = connectionDescription.ownSocketAddress
-  private lazy val remote = connectionDescription.remote
-  private lazy val localFeatures = connectionDescription.localFeatures
+  private val connection = connectionDescription.connection
+  private val direction = connectionDescription.direction
+  private val ownSocketAddress = connectionDescription.ownSocketAddress
+  private val remote = connectionDescription.remote
+  private val localFeatures = connectionDescription.localFeatures
 
+  private val featureSerializers: Serializers = {
+    localFeatures.map(f => f.featureId -> (f.serializer:Serializer[_ <: PeerFeature])).toMap
+  }
 
-  context watch connection
+  private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
+  private val messageSerializer = new MessageSerializer(scorexContext.messageSpecs)
 
   // there is no recovery for broken connections
   override val supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
 
-
-  private var receivedHandshake: Option[Handshake] = None
   private var selfPeer: Option[ConnectedPeer] = None
-
-  //todo: use `become` to handle handshake state instead?
-  private def handshakeGot = receivedHandshake.isDefined
-
-  private var handshakeSent = false
 
   private var handshakeTimeoutCancellableOpt: Option[Cancellable] = None
 
   private var chunksBuffer: ByteString = CompactByteString()
 
-  private def handshake: Receive =
-    startInteraction orElse
-      receivedData orElse
-      handshakeTimeout orElse
-      handshakeDone orElse
-      processErrors(AwaitingHandshake.toString)
+  override def preStart: Unit = {
+    context watch connection
+    connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
+    connection ! ResumeReading
+
+    context.become(handshaking)
+  }
+
+  override def receive: Receive = reportStrangeInput
+
+  override def postStop(): Unit = log.info(s"Peer handler to $remote destroyed")
+
+  private def handshaking(): Receive = {
+    handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
+    (self ! HandshakeTimeout))
+    val hb = handshakeSerializer.toBytes(createHandshakeMessage())
+    connection ! Tcp.Write(ByteString(hb))
+    log.info(s"Handshake sent to $remote")
+
+    receiveAndHandleHandshake { receivedHandshake =>
+      log.info(s"Got a Handshake from $remote")
+
+      val peerInfo = PeerInfo(
+        scorexContext.timeProvider.time(),
+        receivedHandshake.declaredAddress,
+        Some(receivedHandshake.nodeName),
+        Some(direction),
+        receivedHandshake.features
+      )
+      val peer = ConnectedPeer(remote, self, Some(peerInfo))
+      selfPeer = Some(peer)
+
+      networkControllerRef ! Handshaked(peerInfo)
+      handshakeTimeoutCancellableOpt.map(_.cancel())
+      connection ! ResumeReading
+      context become workingCycle
+    } orElse handshakeTimeout orElse processErrors("Handshaking")
+  }
+
+  private def workingCycle: Receive =
+    workingCycleLocalInterface orElse
+      workingCycleRemoteInterface orElse
+      processErrors("WorkingCycle") orElse
+      reportStrangeInput
+
+  private def createHandshakeMessage()= {
+    Handshake(settings.agentName,
+      Version(settings.appVersion),
+      settings.nodeName,
+      ownSocketAddress,
+      localFeatures,
+      scorexContext.timeProvider.time()
+    )
+  }
+
+  private def receiveAndHandleHandshake(handler: Handshake => Unit): Receive = {
+    case Received(data) =>
+      handshakeSerializer.parseBytes(data.toArray) match {
+        case Success(handshake) =>
+          handler(handshake)
+
+        case Failure(t) =>
+          log.info(s"Error during parsing a handshake", t)
+          //todo: blacklist?
+          self ! CloseConnection
+      }
+  }
 
   private def processErrors(stateName: String): Receive = {
     case CommandFailed(w: Write) =>
@@ -112,67 +171,17 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeReading
   }
 
-  private def startInteraction: Receive = {
-    case StartInteraction =>
-      val hb = handshakeSerializer.toBytes(Handshake(settings.agentName,
-        Version(settings.appVersion), settings.nodeName,
-        ownSocketAddress, localFeatures, timeProvider.time()))
-
-      connection ! Tcp.Write(ByteString(hb))
-      log.info(s"Handshake sent to $remote")
-      handshakeSent = true
-      if (handshakeGot && handshakeSent) self ! HandshakeDone
-  }
-
-  private def receivedData: Receive = {
-    case Received(data) =>
-      handshakeSerializer.parseBytes(data.toArray) match {
-        case Success(handshake) =>
-          receivedHandshake = Some(handshake)
-          log.info(s"Got a Handshake from $remote")
-          connection ! ResumeReading
-          if (handshakeGot && handshakeSent) self ! HandshakeDone
-        case Failure(t) =>
-          log.info(s"Error during parsing a handshake", t)
-          //todo: blacklist?
-          self ! CloseConnection
-      }
-  }
-
   private def handshakeTimeout: Receive = {
     case HandshakeTimeout =>
       log.info(s"Handshake timeout with $remote, going to drop the connection")
       self ! CloseConnection
   }
 
-  private def handshakeDone: Receive = {
-    case HandshakeDone =>
-      require(receivedHandshake.isDefined)
-
-      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-      val handshake = receivedHandshake.get
-      val peerInfo = PeerInfo(
-        timeProvider.time(),
-        handshake.declaredAddress,
-        Some(handshake.nodeName),
-        Some(direction),
-        handshake.features
-      )
-      val peer = ConnectedPeer(remote, self, Some(peerInfo))
-      selfPeer = Some(peer)
-
-      networkControllerRef ! Handshaked(peerInfo)
-      handshakeTimeoutCancellableOpt.map(_.cancel())
-      connection ! ResumeReading
-      context become workingCycle
-  }
-
   def workingCycleLocalInterface: Receive = {
     case msg: message.Message[_] =>
       def sendOutMessage() {
-        val bytes = msg.bytes
         log.info("Send message " + msg.spec + " to " + remote)
-        connection ! Write(ByteString(Ints.toByteArray(bytes.length) ++ bytes))
+        connection ! Write(messageSerializer.serialize(msg))
       }
 
       //simulating network delays
@@ -192,23 +201,22 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   def workingCycleRemoteInterface: Receive = {
     case Received(data) =>
 
-      val t = getPacket(chunksBuffer ++ data)
-      chunksBuffer = t._2
+      chunksBuffer ++= data
 
-      t._1.find { packet =>
-        messageHandler.parseBytes(packet.toByteBuffer, selfPeer) match {
-          case Success(message) =>
+      @tailrec
+      def process():Unit = {
+        messageSerializer.deserialize(chunksBuffer, selfPeer) match {
+          case Success(Some(message)) =>
             log.info("Received message " + message.spec + " from " + remote)
             networkControllerRef ! message
-            false
-
+            chunksBuffer = chunksBuffer.drop(message.messageLength)
+            process()
+          case Success(None) =>
           case Failure(e) =>
             log.info(s"Corrupted data from: " + remote, e)
-            //  connection ! Close
-            //  context stop self
-            true
         }
       }
+      process()
       connection ! ResumeReading
   }
 
@@ -216,34 +224,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       case nonsense: Any =>
         log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
   }
-
-  def workingCycle: Receive =
-    workingCycleLocalInterface orElse
-      workingCycleRemoteInterface orElse
-      processErrors(WorkingCycle.toString) orElse
-      reportStrangeInput
-
-  override def preStart: Unit = {
-    handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
-    (self ! HandshakeTimeout))
-    connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
-    connection ! ResumeReading
-    self ! StartInteraction
-  }
-
-  override def receive: Receive = handshake
-
-  override def postStop(): Unit = log.info(s"Peer handler to $remote destroyed")
 }
 
 object PeerConnectionHandler {
-
-
-  // todo: use the "become" approach to handle state more elegantly
-  sealed trait CommunicationState
-  case object AwaitingHandshake extends CommunicationState
-  case object WorkingCycle extends CommunicationState
-  case class Handshaked(peer: PeerInfo)
 
   object ReceivableMessages {
     private[PeerConnectionHandler] object HandshakeDone
@@ -258,33 +241,25 @@ object PeerConnectionHandlerRef {
   def props(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
-            messagesHandler: MessageHandler,
-            handshakeSerializer: HandshakeSerializer,
-            connectionDescription: ConnectionDescription,
-            timeProvider: TimeProvider)(implicit ec: ExecutionContext): Props =
-    Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, messagesHandler,
-                                    handshakeSerializer, connectionDescription, timeProvider))
+            scorexContext: ScorexContext,
+            connectionDescription: ConnectionDescription
+            )(implicit ec: ExecutionContext): Props =
+    Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, scorexContext, connectionDescription))
 
   def apply(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
-            messagesHandler: MessageHandler,
-            handshakeSerializer: HandshakeSerializer,
-            connectionDescription: ConnectionDescription,
-            timeProvider: TimeProvider)
+            scorexContext: ScorexContext,
+            connectionDescription: ConnectionDescription)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, handshakeSerializer,
-                         connectionDescription, timeProvider))
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, scorexContext, connectionDescription))
 
   def apply(name: String,
             settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
-            messagesHandler: MessageHandler,
-            handshakeSerializer: HandshakeSerializer,
-            connectionDescription: ConnectionDescription,
-            timeProvider: TimeProvider)
+            scorexContext: ScorexContext,
+            connectionDescription: ConnectionDescription)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, handshakeSerializer,
-                         connectionDescription, timeProvider), name)
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, scorexContext, connectionDescription), name)
 }

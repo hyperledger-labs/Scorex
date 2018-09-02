@@ -6,6 +6,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
 import org.scalatest._
 import scorex.ObjectGenerators
+import scorex.core.app.ScorexContext
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.NetworkTimeProvider
 
@@ -27,7 +28,8 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
     val timeProvider = new NetworkTimeProvider(settings.ntp)
 
     val selfAddress = settings.network.bindAddress
-    val peerManager = PeerManagerRef(settings, timeProvider, Some(selfAddress))(system)
+    val scorexContext = ScorexContext(Seq.empty, Seq.empty, None, timeProvider, Some(selfAddress))
+    val peerManager = PeerManagerRef(settings, scorexContext)(system)
 
     peerManager ! AddOrUpdatePeer(selfAddress, None, None, Seq())
     peerManager ! GetAllPeers
@@ -44,7 +46,8 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
 
     val settings = ScorexSettings.read(None)
     val timeProvider = new NetworkTimeProvider(settings.ntp)
-    val peerManager = PeerManagerRef(settings, timeProvider, None)(system)
+    val scorexContext = ScorexContext(Seq.empty, Seq.empty, None, timeProvider, None)
+    val peerManager = PeerManagerRef(settings, scorexContext)(system)
     val peerAddress = new InetSocketAddress("1.1.1.1", DefaultPort)
 
     peerManager ! AddOrUpdatePeer(peerAddress, None, None, Seq())
