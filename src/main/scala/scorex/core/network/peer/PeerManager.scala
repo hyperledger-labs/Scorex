@@ -6,7 +6,8 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.app.ScorexContext
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
-import scorex.core.utils.{NetworkUtils, ScorexLogging}
+import scorex.core.utils.NetworkUtils
+import scorex.util.ScorexLogging
 
 import scala.util.Random
 

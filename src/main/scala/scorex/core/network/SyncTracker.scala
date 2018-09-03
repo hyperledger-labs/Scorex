@@ -7,7 +7,8 @@ import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.SendLocalSyncInfo
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{ScorexLogging, TimeProvider}
+import scorex.core.utils.ScorexLogging
+import scorex.util.ScorexLogging
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext

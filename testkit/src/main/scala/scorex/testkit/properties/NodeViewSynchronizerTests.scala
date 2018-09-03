@@ -18,9 +18,9 @@ import scorex.core.network.message._
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
-import scorex.core.utils.ScorexLogging
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
 import scorex.testkit.utils.AkkaFixture
+import scorex.util.ScorexLogging
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global

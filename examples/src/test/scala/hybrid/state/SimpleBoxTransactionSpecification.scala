@@ -8,7 +8,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519Companion
-import scorex.crypto.encode.Base58
+import scorex.util.encode.Base58
 import scorex.crypto.hash.Sha256
 import scorex.crypto.signatures.{PublicKey, Signature}
 

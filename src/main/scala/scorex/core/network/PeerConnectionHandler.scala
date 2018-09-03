@@ -14,7 +14,7 @@ import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
 import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.ScorexLogging
+import scorex.util.ScorexLogging
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext

@@ -8,6 +8,7 @@ import org.apache.commons.net.ntp.NTPUDPClient
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
+import scorex.util.ScorexLogging
 
 object NetworkTime {
   def localWithOffset(offset: Long): Long = System.currentTimeMillis() + offset
@@ -17,7 +18,7 @@ object NetworkTime {
 case class NetworkTimeProviderSettings(server: String, updateEvery: FiniteDuration, timeout: FiniteDuration)
 
 class NetworkTimeProvider(ntpSettings: NetworkTimeProviderSettings)(implicit ec: ExecutionContext)
-  extends  TimeProvider with ScorexLogging {
+  extends TimeProvider with ScorexLogging {
 
   private val lastUpdate = new AtomicLong(0)
   private var offset = new AtomicLong(0)

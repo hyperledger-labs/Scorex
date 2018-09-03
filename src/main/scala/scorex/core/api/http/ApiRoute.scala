@@ -6,7 +6,8 @@ import akka.http.scaladsl.unmarshalling.PredefinedFromEntityUnmarshallers
 import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Printer
-import scorex.core.utils.{ActorHelper, ScorexLogging}
+import scorex.core.utils.ActorHelper
+import scorex.util.ScorexLogging
 
 import scala.language.implicitConversions
 

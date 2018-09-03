@@ -10,9 +10,10 @@ import examples.hybrid.util.FileFunctions
 import examples.hybrid.wallet.HBoxWallet
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding, ScorexLogging}
-import scorex.crypto.encode.Base58
+import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
+import scorex.util.encode.Base58
 import scorex.crypto.signatures.PublicKey
+import scorex.util.ScorexLogging
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global

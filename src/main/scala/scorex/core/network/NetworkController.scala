@@ -15,7 +15,8 @@ import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeerWithout, RemovePeer}
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkUtils, ScorexLogging}
+import scorex.core.utils.NetworkUtils
+import scorex.util.ScorexLogging
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext

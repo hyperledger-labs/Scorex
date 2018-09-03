@@ -4,8 +4,9 @@ import akka.actor.{ActorRef, ActorSystem, Cancellable}
 import scorex.core.consensus.ContainsModifiers
 import scorex.core.network.ModifiersStatus._
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.CheckDelivery
-import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core.utils.ScorexEncoding
 import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
+import scorex.util.ScorexLogging
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext

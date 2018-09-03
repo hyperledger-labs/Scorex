@@ -1,7 +1,5 @@
 name := "scorex-examples"
 
-resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
-
 libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "3.0.1" % "test",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",

@@ -11,7 +11,7 @@ import io.circe.syntax._
 import scorex.core.bytesToId
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView}
 import scorex.core.settings.RESTApiSettings
-import scorex.core.utils.{ScorexEncoding, ScorexLogging}
+import scorex.core.utils.ScorexEncoding
 
 import scala.util.Try
 
