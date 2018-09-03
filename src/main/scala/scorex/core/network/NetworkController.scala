@@ -12,7 +12,7 @@ import scorex.core.app.ScorexContext
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
-import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeerWithout, RemovePeer}
+import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeerExcluding, RemovePeer}
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
@@ -47,7 +47,7 @@ class NetworkController(settings: NetworkSettings,
   lazy val bindAddress = settings.bindAddress
 
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
-  private val outgoing = mutable.Set[InetSocketAddress]()
+  private var outgoing = Set.empty[InetSocketAddress]
 
   //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
   private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
@@ -172,7 +172,7 @@ class NetworkController(settings: NetworkSettings,
   private def scheduleConnectToPeer(): Unit = {
     context.system.scheduler.schedule(5.seconds, 5.seconds){
       if (connections.size < settings.maxConnections) {
-        val randomPeerF = peerManagerRef ? RandomPeerWithout(connections.values.flatMap(_.peerInfo).toSeq)
+        val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
           peerInfoOpt.foreach(peerInfo => self ! ConnectTo(peerInfo))
         }

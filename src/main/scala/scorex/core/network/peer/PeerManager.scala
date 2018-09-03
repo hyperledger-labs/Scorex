@@ -55,8 +55,10 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     case RandomPeers(howMany: Int) =>
       sender() ! Random.shuffle(peerDatabase.knownPeers().values.toSeq).take(howMany)
 
-    case RandomPeerWithout(peers) =>
-      val ps = peerDatabase.knownPeers().values.filterNot(p => peers.contains(p)).toSeq
+    case RandomPeerExcluding(excludedPeers) =>
+      val ps = peerDatabase.knownPeers().values.filterNot { p =>
+        excludedPeers.exists(e => e.declaredAddress == p.declaredAddress || e.localAddress == p.localAddress)
+      }.toSeq
       val randomPeerOpt = if (ps.nonEmpty) {
         Some(ps(Random.nextInt(ps.size)))
       } else {
@@ -106,7 +108,7 @@ object PeerManager {
     case object KnownPeers
     case object RandomPeer
     case class RandomPeers(hawMany: Int)
-    case class RandomPeerWithout(peers: Seq[PeerInfo])
+    case class RandomPeerExcluding(excludedPeers: Seq[PeerInfo])
 
     // apiInterface messages
     case object GetAllPeers

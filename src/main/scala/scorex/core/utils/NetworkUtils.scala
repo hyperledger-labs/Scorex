@@ -6,7 +6,7 @@ import scala.collection.JavaConverters._
 object NetworkUtils {
 
   def getListenAddresses(bindAddress: InetSocketAddress): Set[InetSocketAddress] = {
-    if (bindAddress.getAddress.isAnyLocalAddress) {
+    if (bindAddress.getAddress.isAnyLocalAddress || bindAddress.getAddress.isLoopbackAddress) {
       NetworkInterface.getNetworkInterfaces.asScala
         .flatMap(_.getInetAddresses.asScala)
         .collect { case a: Inet4Address => a}
