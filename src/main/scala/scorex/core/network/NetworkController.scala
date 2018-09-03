@@ -199,7 +199,6 @@ class NetworkController(settings: NetworkSettings,
         }
       case None =>
         log.warn(s"Can't obtain remote address for peer $peer")
-
     }
   }
 
@@ -296,7 +295,7 @@ class NetworkController(settings: NetworkSettings,
   private def connectionForPeerAddress(peerAddress: InetSocketAddress) = {
     connections.values.find { connectedPeer =>
       connectedPeer.remote == peerAddress ||
-      connectedPeer.peerInfo.exists(peerInfo => getPeerAddress(peerInfo) == peerAddress)
+      connectedPeer.peerInfo.exists(peerInfo => getPeerAddress(peerInfo).contains(peerAddress))
     }
   }
 

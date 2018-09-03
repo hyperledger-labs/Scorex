@@ -2,10 +2,10 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import scorex.core.utils.{NetworkTime, ScorexLogging, TimeProvider}
+import scorex.core.utils.{NetworkTime, TimeProvider}
+import scorex.util.ScorexLogging
 
 import scala.collection.mutable
-
 
 //todo: persistence
 class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with ScorexLogging {
