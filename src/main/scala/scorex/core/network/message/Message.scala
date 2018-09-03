@@ -49,7 +49,6 @@ class MessageSerializer(specs: Seq[MessageSpec[_]]) {
 
     if (obj.dataLength > 0) {
       val checksum = Blake2b256.hash(obj.dataBytes).take(ChecksumLength)
-      Bytes.concat(checksum, obj.dataBytes)
       builder.putBytes(checksum).putBytes(obj.dataBytes)
     }
 
@@ -70,7 +69,7 @@ class MessageSerializer(specs: Seq[MessageSpec[_]]) {
 
       val spec = specsMap.getOrElse(msgCode, throw new Error(s"No message handler found for $msgCode"))
 
-      if (length != 0 && length < byteString.length - HeaderLength - ChecksumLength) {
+      if (length != 0 && byteString.length < length + HeaderLength + ChecksumLength) {
         None
       } else {
         val msgData = if (length > 0) {
