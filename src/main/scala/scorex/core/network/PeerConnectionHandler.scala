@@ -20,7 +20,9 @@ import scala.util.{Failure, Random, Success}
 
 
 sealed trait ConnectionType
+
 case object Incoming extends ConnectionType
+
 case object Outgoing extends ConnectionType
 
 
@@ -97,13 +99,18 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       processErrors(AwaitingHandshake.toString)
 
   private def processErrors(stateName: String): Receive = {
-    case CommandFailed(w: Write) =>
-      log.warn(s"Wailed to write ${w.data.length} bytes starting from ${encoder.encode(w.data.toArray.take(64))} " +
-        s"to $remote in state $stateName")
-      //      peerManager ! AddToBlacklist(remote)
-      connection ! Close
-      connection ! ResumeReading
-      connection ! ResumeWriting
+    case c: CommandFailed =>
+      c.cmd match {
+        case w: Write =>
+          log.warn(s"$c: Failed to write ${w.data.length} bytes to $remote in state $stateName")
+          //      peerManager ! AddToBlacklist(remote)
+          connection ! Close
+          connection ! ResumeReading
+          connection ! ResumeWriting
+        case _ =>
+          log.warn(s"$c: Failed to execute command to $remote in state $stateName")
+          connection ! ResumeReading
+      }
 
     case cc: ConnectionClosed =>
       peerManagerRef ! Disconnected(remote)
@@ -114,9 +121,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       log.info(s"Enforced to abort communication with: " + remote + s" in state $stateName")
       connection ! Close
 
-    case CommandFailed(cmd: Tcp.Command) =>
-      log.info("Failed to execute command : " + cmd + s" in state $stateName")
-      connection ! ResumeReading
   }
 
   private def startInteraction: Receive = {
@@ -211,9 +215,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeReading
   }
 
-  private def reportStrangeInput: Receive= {
-      case nonsense: Any =>
-        log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
+  private def reportStrangeInput: Receive = {
+    case nonsense: Any =>
+      log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
   }
 
   def workingCycle: Receive =
@@ -240,16 +244,25 @@ object PeerConnectionHandler {
 
   // todo: use the "become" approach to handle state more elegantly
   sealed trait CommunicationState
+
   case object AwaitingHandshake extends CommunicationState
+
   case object WorkingCycle extends CommunicationState
 
   object ReceivableMessages {
+
     private[PeerConnectionHandler] object HandshakeDone
+
     case object StartInteraction
+
     case object HandshakeTimeout
+
     case object CloseConnection
+
     case object Blacklist
+
   }
+
 }
 
 object PeerConnectionHandlerRef {
@@ -261,7 +274,7 @@ object PeerConnectionHandlerRef {
             connectionDescription: ConnectionDescription,
             timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext): Props =
     Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, messagesHandler,
-                                    handshakeSerializer, connectionDescription, timeProvider))
+      handshakeSerializer, connectionDescription, timeProvider))
 
   def apply(settings: NetworkSettings,
             networkControllerRef: ActorRef,
@@ -272,7 +285,7 @@ object PeerConnectionHandlerRef {
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, handshakeSerializer,
-                         connectionDescription, timeProvider))
+      connectionDescription, timeProvider))
 
   def apply(name: String,
             settings: NetworkSettings,
@@ -284,5 +297,5 @@ object PeerConnectionHandlerRef {
             timeProvider: NetworkTimeProvider)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, messagesHandler, handshakeSerializer,
-                         connectionDescription, timeProvider), name)
+      connectionDescription, timeProvider), name)
 }
