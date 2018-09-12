@@ -11,7 +11,7 @@ import scorex.core.app.Version
 import scorex.core.network.PeerConnectionHandler.{AwaitingHandshake, WorkingCycle}
 import scorex.core.network.message.MessageHandler
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.NetworkTimeProvider
+import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
 import scorex.util.ScorexLogging
 
 import scala.concurrent.ExecutionContext
@@ -58,7 +58,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
                             handshakeSerializer: HandshakeSerializer,
                             connectionDescription: ConnectionDescription,
                             timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext)
-  extends Actor with Buffering with ScorexLogging {
+  extends Actor with Buffering with ScorexLogging with ScorexEncoding {
 
   import PeerConnectionHandler.ReceivableMessages._
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, Disconnected, DoConnecting, Handshaked}
@@ -98,7 +98,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private def processErrors(stateName: String): Receive = {
     case CommandFailed(w: Write) =>
-      log.warn(s"Write failed :$w " + remote + s" in state $stateName")
+      log.warn(s"Wailed to write ${w.data.length} bytes starting from ${encoder.encode(w.data.toArray.take(64))} " +
+        s"to $remote in state $stateName")
       //      peerManager ! AddToBlacklist(remote)
       connection ! Close
       connection ! ResumeReading

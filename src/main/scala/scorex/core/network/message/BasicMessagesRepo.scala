@@ -127,11 +127,13 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
       if (msgSize <= maxMessageSize) Seq(idToBytes(id), Ints.toByteArray(modifier.length), modifier) else Seq()
     }.toSeq
 
-    if (msgSize > maxMessageSize) {
-      log.info(s"Modifiers message of $msgSize generated while the maximum is $maxMessageSize. Better to fix app layer.")
-    }
 
-    scorex.core.utils.concatBytes(Seq(Array(typeId), Ints.toByteArray(payload.size / 3)) ++ payload)
+    val bytes = scorex.core.utils.concatBytes(Seq(Array(typeId), Ints.toByteArray(payload.size / 3)) ++ payload)
+    if (msgSize > maxMessageSize) {
+      log.warn(s"Message with modifiers ${data._2.keySet} have size $msgSize exceeding limit $maxMessageSize." +
+        s" Sending ${bytes.length} bytes instead")
+    }
+    bytes
   }
 }
 
