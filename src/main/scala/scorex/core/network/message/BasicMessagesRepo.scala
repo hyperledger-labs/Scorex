@@ -123,7 +123,7 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
 
     var msgSize = 5
     val payload: Seq[Array[Byte]] = modifiers.flatMap { case (id, modifier) =>
-      msgSize += id.length + 4 + modifier.length
+      msgSize += NodeViewModifier.ModifierIdSize + 4 + modifier.length
       if (msgSize <= maxMessageSize) Seq(idToBytes(id), Ints.toByteArray(modifier.length), modifier) else Seq()
     }.toSeq
 
