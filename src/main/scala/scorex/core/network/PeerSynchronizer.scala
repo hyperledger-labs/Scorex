@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
+import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
@@ -27,7 +27,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
   override def preStart: Unit = {
     super.preStart()
 
-    networkControllerRef ! RegisterMessagesHandler(Seq(GetPeersSpec, PeersSpec), self)
+    networkControllerRef ! RegisterMessageSpecs(Seq(GetPeersSpec, PeersSpec), self)
 
     val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
     val stn = SendToNetwork(msg, SendToRandom)

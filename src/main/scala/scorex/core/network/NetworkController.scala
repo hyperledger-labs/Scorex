@@ -155,7 +155,7 @@ class NetworkController(settings: NetworkSettings,
   }
 
   override def receive: Receive = bindingLogic orElse businessLogic orElse peerLogic orElse interfaceCalls orElse {
-    case RegisterMessagesHandler(specs, handler) =>
+    case RegisterMessageSpecs(specs, handler) =>
       log.info(s"Registering handlers for ${specs.map(s => s.messageCode -> s.messageName)}")
       messageHandlers ++= specs.map(_.messageCode -> handler)
 
@@ -388,7 +388,7 @@ class NetworkController(settings: NetworkSettings,
 object NetworkController {
   object ReceivableMessages {
     case class Handshaked(peer: PeerInfo)
-    case class RegisterMessagesHandler(specs: Seq[MessageSpec[_]], handler: ActorRef)
+    case class RegisterMessageSpecs(specs: Seq[MessageSpec[_]], handler: ActorRef)
     case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
     case object ShutdownNetwork
     case class ConnectTo(peer: PeerInfo)
