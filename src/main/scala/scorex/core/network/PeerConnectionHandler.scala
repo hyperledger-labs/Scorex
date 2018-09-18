@@ -14,6 +14,7 @@ import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
 import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
+import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
 import scorex.util.ScorexLogging
 
 import scala.annotation.tailrec
@@ -151,12 +152,18 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   private def processErrors(stateName: String): Receive = {
-    case CommandFailed(w: Write) =>
-      log.warn(s"Write failed :$w " + remote + s" in state $stateName")
-      //      peerManager ! AddToBlacklist(remote)
-      connection ! Close
-      connection ! ResumeReading
-      connection ! ResumeWriting
+    case c: CommandFailed =>
+      c.cmd match {
+        case w: Write =>
+          log.warn(s"$c: Failed to write ${w.data.length} bytes to $remote in state $stateName")
+          //      peerManager ! AddToBlacklist(remote)
+          connection ! Close
+          connection ! ResumeReading
+          connection ! ResumeWriting
+        case _ =>
+          log.warn(s"$c: Failed to execute command to $remote in state $stateName")
+          connection ! ResumeReading
+      }
 
     case cc: ConnectionClosed =>
       log.info("Connection closed to : " + remote + ": " + cc.getErrorCause + s" in state $stateName")
@@ -166,9 +173,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       log.info(s"Enforced to abort communication with: " + remote + s" in state $stateName")
       connection ! Close
 
-    case CommandFailed(cmd: Tcp.Command) =>
-      log.info("Failed to execute command : " + cmd + s" in state $stateName")
-      connection ! ResumeReading
   }
 
   private def handshakeTimeout: Receive = {

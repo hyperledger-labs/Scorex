@@ -8,7 +8,6 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
 import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse}
-import scorex.core.network.Handshake
 import scorex.core.network.NetworkController.ReceivableMessages.{ConnectTo, GetConnectedPeers}
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers}
