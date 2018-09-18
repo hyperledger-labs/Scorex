@@ -24,6 +24,7 @@ import scorex.core.validation.MalformedModifierError
 import scorex.core.{PersistentNodeViewModifier, _}
 import scorex.util.ScorexLogging
 
+import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -411,9 +412,22 @@ MR <: MempoolReader[TX] : ClassTag]
     case ResponseFromLocal(peer, _, modifiers: Seq[NodeViewModifier]) =>
       modifiers.headOption.foreach { head =>
         val modType = head.modifierTypeId
-        val m = modType -> modifiers.map(m => m.id -> m.bytes).toMap
-        val msg = Message(modifiersSpec, Right(m), None)
-        peer.handlerRef ! msg
+
+        @tailrec
+        def sendByParts(mods: Seq[(ModifierId, Array[Byte])]): Unit = {
+          var size = 5 //message type id + message size
+          val batch = mods.takeWhile { case (_, modBytes) =>
+            size += NodeViewModifier.ModifierIdSize + 4 + modBytes.length
+            size < networkSettings.maxPacketSize
+          }
+          peer.handlerRef ! Message(modifiersSpec, Right(modType -> batch.toMap), None)
+          val remaining = mods.drop(batch.length)
+          if (remaining.nonEmpty) {
+            sendByParts(remaining)
+          }
+        }
+
+        sendByParts(modifiers.map(m => m.id -> m.bytes))
       }
   }
 
