@@ -415,9 +415,9 @@ MR <: MempoolReader[TX] : ClassTag]
 
         @tailrec
         def sendByParts(mods: Seq[(ModifierId, Array[Byte])]): Unit = {
-          var size = 5
-          val batch = mods.takeWhile { e =>
-            size += NodeViewModifier.ModifierIdSize + 4 + e._2.length
+          var size = 5 //message type id + message size
+          val batch = mods.takeWhile { case (_, modBytes) =>
+            size += NodeViewModifier.ModifierIdSize + 4 + modBytes.length
             size < networkSettings.maxPacketSize
           }
           peer.handlerRef ! Message(modifiersSpec, Right(modType -> batch.toMap), None)
