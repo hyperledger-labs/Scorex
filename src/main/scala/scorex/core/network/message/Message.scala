@@ -3,7 +3,6 @@ package scorex.core.network.message
 import java.nio.ByteOrder
 
 import akka.util.ByteString
-import com.google.common.primitives.Bytes
 import scorex.core.network.ConnectedPeer
 import scorex.crypto.hash.Blake2b256
 
@@ -14,7 +13,7 @@ case class Message[Content](spec: MessageSpec[Content],
                             source: Option[ConnectedPeer]) {
   import Message._
 
-  lazy val dataBytes = input match {
+  lazy val dataBytes: Array[Byte] = input match {
     case Left(db) => db
     case Right(d) => spec.toBytes(d)
   }
@@ -36,7 +35,7 @@ class MessageSerializer(specs: Seq[MessageSpec[_]]) {
   import Message.{ChecksumLength, HeaderLength, MAGIC, MagicLength}
 
   import scala.language.existentials
-  private implicit val byteOrder = ByteOrder.BIG_ENDIAN
+  private implicit val byteOrder: ByteOrder = ByteOrder.BIG_ENDIAN
 
   private val specsMap = Map(specs.map(s => s.messageCode -> s): _*)
     .ensuring(m => m.size == specs.size, "Duplicate message codes")
@@ -96,5 +95,5 @@ object Message {
   val MagicLength: Int = MAGIC.length
 
   val ChecksumLength: Int = 4
-  val HeaderLength = MagicLength + 5
+  val HeaderLength: Int = MagicLength + 5
 }
