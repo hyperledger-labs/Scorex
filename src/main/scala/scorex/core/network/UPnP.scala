@@ -49,8 +49,8 @@ object UPnP extends ScorexLogging {
 
 class UPnPGatewayImpl(gateway: GatewayDevice) extends UPnPGateway with ScorexLogging {
 
-  override val localAddress = gateway.getLocalAddress
-  override val externalAddress = InetAddress.getByName(gateway.getExternalIPAddress)
+  override val localAddress: InetAddress = gateway.getLocalAddress
+  override val externalAddress: InetAddress = InetAddress.getByName(gateway.getExternalIPAddress)
 
   log.debug("Using UPnP gateway device on " + localAddress.getHostAddress)
   log.info("External IP address is " + externalAddress.getHostAddress)
@@ -82,10 +82,10 @@ class UPnPGatewayImpl(gateway: GatewayDevice) extends UPnPGateway with ScorexLog
     }
   }
 
-  override def getLocalAddressForExternalPort(extrenalPort: Int):Option[InetSocketAddress] = {
+  override def getLocalAddressForExternalPort(externalPort: Int):Option[InetSocketAddress] = {
     try {
       val entry = new PortMappingEntry
-      if (gateway.getSpecificPortMappingEntry(extrenalPort, "TCP", entry)) {
+      if (gateway.getSpecificPortMappingEntry(externalPort, "TCP", entry)) {
         val host = entry.getInternalClient
         Some(new InetSocketAddress(InetAddress.getByName(host), entry.getInternalPort))
       } else {
@@ -93,7 +93,7 @@ class UPnPGatewayImpl(gateway: GatewayDevice) extends UPnPGateway with ScorexLog
       }
     } catch {
       case t: Throwable =>
-        log.error("Unable to get local address for external port " + extrenalPort + ": " + t.toString)
+        log.error("Unable to get local address for external port " + externalPort + ": " + t.toString)
         None
     }
   }
