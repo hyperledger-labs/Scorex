@@ -6,11 +6,12 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.ByteArrayWrapper
 import org.scalacheck.Gen
-import scorex.core.{ModifierId, bytesToId, versionToId}
+import scorex.core.versionToId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.crypto.hash.Blake2b256
 import scorex.testkit.generators.{CoreGenerators, ModifierProducerTemplateItem, SynInvalid, Valid}
+import scorex.util.{ModifierId, bytesToId}
 
 import scala.collection.mutable
 

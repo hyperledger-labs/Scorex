@@ -5,14 +5,15 @@ import examples.commons.SimpleBoxTransaction
 import examples.hybrid.mining.HybridMiningSettings
 import io.circe.Encoder
 import io.circe.syntax._
+import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, _}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey}
+import scorex.util.{ModifierId, bytesToId, idToBytes}
 
 import scala.util.Try
 
@@ -41,8 +42,8 @@ class PowBlockHeader(
 
   lazy val id: ModifierId = bytesToId(Blake2b256(headerBytes))
 
-  override lazy val toString: String = s"PowBlockHeader(id: ${encoder.encode(id)})" +
-    s"(parentId: ${encoder.encode(parentId)}, posParentId: ${encoder.encode(prevPosId)}, time: $timestamp, " +
+  override lazy val toString: String = s"PowBlockHeader(id: ${encoder.encodeId(id)})" +
+    s"(parentId: ${encoder.encodeId(parentId)}, posParentId: ${encoder.encodeId(prevPosId)}, time: $timestamp, " +
     s"nonce: $nonce)"
 }
 
@@ -140,13 +141,13 @@ object PowBlock extends ScorexEncoding {
 
   implicit val powBlockEncoder: Encoder[PowBlock] = (pb: PowBlock) => {
     Map(
-      "id" -> encoder.encode(pb.id).asJson,
-      "parentId" -> encoder.encode(pb.parentId).asJson,
-      "prevPosId" -> encoder.encode(pb.prevPosId).asJson,
+      "id" -> encoder.encodeId(pb.id).asJson,
+      "parentId" -> encoder.encodeId(pb.parentId).asJson,
+      "prevPosId" -> encoder.encodeId(pb.prevPosId).asJson,
       "timestamp" -> pb.timestamp.asJson,
       "nonce" -> pb.nonce.asJson,
       "brothersHash" -> encoder.encode(pb.brothersHash).asJson,
-      "brothers" -> pb.brothers.map(b => encoder.encode(b.id).asJson).asJson
+      "brothers" -> pb.brothers.map(b => encoder.encodeId(b.id).asJson).asJson
     ).asJson
   }
 }

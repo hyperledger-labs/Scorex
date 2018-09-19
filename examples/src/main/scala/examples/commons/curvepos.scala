@@ -1,7 +1,8 @@
 package examples
 
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core._
+import scorex.core.{VersionTag, versionToBytes}
+import scorex.util.{ModifierId, idToBytes}
 import supertagged.TaggedType
 
 package object commons {

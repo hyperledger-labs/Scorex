@@ -21,8 +21,8 @@ import scorex.core.transaction.wallet.VaultReader
 import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
 import scorex.core.validation.MalformedModifierError
-import scorex.core.{PersistentNodeViewModifier, _}
-import scorex.util.ScorexLogging
+import scorex.core.{ModifierTypeId, NodeViewModifier, PersistentNodeViewModifier, idsToString}
+import scorex.util.{ModifierId, ScorexLogging}
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
@@ -271,7 +271,7 @@ MR <: MempoolReader[TX] : ClassTag]
       val typeId = data._1
       val modifiers = data._2
       log.info(s"Got ${modifiers.size} modifiers of type $typeId from remote connected peer: $remote")
-      log.trace(s"Received modifier ids ${modifiers.keySet.map(encoder.encode).mkString(",")}")
+      log.trace(s"Received modifier ids ${modifiers.keySet.map(encoder.encodeId).mkString(",")}")
 
       // filter out non-requested modifiers
       val requestedModifiers = processSpam(remote, typeId, modifiers)
@@ -334,7 +334,7 @@ MR <: MempoolReader[TX] : ClassTag]
         case _ =>
           // Penalize peer and do nothing - it will be switched to correct state on CheckDelivery
           penalizeMisbehavingPeer(remote)
-          log.warn(s"Failed to parse modifier with declared id ${encoder.encode(id)} from ${remote.toString}")
+          log.warn(s"Failed to parse modifier with declared id ${encoder.encodeId(id)} from ${remote.toString}")
           None
       }
     }
@@ -356,7 +356,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
     if (spam.nonEmpty) {
       log.info(s"Spam attempt: peer $remote has sent a non-requested modifiers of type $typeId with ids" +
-        s": ${spam.keys.map(encoder.encode)}")
+        s": ${spam.keys.map(encoder.encodeId)}")
       penalizeSpammingPeer(remote)
     }
     requested
@@ -373,13 +373,13 @@ MR <: MempoolReader[TX] : ClassTag]
       if (deliveryTracker.status(modifierId) == ModifiersStatus.Requested) {
         peerOpt match {
           case Some(peer) =>
-            log.info(s"Peer ${peer.toString} has not delivered asked modifier ${encoder.encode(modifierId)} on time")
+            log.info(s"Peer ${peer.toString} has not delivered asked modifier ${encoder.encodeId(modifierId)} on time")
             penalizeNonDeliveringPeer(peer)
             deliveryTracker.onStillWaiting(peer, modifierTypeId, modifierId)
           case None =>
             // Random peer did not delivered modifier we need, ask another peer
             // We need this modifier - no limit for number of attempts
-            log.info(s"Modifier ${encoder.encode(modifierId)} was not delivered on time")
+            log.info(s"Modifier ${encoder.encodeId(modifierId)} was not delivered on time")
             deliveryTracker.stopProcessing(modifierId)
             requestDownload(modifierTypeId, Seq(modifierId))
         }

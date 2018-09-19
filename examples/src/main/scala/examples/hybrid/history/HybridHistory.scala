@@ -16,9 +16,9 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
 import scorex.core.validation.RecoverableModifierError
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
+import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.crypto.hash.Blake2b256
-import scorex.util.ScorexLogging
+import scorex.util.{ModifierId, ScorexLogging}
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
@@ -110,11 +110,11 @@ class HybridHistory(val storage: HistoryStorage,
 
           val mod: ProgressInfo[HybridBlock] = if (isBest) {
             if (isGenesis(powBlock) || (powBlock.parentId == bestPowId && powBlock.prevPosId == bestPosId)) {
-              log.debug(s"New best PoW block ${encoder.encode(powBlock.id)}")
+              log.debug(s"New best PoW block ${encoder.encodeId(powBlock.id)}")
               //just apply one block to the end
               ProgressInfo(None, Seq(), Seq(powBlock), Seq())
             } else if (isBestBrother) {
-              log.debug(s"New best brother ${encoder.encode(powBlock.id)}")
+              log.debug(s"New best brother ${encoder.encodeId(powBlock.id)}")
               //new best brother
               ProgressInfo(Some(powBlock.prevPosId), Seq(bestPowBlock), Seq(powBlock), Seq())
             } else {
@@ -122,7 +122,7 @@ class HybridHistory(val storage: HistoryStorage,
               bestForkChanges(powBlock)
             }
           } else {
-            log.debug(s"New orphaned PoW block ${encoder.encode(powBlock.id)}")
+            log.debug(s"New orphaned PoW block ${encoder.encodeId(powBlock.id)}")
             ProgressInfo(None, Seq(), Seq(), Seq())
           }
           storage.update(powBlock, None, isBest)
@@ -145,13 +145,13 @@ class HybridHistory(val storage: HistoryStorage,
     val isBest = storage.height == storage.parentHeight(posBlock)
 
     val mod: ProgressInfo[HybridBlock] = if (!isBest) {
-      log.debug(s"New orphaned PoS block ${encoder.encode(posBlock.id)}")
+      log.debug(s"New orphaned PoS block ${encoder.encodeId(posBlock.id)}")
       ProgressInfo(None, Seq(), Seq(), Seq())
     } else if (posBlock.parentId == bestPowId) {
-      log.debug(s"New best PoS block ${encoder.encode(posBlock.id)}")
+      log.debug(s"New best PoS block ${encoder.encodeId(posBlock.id)}")
       ProgressInfo(None, Seq(), Seq(posBlock), Seq())
     } else if (parent.prevPosId == bestPowBlock.prevPosId) {
-      log.debug(s"New best PoS block with link to non-best brother ${encoder.encode(posBlock.id)}")
+      log.debug(s"New best PoS block with link to non-best brother ${encoder.encodeId(posBlock.id)}")
       //rollback to previous PoS block and apply parent block one more time
       ProgressInfo(Some(parent.prevPosId), Seq(bestPowBlock), Seq[HybridBlock](parent, posBlock), Seq())
     } else {
@@ -167,7 +167,7 @@ class HybridHistory(val storage: HistoryStorage,
     * @return
     */
   override def append(block: HybridBlock): Try[(HybridHistory, ProgressInfo[HybridBlock])] = Try {
-    log.debug(s"Trying to append block ${encoder.encode(block.id)} to history")
+    log.debug(s"Trying to append block ${encoder.encodeId(block.id)} to history")
 
     validators.map(_.validate(block)).foreach {
       case Failure(e) =>
@@ -181,11 +181,11 @@ class HybridHistory(val storage: HistoryStorage,
       case posBlock: PosBlock => posBlockAppend(posBlock)
     }
 
-    log.info(s"History: block ${encoder.encode(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
+    log.info(s"History: block ${encoder.encodeId(block.id)} appended to chain with score ${storage.heightOf(block.id)}. " +
       s"Best score is ${storage.bestChainScore}. " +
-      s"Pair: ${encoder.encode(storage.bestPowId)}|${encoder.encode(storage.bestPosId)}")
+      s"Pair: ${encoder.encodeId(storage.bestPowId)}|${encoder.encodeId(storage.bestPosId)}")
     statsLogger.foreach(l => l.appendString(timeProvider.time() + ":" +
-      lastBlockIds(bestBlock, 50).map(encoder.encode).mkString(",")))
+      lastBlockIds(bestBlock, 50).map(encoder.encodeId).mkString(",")))
     res
   }
 
@@ -194,9 +194,9 @@ class HybridHistory(val storage: HistoryStorage,
   def bestForkChanges(block: HybridBlock): ProgressInfo[HybridBlock] = {
     val parentId = storage.parentId(block)
     val (newSuffix, oldSuffix) = commonBlockThenSuffixes(modifierById(parentId).get)
-    log.debug(s"Processing fork for block ${encoder.encode(block.id)}: \n" +
-      s"old: ${oldSuffix.map(encoder.encode)}\n" +
-      s"new: ${newSuffix.map(encoder.encode)}")
+    log.debug(s"Processing fork for block ${encoder.encodeId(block.id)}: \n" +
+      s"old: ${oldSuffix.map(encoder.encodeId)}\n" +
+      s"new: ${newSuffix.map(encoder.encodeId)}")
 
     val rollbackPoint = newSuffix.headOption
 
@@ -245,7 +245,7 @@ class HybridHistory(val storage: HistoryStorage,
 
       val oldPosDifficulty = storage.getPoSDifficulty(lastPow.prevPosId)
       val newPosDiff = oldPosDifficulty * DifficultyRecalcPeriod / ((DifficultyRecalcPeriod + brothersCount) * settings.rParamX10 / 10)
-      log.info(s"PoW difficulty changed at ${encoder.encode(posBlock.id)}: old $oldPowDifficulty, new $newPowDiff. " +
+      log.info(s"PoW difficulty changed at ${encoder.encodeId(posBlock.id)}: old $oldPowDifficulty, new $newPowDiff. " +
         s" last: $lastPow, head: $powBlocksHead | $brothersCount")
       log.info(s"PoS difficulty changed: old $oldPosDifficulty, new $newPosDiff")
       (newPowDiff, newPosDiff)
@@ -333,7 +333,7 @@ class HybridHistory(val storage: HistoryStorage,
 
     dSuffix.length match {
       case 0 =>
-        log.warn(s"CompareNonsense: ${other.lastPowBlockIds.toList.map(encoder.encode)} at height $height}")
+        log.warn(s"CompareNonsense: ${other.lastPowBlockIds.toList.map(encoder.encodeId)} at height $height}")
         Nonsense
       case 1 =>
         // `dSuffix.head` is safe as `dSuffix.length` is 1
@@ -421,7 +421,7 @@ class HybridHistory(val storage: HistoryStorage,
       parentBlock(m) match {
         case Some(parent) => chainBack(parent, until, limit - 1, sum)
         case _ =>
-          log.warn(s"Parent block for ${encoder.encode(m.id)} not found ")
+          log.warn(s"Parent block for ${encoder.encodeId(m.id)} not found ")
           None
       }
     }
@@ -472,7 +472,7 @@ class HybridHistory(val storage: HistoryStorage,
   // TODO: review me .get
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   override def toString: String = {
-    chainBack(storage.bestPosBlock, isGenesis).get.map(_._2).map(encoder.encode).mkString(",")
+    chainBack(storage.bestPosBlock, isGenesis).get.map(_._2).map(encoder.encodeId).mkString(",")
   }
 
   override def reportModifierIsValid(modifier: HybridBlock): HybridHistory = {

@@ -4,11 +4,12 @@ import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.spv.Constants._
 import io.circe.Encoder
 import io.circe.syntax._
+import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.utils.ScorexEncoding
-import scorex.core._
+import scorex.util.{ModifierId, bytesToId, idToBytes}
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -36,11 +37,11 @@ case class Header(parentId: BlockId,
 object Header extends ScorexEncoding {
   implicit val headerEncoder: Encoder[Header] = (h: Header) =>
     Map(
-      "id" -> encoder.encode(h.id).asJson,
-      "innerchainLinks" -> h.interlinks.map(l => encoder.encode(l).asJson).asJson,
+      "id" -> encoder.encodeId(h.id).asJson,
+      "innerchainLinks" -> h.interlinks.map(l => encoder.encodeId(l).asJson).asJson,
       "transactionsRoot" -> encoder.encode(h.transactionsRoot).asJson,
       "stateRoot" -> encoder.encode(h.stateRoot).asJson,
-      "parentId" -> encoder.encode(h.parentId).asJson,
+      "parentId" -> encoder.encodeId(h.parentId).asJson,
       "timestamp" -> h.timestamp.asJson,
       "nonce" -> h.nonce.asJson
     ).asJson

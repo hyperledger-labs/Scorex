@@ -26,7 +26,8 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     HBoxStoredState] with ScorexLogging with ScorexEncoding {
 
   require(store.lastVersionID.map(w => bytesToVersion(w.data)).getOrElse(version) == version,
-    s"${encoder.encode(store.lastVersionID.map(w => bytesToVersion(w.data)).getOrElse(version))} != ${encoder.encode(version)}")
+    s"${encoder.encodeVersion(store.lastVersionID.map(w => bytesToVersion(w.data)).getOrElse(version))}" +
+      s" != ${encoder.encodeVersion(version)}")
 
   override type NVCT = HBoxStoredState
   type HPMOD = HybridBlock
@@ -52,13 +53,13 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       case pwb: PowBlock =>
         //coinbase transaction is generated implicitly when block is applied to state, no validation needed
         require((pwb.parentId == version) || (pwb.prevPosId == version)
-          || pwb.brothers.exists(_.id == version), s"Incorrect state version: ${encoder.encode(version)} " +
-          s"found, (${encoder.encode(pwb.prevPosId)} || ${encoder.encode(pwb.parentId)} ||" +
-          s" ${pwb.brothers.map(b => encoder.encode(b.id))}) expected")
+          || pwb.brothers.exists(_.id == version), s"Incorrect state version: ${encoder.encodeVersion(version)} " +
+          s"found, (${encoder.encodeId(pwb.prevPosId)} || ${encoder.encodeId(pwb.parentId)} ||" +
+          s" ${pwb.brothers.map(b => encoder.encodeId(b.id))}) expected")
 
       case psb: PosBlock =>
-        require(psb.parentId == version, s"Incorrect state version!: ${encoder.encode(psb.parentId)} found, " +
-          s"${encoder.encode(version)} expected")
+        require(psb.parentId == version, s"Incorrect state version!: ${encoder.encodeId(psb.parentId)} found, " +
+          s"${encoder.encodeVersion(version)} expected")
         //TODO/review this: if the get below is removed, some of hybrid.HybridSanity and hybrid.NodeViewHolderSpec tests fail
         closedBox(psb.generatorBox.id).get
         psb.transactions.foreach(tx => validate(tx).get)
@@ -74,7 +75,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
       .ensuring(_.forall(i => closedBox(i.data).isDefined) || store.lastVersionID.isEmpty)
     val boxesToAdd = changes.toAppend.map(_.box).map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
-    log.trace(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encode(newVersion)}. " +
+    log.trace(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encodeVersion(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => encoder.encode(b.data))}, " +
       s"adding boxes ${boxesToAdd.map(b => encoder.encode(b._1.data))}")
     store.update(versionToBAW(newVersion), boxIdsToRemove, boxesToAdd)
@@ -88,7 +89,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
     if (store.lastVersionID.exists(w => bytesToVersion(w.data) == version)) {
       this
     } else {
-      log.info(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")
+      log.info(s"Rollback HBoxStoredState to ${encoder.encodeVersion(version)} from version $lastVersionString")
       store.rollback(versionToBAW(version))
       new HBoxStoredState(store, version)
     }

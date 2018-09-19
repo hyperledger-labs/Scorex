@@ -60,7 +60,8 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
   require(size >= 0)
   require(store.lastVersionID.map(w => bytesToVersion(w.data)).getOrElse(version) == version,
-    s"${encoder.encode(store.lastVersionID.map(w => bytesToVersion(w.data)).getOrElse(version))} != ${encoder.encode(version)}")
+    s"${encoder.encodeVersion(store.lastVersionID.map(w => bytesToVersion(w.data)).getOrElse(version))}" +
+      s" != ${encoder.encodeVersion(version)}")
 
   override lazy val prover = proverOpt.getOrElse {
     val p = new ProverType(keyLength = BoxKeyLength, valueLengthOpt = Some(BoxLength)) //todo: feed it with genesis state
@@ -125,7 +126,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
     val newVersion = bytesToVersion(rootHash)
 
-    log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encode(newVersion)}")
+    log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encodeVersion(newVersion)}")
 
     val toRemove = boxIdsToRemove.map(ByteArrayWrapper.apply)
     val toAdd = boxesToAdd.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
@@ -144,7 +145,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     if (store.lastVersionID.exists(w => bytesToVersion(w.data) == version)) {
       this
     } else {
-      log.debug(s"Rollback HBoxStoredState to ${encoder.encode(version)} from version $lastVersionString")
+      log.debug(s"Rollback HBoxStoredState to ${encoder.encodeVersion(version)} from version $lastVersionString")
       store.rollback(versionToBAW(version))
       PersistentAuthenticatedUtxo(store, store.getAll().size, None, version) //todo: more efficient rollback, rollback prover
     }

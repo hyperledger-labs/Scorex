@@ -4,9 +4,10 @@ import com.google.common.primitives.Longs
 import examples.trimchain.core._
 import io.circe.Encoder
 import io.circe.syntax._
+import scorex.core.ModifierTypeId
 import scorex.core.serialization.Serializer
 import scorex.core.utils.ScorexEncoding
-import scorex.core._
+import scorex.util.{ModifierId, bytesToId, idToBytes}
 
 import scala.util.Try
 
@@ -34,8 +35,8 @@ case class BlockHeader(override val parentId: ModifierId,
 object BlockHeader extends ScorexEncoding {
   implicit val blockHeaderEncoder: Encoder[BlockHeader] = (bh: BlockHeader) =>
     Map(
-      "id" -> encoder.encode(bh.id).asJson,
-      "parentId" -> encoder.encode(bh.parentId).asJson,
+      "id" -> encoder.encodeId(bh.id).asJson,
+      "parentId" -> encoder.encodeId(bh.parentId).asJson,
       "stateRoot" -> encoder.encode(bh.stateRoot).asJson,
       "txRoot" -> encoder.encode(bh.txRoot).asJson,
       "ticket" -> bh.ticket.asJson,

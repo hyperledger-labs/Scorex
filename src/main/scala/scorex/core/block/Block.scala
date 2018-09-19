@@ -5,7 +5,8 @@ import scorex.core.consensus.History
 import scorex.core.serialization.Serializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.{ModifierId, NodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
+import scorex.core.{NodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
+import scorex.util.ModifierId
 
 /**
   * A block is an atomic piece of data network participates are agreed on.

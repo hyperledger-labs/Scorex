@@ -1,6 +1,7 @@
 package scorex.core.consensus
 
-import scorex.core._
+import scorex.core.{NodeViewComponent, PersistentNodeViewModifier}
+import scorex.util.ModifierId
 
 import scala.util.Try
 

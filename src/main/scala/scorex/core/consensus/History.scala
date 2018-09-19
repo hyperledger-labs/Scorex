@@ -1,8 +1,9 @@
 package scorex.core.consensus
 
-import scorex.core._
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.utils.ScorexEncoder
+import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
+import scorex.util.ModifierId
 
 import scala.util.Try
 
@@ -88,7 +89,7 @@ object History {
     lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
 
     override def toString: String = {
-      s"ProgressInfo(BranchPoint: ${branchPoint.map(encoder.encode)}, " +
+      s"ProgressInfo(BranchPoint: ${branchPoint.map(encoder.encodeId)}, " +
         s" to remove: ${toRemove.map(_.encodedId)}, to apply: ${toApply.map(_.encodedId)})"
     }
   }

@@ -37,11 +37,11 @@ object PrivateChain extends App with ScorexLogging with ScorexEncoding {
 
     val (parentId, prevPosId, brothers) = if (!h.pairCompleted) {
       //brother
-      log.info(s"Starting brother mining for ${encoder.encode(h.bestPowBlock.parentId)}:${encoder.encode(h.bestPowBlock.parentId)}")
+      log.info(s"Starting brother mining for ${encoder.encodeId(h.bestPowBlock.parentId)}:${encoder.encodeId(h.bestPowBlock.parentId)}")
       val bs = h.bestPowBlock.brothers :+ h.bestPowBlock.header
       (h.bestPowBlock.parentId, h.bestPowBlock.parentId, bs)
     } else {
-      log.info(s"Starting new block mining for ${encoder.encode(h.bestPowId)}:${encoder.encode(h.bestPosId)}")
+      log.info(s"Starting new block mining for ${encoder.encodeId(h.bestPowId)}:${encoder.encodeId(h.bestPosId)}")
       (h.bestPowId, h.bestPosId, Seq()) //new step
     }
 

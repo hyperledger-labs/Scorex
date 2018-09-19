@@ -46,10 +46,10 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
 
       ApiResponse(
         "height" -> view.history.height.toString.asJson,
-        "bestPoS" -> encoder.encode(view.history.bestPosId).asJson,
-        "bestPoW" -> encoder.encode(view.history.bestPowId).asJson,
+        "bestPoS" -> encoder.encodeId(view.history.bestPosId).asJson,
+        "bestPoW" -> encoder.encodeId(view.history.bestPowId).asJson,
         "bestBlock" -> bestBlockJson,
-        "stateVersion" -> encoder.encode(view.state.version).asJson
+        "stateVersion" -> encoder.encodeVersion(view.state.version).asJson
       )
     }
   }

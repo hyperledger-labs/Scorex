@@ -6,7 +6,8 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, ModifiersSpec, RequestModifierSpec}
-import scorex.core.{ModifierId, ModifierTypeId}
+import scorex.core.ModifierTypeId
+import scorex.util.ModifierId
 
 import scala.util.Try
 

@@ -5,10 +5,10 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
-import scorex.core._
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
-import scorex.util.ScorexLogging
+import scorex.core.{ModifierTypeId, NodeViewModifier}
+import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 
 import scala.util.Try
 
@@ -39,7 +39,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
 
   import InvSpec._
 
-  override val messageCode = MessageCode
+  override val messageCode: MessageCode = MessageCode
   override val messageName: String = MessageName
 
   override def parseBytes(bytes: Array[Byte]): Try[InvData] = Try {

@@ -4,7 +4,8 @@ import examples.hybrid.blocks.{PosBlock, PowBlock}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.SyncInfoMessageSpec
 import scorex.core.serialization.Serializer
-import scorex.core._
+import scorex.core.{ModifierTypeId, NodeViewModifier}
+import scorex.util.{ModifierId, bytesToId, idToBytes}
 
 import scala.util.Try
 

@@ -5,11 +5,10 @@ import examples.commons.idToBAW
 import examples.hybrid.blocks._
 import examples.hybrid.mining.{HybridMiningSettings, PosForger}
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
-import scorex.core.{ModifierId, bytesToId, idToBytes}
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.consensus.ModifierSemanticValidity.{Absent, Unknown}
 import scorex.crypto.hash.Sha256
-import scorex.util.ScorexLogging
+import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 
 import scala.util.{Failure, Random, Try}
 

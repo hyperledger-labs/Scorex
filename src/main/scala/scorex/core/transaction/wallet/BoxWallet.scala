@@ -1,13 +1,14 @@
 package scorex.core.transaction.wallet
 
 import com.google.common.primitives.{Bytes, Longs}
-import scorex.core._
+import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
 import scorex.core.utils.ScorexEncoding
+import scorex.util.{ModifierId, bytesToId, idToBytes}
 
 import scala.util.Try
 
@@ -25,7 +26,7 @@ case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Modif
 
   override def serializer: Serializer[WalletBox[P, B]] = new WalletBoxSerializer(subclassDeser)
 
-  override def toString: String = s"WalletBox($box, ${encoder.encode(transactionId)}, $createdAt)"
+  override def toString: String = s"WalletBox($box, ${encoder.encodeId(transactionId)}, $createdAt)"
 }
 
 
@@ -52,9 +53,6 @@ case class BoxWalletTransaction[P <: Proposition, TX <: Transaction](proposition
 
 /**
   * Abstract interface for a wallet
-  *
-  * @tparam P
-  * @tparam TX
   */
 trait BoxWallet[P <: Proposition, TX <: Transaction, PMOD <: PersistentNodeViewModifier, W <: BoxWallet[P, TX, PMOD, W]]
   extends Vault[TX, PMOD, W] {
