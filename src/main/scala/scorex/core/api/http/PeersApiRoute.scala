@@ -8,16 +8,17 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
 import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse}
-import scorex.core.network.Handshake
-import scorex.core.network.NetworkController.ReceivableMessages.ConnectTo
+import scorex.core.network.NetworkController.ReceivableMessages.{ConnectTo, GetConnectedPeers}
 import scorex.core.network.peer.PeerInfo
-import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers, GetConnectedPeers}
+import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers}
 import scorex.core.settings.RESTApiSettings
+import scorex.core.utils.NetworkTimeProvider
 
 import scala.concurrent.ExecutionContext
 
 case class PeersApiRoute(peerManager: ActorRef,
                          networkController: ActorRef,
+                         timeProvider: NetworkTimeProvider,
                          override val settings: RESTApiSettings)
                         (implicit val context: ActorRefFactory, val ec: ExecutionContext) extends ApiRoute {
 
@@ -34,13 +35,14 @@ case class PeersApiRoute(peerManager: ActorRef,
 
   def connectedPeers: Route = (path("connected") & get) {
     val now = System.currentTimeMillis()
-    val result = askActor[Seq[Handshake]](peerManager, GetConnectedPeers).map {
-      _.map { handshake =>
+    val result = askActor[Seq[PeerInfo]](networkController, GetConnectedPeers).map {
+      _.map { peerInfo =>
         PeerInfoResponse(
-          address = handshake.declaredAddress.map(_.toString).getOrElse(""),
-          lastSeen = now,
-          name = Some(handshake.nodeName),
-          connectionType = None)
+          address = peerInfo.declaredAddress.map(_.toString).getOrElse(""),
+          lastSeen = peerInfo.lastSeen,
+          name = peerInfo.nodeName,
+          connectionType = peerInfo.connectionType.map(_.toString)
+        )
       }
     }
     ApiResponse(result)
@@ -55,7 +57,8 @@ case class PeersApiRoute(peerManager: ActorRef,
       case Some(addressAndPort) =>
         val host = InetAddress.getByName(addressAndPort.group(1))
         val port = addressAndPort.group(2).toInt
-        networkController ! ConnectTo(new InetSocketAddress(host, port))
+        val peerInfo = PeerInfo(timeProvider.time(), Some(new InetSocketAddress(host, port)), None, None, Seq())
+        networkController ! ConnectTo(peerInfo)
         ApiResponse.OK
     }
   }

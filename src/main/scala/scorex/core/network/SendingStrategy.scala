@@ -7,9 +7,12 @@ trait SendingStrategy {
 }
 
 object SendToRandom extends SendingStrategy {
-  override def choose(peers: Seq[ConnectedPeer]): Seq[ConnectedPeer] = peers.nonEmpty match {
-    case true => Seq(peers(Random.nextInt(peers.length)))
-    case false => Seq()
+  override def choose(peers: Seq[ConnectedPeer]): Seq[ConnectedPeer] = {
+    if (peers.nonEmpty) {
+      Seq(peers(Random.nextInt(peers.length)))
+    } else {
+      Seq.empty
+    }
   }
 }
 

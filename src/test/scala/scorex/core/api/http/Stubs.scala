@@ -19,8 +19,8 @@ trait Stubs {
   val peerFeatures: Seq[PeerFeature] = Seq()
 
   val peers = Map(
-    inetAddr1 -> PeerInfo(ts1, Some("first"), Some(Incoming), peerFeatures),
-    inetAddr2 -> PeerInfo(ts2, Some("second"), Some(Outgoing), peerFeatures)
+    inetAddr1 -> PeerInfo(ts1, Some(inetAddr1), Some("first"), Some(Incoming), peerFeatures),
+    inetAddr2 -> PeerInfo(ts2, Some(inetAddr2), Some("second"), Some(Outgoing), peerFeatures)
   )
 
   val protocolVersion = Version("1.1.1")
@@ -33,10 +33,10 @@ trait Stubs {
   val blacklistedPeers = Seq("4.4.4.4:1111", "8.8.8.8:2222")
 
   class PeersManagerStub extends Actor {
-    import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers, GetConnectedPeers}
+    import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers}
 
     def receive = {
-      case GetConnectedPeers => sender() ! connectedPeers
+//      case GetConnectedPeers => sender() ! connectedPeers
       case GetAllPeers => sender() ! peers
       case GetBlacklistedPeers => sender() ! blacklistedPeers
     }

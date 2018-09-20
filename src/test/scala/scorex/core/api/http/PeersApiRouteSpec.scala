@@ -9,7 +9,8 @@ import io.circe.Json
 import io.circe.syntax._
 import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.api.http.PeersApiRoute.PeerInfoResponse
-import scorex.core.settings.RESTApiSettings
+import scorex.core.settings.{RESTApiSettings, ScorexSettings}
+import scorex.core.utils.NetworkTimeProvider
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -24,7 +25,9 @@ class PeersApiRouteSpec extends FlatSpec
   private val addr = new InetSocketAddress("localhost", 8080)
   private val restApiSettings = RESTApiSettings(addr, None, None, 10 seconds)
   private val prefix = "/peers"
-  private val routes = PeersApiRoute(pmRef, networkControllerRef, restApiSettings).route
+  private val settings = ScorexSettings.read(None)
+  private val timeProvider = new NetworkTimeProvider(settings.ntp)
+  private val routes = PeersApiRoute(pmRef, networkControllerRef, timeProvider, restApiSettings).route
 
   val peersResp: String = peers.map { case (address, peerInfo) =>
     PeerInfoResponse.fromAddressAndInfo(address, peerInfo).asJson

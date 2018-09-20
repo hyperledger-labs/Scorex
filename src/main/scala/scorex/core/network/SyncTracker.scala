@@ -7,7 +7,7 @@ import scorex.core.consensus.History
 import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.SendLocalSyncInfo
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.NetworkTimeProvider
+import scorex.core.utils.TimeProvider
 import scorex.util.ScorexLogging
 
 import scala.collection.mutable
@@ -21,10 +21,10 @@ import scala.concurrent.duration.{FiniteDuration, _}
 class SyncTracker(nvsRef: ActorRef,
                   context: ActorContext,
                   networkSettings: NetworkSettings,
-                  timeProvider: NetworkTimeProvider)(implicit ec: ExecutionContext) extends ScorexLogging {
+                  timeProvider: TimeProvider)(implicit ec: ExecutionContext) extends ScorexLogging {
 
   import History._
-  import scorex.core.utils.NetworkTime.Time
+  import scorex.core.utils.TimeProvider.Time
 
   private var schedule: Option[Cancellable] = None
 
@@ -71,12 +71,12 @@ class SyncTracker(nvsRef: ActorRef,
 
   //todo: combine both?
   def clearStatus(remote: InetSocketAddress): Unit = {
-    statuses.find(_._1.socketAddress == remote) match {
+    statuses.find(_._1.remote == remote) match {
       case Some((peer, _)) => statuses -= peer
       case None => log.warn(s"Trying to clear status for $remote, but it is not found")
     }
 
-    lastSyncSentTime.find(_._1.socketAddress == remote) match {
+    lastSyncSentTime.find(_._1.remote == remote) match {
       case Some((peer, _)) => statuses -= peer
       case None => log.warn(s"Trying to clear last sync time for $remote, but it is not found")
     }

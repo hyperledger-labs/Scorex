@@ -9,7 +9,7 @@ import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, Modifi
 import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ModifiersStatus.Requested
-import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
+import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network.message.BasicMsgDataTypes._
@@ -69,7 +69,7 @@ MR <: MempoolReader[TX] : ClassTag]
   override def preStart(): Unit = {
     //register as a handler for synchronization-specific types of messages
     val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, modifiersSpec, syncInfoSpec)
-    networkControllerRef ! RegisterMessagesHandler(messageSpecs, self)
+    networkControllerRef ! RegisterMessageSpecs(messageSpecs, self)
 
     //register as a listener for peers got connected (handshaked) or disconnected
     context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
