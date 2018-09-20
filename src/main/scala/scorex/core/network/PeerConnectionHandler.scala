@@ -14,7 +14,6 @@ import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
 import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
 import scorex.util.ScorexLogging
 
 import scala.annotation.tailrec
@@ -95,7 +94,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   override def postStop(): Unit = log.info(s"Peer handler to $remote destroyed")
 
-  private def handshaking(): Receive = {
+  private def handshaking: Receive = {
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
     (self ! HandshakeTimeout))
     val hb = handshakeSerializer.toBytes(createHandshakeMessage())
