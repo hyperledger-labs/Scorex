@@ -34,11 +34,11 @@ object UPnP extends ScorexLogging {
         gatewayMap.foreach { case (addr, _) =>
           log.debug("UPnP gateway device found on " + addr.getHostAddress)
         }
-        val getway = Option(discover.getValidGateway)
-        if (getway.isEmpty) {
+        val gateway = Option(discover.getValidGateway)
+        if (gateway.isEmpty) {
           log.debug("There is no connected UPnP gateway device")
         }
-        getway.map(new UPnPGatewayImpl(_))
+        gateway.map(new UPnPGatewayImpl(_))
       }
     } catch { case t: Throwable =>
       log.error("Unable to discover UPnP gateway devices", t)

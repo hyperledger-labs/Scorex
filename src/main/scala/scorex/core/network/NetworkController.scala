@@ -44,7 +44,7 @@ class NetworkController(settings: NetworkSettings,
 
   private val messageHandlers = mutable.Map[MessageCode, ActorRef]()
 
-  lazy val bindAddress = settings.bindAddress
+  private lazy val bindAddress = settings.bindAddress
 
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var outgoing = Set.empty[InetSocketAddress]
@@ -217,7 +217,7 @@ class NetworkController(settings: NetworkSettings,
     }
     log.info(logMsg)
 
-    val peerFeatures = if (remote.getAddress.isSiteLocalAddress() || remote.getAddress.isLoopbackAddress()) {
+    val peerFeatures = if (remote.getAddress.isSiteLocalAddress || remote.getAddress.isLoopbackAddress) {
       scorexContext.features :+ LocalAddressPeerFeature(new InetSocketAddress(local.getAddress, settings.bindAddress.getPort))
     } else {
       scorexContext.features
