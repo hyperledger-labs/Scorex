@@ -5,9 +5,10 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessagesHandler, SendToNetwork}
+import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
-import scorex.core.network.message.{GetPeersSpec, Message, PeersSpec}
+import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
+import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeers}
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
@@ -26,7 +27,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
   override def preStart: Unit = {
     super.preStart()
 
-    networkControllerRef ! RegisterMessagesHandler(Seq(GetPeersSpec, PeersSpec), self)
+    networkControllerRef ! RegisterMessageSpecs(Seq(GetPeersSpec, PeersSpec), self)
 
     val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
     val stn = SendToNetwork(msg, SendToRandom)
@@ -37,16 +38,26 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
     case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, remote)
       if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[InetSocketAddress]].isDefined =>
 
-      peers.foreach(isa => peerManager ! AddOrUpdatePeer(isa, None, Some(remote.direction), Seq()))
+      peers.foreach(isa => peerManager ! AddOrUpdatePeer(isa, None, None, Seq()))
 
-    case DataFromPeer(spec, _, remote) if spec.messageCode == GetPeersSpec.messageCode =>
+    case DataFromPeer(spec, _, peer) if spec.messageCode == GetPeersSpec.messageCode =>
 
       //todo: externalize the number, check on receiving
       (peerManager ? RandomPeers(3))
-        .mapTo[Seq[InetSocketAddress]]
+        .mapTo[Seq[PeerInfo]]
         .foreach { peers =>
-          val msg = Message(PeersSpec, Right(peers), None)
-          networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(remote)))
+          val peerAddrs = if (peer.remote.getAddress.isSiteLocalAddress) {
+            peers.flatMap { peer =>
+              peer.features
+                .collectFirst { case LocalAddressPeerFeature(addr) => addr }
+                .orElse(peer.declaredAddress)
+            }
+          } else {
+            peers.flatMap(_.declaredAddress)
+          }
+
+          val msg = Message(PeersSpec, Right(peerAddrs), None)
+          networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(peer)))
         }
 
     case nonsense: Any => log.warn(s"PeerSynchronizer: got something strange $nonsense")

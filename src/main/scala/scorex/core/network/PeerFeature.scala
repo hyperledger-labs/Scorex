@@ -11,7 +11,7 @@ import scorex.core.serialization.{BytesSerializable, Serializer}
   * (for all the features to be sent during the handshake).
   */
 trait PeerFeature extends BytesSerializable {
-  override type M = PeerFeature
+  override type M >: this.type <: PeerFeature
   val featureId: PeerFeature.Id
 }
 

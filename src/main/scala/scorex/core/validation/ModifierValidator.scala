@@ -222,7 +222,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     */
   def demandEqualArrays(given: => Array[Byte], expected: => Array[Byte], fatalError: String): ValidationState[T] = {
     validate(java.util.Arrays.equals(given, expected)) {
-      ModifierValidator.fatal(s"$fatalError. Given $given while expected $expected")
+      ModifierValidator.fatal(s"$fatalError. Given ${e.encode(given)} while expected ${e.encode(expected)}")
     }
   }
 

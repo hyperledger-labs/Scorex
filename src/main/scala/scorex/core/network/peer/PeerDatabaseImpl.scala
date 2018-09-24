@@ -2,33 +2,38 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import scorex.core.utils.NetworkTime
+import scorex.core.utils.TimeProvider
+import scorex.util.ScorexLogging
 
 import scala.collection.mutable
 
-
 //todo: persistence
-class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase {
+class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with ScorexLogging {
 
   private val whitelistPersistence = mutable.Map[InetSocketAddress, PeerInfo]()
 
-  private val blacklist = mutable.Map[String, NetworkTime.Time]()
+  private val blacklist = mutable.Map[String, TimeProvider.Time]()
 
-  override def addOrUpdateKnownPeer(address: InetSocketAddress, peerInfo: PeerInfo): Unit = {
-    val updatedPeerInfo = whitelistPersistence.get(address).fold(peerInfo) { dbPeerInfo =>
-      val nodeNameOpt = peerInfo.nodeName orElse dbPeerInfo.nodeName
-      val connTypeOpt = peerInfo.connectionType orElse dbPeerInfo.connectionType
-      val feats = if (dbPeerInfo.features.nonEmpty && peerInfo.features.isEmpty) {
-        dbPeerInfo.features
-      } else {
-        peerInfo.features
+  override def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit = {
+    log.trace(s"Add or Update known peer: $peerInfo")
+
+    peerInfo.declaredAddress.foreach { address =>
+      val updatedPeerInfo = whitelistPersistence.get(address).fold(peerInfo) { dbPeerInfo =>
+        val nodeNameOpt = peerInfo.nodeName orElse dbPeerInfo.nodeName
+        val connTypeOpt = peerInfo.connectionType orElse dbPeerInfo.connectionType
+        val feats = if (dbPeerInfo.features.nonEmpty && peerInfo.features.isEmpty) {
+          dbPeerInfo.features
+        } else {
+          peerInfo.features
+        }
+        PeerInfo(peerInfo.lastSeen, peerInfo.declaredAddress, nodeNameOpt, connTypeOpt, feats)
       }
-      PeerInfo(peerInfo.lastSeen, nodeNameOpt, connTypeOpt, feats)
+      whitelistPersistence.put(address, updatedPeerInfo)
     }
-    whitelistPersistence.put(address, updatedPeerInfo)
   }
 
-  override def blacklistPeer(address: InetSocketAddress, time: NetworkTime.Time): Unit = {
+  override def blacklistPeer(address: InetSocketAddress, time: TimeProvider.Time): Unit = {
+    log.warn(s"Black list peer: ${address.toString}")
     whitelistPersistence.remove(address)
     if (!isBlacklisted(address)) blacklist += address.getHostName -> time
   }
@@ -38,6 +43,7 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase {
   }
 
   override def knownPeers(): Map[InetSocketAddress, PeerInfo] = {
+    log.trace(s"Known peers:  ${whitelistPersistence.toMap}")
     whitelistPersistence.keys.flatMap(k => whitelistPersistence.get(k).map(v => k -> v)).toMap
   }
 
@@ -45,5 +51,8 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase {
 
   override def isEmpty(): Boolean = whitelistPersistence.isEmpty
 
-  override def remove(address: InetSocketAddress): Boolean = whitelistPersistence.remove(address).nonEmpty
+  override def remove(address: InetSocketAddress): Boolean = {
+    log.trace(s"Remove peer: ${address.toString}")
+    whitelistPersistence.remove(address).nonEmpty
+  }
 }
