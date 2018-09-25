@@ -7,10 +7,10 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.syntax._
-import scorex.core.ModifierId
 import scorex.core.api.http.{ApiResponse, ApiRouteWithFullView, ApiTry}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.utils.ScorexEncoding
+import scorex.util.ModifierId
 
 import scala.util.Try
 
@@ -26,7 +26,7 @@ case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
   def tail: Route = (get & path("tail" / IntNumber)) { count =>
     withNodeView { view =>
       val lastBlockIds = view.history.lastBlockIds(view.history.bestBlock, count)
-      val tail = lastBlockIds.map(id => encoder.encode(id).asJson)
+      val tail = lastBlockIds.map(id => encoder.encodeId(id).asJson)
       ApiResponse("count" -> count.asJson, "tail" -> tail.asJson)
     }
   }

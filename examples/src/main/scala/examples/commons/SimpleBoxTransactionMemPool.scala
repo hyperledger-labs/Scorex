@@ -1,7 +1,7 @@
 package examples.commons
 
-import scorex.core.ModifierId
 import scorex.core.transaction.MemoryPool
+import scorex.util.ModifierId
 
 import scala.collection.concurrent.TrieMap
 import scala.util.{Success, Try}
@@ -40,8 +40,8 @@ case class SimpleBoxTransactionMemPool(unconfirmed: TrieMap[ModifierId, SimpleBo
   override def take(limit: Int): Iterable[SimpleBoxTransaction] =
     unconfirmed.values.toSeq.sortBy(-_.fee).take(limit)
 
-  override def filter(condition: (SimpleBoxTransaction) => Boolean): SimpleBoxTransactionMemPool = {
-    unconfirmed.retain { (k, v) =>
+  override def filter(condition: SimpleBoxTransaction => Boolean): SimpleBoxTransactionMemPool = {
+    unconfirmed.retain { (_, v) =>
       condition(v)
     }
     this

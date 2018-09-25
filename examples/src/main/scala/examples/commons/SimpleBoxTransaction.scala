@@ -5,7 +5,6 @@ import examples.hybrid.wallet.HBoxWallet
 import io.circe.Encoder
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.ModifierId
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
@@ -78,7 +77,7 @@ object SimpleBoxTransaction extends ScorexEncoding {
 
   implicit val simpleBoxEncoder: Encoder[SimpleBoxTransaction] = (sbe: SimpleBoxTransaction) =>
     Map(
-      "id" -> encoder.encode(sbe.id).asJson,
+      "id" -> encoder.encodeId(sbe.id).asJson,
       "newBoxes" -> sbe.newBoxes.map(b => encoder.encode(b.id).asJson).toSeq.asJson,
       "boxesToRemove" -> sbe.boxIdsToOpen.map(id => encoder.encode(id).asJson).asJson,
       "from" -> sbe.from.map { s =>

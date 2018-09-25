@@ -5,8 +5,8 @@ import scorex.core.consensus.ContainsModifiers
 import scorex.core.network.ModifiersStatus._
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.CheckDelivery
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier}
-import scorex.util.ScorexLogging
+import scorex.core.{ModifierTypeId, NodeViewModifier}
+import scorex.util.{ModifierId, ScorexLogging}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -153,7 +153,7 @@ class DeliveryTracker(system: ActorSystem,
                              newStatus: ModifiersStatus,
                              requestedInfoOpt: Option[RequestedInfo] = None): ModifiersStatus = {
     val oldStatus: ModifiersStatus = status(id)
-    log.debug(s"Set modifier ${encoder.encode(id)} from status $oldStatus to status $newStatus.")
+    log.debug(s"Set modifier ${encoder.encodeId(id)} from status $oldStatus to status $newStatus.")
     if (oldStatus == Requested) {
       stopExpecting(id)
     } else if (oldStatus == Received) {
@@ -203,6 +203,6 @@ class DeliveryTracker(system: ActorSystem,
   }
 
   class StopExpectingError(mid: ModifierId, checks: Int)
-    extends Error(s"Stop expecting ${encoder.encode(mid)} due to exceeded number of retries $checks")
+    extends Error(s"Stop expecting ${encoder.encodeId(mid)} due to exceeded number of retries $checks")
 
 }

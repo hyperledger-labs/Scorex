@@ -4,17 +4,16 @@ import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction, SimpleBoxTransactionCompanion}
 import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core.idToBytes
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier, bytesToId}
+import scorex.core.{ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier, idToBytes}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, Signature}
-import scorex.util.ScorexLogging
+import scorex.util.{ModifierId, ScorexLogging, bytesToId}
 
 import scala.util.Try
 
@@ -42,7 +41,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
 
 object PosBlockCompanion extends Serializer[PosBlock] with ScorexEncoding {
   override def toBytes(b: PosBlock): Array[Byte] = {
-    val txsBytes = b.transactions.sortBy(t => encoder.encode(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
+    val txsBytes = b.transactions.sortBy(t => encoder.encodeId(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
       Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
     }
     Bytes.concat(idToBytes(b.parentId), Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes,
@@ -85,8 +84,8 @@ object PosBlock extends ScorexEncoding {
 
   implicit val posBlockEncoder: Encoder[PosBlock] = (psb: PosBlock) => {
     Map(
-      "id" -> encoder.encode(psb.id).asJson,
-      "parentId" -> encoder.encode(psb.parentId).asJson,
+      "id" -> encoder.encodeId(psb.id).asJson,
+      "parentId" -> encoder.encodeId(psb.parentId).asJson,
       "attachment" -> encoder.encode(psb.attachment).asJson,
       "timestamp" -> psb.timestamp.asJson,
       "transactions" -> psb.transactions.map(_.asJson).asJson,

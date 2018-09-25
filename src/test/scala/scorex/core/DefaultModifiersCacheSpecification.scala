@@ -15,9 +15,9 @@ class DefaultModifiersCacheSpecification extends PropSpec
   with Matchers {
 
   private class FakeModifier extends PersistentNodeViewModifier {
-    override def parentId: ModifierId = ???
+    override def parentId: scorex.util.ModifierId = ???
     override val modifierTypeId: ModifierTypeId = ModifierTypeId @@ (0: Byte)
-    override def id: ModifierId = ???
+    override def id: scorex.util.ModifierId = ???
     override type M = this.type
     override def serializer: Serializer[FakeModifier.this.type] = ???
   }
@@ -31,9 +31,9 @@ class DefaultModifiersCacheSpecification extends PropSpec
   private class FakeHr extends HistoryReader[FakeModifier, FakeSyncInfo] {
     override def isEmpty: Boolean = ???
     override def applicableTry(modifier: FakeModifier): Try[Unit] = ???
-    override def modifierById(modifierId: ModifierId): Option[FakeModifier] = ???
-    override def isSemanticallyValid(modifierId: ModifierId): ModifierSemanticValidity = ???
-    override def openSurfaceIds(): Seq[ModifierId] = ???
+    override def modifierById(modifierId: scorex.util.ModifierId): Option[FakeModifier] = ???
+    override def isSemanticallyValid(modifierId: scorex.util.ModifierId): ModifierSemanticValidity = ???
+    override def openSurfaceIds(): Seq[scorex.util.ModifierId] = ???
     override def continuationIds(info: FakeSyncInfo, size: Int): Option[ModifierIds] = ???
     override def syncInfo: FakeSyncInfo = ???
     override def compare(other: FakeSyncInfo): History.HistoryComparisonResult = ???

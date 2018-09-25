@@ -1,12 +1,10 @@
 package scorex.core.validation
 
 
-import scorex.core.ModifierId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.utils.ScorexEncoder
 import scorex.core.validation.ValidationResult._
-import scorex.util.encode.BytesEncoder
-import scorex.util.ScorexLogging
+import scorex.util.ModifierId
 
 import scala.util.Try
 
@@ -122,7 +120,7 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
   def validateEqualIds(given: => ModifierId, expected: => ModifierId)
                       (error: String => Invalid): ValidationState[T] = {
     validate(given == expected) {
-      error(s"Given: ${e.encode(given)}, expected ${e.encode(expected)}")
+      error(s"Given: ${e.encodeId(given)}, expected ${e.encodeId(expected)}")
     }
   }
 

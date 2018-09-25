@@ -70,7 +70,6 @@ val apiDependencies = Seq(
 )
 
 val loggingDependencies = Seq(
-  "org.scorexfoundation" %% "scorex-util" % "0.1.1",
   "ch.qos.logback" % "logback-classic" % "1.+"
 )
 
@@ -79,13 +78,13 @@ val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-http-testkit" % "10.+" % "test",
   "org.scalactic" %% "scalactic" % "3.0.3" % "test",
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.13.+",
-  "net.databinder.dispatch" %% "dispatch-core" % "+" % "test"
+  "org.scalacheck" %% "scalacheck" % "1.13.+"
 )
 
 libraryDependencies ++= Seq(
   "com.iheart" %% "ficus" % "1.4.2",
-  "org.scorexfoundation" %% "scrypto" % "2.+"
+  "org.scorexfoundation" %% "scrypto" % "2.+",
+  "org.scorexfoundation" %% "scorex-util" % "0.1.1",
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 

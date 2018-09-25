@@ -13,9 +13,9 @@ sealed trait NodeViewModifier extends BytesSerializable with ScorexEncoding {
   val modifierTypeId: ModifierTypeId
 
   //todo: check statically or dynamically output size
-  def id: ModifierId
+  def id: scorex.util.ModifierId
 
-  def encodedId: String = encoder.encode(id)
+  def encodedId: String = encoder.encodeId(id)
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case that: NodeViewModifier => (that.id == id) && (that.modifierTypeId == modifierTypeId)
@@ -45,7 +45,7 @@ trait PersistentNodeViewModifier extends NodeViewModifier {
   /**
     * Id modifier, which should be applied to the node view before this modifier
     */
-  def parentId: ModifierId
+  def parentId: scorex.util.ModifierId
 }
 
 

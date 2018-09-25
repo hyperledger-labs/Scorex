@@ -1,6 +1,7 @@
 package scorex.core.consensus
 
-import scorex.core.{ModifierId, NodeViewModifier}
+import scorex.core.NodeViewModifier
+import scorex.util.ModifierId
 
 /**
   * Object that contains modifiers of type `MOD`

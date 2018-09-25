@@ -1,8 +1,7 @@
 package examples.spv
 
-import io.iohk.iodb.ByteArrayWrapper
-import scorex.core._
 import scorex.core.utils.ScorexEncoding
+import scorex.util.{ModifierId, idToBytes}
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -151,6 +150,6 @@ object SpvAlgos extends ScorexEncoding {
   }
 
   //debug method
-  def stringChain(c: Seq[Header]): String = c.map(h => h.realDifficulty + "-" + encoder.encode(h.id).take(4)).mkString(",")
+  def stringChain(c: Seq[Header]): String = c.map(h => h.realDifficulty + "-" + encoder.encodeId(h.id).take(4)).mkString(",")
 
 }

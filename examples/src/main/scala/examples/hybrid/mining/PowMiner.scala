@@ -7,14 +7,12 @@ import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.Cancellable
 import examples.hybrid.wallet.HBoxWallet
-import scorex.core.ModifierId
 import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.block.Block.BlockId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.utils.ScorexEncoding
-import scorex.util.encode.Base58
 import scorex.crypto.hash.Blake2b256
-import scorex.util.ScorexLogging
+import scorex.util.{ModifierId, ScorexLogging}
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -98,11 +96,11 @@ class PowMiner(viewHolderRef: ActorRef, settings: HybridMiningSettings)(implicit
 
         val (parentId, prevPosId, brothers) = if (!pmi.pairCompleted) {
           //brother
-          log.info(s"Starting brother mining for ${encoder.encode(bestPowBlock.parentId)}:${encoder.encode(bestPowBlock.prevPosId)}")
+          log.info(s"Starting brother mining for ${encoder.encodeId(bestPowBlock.parentId)}:${encoder.encodeId(bestPowBlock.prevPosId)}")
           val bs = bestPowBlock.brothers :+ bestPowBlock.header
           (bestPowBlock.parentId, bestPowBlock.prevPosId, bs)
         } else {
-          log.info(s"Starting new block mining for ${bestPowBlock.encodedId}:${encoder.encode(pmi.bestPosId)}")
+          log.info(s"Starting new block mining for ${bestPowBlock.encodedId}:${encoder.encodeId(pmi.bestPosId)}")
           (bestPowBlock.id, pmi.bestPosId, Seq()) //new step
         }
         val pubkey = pmi.pubkey

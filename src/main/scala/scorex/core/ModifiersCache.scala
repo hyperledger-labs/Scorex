@@ -19,12 +19,12 @@ import scala.util.{Failure, Success}
 trait ModifiersCache[PMOD <: PersistentNodeViewModifier, H <: HistoryReader[PMOD, _]] extends ContainsModifiers[PMOD] {
   require(maxSize >= 1)
 
-  type K = ModifierId
+  type K = scorex.util.ModifierId
   type V = PMOD
 
   protected val cache: mutable.Map[K, V] = mutable.Map[K, V]()
 
-  override def modifierById(modifierId: ModifierId): Option[PMOD] = cache.get(modifierId)
+  override def modifierById(modifierId: scorex.util.ModifierId): Option[PMOD] = cache.get(modifierId)
 
   def size: Int = cache.size
 

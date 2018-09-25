@@ -8,8 +8,9 @@ import scorex.ObjectGenerators
 import scorex.core.consensus.ContainsModifiers
 import scorex.core.network.ModifiersStatus._
 import scorex.core.serialization.Serializer
-import scorex.core.{ModifierId, ModifierTypeId, PersistentNodeViewModifier, bytesToId}
+import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
 import scorex.crypto.hash.Blake2b256
+import scorex.util.{ModifierId, bytesToId}
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.ExecutionContext.Implicits.global

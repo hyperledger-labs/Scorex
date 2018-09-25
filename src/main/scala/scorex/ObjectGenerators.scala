@@ -11,8 +11,9 @@ import scorex.core.network.{ConnectedPeer, Handshake, Outgoing, PeerFeature}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
-import scorex.core.{ModifierId, ModifierTypeId, NodeViewModifier, bytesToId}
+import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.crypto.signatures.Curve25519
+import scorex.util.{ModifierId, bytesToId}
 
 import scala.util.Try
 
@@ -72,13 +73,13 @@ trait ObjectGenerators {
     modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
   } yield modifierTypeId -> modifiers
 
-  lazy val appVersionGen = for {
+  lazy val appVersionGen: Gen[Version] = for {
     fd <- Gen.choose(0: Byte, Byte.MaxValue)
     sd <- Gen.choose(0: Byte, Byte.MaxValue)
     td <- Gen.choose(0: Byte, Byte.MaxValue)
   } yield Version(fd, sd, td)
 
-  lazy val inetSocketAddressGen = for {
+  lazy val inetSocketAddressGen: Gen[InetSocketAddress] = for {
     ip1 <- Gen.choose(0, MaxIp)
     ip2 <- Gen.choose(0, MaxIp)
     ip3 <- Gen.choose(0, MaxIp)

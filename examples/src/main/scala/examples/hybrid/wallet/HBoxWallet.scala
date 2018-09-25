@@ -77,7 +77,7 @@ case class HBoxWallet(seed: Array[Byte], store: LSMStore)
   override def scanOffchain(txs: Seq[SimpleBoxTransaction]): HBoxWallet = this
 
   override def scanPersistent(modifier: HybridBlock): HBoxWallet = {
-    log.debug(s"Applying modifier to wallet: ${encoder.encode(modifier.id)}")
+    log.debug(s"Applying modifier to wallet: ${encoder.encodeId(modifier.id)}")
     val changes = HBoxStoredState.changes(modifier).get
 
     val newBoxes = changes.toAppend.filter(s => secretByPublicImage(s.box.proposition).isDefined).map(_.box).map { box =>
@@ -92,7 +92,7 @@ case class HBoxWallet(seed: Array[Byte], store: LSMStore)
     val newBoxIds: ByteArrayWrapper = ByteArrayWrapper(newBoxes.toArray.flatMap(_._1.data) ++
       boxIds.filter(bi => !boxIdsToRemove.exists(w => java.util.Arrays.equals(w.data, bi))).flatten)
     store.update(idToBAW(modifier.id), boxIdsToRemove, Seq(BoxIdsKey -> newBoxIds) ++ newBoxes)
-    log.debug(s"Successfully applied modifier to wallet: ${encoder.encode(modifier.id)}")
+    log.debug(s"Successfully applied modifier to wallet: ${encoder.encodeId(modifier.id)}")
 
     HBoxWallet(seed, store)
   }
@@ -101,9 +101,9 @@ case class HBoxWallet(seed: Array[Byte], store: LSMStore)
     if (store.lastVersionID.exists(w => bytesToVersion(w.data) == to)) {
       this
     } else {
-      log.debug(s"Rolling back wallet to: ${encoder.encode(to)}")
+      log.debug(s"Rolling back wallet to: ${encoder.encodeVersion(to)}")
       store.rollback(versionToBAW(to))
-      log.debug(s"Successfully rolled back wallet to: ${encoder.encode(to)}")
+      log.debug(s"Successfully rolled back wallet to: ${encoder.encodeVersion(to)}")
       HBoxWallet(seed, store)
     }
   }

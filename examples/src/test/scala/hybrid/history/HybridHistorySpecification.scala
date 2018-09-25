@@ -7,7 +7,8 @@ import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.consensus.History.{Equal, HistoryComparisonResult, Older, Younger}
 import scorex.core.utils.ScorexEncoding
-import scorex.core.{ModifierId, ModifierTypeId, bytesToId}
+import scorex.core.ModifierTypeId
+import scorex.util.ModifierId
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
 class HybridHistorySpecification extends PropSpec
@@ -41,7 +42,7 @@ class HybridHistorySpecification extends PropSpec
 
     val startFrom = Seq((ModifierTypeId @@ 2.toByte, ids.head))
 
-    history.continuationIds(startFrom, ids.length).get.map(_._2).map(encoder.encode) shouldEqual ids.map(encoder.encode)
+    history.continuationIds(startFrom, ids.length).get.map(_._2).map(encoder.encodeId) shouldEqual ids.map(encoder.encodeId)
 
     ids.length shouldBe HybridHistory.DifficultyRecalcPeriod
 
@@ -49,10 +50,10 @@ class HybridHistorySpecification extends PropSpec
     forAll(Gen.choose(0, ids.length - 1)) { startIndex: Int =>
       val startFrom = Seq((ModifierTypeId @@ 2.toByte, ids(startIndex)))
       val startList = ids.take(startIndex + 1).map(a => (ModifierTypeId @@ 2.toByte, a))
-      val restIds = ids.zipWithIndex.filter { case (datum, index) => index >= startIndex }.map(_._1).map(encoder.encode)
+      val restIds = ids.zipWithIndex.filter { case (datum, index) => index >= startIndex }.map(_._1).map(encoder.encodeId)
 
-      history.continuationIds(startFrom, ids.length).get.map(_._2).map(encoder.encode) shouldEqual restIds
-      history.continuationIds(startList, ids.length).get.map(_._2).map(encoder.encode) shouldEqual restIds
+      history.continuationIds(startFrom, ids.length).get.map(_._2).map(encoder.encodeId) shouldEqual restIds
+      history.continuationIds(startList, ids.length).get.map(_._2).map(encoder.encodeId) shouldEqual restIds
 
       val limit = 5
       val continuation = history.continuationIds(startList, limit).get

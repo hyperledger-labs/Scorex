@@ -22,7 +22,7 @@ class DifficultyBlockValidator(settings: HybridMiningSettings, storage: HistoryS
     val powDifficulty = storage.getPoWDifficulty(Some(powBlock.prevPosId))
     //check work
     require(powBlock.correctWork(powDifficulty, settings),
-      s"Work done is incorrect for block ${encoder.encode(powBlock.id)} and difficulty $powDifficulty")
+      s"Work done is incorrect for block ${encoder.encodeId(powBlock.id)} and difficulty $powDifficulty")
 
     //some brothers work
     require(powBlock.brothers.forall(_.correctWork(powDifficulty, settings)))
