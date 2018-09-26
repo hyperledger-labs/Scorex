@@ -344,16 +344,14 @@ class NetworkController(settings: NetworkSettings,
         Some(extAddr)
 
       case None =>
-        if (!localAddr.isSiteLocalAddress && !localAddr.isLoopbackAddress) {
-          if (localSocketAddress.getPort == settings.bindAddress.getPort) {
-            Some(localSocketAddress)
-          } else {
-            NetworkUtils.getListenAddresses(settings.bindAddress)
-              .find(addr => addr.getAddress == addr.getAddress)
-          }
+        if (!localAddr.isSiteLocalAddress && !localAddr.isLoopbackAddress
+            && localSocketAddress.getPort == settings.bindAddress.getPort) {
+          Some(localSocketAddress)
         } else {
-          NetworkUtils.getListenAddresses(settings.bindAddress)
-            .find(addr => !addr.getAddress.isSiteLocalAddress && !addr.getAddress.isLoopbackAddress)
+          val listenAddrs = NetworkUtils.getListenAddresses(settings.bindAddress)
+            .filterNot(addr => addr.getAddress.isSiteLocalAddress || addr.getAddress.isLoopbackAddress)
+
+          listenAddrs.find(addr => localAddr == addr.getAddress).orElse(listenAddrs.headOption)
         }
     }
   }
