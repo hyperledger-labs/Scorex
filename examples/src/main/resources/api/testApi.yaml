@@ -58,6 +58,20 @@ components:
           items:
             type: string
             example: 127.0.0.1:27272
+    ApiError:
+      type: object
+      required:
+        - error
+        - reason
+      properties:
+        error:
+          type: int32
+          description: Error code
+          example: 500
+        reason:
+          type: string
+          description: Error reason description
+          example: 'Internal server error'
 
 
 paths:
@@ -81,9 +95,9 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/ApiError'
 
   /nodeView/persistentModifier/{modifierId}:
     get:
@@ -110,9 +124,9 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/ApiError'
 
   /nodeView/pool:
     get:
@@ -133,9 +147,9 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/ApiError'
 
   /peers/all:
     get:
@@ -155,9 +169,9 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/ApiError'
 
   /peers/connected:
     get:
@@ -177,9 +191,9 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/ApiError'
 
   /peers/connect:
     post:
@@ -200,10 +214,9 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
-                example: invalid.peer.address | invalid.json
+                $ref: '#/components/schemas/ApiError'
 
   /peers/blacklisted:
     get:
@@ -221,10 +234,9 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
-
+                $ref: '#/components/schemas/ApiError'
 
   /utils/seed:
     get:
@@ -242,10 +254,9 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
-
+                $ref: '#/components/schemas/ApiError'
 
   /utils/seed/{length}:
     get:
@@ -272,9 +283,9 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/ApiError'
 
   /utils/hash/blake2b:
     post:
@@ -300,6 +311,6 @@ paths:
         default:
           description: Error
           content:
-            text/plain; charset=UTF-8:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/ApiError'
