@@ -13,7 +13,11 @@ case class ApiError(statusCode: StatusCode, reason: String = "") {
 
   def complete(detail: String = ""): Route = {
     val nonEmptyReason = if (reason.isEmpty) statusCode.reason else reason
-    val response = Map("error" -> statusCode.intValue.asJson, "reason" -> nonEmptyReason.asJson).asJson
+    val response = Map(
+      "error" -> statusCode.intValue.asJson,
+      "reason" -> nonEmptyReason.asJson,
+      "detail" -> detail.asJson
+    ).asJson
     val entity = HttpEntity(ContentTypes.`application/json`, response.spaces2)
     Directives.complete(statusCode.intValue() -> entity)
   }

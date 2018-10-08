@@ -70,9 +70,11 @@ components:
           example: 500
         reason:
           type: string
-          description: Error reason description
+          description: String error code
           example: 'Internal server error'
-
+        detail:
+          type: string
+          description: Detailed error description
 
 paths:
 
