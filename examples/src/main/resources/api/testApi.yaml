@@ -63,6 +63,7 @@ components:
       required:
         - error
         - reason
+        - detail
       properties:
         error:
           type: int32
@@ -74,6 +75,7 @@ components:
           example: 'Internal server error'
         detail:
           type: string
+          nullable: true
           description: Detailed error description
 
 paths:

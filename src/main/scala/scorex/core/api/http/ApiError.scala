@@ -9,14 +9,16 @@ import scala.language.implicitConversions
 case class ApiError(statusCode: StatusCode, reason: String = "") {
 
   def apply(detail: String): Route = complete(detail)
+
   def defaultRoute: Route = complete()
 
   def complete(detail: String = ""): Route = {
     val nonEmptyReason = if (reason.isEmpty) statusCode.reason else reason
+    val detailOpt = if (detail.isEmpty) None else Some(detail)
     val response = Map(
       "error" -> statusCode.intValue.asJson,
       "reason" -> nonEmptyReason.asJson,
-      "detail" -> detail.asJson
+      "detail" -> detailOpt.asJson
     ).asJson
     val entity = HttpEntity(ContentTypes.`application/json`, response.spaces2)
     Directives.complete(statusCode.intValue() -> entity)
