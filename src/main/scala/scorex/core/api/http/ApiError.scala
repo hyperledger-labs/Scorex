@@ -40,4 +40,5 @@ object ApiError {
   object BadRequest extends ApiError(StatusCodes.BadRequest, "bad.request")
   object ApiKeyNotValid extends ApiError(StatusCodes.Forbidden, "invalid.api-key")
   object NotExists extends ApiError(StatusCodes.NotFound, "not-found")
+  object Forbidden extends ApiError(StatusCodes.Forbidden, "forbidden")
 }
