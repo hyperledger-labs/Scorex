@@ -4,9 +4,9 @@ import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.ExceptionHandler
+import akka.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
 import akka.stream.ActorMaterializer
-import scorex.core.api.http.{ApiErrorHandler, ApiRoute, CompositeHttpService}
+import scorex.core.api.http.{ApiErrorHandler, ApiRejectionHandler, ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.network.peer.PeerManagerRef
@@ -26,8 +26,6 @@ trait Application extends ScorexLogging {
   type PMOD <: PersistentNodeViewModifier
   type NVHT <: NodeViewHolder[TX, PMOD]
 
-  val ApplicationNameLimit = 50
-
   //settings
   implicit val settings: ScorexSettings
 
@@ -35,8 +33,9 @@ trait Application extends ScorexLogging {
   val apiRoutes: Seq[ApiRoute]
 
   implicit def exceptionHandler: ExceptionHandler = ApiErrorHandler.exceptionHandler
+  implicit def rejectionHandler: RejectionHandler = ApiRejectionHandler.rejectionHandler
 
-  protected implicit lazy val actorSystem = ActorSystem(settings.network.agentName)
+  protected implicit lazy val actorSystem: ActorSystem = ActorSystem(settings.network.agentName)
   implicit val executionContext: ExecutionContext = actorSystem.dispatchers.lookup("scorex.executionContext")
 
   protected val features: Seq[PeerFeature]
@@ -45,7 +44,7 @@ trait Application extends ScorexLogging {
   //p2p
   private val upnpGateway: Option[UPnPGateway] = if (settings.network.upnpEnabled) UPnP.getValidGateway(settings.network) else None
   // TODO use available port on gateway instead settings.network.bindAddress.getPort
-  upnpGateway.map(_.addPort(settings.network.bindAddress.getPort))
+  upnpGateway.foreach(_.addPort(settings.network.bindAddress.getPort))
 
   private lazy val basicSpecs = {
     val invSpec = new InvSpec(settings.network.maxInvObjects)
@@ -62,9 +61,8 @@ trait Application extends ScorexLogging {
 
   val nodeViewHolderRef: ActorRef
   val nodeViewSynchronizer: ActorRef
-  /**
-    * API description in openapi format in YAML or JSON
-    */
+
+  /** API description in openapi format in YAML or JSON */
   val swaggerConfig: String
 
   val timeProvider = new NetworkTimeProvider(settings.ntp)
@@ -90,16 +88,16 @@ trait Application extends ScorexLogging {
   val networkControllerRef: ActorRef = NetworkControllerRef(
     "networkController", settings.network, peerManagerRef, scorexContext)
 
-  lazy val combinedRoute = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
+  lazy val combinedRoute: Route = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 
   def run(): Unit = {
-    require(settings.network.agentName.length <= ApplicationNameLimit)
+    require(settings.network.agentName.length <= Application.ApplicationNameLimit)
 
     log.debug(s"Available processors: ${Runtime.getRuntime.availableProcessors}")
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
     log.debug(s"RPC is allowed at ${settings.restApi.bindAddress.toString}")
 
-    implicit val materializer = ActorMaterializer()
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
     val bindAddress = settings.restApi.bindAddress
 
     Http().bindAndHandle(combinedRoute, bindAddress.getAddress.getHostAddress, bindAddress.getPort)
@@ -115,14 +113,18 @@ trait Application extends ScorexLogging {
 
   def stopAll(): Unit = synchronized {
     log.info("Stopping network services")
-    upnpGateway.map(_.deletePort(settings.network.bindAddress.getPort))
+    upnpGateway.foreach(_.deletePort(settings.network.bindAddress.getPort))
     networkControllerRef ! ShutdownNetwork
 
     log.info("Stopping actors (incl. block generator)")
     actorSystem.terminate().onComplete { _ =>
-
       log.info("Exiting from the app...")
       System.exit(0)
     }
   }
+}
+
+object Application {
+
+  val ApplicationNameLimit: Int = 50
 }
