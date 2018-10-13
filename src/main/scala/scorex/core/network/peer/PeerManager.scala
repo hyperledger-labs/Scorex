@@ -30,11 +30,13 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     }
   }
 
-  private def randomPeer(): Option[PeerInfo] = {
-    val peers = peerDatabase.knownPeers().values.toSeq
-    if (peers.nonEmpty) Some(peers(Random.nextInt(peers.size)))
-    else None
-  }
+  override def receive: Receive = ({
+
+    case AddToBlacklist(peer) =>
+      log.info(s"Blacklist peer $peer")
+      peerDatabase.blacklistPeer(peer, scorexContext.timeProvider.time())
+    // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
+  }: Receive) orElse peerListOperations orElse apiInterface
 
   private def peerListOperations: Receive = {
     case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt, features) =>
@@ -56,15 +58,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
       sender() ! Random.shuffle(peerDatabase.knownPeers().values.toSeq).take(howMany)
 
     case RandomPeerExcluding(excludedPeers) =>
-      val ps = peerDatabase.knownPeers().values.filterNot { p =>
-        excludedPeers.exists(e => e.declaredAddress == p.declaredAddress || e.localAddress == p.localAddress)
-      }.toSeq
-      val randomPeerOpt = if (ps.nonEmpty) {
-        Some(ps(Random.nextInt(ps.size)))
-      } else {
-        None
-      }
-      sender() ! randomPeerOpt
+      sender() ! randomPeerExcluded(excludedPeers)
   }
 
   private def apiInterface: Receive = {
@@ -85,13 +79,24 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     NetworkUtils.isSelf(peerAddress, settings.network.bindAddress, scorexContext.externalNodeAddress)
   }
 
-  override def receive: Receive = ({
+  private def randomPeer(): Option[PeerInfo] = {
+    randomPeer(peerDatabase.knownPeers().values.toSeq)
+  }
 
-    case AddToBlacklist(peer) =>
-      log.info(s"Blacklist peer $peer")
-      peerDatabase.blacklistPeer(peer, scorexContext.timeProvider.time())
-      // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
-  }: Receive) orElse peerListOperations orElse apiInterface //orElse peerCycle
+  private def randomPeerExcluded(excludedPeers: Seq[PeerInfo]): Option[PeerInfo] = {
+    val candidates = peerDatabase.knownPeers().values.filterNot { p =>
+      excludedPeers.exists(e =>
+        e.declaredAddress == p.declaredAddress || (e.localAddress.isDefined && e.localAddress == p.localAddress)
+      )
+    }.toSeq
+
+    randomPeer(candidates)
+  }
+
+  private def randomPeer(peers: Seq[PeerInfo]): Option[PeerInfo] = {
+    if (peers.nonEmpty) Some(peers(Random.nextInt(peers.size)))
+    else None
+  }
 }
 
 object PeerManager {
