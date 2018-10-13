@@ -9,5 +9,4 @@ object ApiErrorHandler {
   implicit val exceptionHandler: ExceptionHandler = ExceptionHandler {
     case NonFatal(e) => ApiError(e)
   }
-
 }
