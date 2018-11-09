@@ -159,7 +159,9 @@ class DeliveryTracker(system: ActorSystem,
     } else if (oldStatus == Received) {
       received.remove(id)
     }
-    assert(status(id) == Unknown, "Intermediate check that modifier status was cleared")
+    if (status(id) != Unknown) {
+      log.warn(s"Failed to clear status of modifier $id, current status is ${status(id)}")
+    }
     if (newStatus == Received) {
       received.add(id)
     } else if (newStatus == Requested) {
