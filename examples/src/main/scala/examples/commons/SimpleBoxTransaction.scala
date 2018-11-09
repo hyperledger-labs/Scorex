@@ -6,7 +6,6 @@ import io.circe.Encoder
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core.newserialization._
-import scorex.core.serialization.Serializer
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.BoxUnlocker
