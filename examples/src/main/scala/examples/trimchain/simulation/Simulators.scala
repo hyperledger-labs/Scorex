@@ -1,6 +1,6 @@
 package examples.trimchain.simulation
 
-import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction}
+import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction, SimpleBoxTransactionSerializer}
 import examples.trimchain.core.Constants._
 import examples.trimchain.core.{Algos, Constants, StateRoot, TransactionsRoot}
 import examples.trimchain.modifiers.TBlock
@@ -23,7 +23,9 @@ trait Simulators {
                     currentUtxo: InMemoryAuthenticatedUtxo,
                     miningUtxos: IndexedSeq[InMemoryAuthenticatedUtxo]): (TBlock, Seq[PublicKey25519NoncedBox], InMemoryAuthenticatedUtxo) = {
     //todo: fix, hashchain instead of Merkle tree atm
-    val txsHash = TransactionsRoot @@ hashfn(scorex.core.utils.concatBytes(txs.map(_.bytes)))
+    val txsHash = TransactionsRoot @@ hashfn(scorex.core.utils.concatBytes(
+      txs.map(SimpleBoxTransactionSerializer.toBytes))
+    )
 
     val changes = PersistentAuthenticatedUtxo.changes(txs).get
     val updUtxo = currentUtxo.applyChanges(changes, bytesToVersion(scorex.utils.Random.randomBytes())).get

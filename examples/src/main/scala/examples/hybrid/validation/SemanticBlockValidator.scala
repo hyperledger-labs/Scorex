@@ -1,6 +1,6 @@
 package examples.hybrid.validation
 
-import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
+import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock, PowBlockSerializer}
 import scorex.core.block.BlockValidator
 import scorex.crypto.hash.{CryptographicHash, Digest}
 
@@ -17,7 +17,9 @@ class SemanticBlockValidator(hash: CryptographicHash[_ <: Digest]) extends Block
         //check brothers data
         require(powBlock.brothers.size == powBlock.brothersCount)
         if (powBlock.brothersCount > 0) {
-          require(java.util.Arrays.equals(hash(powBlock.brotherBytes), powBlock.brothersHash))
+          require(
+            java.util.Arrays.equals(hash(PowBlockSerializer.brotherBytes(powBlock.brothers)), powBlock.brothersHash)
+          )
         }
       case posBlock: PosBlock =>
         require(posBlock.timestamp >= 0)

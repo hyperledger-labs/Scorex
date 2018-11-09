@@ -7,10 +7,16 @@ import akka.util.ByteString
 
 class ByteStringReader(byteString: ByteString) extends ScorexReader {
 
+  type CH = ByteString
+
   private var it = byteString.iterator
   private var _position = 0
   private var _mark = 0
   private implicit val byteOrder = ByteOrder.BIG_ENDIAN
+
+  override def newReader(chunk: ByteString): ScorexReader.Aux[CH] = {
+    new ByteStringReader(chunk)
+  }
 
   /**
     * Get a byte at current position without advancing the position.
@@ -30,7 +36,7 @@ class ByteStringReader(byteString: ByteString) extends ScorexReader {
   }
 
   override def getShort(): Short = {
-    incPosition
+    incPosition(2)
     it.getShort
   }
 
@@ -41,7 +47,7 @@ class ByteStringReader(byteString: ByteString) extends ScorexReader {
     * @return signed Int
     */
   override def getUShort(): Int = {
-    incPosition
+    incPosition(2)
     it.getShort & 0xffff
   }
 
@@ -52,7 +58,7 @@ class ByteStringReader(byteString: ByteString) extends ScorexReader {
     * @return signed Int
     */
   override def getInt(): Int = {
-    incPosition
+    incPosition(4)
     it.getInt
   }
 
@@ -63,7 +69,7 @@ class ByteStringReader(byteString: ByteString) extends ScorexReader {
     * @return signed Long
     */
   override def getUInt(): Long = {
-    incPosition
+    incPosition(4)
     it.getInt & 0xffffffffL
   }
 
@@ -91,6 +97,14 @@ class ByteStringReader(byteString: ByteString) extends ScorexReader {
     it.getBytes(size)
   }
 
+  override def getChunk(size: Int): ByteString = {
+    it.getByteString(size)
+  }
+
+  override def getByteString2(size: Int): ByteString = {
+    getChunk(size)
+  }
+
   /**
     * Decode array of boolean values previously encode with [[ByteStringWriter.putBits]]
     *
@@ -116,7 +130,7 @@ class ByteStringReader(byteString: ByteString) extends ScorexReader {
 
   override def getOption[T](getValue: => T): Option[T] = ???
 
-  override def mark(): Reader = {
+  override def mark(): this.type = {
     _mark = _position
     this
   }
@@ -130,7 +144,7 @@ class ByteStringReader(byteString: ByteString) extends ScorexReader {
     it = byteString.iterator.drop(p)
   }
 
-  override def remaining: Int = it.len - _position
+  override def remaining: Int = it.len
 
   private var lvl: Int = 0
   override def level: Int = lvl

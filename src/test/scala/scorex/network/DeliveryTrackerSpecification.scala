@@ -7,7 +7,6 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.consensus.ContainsModifiers
 import scorex.core.network.ModifiersStatus._
-import scorex.core.serialization.Serializer
 import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
 import scorex.crypto.hash.Blake2b256
 import scorex.util.{ModifierId, bytesToId}
@@ -33,9 +32,6 @@ class DeliveryTrackerSpecification extends PropSpec
     override def parentId: ModifierId = ???
 
     override val modifierTypeId: ModifierTypeId = mtid
-    override type M = this.type
-
-    override def serializer: Serializer[FakeModifier.this.type] = ???
   }
 
   class FakeHistory extends ContainsModifiers[FakeModifier] {

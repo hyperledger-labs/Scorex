@@ -5,17 +5,19 @@ import examples.hybrid.wallet.HBoxWallet
 import io.circe.Encoder
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
+import scorex.core.newserialization._
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.BoxUnlocker
-import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.{Proof, Signature25519}
+import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
+import scorex.core.transaction.proof.{Proof, Signature25519, Signature25519Serializer}
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
+import scorex.util.ModifierId
 
 import scala.util.Try
 
@@ -30,7 +32,19 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
                                 override val timestamp: Long) extends
   BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
 
-  override type M = SimpleBoxTransaction
+
+  override val messageToSign: Array[Byte] = {
+    val newBoxesBytes = if (newBoxes.nonEmpty) {
+      scorex.core.utils.concatBytes(newBoxes.map(PublicKey25519NoncedBoxSerializer.toBytes))
+    } else {
+      Array[Byte]()
+    }
+    Bytes.concat(
+      newBoxesBytes,
+      scorex.core.utils.concatFixLengthBytes(unlockers.map(_.closedBoxId)),
+      Longs.toByteArray(timestamp),
+      Longs.toByteArray(fee))
+  }
 
   lazy val boxIdsToOpen: IndexedSeq[ADKey] = from.map { case (prop, nonce) =>
     PublicKeyNoncedBox.idFromBox(prop, nonce)
@@ -55,8 +69,6 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     val nonce = SimpleBoxTransaction.nonceFromDigest(Blake2b256(prop.pubKeyBytes ++ hashNoNonces ++ Ints.toByteArray(idx)))
     PublicKey25519NoncedBox(prop, nonce, value)
   }
-
-  override lazy val serializer = SimpleBoxTransactionCompanion
 
   override def toString: String = s"SimpleBoxTransaction(${this.asJson.noSpaces})"
 
@@ -142,42 +154,46 @@ object SimpleBoxTransaction extends ScorexEncoding {
   }
 }
 
+object SimpleBoxTransactionSerializer extends ScorexSerializer[SimpleBoxTransaction] {
 
-object SimpleBoxTransactionCompanion extends Serializer[SimpleBoxTransaction] {
-
-  override def toBytes(m: SimpleBoxTransaction): Array[Byte] = {
-    Bytes.concat(Longs.toByteArray(m.fee),
-      Longs.toByteArray(m.timestamp),
-      Ints.toByteArray(m.signatures.length),
-      Ints.toByteArray(m.from.length),
-      Ints.toByteArray(m.to.length),
-      m.signatures.foldLeft(Array[Byte]())((a, b) => Bytes.concat(a, b.bytes)),
-      m.from.foldLeft(Array[Byte]())((a, b) => Bytes.concat(a, b._1.bytes, Longs.toByteArray(b._2))),
-      m.to.foldLeft(Array[Byte]())((a, b) => Bytes.concat(a, b._1.bytes, Longs.toByteArray(b._2)))
+  override def serialize(m: SimpleBoxTransaction, w: ScorexWriter): Unit = {
+    w.putLong(m.fee)
+    w.putLong(m.timestamp)
+    w.putInt(m.signatures.length)
+    w.putInt(m.from.length)
+    w.putInt(m.to.length)
+    m.signatures.foreach( s =>
+      Signature25519Serializer.serialize(s, w)
     )
+    m.from.foreach { f =>
+      PublicKey25519PropositionSerializer.serialize(f._1, w)
+      w.putLong(f._2)
+    }
+
+    m.to.foreach { t =>
+      PublicKey25519PropositionSerializer.serialize(t._1, w)
+      w.putLong(t._2)
+    }
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[SimpleBoxTransaction] = Try {
-    val fee = Longs.fromByteArray(bytes.slice(0, 8))
-    val timestamp = Longs.fromByteArray(bytes.slice(8, 16))
-    val sigLength = Ints.fromByteArray(bytes.slice(16, 20))
-    val fromLength = Ints.fromByteArray(bytes.slice(20, 24))
-    val toLength = Ints.fromByteArray(bytes.slice(24, 28))
+  override def parse(r: ScorexReader): SimpleBoxTransaction = {
+    val fee = r.getLong()
+    val timestamp = r.getLong()
+    val sigLength = r.getInt()
+    val fromLength = r.getInt()
+    val toLength = r.getInt()
     val signatures = (0 until sigLength) map { i =>
-      Signature25519(Signature @@ bytes.slice(28 + i * Curve25519.SignatureLength, 28 + (i + 1) * Curve25519.SignatureLength))
+      Signature25519Serializer.parse(r)
     }
-    val s = 28 + sigLength * Curve25519.SignatureLength
-    val elementLength = 8 + Curve25519.KeyLength
     val from = (0 until fromLength) map { i =>
-      val pk = PublicKey @@ bytes.slice(s + i * elementLength, s + (i + 1) * elementLength - 8)
-      val v = Longs.fromByteArray(bytes.slice(s + (i + 1) * elementLength - 8, s + (i + 1) * elementLength))
-      (PublicKey25519Proposition(pk), Nonce @@ v)
+      val pk = PublicKey25519PropositionSerializer.parse(r)
+      val v = r.getLong()
+      (pk, Nonce @@ v)
     }
-    val s2 = s + fromLength * elementLength
     val to = (0 until toLength) map { i =>
-      val pk = PublicKey @@ bytes.slice(s2 + i * elementLength, s2 + (i + 1) * elementLength - 8)
-      val v = Longs.fromByteArray(bytes.slice(s2 + (i + 1) * elementLength - 8, s2 + (i + 1) * elementLength))
-      (PublicKey25519Proposition(pk), Value @@ v)
+      val pk = PublicKey25519PropositionSerializer.parse(r)
+      val v = r.getLong()
+      (pk, Value @@ v)
     }
     SimpleBoxTransaction(from, to, signatures, fee, timestamp)
   }

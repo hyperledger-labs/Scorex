@@ -1,6 +1,9 @@
 package scorex.core.newserialization
 
 trait Writer {
+  type CH
+
+  def putChunk(chunk: CH): this.type
 
   def put(x: Byte): this.type
 

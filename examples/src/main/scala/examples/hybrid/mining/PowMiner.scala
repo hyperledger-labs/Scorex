@@ -2,7 +2,7 @@ package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import examples.commons.SimpleBoxTransactionMemPool
-import examples.hybrid.blocks.{HybridBlock, PowBlock, PowBlockCompanion, PowBlockHeader}
+import examples.hybrid.blocks.{HybridBlock, PowBlock, PowBlockHeader, PowBlockSerializer}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.util.Cancellable
@@ -173,7 +173,7 @@ object PowMiner extends App {
 
     val ts = System.currentTimeMillis()
 
-    val bHash = if (brothers.isEmpty) Array.fill(32)(0: Byte) else Blake2b256(PowBlockCompanion.brotherBytes(brothers))
+    val bHash = if (brothers.isEmpty) Array.fill(32)(0: Byte) else Blake2b256(PowBlockSerializer.brotherBytes(brothers))
 
     val b = PowBlock(parentId, prevPosId, ts, nonce, brothers.size, bHash, proposition, brothers)
 

@@ -5,10 +5,26 @@ import java.util.{Arrays, BitSet}
 
 import akka.util.ByteString
 
-class ByteStringWriter() extends ScorexWriter {
-
+class ByteStringWriter extends ScorexWriter {
+  override type CH = ByteString
   private implicit val byteOrder = ByteOrder.BIG_ENDIAN
+
+  override def newWriter(): ScorexWriter.Aux[CH] = {
+    new ByteStringWriter()
+  }
+
   private val builder = ByteString.createBuilder
+
+  override def length(): Int = builder.length
+
+  override def putChunk(byteString: ByteString): this.type = {
+    builder.append(byteString)
+    this
+  }
+
+  override def putByteString2(byteString: ByteString): this.type = {
+    putChunk(byteString)
+  }
 
   override def put(x: Byte): this.type = {
     builder.putByte(x)

@@ -1,7 +1,7 @@
 package hybrid.history
 
 import examples.commons._
-import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
+import examples.hybrid.blocks._
 import hybrid.HybridGenerators
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.Gen
@@ -33,7 +33,7 @@ class IODBSpecification extends fixture.PropSpec
       //      val boxIdsToRemove: Iterable[ByteArrayWrapper] = tx.boxIdsToOpen.map(id => ByteArrayWrapper(id))
       val boxIdsToRemove: Iterable[ByteArrayWrapper] = Seq()
       val boxesToAdd: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] = tx.newBoxes
-        .map(b => (ByteArrayWrapper(b.id), ByteArrayWrapper(b.bytes))).toList
+        .map(b => (ByteArrayWrapper(b.id), ByteArrayWrapper(PublicKey25519NoncedBoxSerializer.toBytes(b)))).toList
       blocksStorage.update(idToBAW(tx.id), boxIdsToRemove, boxesToAdd)
     }
 
@@ -57,17 +57,20 @@ class IODBSpecification extends fixture.PropSpec
 
   property("writeBlock() test") { blocksStorage =>
     def writeBlock(b: HybridBlock): Unit = {
-      val typeByte = b match {
-        case _: PowBlock =>
-          PowBlock.ModifierTypeId
-        case _: PosBlock =>
-          PosBlock.ModifierTypeId
-      }
+      b match {
+        case block: PowBlock =>
+          blocksStorage.update(
+            idToBAW(b.id),
+            Seq(),
+            Seq(idToBAW(b.id) -> ByteArrayWrapper(PowBlock.ModifierTypeId +: PowBlockSerializer.toBytes(block))))
 
-      blocksStorage.update(
-        idToBAW(b.id),
-        Seq(),
-        Seq(idToBAW(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
+        case block: PosBlock =>
+          PosBlock.ModifierTypeId -> PowBlockSerializer
+          blocksStorage.update(
+            idToBAW(b.id),
+            Seq(),
+            Seq(idToBAW(b.id) -> ByteArrayWrapper(PosBlock.ModifierTypeId +: PosBlockSerializer.toBytes(block))))
+      }
     }
 
     var ids: Seq[ModifierId] = Seq()

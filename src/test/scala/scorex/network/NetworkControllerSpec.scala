@@ -355,7 +355,6 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   private val featureSerializers = Map(LocalAddressPeerFeature.featureId -> LocalAddressPeerFeatureSerializer)
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.network.maxHandshakeSize)
   private val messageSpecs = Seq(GetPeersSpec, PeersSpec)
-  private val messagesSerializer = new MessageSerializer(messageSpecs)
 
   private var connectionHandler:ActorRef = _
 
@@ -386,7 +385,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
       Version(settings.network.appVersion), "test",
       declaredAddress, features, timeProvider.time())
 
-    tcpManagerProbe.send(connectionHandler, Tcp.Received(ByteString(handshakeSerializer.toBytes(handshakeToNode))))
+    tcpManagerProbe.send(connectionHandler, Tcp.Received(handshakeSerializer.serialize(handshakeToNode)))
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)
   }
 
@@ -394,10 +393,10 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     * Receive handshake message from node
     * @return Success with handshake message if received valid handshake message and Fail for invalid message
     */
-  def receiveHandshake: Try[Handshake] = {
+  def receiveHandshake: Try[Handshake] = Try {
     val handshakeFromNode = tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(data, e) =>
-        handshakeSerializer.parseBytes(data.toByteBuffer.array)
+        handshakeSerializer.parse(data)
     }
     handshakeFromNode
   }
@@ -406,7 +405,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     * Send GetPeers message to node
     */
   def sendGetPeers(): Unit = {
-    val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
+    val msg = Message[Unit](GetPeersSpec, Unit, None)
     sendMessage(msg)
   }
 
@@ -414,26 +413,26 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     * Receive GetPeer message from node
     * @return
     */
-  def receiveGetPeers: Message[_] = {
-    val message = receiveMessage
-    message.spec.messageCode should be (GetPeersSpec.messageCode)
-    message
+  def receiveGetPeers: Unit = {
+    val packet = receivePacket
+    packet.messageCode should be (GetPeersSpec.messageCode)
+    GetPeersSpec.parse(packet.payload)
   }
 
   /**
     * Receive sequence of peer addresses from node
     */
   def receivePeers: Seq[InetSocketAddress] = {
-    val message = receiveMessage
-    message.spec.messageCode should be (PeersSpec.messageCode)
-    PeersSpec.parseBytes(message.input.left.value).success.value
+    val packet = receivePacket
+    packet.messageCode should be (PeersSpec.messageCode)
+    PeersSpec.parse(packet.payload)
   }
 
   /**
     * Send sequence of peer addresses to node
     */
   def sendPeers(peers: Seq[InetSocketAddress]): Unit = {
-    val msg = Message(PeersSpec, Right(peers), None)
+    val msg = Message(PeersSpec, peers, None)
     sendMessage(msg)
   }
 
@@ -441,8 +440,9 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     * Send message to node
     * @param msg
     */
-  def sendMessage(msg: Message[_]): Unit = {
-    val byteString = messagesSerializer.serialize(msg)
+  def sendMessage[T](msg: Message[T]): Unit = {
+    val packet = ScorexPacket(msg.spec.messageCode, msg.spec.serialize(msg.content), None)
+    val byteString = ScorexPacket.serialize(packet)
     tcpManagerProbe.send(connectionHandler, Tcp.Received(byteString))
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)
   }
@@ -451,10 +451,10 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     * Receive message from node
     * @param msg
     */
-  def receiveMessage: Message[_] = {
+  def receivePacket: ScorexPacket = {
     tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(b, _) =>
-        messagesSerializer.deserialize(b, None).success.value.value
+        ScorexPacket.deserialize(b, None).value
     }
   }
 }

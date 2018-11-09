@@ -6,7 +6,7 @@ import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.Signature25519
+import scorex.core.transaction.proof.{Signature25519, Signature25519Serializer}
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.util.encode.Base58
 import scorex.crypto.hash.Sha256
@@ -51,7 +51,8 @@ class SimpleBoxTransactionSpecification extends PropSpec
 
   property("Transaction with modified signature is invalid") {
     forAll(simpleBoxTransactionGen) { tx =>
-      val wrongSig = Signature @@ ((tx.signatures.head.bytes.head + 1).toByte +: tx.signatures.head.bytes.tail)
+      val serializer =Signature25519Serializer
+      val wrongSig = Signature @@ ((serializer.toBytes(tx.signatures.head).head + 1).toByte +: serializer.toBytes(tx.signatures.head).tail)
       val wrongSigs = (Signature25519(wrongSig) +: tx.signatures.tail).toIndexedSeq
       HBoxStoredState.semanticValidity(tx.copy(signatures = wrongSigs)).isSuccess shouldBe false
     }

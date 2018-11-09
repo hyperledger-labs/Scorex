@@ -14,6 +14,7 @@ import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeerExcluding, RemovePeer}
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
+import scorex.core.newserialization.ByteStringReader
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
 import scorex.util.ScorexLogging
@@ -73,22 +74,15 @@ class NetworkController(settings: NetworkSettings,
 
   def businessLogic: Receive = {
     //a message coming in from another peer
-    case Message(spec, Left(msgBytes), Some(remote)) =>
+    case Message(spec, content, Some(remote)) =>
       val msgId = spec.messageCode
 
-      spec.parseBytes(msgBytes) match {
-        case Success(content) =>
-          messageHandlers.get(msgId) match {
-            case Some(handler) =>
-              handler ! DataFromPeer(spec, content, remote)
-
-            case None =>
-              log.error(s"No handlers found for message $remote: " + msgId)
-            //todo: ban a peer
-          }
-        case Failure(e) =>
-          log.error(s"Failed to deserialize data from $remote: ", e)
-        //todo: ban peer
+      messageHandlers.get(msgId) match {
+        case Some(handler) =>
+          handler ! DataFromPeer(spec, content, remote)
+        case None =>
+          log.error(s"No handlers found for message $remote: " + msgId)
+          //todo: ban a peer
       }
 
     case SendToNetwork(message, sendingStrategy) =>

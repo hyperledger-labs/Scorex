@@ -14,7 +14,7 @@ class SerializationTests extends PropSpec
   property("BlockHeader serialization") {
     forAll(blockHeaderGen) { b: Header =>
       val serializer = HeaderSerializer
-      val parsed = serializer.parseBytes(serializer.toBytes(b)).get
+      val parsed = serializer.parseBytes(serializer.toBytes(b))
       serializer.toBytes(b) shouldEqual serializer.toBytes(parsed)
     }
   }

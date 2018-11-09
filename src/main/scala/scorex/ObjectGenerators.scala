@@ -3,19 +3,17 @@ package scorex
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.ActorRef
+import akka.util.ByteString
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.app.Version
 import scorex.core.network.message.BasicMsgDataTypes._
-import scorex.core.network.peer.PeerInfo
-import scorex.core.network.{ConnectedPeer, Handshake, Outgoing, PeerFeature}
-import scorex.core.serialization.Serializer
+import scorex.core.network.{ConnectedPeer, PeerFeature}
+import scorex.core.newserialization._
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.crypto.signatures.Curve25519
 import scorex.util.{ModifierId, bytesToId}
-
-import scala.util.Try
 
 trait ObjectGenerators {
 
@@ -23,11 +21,16 @@ trait ObjectGenerators {
     override type M = PeerFeature
     override val featureId: PeerFeature.Id = 1: Byte
 
-    override def serializer: Serializer[PeerFeature] = new Serializer[PeerFeature] {
-      override def toBytes(obj: PeerFeature): Array[Byte] = Array(1: Byte, 2: Byte, 3: Byte)
+    override def serializer: ScorexSerializer[PeerFeature] = new ScorexSerializer[PeerFeature] {
 
-      override def parseBytes(bytes: Array[Byte]): Try[PeerFeature] = Try {
-        require(bytes(0) == 1 && bytes(1) == 2 && bytes(2) == 3)
+      override def serialize(obj: PeerFeature, w: ScorexWriter): Unit = {
+        w.put(1)
+        w.put(2)
+        w.put(3)
+      }
+
+      override def parse(r: ScorexReader): PeerFeature = {
+        require(r.getByte() == 1 && r.getByte() == 2 && r.getByte() == 3)
         FullNodePeerFeature
       }
     }
@@ -41,6 +44,8 @@ trait ObjectGenerators {
 
   lazy val nonEmptyBytesGen: Gen[Array[Byte]] = Gen.nonEmptyListOf(Arbitrary.arbitrary[Byte])
     .map(_.toArray).suchThat(_.length > 0)
+
+  lazy val nonEmptyByteStringGen: Gen[ByteString] = nonEmptyBytesGen.map(ByteString(_))
 
   def genBoundedBytes(minSize: Int, maxSize: Int): Gen[Array[Byte]] = {
     Gen.choose(minSize, maxSize) flatMap { sz => Gen.listOfN(sz, Arbitrary.arbitrary[Byte]).map(_.toArray) }
@@ -63,15 +68,15 @@ trait ObjectGenerators {
     modifierIds: Seq[ModifierId] <- Gen.nonEmptyListOf(modifierIdGen) if modifierIds.nonEmpty
   } yield modifierTypeId -> modifierIds
 
-  lazy val modifierWithIdGen: Gen[(ModifierId, Array[Byte])] = for {
+  lazy val modifierWithIdGen: Gen[(ModifierId, ByteString)] = for {
     id <- modifierIdGen
-    mod <- nonEmptyBytesGen
+    mod <- nonEmptyByteStringGen
   } yield id -> mod
 
   lazy val modifiersGen: Gen[ModifiersData] = for {
     modifierTypeId: ModifierTypeId <- modifierTypeIdGen
-    modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
-  } yield modifierTypeId -> modifiers
+    modifiers: Map[ModifierId, ByteString] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
+  } yield ModifiersData(modifierTypeId, modifiers)
 
   lazy val appVersionGen: Gen[Version] = for {
     fd <- Gen.choose(0: Byte, Byte.MaxValue)

@@ -47,7 +47,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
 
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
     proverOpt.flatMap(_.unauthenticatedLookup(ADKey @@ boxId).flatMap { bs =>
-      PublicKey25519NoncedBoxSerializer.parseBytes(bs).toOption
+      Try(PublicKey25519NoncedBoxSerializer.parseBytes(bs)).toOption
     })
 
   //there's no easy way to know boxes associated with a proposition, without an additional index
@@ -75,7 +75,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
 
     changes.operations foreach {
       case Insertion(b) =>
-        prover.performOneOperation(Insert(ADKey @@ b.id, ADValue @@ b.bytes))
+        prover.performOneOperation(Insert(ADKey @@ b.id, ADValue @@ PublicKey25519NoncedBoxSerializer.toBytes(b)))
       case Removal(bid) =>
         prover.performOneOperation(Remove(ADKey @@ bid))
     }

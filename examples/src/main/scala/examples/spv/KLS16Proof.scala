@@ -1,7 +1,6 @@
 package examples.spv
 
-import com.google.common.primitives.{Bytes, Shorts}
-import scorex.core.serialization.Serializer
+import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
 import scorex.util.ModifierId
 
 import scala.annotation.tailrec
@@ -64,57 +63,67 @@ case class KLS16Proof(m: Int,
 
 }
 
-object KLS16ProofSerializer extends Serializer[KLS16Proof] {
-  override def toBytes(obj: KLS16Proof): Array[Byte] = {
-    // TODO: fixme, What should we do if `obj.suffix` is empty?
-    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
-      val bytes = HeaderSerializer.bytesWithoutInterlinks(h)
-      Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
-    })
-    val interchainBytes = scorex.core.utils.concatBytes(obj.innerchain.map { h =>
-      val bytes = h.bytes
-      Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
-    })
+object KLS16ProofSerializer extends ScorexSerializer[KLS16Proof] {
 
+  override def serialize(obj: KLS16Proof, w: ScorexWriter): Unit = {
     // TODO: fixme, What should we do if `obj.suffix` is empty?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val suffixHead = obj.suffix.head
-    Bytes.concat(Array(obj.m.toByte, obj.k.toByte, obj.i.toByte),
-      Shorts.toByteArray(suffixHead.bytes.length.toShort),
-      suffixHead.bytes,
-      suffixTailBytes,
-      Shorts.toByteArray(obj.innerchain.length.toShort),
-      interchainBytes)
+    val suffixHeadWriter = w.newWriter()
+    HeaderSerializer.serialize(suffixHead, suffixHeadWriter)
+
+    w.put(obj.m.toByte)
+    w.put(obj.k.toByte)
+    w.put(obj.i.toByte)
+    w.putShort(suffixHeadWriter.length().toShort)
+    w.append(suffixHeadWriter)
+
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val suffixTail = obj.suffix.tail
+    suffixTail.foreach { h =>
+      val hw = w.newWriter()
+      HeaderSerializer.serializeWithoutItrelinks(h, hw)
+      w.putShort(hw.length().toShort)
+      w.append(hw)
+    }
+
+    w.putShort(obj.innerchain.length.toShort)
+    obj.innerchain.map { h =>
+      val hw = w.newWriter()
+      HeaderSerializer.serialize(h, hw)
+      w.putShort(hw.length().toShort)
+      w.append(hw)
+    }
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[KLS16Proof] = Try {
-    val m = bytes.head
-    val k = bytes(1)
-    val i = bytes(2)
-    val headSuffixLength = Shorts.fromByteArray(bytes.slice(3, 5))
-    val headSuffix = HeaderSerializer.parseBytes(bytes.slice(5, 5 + headSuffixLength)).get
+  override def parse(r: ScorexReader): KLS16Proof = {
+    val m = r.getByte()
+    val k = r.getByte()
+    val i = r.getByte()
+    val headSuffixLength = r.getShort()
+    val headSuffix = HeaderSerializer.parse(r.newReader(r.getChunk(headSuffixLength)))
+
     @tailrec
-    def parseSuffixes(index: Int, acc: Seq[Header]): (Int, Seq[Header]) = {
-      if (acc.length == k) (index, acc.reverse)
-      else {
-        val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
-        val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
+    def parseSuffixes(acc: Seq[Header]): Seq[Header] = {
+      if (acc.length == k) {
+        acc.reverse
+      } else {
+        val l = r.getShort()
+        val headerWithoutInterlinks = HeaderSerializer.parse(r.newReader(r.getChunk(l)))
         //TODO: fixme, What should happen if `acc` is empty?
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
-        parseSuffixes(index + 2 + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
+        parseSuffixes(headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }
-
     }
-    var (index, suffix) = parseSuffixes(5 + headSuffixLength, Seq(headSuffix))
-    val interchainLength = Shorts.fromByteArray(bytes.slice(index, index + 2))
-    index = index + 2
+
+    val suffix = parseSuffixes(Seq(headSuffix))
+    val interchainLength = r.getShort()
+
     val interchain = (0 until interchainLength) map { _ =>
-      val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
-      val header = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
-      index = index + 2 + l
-      header
+      val l = r.getShort()
+      HeaderSerializer.parse(r.newReader(r.getChunk(l)))
     }
     KLS16Proof(m, k, i, interchain, suffix)
   }

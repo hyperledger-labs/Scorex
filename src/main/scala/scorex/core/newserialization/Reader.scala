@@ -2,6 +2,9 @@ package scorex.core.newserialization
 
 trait Reader {
 
+  type CH
+
+  def getChunk(size: Int): CH
   /**
     * Get a byte at current position without advancing the position.
     * @return byte at current position
@@ -50,7 +53,7 @@ trait Reader {
     */
   def getBits(size: Int): Array[Boolean]
   def getOption[T](getValue: => T): Option[T]
-  def mark(): Reader
+  def mark(): this.type
   def consumed: Int
   def position: Int
   def position_=(p: Int): Unit

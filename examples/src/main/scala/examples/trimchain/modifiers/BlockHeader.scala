@@ -1,15 +1,12 @@
 package examples.trimchain.modifiers
 
-import com.google.common.primitives.Longs
 import examples.trimchain.core._
 import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.ModifierTypeId
-import scorex.core.serialization.Serializer
+import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
 import scorex.core.utils.ScorexEncoding
 import scorex.util.{ModifierId, bytesToId, idToBytes}
-
-import scala.util.Try
 
 //TODO compact proof of ticket in header
 case class BlockHeader(override val parentId: ModifierId,
@@ -18,18 +15,14 @@ case class BlockHeader(override val parentId: ModifierId,
                        ticket: Ticket,
                        powNonce: Long
                       ) extends TModifier {
-  override type M = BlockHeader
-
   override val modifierTypeId: ModifierTypeId = TModifier.Header
 
-  override lazy val id: ModifierId = bytesToId(Constants.hashfn.hash(bytes))
+  override lazy val id: ModifierId = bytesToId(Constants.hashfn.hash(BlockHeaderSerializer.toBytes(this)))
 
   def correctWorkDone(difficulty: BigInt): Boolean = {
     val target = Constants.MaxTarget / difficulty
     BigInt(1, idToBytes(id)) < target
   }
-
-  override lazy val serializer = BlockHeaderSerializer
 }
 
 object BlockHeader extends ScorexEncoding {
@@ -44,19 +37,23 @@ object BlockHeader extends ScorexEncoding {
     ).asJson
 }
 
-object BlockHeaderSerializer extends Serializer[BlockHeader] {
+object BlockHeaderSerializer extends ScorexSerializer[BlockHeader] {
   private val ds = Constants.hashfn.DigestSize
 
-  override def toBytes(obj: BlockHeader): Array[Byte] = idToBytes(obj.parentId) ++ obj.stateRoot ++ obj.txRoot ++
-    Longs.toByteArray(obj.powNonce) ++ TicketSerializer.toBytes(obj.ticket)
+  override def serialize(obj: BlockHeader, w: ScorexWriter): Unit = {
+    w.putBytes(idToBytes(obj.parentId))
+    w.putBytes(obj.stateRoot)
+    w.putBytes(obj.txRoot)
+    w.putLong(obj.powNonce)
+    TicketSerializer.serialize(obj.ticket, w)
+  }
 
-
-  override def parseBytes(bytes: Array[Byte]): Try[BlockHeader] = Try {
-    val parentId = bytesToId(bytes.slice(0, ds))
-    val stateRoot = StateRoot @@ bytes.slice(ds, 2 * ds)
-    val txRoot = TransactionsRoot @@ bytes.slice(2 * ds, 3 * ds)
-    val powNonce = Longs.fromByteArray(bytes.slice(3 * ds, 3 * ds + 8))
-    val ticket = TicketSerializer.parseBytes(bytes.slice(3 * ds + 8, bytes.length)).get
+  override def parse(r: ScorexReader): BlockHeader = {
+    val parentId = bytesToId(r.getBytes(ds))
+    val stateRoot = StateRoot @@ r.getBytes(ds)
+    val txRoot = TransactionsRoot @@ r.getBytes(ds)
+    val powNonce = r.getLong()
+    val ticket = TicketSerializer.parse(r)
     BlockHeader(parentId, stateRoot, txRoot, ticket, powNonce)
   }
 }

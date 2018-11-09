@@ -34,11 +34,12 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 
   override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = HBoxStoredState.semanticValidity(tx)
 
-  override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
+  override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = {
     store.get(ByteArrayWrapper(boxId))
       .map(_.data)
-      .map(PublicKey25519NoncedBoxSerializer.parseBytes)
+      .map(bytes => Try(PublicKey25519NoncedBoxSerializer.parseBytes(bytes)))
       .flatMap(_.toOption)
+  }
 
   //there's no easy way to know boxes associated with a proposition without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???
@@ -73,7 +74,9 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {
     val boxIdsToRemove = changes.toRemove.map(_.boxId).map(ByteArrayWrapper.apply)
       .ensuring(_.forall(i => closedBox(i.data).isDefined) || store.lastVersionID.isEmpty)
-    val boxesToAdd = changes.toAppend.map(_.box).map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
+
+    val boxesToAdd = changes.toAppend.map(_.box)
+      .map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(PublicKey25519NoncedBoxSerializer.toBytes(b)))
 
     log.trace(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encodeVersion(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => encoder.encode(b.data))}, " +
