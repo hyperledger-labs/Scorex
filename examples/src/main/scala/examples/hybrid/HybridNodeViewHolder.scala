@@ -7,7 +7,6 @@ import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import examples.hybrid.mining.{HybridMiningSettings, HybridSettings}
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
-import scorex.core.serialization.Serializer
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition

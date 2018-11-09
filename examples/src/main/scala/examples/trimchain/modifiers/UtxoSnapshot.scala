@@ -1,7 +1,6 @@
 package examples.trimchain.modifiers
 
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo
-import scorex.core.serialization.Serializer
 import scorex.core.ModifierTypeId
 import scorex.util.ModifierId
 

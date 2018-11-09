@@ -13,7 +13,7 @@ import scorex.core.app.Application
 import scorex.core.network.message.MessageSpec
 import scorex.core.network.{NodeViewSynchronizerRef, PeerFeature}
 import scorex.core.newserialization.ScorexSerializer
-import scorex.core.serialization.{Serializer, SerializerRegistry}
+import scorex.core.serialization.{SerializerRegistry}
 import scorex.core.serialization.SerializerRegistry.SerializerRecord
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
