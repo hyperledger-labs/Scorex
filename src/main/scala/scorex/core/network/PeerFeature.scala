@@ -1,6 +1,6 @@
 package scorex.core.network
 
-import scorex.core.newserialization.ScorexSerializer
+import scorex.core.serialization.ScorexSerializer
 
 /**
   * An abstract trait to describe peer capabilities.

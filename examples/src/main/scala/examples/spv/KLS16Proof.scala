@@ -1,6 +1,7 @@
 package examples.spv
 
-import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.util.ModifierId
 
 import scala.annotation.tailrec
@@ -65,7 +66,7 @@ case class KLS16Proof(m: Int,
 
 object KLS16ProofSerializer extends ScorexSerializer[KLS16Proof] {
 
-  override def serialize(obj: KLS16Proof, w: ScorexWriter): Unit = {
+  override def serialize(obj: KLS16Proof, w: Writer): Unit = {
     // TODO: fixme, What should we do if `obj.suffix` is empty?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val suffixHead = obj.suffix.head
@@ -97,7 +98,7 @@ object KLS16ProofSerializer extends ScorexSerializer[KLS16Proof] {
     }
   }
 
-  override def parse(r: ScorexReader): KLS16Proof = {
+  override def parse(r: Reader): KLS16Proof = {
     val m = r.getByte()
     val k = r.getByte()
     val i = r.getByte()

@@ -12,7 +12,6 @@ import scorex.core.network.PeerFeature.Serializers
 import scorex.core.network.message.{Message, MessageSpec, ScorexPacket}
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
-import scorex.core.newserialization.{ByteStringReader, ByteStringWriter, ScorexReader}
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
 

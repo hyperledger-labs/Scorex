@@ -3,8 +3,9 @@ package examples.hybrid.history
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.SyncInfoMessageSpec
-import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.{ModifierTypeId, NodeViewModifier}
+import scorex.util.serialization.{Reader, Writer}
 import scorex.util.{ModifierId, bytesToId, idToBytes}
 
 /**
@@ -34,7 +35,7 @@ object HybridSyncInfoSerializer extends ScorexSerializer[HybridSyncInfo] {
   import HybridSyncInfo.MaxLastPowBlocks
 
 
-  override def serialize(obj: HybridSyncInfo, w: ScorexWriter): Unit = {
+  override def serialize(obj: HybridSyncInfo, w: Writer): Unit = {
     w.put(if (obj.answer) 1 else 0)
     w.put(obj.lastPowBlockIds.size.toByte)
 
@@ -44,7 +45,7 @@ object HybridSyncInfoSerializer extends ScorexSerializer[HybridSyncInfo] {
     w.putBytes(idToBytes(obj.lastPosBlockId))
   }
 
-  override def parse(r: ScorexReader): HybridSyncInfo = {
+  override def parse(r: Reader): HybridSyncInfo = {
     val answer: Boolean = r.getByte() == 1.toByte
     val lastPowBlockIdsSize = r.getByte()
 

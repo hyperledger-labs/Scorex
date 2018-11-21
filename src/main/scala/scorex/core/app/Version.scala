@@ -1,6 +1,7 @@
 package scorex.core.app
 
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 
 object Version {
   def apply(v: String): Version = {
@@ -14,13 +15,13 @@ object ApplicationVersionSerializer extends ScorexSerializer[Version] {
   val SerializedVersionLength: Int = 3
 
 
-  override def serialize(obj: Version, w: ScorexWriter): Unit = {
+  override def serialize(obj: Version, w: Writer): Unit = {
     w.put(obj.firstDigit)
     w.put(obj.secondDigit)
     w.put(obj.thirdDigit)
   }
 
-  override def parse(r: ScorexReader): Version = {
+  override def parse(r: Reader): Version = {
     Version(
       r.getByte(),
       r.getByte(),

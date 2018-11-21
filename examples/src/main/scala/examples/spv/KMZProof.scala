@@ -2,7 +2,8 @@ package examples.spv
 
 import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core._
-import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
 
 import scala.annotation.tailrec
@@ -22,7 +23,7 @@ case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[
 
 object KMZProofSerializer extends ScorexSerializer[KMZProof] with ScorexEncoding {
 
-  override def serialize(obj: KMZProof, w: ScorexWriter): Unit = {
+  override def serialize(obj: KMZProof, w: Writer): Unit = {
 
     w.put(obj.m.toByte)
     w.put(obj.k.toByte)
@@ -60,7 +61,7 @@ object KMZProofSerializer extends ScorexSerializer[KMZProof] with ScorexEncoding
     }
   }
 
-  override def parse(r: ScorexReader): KMZProof = {
+  override def parse(r: Reader): KMZProof = {
     val m = r.getByte()
     val k = r.getByte()
     val headSuffixLength = r.getShort()

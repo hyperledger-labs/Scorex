@@ -1,6 +1,7 @@
 package scorex.core.transaction.box.proposition
 
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.hash.Blake2b256
@@ -35,11 +36,11 @@ case class PublicKey25519Proposition(pubKeyBytes: PublicKey)
 
 object PublicKey25519PropositionSerializer extends ScorexSerializer[PublicKey25519Proposition] {
 
-  override def serialize(obj: PublicKey25519Proposition, w: ScorexWriter): Unit = {
+  override def serialize(obj: PublicKey25519Proposition, w: Writer): Unit = {
     w.putBytes(obj.pubKeyBytes)
   }
 
-  override def parse(r: ScorexReader): PublicKey25519Proposition = {
+  override def parse(r: Reader): PublicKey25519Proposition = {
     PublicKey25519Proposition(PublicKey @@ r.getBytes(Curve25519.KeyLength))
   }
 }

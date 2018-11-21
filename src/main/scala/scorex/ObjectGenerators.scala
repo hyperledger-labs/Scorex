@@ -8,7 +8,8 @@ import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.app.Version
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.{ConnectedPeer, PeerFeature}
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.{ModifierTypeId, NodeViewModifier}
@@ -23,13 +24,13 @@ trait ObjectGenerators {
 
     override def serializer: ScorexSerializer[PeerFeature] = new ScorexSerializer[PeerFeature] {
 
-      override def serialize(obj: PeerFeature, w: ScorexWriter): Unit = {
+      override def serialize(obj: PeerFeature, w: Writer): Unit = {
         w.put(1)
         w.put(2)
         w.put(3)
       }
 
-      override def parse(r: ScorexReader): PeerFeature = {
+      override def parse(r: Reader): PeerFeature = {
         require(r.getByte() == 1 && r.getByte() == 2 && r.getByte() == 3)
         FullNodePeerFeature
       }

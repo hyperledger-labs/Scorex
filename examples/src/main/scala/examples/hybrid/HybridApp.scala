@@ -12,8 +12,7 @@ import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApi
 import scorex.core.app.Application
 import scorex.core.network.message.MessageSpec
 import scorex.core.network.{NodeViewSynchronizerRef, PeerFeature}
-import scorex.core.newserialization.ScorexSerializer
-import scorex.core.serialization.{SerializerRegistry}
+import scorex.core.serialization.{ScorexSerializer, SerializerRegistry}
 import scorex.core.serialization.SerializerRegistry.SerializerRecord
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction

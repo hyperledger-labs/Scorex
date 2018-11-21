@@ -8,8 +8,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.app.Version
 import scorex.core.network.{Handshake, HandshakeSerializer, PeerFeature}
-import scorex.core.newserialization.{ByteStringReader, ByteStringWriter}
-
+import scorex.util.serialization.{ByteStringReader, ByteStringWriter}
 
 class HandshakeSpecification extends PropSpec
   with PropertyChecks

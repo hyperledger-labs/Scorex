@@ -2,7 +2,7 @@ package scorex.core.block
 
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.consensus.History
-import scorex.core.newserialization.ScorexSerializer
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.{NodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}

@@ -6,7 +6,8 @@ import java.net.{InetAddress, InetSocketAddress}
 import akka.util.ByteString
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 
@@ -25,11 +26,11 @@ class SyncInfoMessageSpec[SI <: SyncInfo](serializer: ScorexSerializer[SI]) exte
   override val messageName: String = "Sync"
 
 
-  override def serialize(data: SI, w: ScorexWriter): Unit = {
+  override def serialize(data: SI, w: ByteStringWriter): Unit = {
     serializer.serialize(data, w)
   }
 
-  override def parse(r: ScorexReader): SI = {
+  override def parse(r: ByteStringReader): SI = {
     serializer.parse(r)
   }
 }
@@ -46,7 +47,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
   override val messageCode: MessageCode = MessageCode
   override val messageName: String = MessageName
 
-  override def serialize(data: InvData, w: ScorexWriter): Unit = {
+  override def serialize(data: InvData, w: ByteStringWriter): Unit = {
     val (typeId, elems) = data
     require(elems.nonEmpty, "empty inv list")
     require(elems.lengthCompare(maxInvObjects) <= 0, s"more invs than $maxInvObjects in a message")
@@ -59,7 +60,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
     }
   }
 
-  override def parse(r: ScorexReader): InvData = {
+  override def parse(r: ByteStringReader): InvData = {
     val typeId = ModifierTypeId @@ r.getByte()
     val count = r.getInt()
     require(count > 0, "empty inv list")
@@ -87,11 +88,11 @@ class RequestModifierSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
   private val invSpec = new InvSpec(maxInvObjects)
 
 
-  override def serialize(data: InvData, w: ScorexWriter): Unit = {
+  override def serialize(data: InvData, w: ByteStringWriter): Unit = {
     invSpec.serialize(data, w)
   }
 
-  override def parse(r: ScorexReader): InvData = {
+  override def parse(r: ByteStringReader): InvData = {
     invSpec.parse(r)
   }
 }
@@ -108,7 +109,7 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
   override val messageCode: MessageCode = MessageCode
   override val messageName: String = MessageName
 
-  override def serialize(data: ModifiersData, w: ScorexWriter): Unit = {
+  override def serialize(data: ModifiersData, w: ByteStringWriter): Unit = {
 
     require(data.modifiers.nonEmpty, "empty modifiers list")
 
@@ -125,7 +126,7 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
     data.modifiers.take(msgCount).foreach { case (id, modifier) =>
       w.putBytes(idToBytes(id))
       w.putInt(modifier.length)
-      w.putByteString2(modifier)
+      w.putChunk(modifier)
     }
 
     if (msgSize > maxMessageSize) {
@@ -134,13 +135,13 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
     }
   }
 
-  override def parse(r: ScorexReader): ModifiersData = {
+  override def parse(r: ByteStringReader): ModifiersData = {
     val typeId = ModifierTypeId @@ r.getByte()
     val count = r.getInt()
     val seq = (0 until count).map { _ =>
       val id = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
       val objBytesCnt = r.getInt()
-      val obj = r.getByteString2(objBytesCnt)
+      val obj = r.getChunk(objBytesCnt)
       id -> obj
     }
     ModifiersData(typeId, seq.toMap)
@@ -152,10 +153,10 @@ object GetPeersSpec extends MessageSpec[Unit] {
 
   override val messageName: String = "GetPeers message"
 
-  override def serialize(obj: Unit, w: ScorexWriter): Unit = {
+  override def serialize(obj: Unit, w: ByteStringWriter): Unit = {
   }
 
-  override def parse(r: ScorexReader): Unit = {
+  override def parse(r: ByteStringReader): Unit = {
     require(r.remaining == 0, "Non-empty data for GetPeers")
   }
 }
@@ -169,7 +170,7 @@ object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
 
   override val messageName: String = "Peers message"
 
-  override def serialize(peers: Seq[InetSocketAddress], w: ScorexWriter): Unit = {
+  override def serialize(peers: Seq[InetSocketAddress], w: ByteStringWriter): Unit = {
     w.putInt(peers.size)
     peers.foreach { peer =>
       w.putBytes(peer.getAddress.getAddress)
@@ -177,7 +178,7 @@ object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
     }
   }
 
-  override def parse(r: ScorexReader): Seq[InetSocketAddress] = {
+  override def parse(r: ByteStringReader): Seq[InetSocketAddress] = {
     val length = r.getInt()
     require(r.remaining == (length * (AddressLength + PortLength)), "Data does not match length")
     (0 until length).map { _ =>

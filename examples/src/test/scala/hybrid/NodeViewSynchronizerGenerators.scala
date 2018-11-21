@@ -12,7 +12,8 @@ import scorex.core._
 import scorex.core.app.Version
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{ChangedHistory, ChangedMempool}
 import scorex.core.network._
-import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
 
@@ -54,14 +55,14 @@ trait NodeViewSynchronizerGenerators {
     ref ! ChangedMempool(mempool)
     val m = totallyValidModifier(h, s)
     val modSerializer = new ScorexSerializer[PM] {
-      override def serialize(obj: PM, w: ScorexWriter): Unit = {
+      override def serialize(obj: PM, w: Writer): Unit = {
         obj match {
           case block: PowBlock => PowBlockSerializer.serialize(block, w)
           case block: PosBlock => PosBlockSerializer.serialize(block, w)
         }
       }
 
-      override def parse(r: ScorexReader): PM = {
+      override def parse(r: Reader): PM = {
         m match {
           case block: PowBlock => PowBlockSerializer.parse(r)
           case block: PosBlock => PosBlockSerializer.parse(r)

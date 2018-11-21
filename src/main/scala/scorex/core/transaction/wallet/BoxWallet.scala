@@ -1,7 +1,8 @@
 package scorex.core.transaction.wallet
 
 
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
@@ -24,13 +25,13 @@ case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: Modif
 
 class WalletBoxSerializer[P <: Proposition, B <: Box[P]](subclassDeser: ScorexSerializer[B]) extends ScorexSerializer[WalletBox[P, B]] {
 
-  override def serialize(box: WalletBox[P, B], w: ScorexWriter): Unit = {
+  override def serialize(box: WalletBox[P, B], w: Writer): Unit = {
     w.putBytes(idToBytes(box.transactionId))
     w.putLong(box.createdAt)
     subclassDeser.serialize(box.box, w)
   }
 
-  override def parse(r: ScorexReader): WalletBox[P, B] = {
+  override def parse(r: Reader): WalletBox[P, B] = {
     val txId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
     val createdAt = r.getLong()
     val box = subclassDeser.parse(r)

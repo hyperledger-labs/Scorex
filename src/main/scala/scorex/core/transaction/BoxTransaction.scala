@@ -1,7 +1,7 @@
 package scorex.core.transaction
 
 import com.google.common.primitives.{Bytes, Longs}
-import scorex.core.newserialization.ScorexSerializer
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.box.{Box, BoxUnlocker}
 

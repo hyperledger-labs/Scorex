@@ -4,7 +4,6 @@ import java.nio.ByteOrder
 
 import akka.util.ByteString
 import scorex.core.network.ConnectedPeer
-import scorex.core.newserialization.ByteStringWriter
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.{Success, Try}

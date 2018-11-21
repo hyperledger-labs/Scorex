@@ -7,7 +7,8 @@ import io.circe.syntax._
 import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.core.block.Block
 import scorex.core.block.Block._
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.hash.Blake2b256
@@ -38,7 +39,7 @@ class PowBlockHeader(
 
 object PowBlockHeaderSerializer extends ScorexSerializer[PowBlockHeader] {
 
-  override def serialize(h: PowBlockHeader, w: ScorexWriter): Unit = {
+  override def serialize(h: PowBlockHeader, w: Writer): Unit = {
      w.putBytes(idToBytes(h.parentId))
      w.putBytes(idToBytes(h.prevPosId))
      w.putLong(h.timestamp)
@@ -48,7 +49,7 @@ object PowBlockHeaderSerializer extends ScorexSerializer[PowBlockHeader] {
      w.putBytes(h.generatorProposition.pubKeyBytes)
   }
 
-  override def parse(r: ScorexReader): PowBlockHeader = {
+  override def parse(r: Reader): PowBlockHeader = {
     val parentId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
     val prevPosId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
     val timestamp = r.getLong()
@@ -101,13 +102,13 @@ object PowBlockSerializer extends ScorexSerializer[PowBlock] {
     w.result().toArray
   }
 
-  override def serialize(block: PowBlock, w: ScorexWriter): Unit = {
+  override def serialize(block: PowBlock, w: Writer): Unit = {
     PowBlockHeaderSerializer.serialize(block.header, w)
     block.brothers.foreach(b => PowBlockHeaderSerializer.serialize(b ,w))
     PublicKey25519PropositionSerializer.serialize(block.generatorProposition, w)
   }
 
-  override def parse(r: ScorexReader): PowBlock = {
+  override def parse(r: Reader): PowBlock = {
     val header = PowBlockHeaderSerializer.parse(r)
     val brothers = (0 until header.brothersCount).map{ _ =>
       PowBlockHeaderSerializer.parse(r)

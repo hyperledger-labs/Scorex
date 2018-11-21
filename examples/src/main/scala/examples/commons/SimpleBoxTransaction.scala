@@ -5,7 +5,8 @@ import examples.hybrid.wallet.HBoxWallet
 import io.circe.Encoder
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.BoxUnlocker
@@ -155,7 +156,7 @@ object SimpleBoxTransaction extends ScorexEncoding {
 
 object SimpleBoxTransactionSerializer extends ScorexSerializer[SimpleBoxTransaction] {
 
-  override def serialize(m: SimpleBoxTransaction, w: ScorexWriter): Unit = {
+  override def serialize(m: SimpleBoxTransaction, w: Writer): Unit = {
     w.putLong(m.fee)
     w.putLong(m.timestamp)
     w.putInt(m.signatures.length)
@@ -175,7 +176,7 @@ object SimpleBoxTransactionSerializer extends ScorexSerializer[SimpleBoxTransact
     }
   }
 
-  override def parse(r: ScorexReader): SimpleBoxTransaction = {
+  override def parse(r: Reader): SimpleBoxTransaction = {
     val fee = r.getLong()
     val timestamp = r.getLong()
     val sigLength = r.getInt()

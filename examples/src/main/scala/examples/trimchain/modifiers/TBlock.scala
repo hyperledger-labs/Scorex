@@ -6,7 +6,8 @@ import io.circe.syntax._
 import scorex.core.ModifierTypeId
 import scorex.core.block.Block
 import scorex.core.block.Block.{Timestamp, Version}
-import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.util.ModifierId
 
 import scala.annotation.tailrec
@@ -28,7 +29,7 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
 object TBlockSerializer extends ScorexSerializer[TBlock] {
 
 
-  override def serialize(obj: TBlock, w: ScorexWriter): Unit = {
+  override def serialize(obj: TBlock, w: Writer): Unit = {
     w.putLong(obj.timestamp)
     val headerWriter = w.newWriter()
     BlockHeaderSerializer.serialize(obj.header, headerWriter)
@@ -43,7 +44,7 @@ object TBlockSerializer extends ScorexSerializer[TBlock] {
     }
   }
 
-  override def parse(r: ScorexReader): TBlock = {
+  override def parse(r: Reader): TBlock = {
     val timestamp = r.getLong()
     val headerLength = r.getShort()
     val header = BlockHeaderSerializer.parse(r.newReader(r.getChunk(headerLength)))

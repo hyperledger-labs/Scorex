@@ -2,7 +2,8 @@ package examples.trimchain.core
 
 import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.authds.SerializedAdProof
 import scorex.crypto.signatures.Curve25519
@@ -26,7 +27,7 @@ object TicketSerializer extends ScorexSerializer[Ticket] {
 
   val MinerKeySize: Int = Curve25519.KeyLength
 
-  override def serialize(obj: Ticket, w: ScorexWriter): Unit = {
+  override def serialize(obj: Ticket, w: Writer): Unit = {
     w.putBytes(obj.minerKey)
     w.putShort(obj.partialProofs.length.toShort)
 
@@ -37,7 +38,7 @@ object TicketSerializer extends ScorexSerializer[Ticket] {
     }
   }
 
-  override def parse(r: ScorexReader): Ticket = {
+  override def parse(r: Reader): Ticket = {
     val minerKey = r.getBytes(MinerKeySize)
     val proofNum = r.getShort()
 

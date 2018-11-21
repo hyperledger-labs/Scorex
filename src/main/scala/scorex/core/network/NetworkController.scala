@@ -14,7 +14,6 @@ import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeerExcluding, RemovePeer}
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
-import scorex.core.newserialization.ByteStringReader
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
 import scorex.util.ScorexLogging

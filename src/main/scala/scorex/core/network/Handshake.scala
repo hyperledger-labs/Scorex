@@ -3,7 +3,8 @@ package scorex.core.network
 import java.net.{InetAddress, InetSocketAddress}
 
 import scorex.core.app.{ApplicationVersionSerializer, Version}
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 
 import scala.util.Try
 
@@ -22,7 +23,7 @@ case class Handshake(applicationName: String,
 class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
                              maxHandshakeSize: Int) extends ScorexSerializer[Handshake] {
 
-  override def serialize(obj: Handshake, w: ScorexWriter): Unit = {
+  override def serialize(obj: Handshake, w: Writer): Unit = {
 
     w.putShortString(obj.applicationName)
     ApplicationVersionSerializer.serialize(obj.protocolVersion, w)
@@ -49,7 +50,7 @@ class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
     w.putLong(obj.time)
   }
 
-  override def parse(r: ScorexReader): Handshake = {
+  override def parse(r: Reader): Handshake = {
 
     require(r.remaining <= maxHandshakeSize)
 

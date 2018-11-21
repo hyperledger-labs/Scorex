@@ -1,6 +1,7 @@
 package scorex.core.transaction.proof
 
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexEncoding
@@ -24,11 +25,11 @@ case class Signature25519(signature: Signature) extends ProofOfKnowledge[Private
 
 object Signature25519Serializer extends ScorexSerializer[Signature25519] {
 
-  override def serialize(obj: Signature25519, w: ScorexWriter): Unit = {
+  override def serialize(obj: Signature25519, w: Writer): Unit = {
     w.putBytes(obj.signature)
   }
 
-  override def parse(r: ScorexReader): Signature25519 = {
+  override def parse(r: Reader): Signature25519 = {
     Signature25519(Signature @@ r.getBytes(Curve25519.SignatureLength))
   }
 }

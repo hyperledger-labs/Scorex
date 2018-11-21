@@ -2,13 +2,14 @@ package examples.commons
 
 import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.account.PublicKeyNoncedBox
 import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, PublicKey25519PropositionSerializer}
 import scorex.core.utils.ScorexEncoding
 import scorex.util.encode.Base16
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Curve25519
+import scorex.util.serialization.{Reader, Writer}
 
 case class PublicKey25519NoncedBox(override val proposition: PublicKey25519Proposition,
                                    override val nonce: Nonce,
@@ -35,13 +36,13 @@ object PublicKey25519NoncedBox extends ScorexEncoding {
 object PublicKey25519NoncedBoxSerializer extends ScorexSerializer[PublicKey25519NoncedBox] {
 
 
-  override def serialize(obj: PublicKey25519NoncedBox, w: ScorexWriter): Unit = {
+  override def serialize(obj: PublicKey25519NoncedBox, w: Writer): Unit = {
     PublicKey25519PropositionSerializer.serialize(obj.proposition, w)
     w.putLong(obj.nonce)
     w.putLong(obj.value)
   }
 
-  override def parse(r: ScorexReader): PublicKey25519NoncedBox = {
+  override def parse(r: Reader): PublicKey25519NoncedBox = {
     PublicKey25519NoncedBox(
       PublicKey25519PropositionSerializer.parse(r),
       Nonce @@ r.getLong(),

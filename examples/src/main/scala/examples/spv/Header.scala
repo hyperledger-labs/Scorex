@@ -6,8 +6,9 @@ import io.circe.syntax._
 import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
 import scorex.core.block.Block
 import scorex.core.block.Block._
-import scorex.core.newserialization.{ByteStringWriter, ScorexReader, ScorexSerializer, ScorexWriter}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
+import scorex.util.serialization.{Reader, Writer}
 import scorex.util.{ModifierId, bytesToId, idToBytes}
 
 import scala.annotation.tailrec
@@ -43,7 +44,7 @@ object Header extends ScorexEncoding {
 
 object HeaderSerializer extends ScorexSerializer[Header] {
 
-  override def serialize(h: Header, w: ScorexWriter): Unit = {
+  override def serialize(h: Header, w: Writer): Unit = {
     serializeWithoutItrelinks(h, w)
 
     @tailrec
@@ -61,7 +62,7 @@ object HeaderSerializer extends ScorexSerializer[Header] {
     writeInterlinks(h.interlinks)
   }
 
-  def serializeWithoutItrelinks(h: Header, w: ScorexWriter): Unit = {
+  def serializeWithoutItrelinks(h: Header, w: Writer): Unit = {
     w.putBytes(idToBytes(h.parentId))
     w.putBytes(h.transactionsRoot)
     w.putBytes(h.stateRoot)
@@ -71,13 +72,7 @@ object HeaderSerializer extends ScorexSerializer[Header] {
 
   val BytesWithoutInterlinksLength: Int = 108
 
-  def bytesWithoutInterlinks(h: Header): Array[Byte] = {
-    val w = new ByteStringWriter
-    serializeWithoutItrelinks(h, w)
-    w.result().toArray
-  }
-
-  override def parse(r: ScorexReader): Header = {
+  override def parse(r: Reader): Header = {
     val parentId = bytesToId(r.getBytes(32))
     val transactionsRoot = r.getBytes(32)
     val stateRoot = r.getBytes(32)

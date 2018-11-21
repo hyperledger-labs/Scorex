@@ -4,7 +4,8 @@ import examples.trimchain.core._
 import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.ModifierTypeId
-import scorex.core.newserialization.{ScorexReader, ScorexSerializer, ScorexWriter}
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
 import scorex.util.{ModifierId, bytesToId, idToBytes}
 
@@ -40,7 +41,7 @@ object BlockHeader extends ScorexEncoding {
 object BlockHeaderSerializer extends ScorexSerializer[BlockHeader] {
   private val ds = Constants.hashfn.DigestSize
 
-  override def serialize(obj: BlockHeader, w: ScorexWriter): Unit = {
+  override def serialize(obj: BlockHeader, w: Writer): Unit = {
     w.putBytes(idToBytes(obj.parentId))
     w.putBytes(obj.stateRoot)
     w.putBytes(obj.txRoot)
@@ -48,7 +49,7 @@ object BlockHeaderSerializer extends ScorexSerializer[BlockHeader] {
     TicketSerializer.serialize(obj.ticket, w)
   }
 
-  override def parse(r: ScorexReader): BlockHeader = {
+  override def parse(r: Reader): BlockHeader = {
     val parentId = bytesToId(r.getBytes(ds))
     val stateRoot = StateRoot @@ r.getBytes(ds)
     val txRoot = TransactionsRoot @@ r.getBytes(ds)

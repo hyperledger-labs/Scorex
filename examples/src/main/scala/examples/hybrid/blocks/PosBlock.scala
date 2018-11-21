@@ -6,7 +6,8 @@ import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.block.Block
 import scorex.core.block.Block._
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.proof.{Signature25519, Signature25519Serializer}
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexEncoding
@@ -36,7 +37,7 @@ case class PosBlock(override val parentId: BlockId, //PoW block
 
 object PosBlockSerializer extends ScorexSerializer[PosBlock] with ScorexEncoding {
 
-  override def serialize(b: PosBlock, w: ScorexWriter): Unit = {
+  override def serialize(b: PosBlock, w: Writer): Unit = {
     w.putBytes(idToBytes(b.parentId))
     w.putLong(b.timestamp)
     PublicKey25519NoncedBoxSerializer.serialize(b.generatorBox, w)
@@ -52,7 +53,7 @@ object PosBlockSerializer extends ScorexSerializer[PosBlock] with ScorexEncoding
     w.putBytes(b.attachment)
   }
 
-  override def parse(r: ScorexReader): PosBlock = {
+  override def parse(r: Reader): PosBlock = {
     require(r.remaining <= PosBlock.MaxBlockSize)
     val parentId = bytesToId(r.getBytes(BlockIdLength))
     val timestamp = r.getLong()

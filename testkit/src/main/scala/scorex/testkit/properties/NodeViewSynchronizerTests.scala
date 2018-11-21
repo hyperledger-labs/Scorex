@@ -16,7 +16,8 @@ import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network._
 import scorex.core.network.message.BasicMsgDataTypes.ModifiersData
 import scorex.core.network.message._
-import scorex.core.newserialization._
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
@@ -119,11 +120,11 @@ MP <: MemoryPool[TX, MP]
       import ctx._
 
       val dummySyncInfoMessageSpec = new SyncInfoMessageSpec[SyncInfo](new ScorexSerializer[SyncInfo]{
-        override def parse(r: ScorexReader): SyncInfo = {
+        override def parse(r: Reader): SyncInfo = {
           throw new Exception()
         }
 
-        override def serialize(obj: SyncInfo, w: ScorexWriter): Unit = {}
+        override def serialize(obj: SyncInfo, w: Writer): Unit = {}
       }) {}
 
       val dummySyncInfo = new SyncInfo {
