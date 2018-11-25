@@ -31,8 +31,8 @@ import scala.util.{Failure, Success, Try}
 class NetworkController(settings: NetworkSettings,
                         peerManagerRef: ActorRef,
                         scorexContext: ScorexContext,
-                        tcpManager: ActorRef
-                       )(implicit ec: ExecutionContext) extends Actor with ScorexLogging {
+                        tcpManager: ActorRef)(implicit ec: ExecutionContext)
+  extends Actor with ScorexLogging {
 
   import NetworkController.ReceivableMessages._
   import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
@@ -130,6 +130,7 @@ class NetworkController(settings: NetworkSettings,
         case None =>
           log.info("Failed to connect to : " + c.remoteAddress)
       }
+      peerManagerRef ! RemovePeer(c.remoteAddress)
 
     case Terminated(ref) =>
       connectionForHandler(ref).foreach { connectedPeer =>
@@ -174,7 +175,7 @@ class NetworkController(settings: NetworkSettings,
       if (connections.size < settings.maxConnections) {
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
-          peerInfoOpt.foreach(peerInfo => self ! ConnectTo(peerInfo))
+          peerInfoOpt.foreach(self ! ConnectTo(_))
         }
       }
     }
@@ -190,10 +191,12 @@ class NetworkController(settings: NetworkSettings,
       case Some(remote) =>
         if (connectionForPeerAddress(remote).isEmpty && !outgoing.contains(remote)) {
           outgoing += remote
-          tcpManager ! Connect(remote,
+          tcpManager ! Connect(
+            remote,
             options = KeepAlive(true) :: Nil,
             timeout = Some(settings.connectionTimeout),
-            pullMode = true) //todo: check pullMode flag
+            pullMode = true //todo: check pullMode flag
+          )
         } else {
           log.warn(s"Connection to peer $remote is already established")
         }
@@ -209,7 +212,9 @@ class NetworkController(settings: NetworkSettings,
     * @param connection - connection ActorRef
     * @return
     */
-  private def createPeerConnectionHandler(remote: InetSocketAddress, local: InetSocketAddress, connection: ActorRef) = {
+  private def createPeerConnectionHandler(remote: InetSocketAddress,
+                                          local: InetSocketAddress,
+                                          connection: ActorRef): Unit = {
     val direction: ConnectionType = if (outgoing.contains(remote)) Outgoing else Incoming
     val logMsg = direction match {
       case Incoming => s"New incoming connection from $remote established (bound to local $local)"
@@ -238,8 +243,6 @@ class NetworkController(settings: NetworkSettings,
 
   /**
     * The logic of handling the handshake
-    * @param peerInfo
-    * @param peerHandler
     */
   private def handshaked(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
     connectionForHandler(peerHandler).foreach { connectedPeer =>
@@ -301,7 +304,6 @@ class NetworkController(settings: NetworkSettings,
 
   /**
     * Checks the node owns the address
-    * @param peerAddress
     * @return returns `true` if the peer is the same is this node.
     */
   private def isSelf(peerAddress: InetSocketAddress): Boolean = {
@@ -356,7 +358,7 @@ class NetworkController(settings: NetworkSettings,
     }
   }
 
-  private def validateDeclaredAddress() = {
+  private def validateDeclaredAddress(): Unit = {
     if (!settings.localOnly) {
       settings.declaredAddress.foreach { myAddress =>
         Try {
@@ -381,6 +383,7 @@ class NetworkController(settings: NetworkSettings,
       }
     }
   }
+
 }
 
 object NetworkController {
@@ -397,6 +400,7 @@ object NetworkController {
 }
 
 object NetworkControllerRef {
+
   def props(settings: NetworkSettings,
             peerManagerRef: ActorRef,
             scorexContext: ScorexContext,
@@ -434,4 +438,5 @@ object NetworkControllerRef {
       props(settings, peerManagerRef, scorexContext, IO(Tcp)),
       name)
   }
+
 }
