@@ -50,7 +50,7 @@ class NetworkController(settings: NetworkSettings,
   private var outgoing = Set.empty[InetSocketAddress]
 
   //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
-  private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
+  private val _: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
 
   //check own declared address for validity
   validateDeclaredAddress()

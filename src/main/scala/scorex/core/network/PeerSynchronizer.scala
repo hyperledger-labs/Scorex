@@ -7,9 +7,9 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
-import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
-import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
+import scorex.core.network.message.{GetPeersSpec, Message, PeersSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeers}
+import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
 import shapeless.syntax.typeable._
@@ -17,7 +17,6 @@ import shapeless.syntax.typeable._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 
 class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
                       (implicit ec: ExecutionContext) extends Actor with ScorexLogging {
@@ -35,7 +34,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
   }
 
   override def receive: Receive = {
-    case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, remote)
+    case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, _)
       if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[InetSocketAddress]].isDefined =>
 
       peers.foreach(isa => peerManager ! AddOrUpdatePeer(isa, None, None, Seq()))
@@ -62,9 +61,11 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 
     case nonsense: Any => log.warn(s"PeerSynchronizer: got something strange $nonsense")
   }
+
 }
 
 object PeerSynchronizerRef {
+
   def props(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
            (implicit ec: ExecutionContext): Props =
     Props(new PeerSynchronizer(networkControllerRef, peerManager, settings))
