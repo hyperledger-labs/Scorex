@@ -39,6 +39,12 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
   type NodeView = (HIS, MS, VL, MP)
 
+  case class UpdateInformation(history: HIS,
+                               state: MS,
+                               failedMod: Option[PMOD],
+                               alternativeProgressInfo: Option[ProgressInfo[PMOD]],
+                               suffix: IndexedSeq[PMOD])
+
   val scorexSettings: ScorexSettings
 
   /**
@@ -207,12 +213,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
                           suffixApplied: IndexedSeq[PMOD]): (HIS, Try[MS], Seq[PMOD]) = {
     requestDownloads(progressInfo)
 
-    case class UpdateInformation(history: HIS,
-                                 state: MS,
-                                 failedMod: Option[PMOD],
-                                 alternativeProgressInfo: Option[ProgressInfo[PMOD]],
-                                 suffix: IndexedSeq[PMOD])
-
     val (stateToApplyTry: Try[MS], suffixTrimmed: IndexedSeq[PMOD]) = if (progressInfo.chainSwitchingNeeded) {
         @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
         val branchingPoint = progressInfo.branchPoint.get //todo: .get
@@ -223,38 +223,41 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
     stateToApplyTry match {
       case Success(stateToApply) =>
+        val stateUpdateInfo = applyState(history, stateToApply, suffixTrimmed, progressInfo)
 
-        val u0 = UpdateInformation(history, stateToApply, None, None, suffixTrimmed)
-
-        val uf = progressInfo.toApply.foldLeft(u0) { case (u, modToApply) =>
-          if (u.failedMod.isEmpty) {
-            u.state.applyModifier(modToApply) match {
-              case Success(stateAfterApply) =>
-                val newHis = history.reportModifierIsValid(modToApply)
-                context.system.eventStream.publish(SemanticallySuccessfulModifier(modToApply))
-                //updateState(newHis, stateAfterApply, newProgressInfo, suffixTrimmed :+ modToApply)
-                UpdateInformation(newHis, stateAfterApply, None, None, u.suffix :+ modToApply)
-              case Failure(e) =>
-                val (newHis, newProgressInfo) = history.reportModifierIsInvalid(modToApply, progressInfo)
-                context.system.eventStream.publish(SemanticallyFailedModification(modToApply, e))
-                //updateState(newHis, stateToApply, newProgressInfo, suffixTrimmed)
-                UpdateInformation(newHis, u.state, Some(modToApply), Some(newProgressInfo), u.suffix)
-            }
-          } else u
-        }
-
-        uf.failedMod match {
-          case Some(mod) =>
+        stateUpdateInfo.failedMod match {
+          case Some(_) =>
             @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-            val alternativeProgressInfo = uf.alternativeProgressInfo.get
-            updateState(uf.history, uf.state, alternativeProgressInfo, uf.suffix)
-          case None => (uf.history, Success(uf.state), uf.suffix)
+            val alternativeProgressInfo = stateUpdateInfo.alternativeProgressInfo.get
+            updateState(stateUpdateInfo.history, stateUpdateInfo.state, alternativeProgressInfo, stateUpdateInfo.suffix)
+          case None => (stateUpdateInfo.history, Success(stateUpdateInfo.state), stateUpdateInfo.suffix)
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
         context.system.eventStream.publish(RollbackFailed)
         //todo: what to return here? the situation is totally wrong
         ???
+    }
+  }
+
+  protected def applyState(history: HIS,
+                           stateToApply: MS,
+                           suffixTrimmed: IndexedSeq[PMOD],
+                           progressInfo: ProgressInfo[PMOD]): UpdateInformation = {
+    val updateInfoSample = UpdateInformation(history, stateToApply, None, None, suffixTrimmed)
+    progressInfo.toApply.foldLeft(updateInfoSample) { case (updateInfo, modToApply) =>
+      if (updateInfo.failedMod.isEmpty) {
+        updateInfo.state.applyModifier(modToApply) match {
+          case Success(stateAfterApply) =>
+            val newHis = history.reportModifierIsValid(modToApply)
+            context.system.eventStream.publish(SemanticallySuccessfulModifier(modToApply))
+            UpdateInformation(newHis, stateAfterApply, None, None, updateInfo.suffix :+ modToApply)
+          case Failure(e) =>
+            val (newHis, newProgressInfo) = history.reportModifierIsInvalid(modToApply, progressInfo)
+            context.system.eventStream.publish(SemanticallyFailedModification(modToApply, e))
+            UpdateInformation(newHis, updateInfo.state, Some(modToApply), Some(newProgressInfo), updateInfo.suffix)
+        }
+      } else updateInfo
     }
   }
 
