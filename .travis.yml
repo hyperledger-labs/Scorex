@@ -1,9 +1,9 @@
 sudo: true
 language: scala
 jdk:
-  - oraclejdk8
+  - oraclejdk9
 scala:
-  - 2.12.3
+  - 2.12.7
 branches:
   only:
     - master
