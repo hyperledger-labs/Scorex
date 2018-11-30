@@ -3,6 +3,8 @@ package scorex.core.serialization
 import akka.util.ByteString
 import scorex.util.serialization._
 
+import scala.util.Try
+
 trait ScorexSerializer[T] extends Serializer[T, T, Reader, Writer] {
 
   def serialize(obj: T): ByteString = {
@@ -16,6 +18,10 @@ trait ScorexSerializer[T] extends Serializer[T, T, Reader, Writer] {
     parse(reader)
   }
 
+  def parseTry(byteString: ByteString): Try[T] = {
+    Try(parse(byteString))
+  }
+
   // TODO implement BytesReader/Writer and use them
   def toBytes(obj: T): Array[Byte] = {
     serialize(obj).toArray
@@ -23,6 +29,10 @@ trait ScorexSerializer[T] extends Serializer[T, T, Reader, Writer] {
 
   def parseBytes(bytes: Array[Byte]): T = {
     parse(ByteString(bytes))
+  }
+
+  def parseBytesTry(bytes: Array[Byte]): Try[T] = {
+    Try(parseBytes(bytes))
   }
 }
 
