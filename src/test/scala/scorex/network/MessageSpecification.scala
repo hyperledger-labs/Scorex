@@ -25,9 +25,9 @@ class MessageSpecification extends PropSpec
     forAll(invDataGen) { data: InvData =>
       whenever(data._2.length < maxInvObjects) {
 
-        val byteString = invSpec.serialize(data)
-        val recovered = invSpec.parse(byteString)
-        val byteString2 = invSpec.serialize(recovered)
+        val byteString = invSpec.toByteString(data)
+        val recovered = invSpec.parseByteString(byteString)
+        val byteString2 = invSpec.toByteString(recovered)
         byteString shouldEqual byteString2
       }
     }
@@ -37,7 +37,7 @@ class MessageSpecification extends PropSpec
     val invSpec = new InvSpec(maxInvObjects)
     forAll(modifierTypeIdGen, Gen.listOfN(maxInvObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
       val data: InvData = (b, s)
-      Try(invSpec.serialize(data)).isSuccess shouldBe false
+      Try(invSpec.toByteString(data)).isSuccess shouldBe false
     }
   }
 
@@ -45,10 +45,10 @@ class MessageSpecification extends PropSpec
     val requestModifierSpec = new RequestModifierSpec(maxInvObjects)
     forAll(invDataGen) { case data =>
       whenever(data._2.length < maxInvObjects) {
-        val byteString = requestModifierSpec.serialize(data)
-        val recovered = requestModifierSpec.parse(byteString)
+        val byteString = requestModifierSpec.toByteString(data)
+        val recovered = requestModifierSpec.parseByteString(byteString)
         recovered._2.length shouldEqual data._2.length
-        val byteString2 = requestModifierSpec.serialize(recovered)
+        val byteString2 = requestModifierSpec.toByteString(recovered)
         byteString shouldEqual byteString2
       }
     }
@@ -58,7 +58,7 @@ class MessageSpecification extends PropSpec
     val invSpec = new InvSpec(maxInvObjects)
     forAll(modifierTypeIdGen, Gen.listOfN(maxInvObjects + 1, modifierIdGen)) { (b: ModifierTypeId, s: Seq[ModifierId]) =>
       val data: InvData = (b, s)
-      Try(invSpec.serialize(data)).isSuccess shouldBe false
+      Try(invSpec.toByteString(data)).isSuccess shouldBe false
     }
   }
 
@@ -67,8 +67,8 @@ class MessageSpecification extends PropSpec
       whenever(data.modifiers.nonEmpty) {
         val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
-        val bytes = modifiersSpec.serialize(data)
-        val recovered = modifiersSpec.parse(bytes)
+        val bytes = modifiersSpec.toByteString(data)
+        val recovered = modifiersSpec.parseByteString(bytes)
 
         recovered.typeId shouldEqual data.typeId
         recovered.modifiers.keys.size shouldEqual data.modifiers.keys.size
@@ -77,15 +77,15 @@ class MessageSpecification extends PropSpec
           data.modifiers.get(id).isDefined shouldEqual true
         }
 
-        recovered.modifiers.values.toSet.foreach { v: ByteString =>
+        recovered.modifiers.values.toSet.foreach { v: Array[Byte] =>
           data.modifiers.values.toSet.exists(_.sameElements(v)) shouldEqual true
         }
 
-        modifiersSpec.serialize(data) shouldEqual bytes
+        modifiersSpec.toByteString(data) shouldEqual bytes
 
         val modifiersSpecLimited = new ModifiersSpec(6)
-        val bytes2 = modifiersSpecLimited.serialize(data)
-        val recovered2 = modifiersSpecLimited.parse(bytes2)
+        val bytes2 = modifiersSpecLimited.toByteString(data)
+        val recovered2 = modifiersSpecLimited.parseByteString(bytes2)
 
         recovered2.typeId shouldEqual data.typeId
         (recovered2.modifiers.keys.size == data.modifiers.keys.size) shouldEqual false

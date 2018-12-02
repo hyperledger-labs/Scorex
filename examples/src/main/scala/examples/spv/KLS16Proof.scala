@@ -70,31 +70,22 @@ object KLS16ProofSerializer extends ScorexSerializer[KLS16Proof] {
     // TODO: fixme, What should we do if `obj.suffix` is empty?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val suffixHead = obj.suffix.head
-    val suffixHeadWriter = w.newWriter()
-    HeaderSerializer.serialize(suffixHead, suffixHeadWriter)
 
     w.put(obj.m.toByte)
     w.put(obj.k.toByte)
     w.put(obj.i.toByte)
-    w.putShort(suffixHeadWriter.length().toShort)
-    w.append(suffixHeadWriter)
+    HeaderSerializer.serialize(suffixHead, w)
 
     // TODO: fixme, What should we do if `obj.suffix` is empty?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val suffixTail = obj.suffix.tail
     suffixTail.foreach { h =>
-      val hw = w.newWriter()
-      HeaderSerializer.serializeWithoutItrelinks(h, hw)
-      w.putShort(hw.length().toShort)
-      w.append(hw)
+      HeaderSerializer.serializeWithoutIterlinks(h, w)
     }
 
     w.putShort(obj.innerchain.length.toShort)
     obj.innerchain.map { h =>
-      val hw = w.newWriter()
-      HeaderSerializer.serialize(h, hw)
-      w.putShort(hw.length().toShort)
-      w.append(hw)
+      HeaderSerializer.serialize(h, w)
     }
   }
 
@@ -102,16 +93,14 @@ object KLS16ProofSerializer extends ScorexSerializer[KLS16Proof] {
     val m = r.getByte()
     val k = r.getByte()
     val i = r.getByte()
-    val headSuffixLength = r.getShort()
-    val headSuffix = HeaderSerializer.parse(r.newReader(r.getChunk(headSuffixLength)))
+    val headSuffix = HeaderSerializer.parse(r)
 
     @tailrec
     def parseSuffixes(acc: Seq[Header]): Seq[Header] = {
       if (acc.length == k) {
         acc.reverse
       } else {
-        val l = r.getShort()
-        val headerWithoutInterlinks = HeaderSerializer.parse(r.newReader(r.getChunk(l)))
+        val headerWithoutInterlinks = HeaderSerializer.parseWithoutInterlinks(r)
         //TODO: fixme, What should happen if `acc` is empty?
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
@@ -123,8 +112,7 @@ object KLS16ProofSerializer extends ScorexSerializer[KLS16Proof] {
     val interchainLength = r.getShort()
 
     val interchain = (0 until interchainLength) map { _ =>
-      val l = r.getShort()
-      HeaderSerializer.parse(r.newReader(r.getChunk(l)))
+      HeaderSerializer.parse(r)
     }
     KLS16Proof(m, k, i, interchain, suffix)
   }

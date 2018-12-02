@@ -11,8 +11,6 @@ import scorex.crypto.hash
 import scorex.crypto.hash.Blake2b256
 import scorex.util.ModifierId
 
-import scala.util.{Failure, Try}
-
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class ChainTests extends PropSpec
   with PropertyChecks
@@ -110,23 +108,27 @@ class ChainTests extends PropSpec
 
   property("KLS16 proof serialization") {
     forAll(mkGen) { mk =>
-      val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
-      val serializer = KLS16ProofSerializer
-      val parsed = serializer.parseBytes(serializer.toBytes(proof))
-      serializer.toBytes(proof) shouldEqual serializer.toBytes(parsed)
-      proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
-      //todo more checks that suffixses are the same
+      whenever(mk._1 >= 1 && mk._2 >= 2) {
+        val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+        val serializer = KLS16ProofSerializer
+        val parsed = serializer.parseBytes(serializer.toBytes(proof))
+        serializer.toBytes(proof) shouldEqual serializer.toBytes(parsed)
+        proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
+        //todo more checks that suffixses are the same
+      }
     }
   }
 
   property("KMZ proof serialization") {
     forAll(mkGen) { mk =>
-      val proof = SpvAlgos.constructKMZProof(mk._1, mk._2, headerChain).get
-      val serializer = KMZProofSerializer
-      val bytes = serializer.toBytes(proof)
-      val parsed = serializer.parseBytes(bytes)
-      bytes shouldEqual serializer.toBytes(parsed)
-      proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
+      whenever(mk._1 >= 1 && mk._2 >= 2) {
+        val proof = SpvAlgos.constructKMZProof(mk._1, mk._2, headerChain).get
+        val serializer = KMZProofSerializer
+        val bytes = serializer.toBytes(proof)
+        val parsed = serializer.parseBytes(bytes)
+        bytes shouldEqual serializer.toBytes(parsed)
+        proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
+      }
     }
   }
 

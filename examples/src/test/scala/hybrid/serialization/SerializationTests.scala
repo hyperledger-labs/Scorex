@@ -59,8 +59,8 @@ class SerializationTests extends PropSpec
 
   property("HybridSyncInfo serialization") {
     forAll(hybridSyncInfoGen) { b: HybridSyncInfo =>
-      val parsed = HybridSyncInfoSerializer.parse(HybridSyncInfoSerializer.serialize(b))
-      HybridSyncInfoSerializer.serialize(parsed) shouldEqual HybridSyncInfoSerializer.serialize(b)
+      val parsed = HybridSyncInfoSerializer.parseByteString(HybridSyncInfoSerializer.toByteString(b))
+      HybridSyncInfoSerializer.toByteString(parsed) shouldEqual HybridSyncInfoSerializer.toByteString(b)
     }
   }
 }

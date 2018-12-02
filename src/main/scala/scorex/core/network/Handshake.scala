@@ -3,8 +3,9 @@ package scorex.core.network
 import java.net.{InetAddress, InetSocketAddress}
 
 import scorex.core.app.{ApplicationVersionSerializer, Version}
+import scorex.core.network.message.Message.MessageCode
+import scorex.core.network.message.MessageSpec
 import scorex.util.serialization._
-import scorex.core.serialization.ScorexSerializer
 
 import scala.util.Try
 
@@ -21,7 +22,11 @@ case class Handshake(applicationName: String,
 
 
 class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
-                             maxHandshakeSize: Int) extends ScorexSerializer[Handshake] {
+                             maxHandshakeSize: Int) extends MessageSpec[Handshake] {
+
+
+  override val messageCode: MessageCode = 75: Byte
+  override val messageName: String = "Handshake"
 
   override def serialize(obj: Handshake, w: Writer): Unit = {
 

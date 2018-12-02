@@ -19,8 +19,6 @@ object ScorexPacket {
   val ChecksumLength: Int = 4
   val HeaderLength: Int = MagicLength + 5
 
-  import ScorexPacket._
-
   private implicit val byteOrder: ByteOrder = ByteOrder.BIG_ENDIAN
 
   def serialize(packet: ScorexPacket): ByteString = {

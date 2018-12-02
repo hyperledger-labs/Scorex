@@ -95,8 +95,13 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   private def handshaking: Receive = {
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
     (self ! HandshakeTimeout))
-    val hb = handshakeSerializer.serialize(createHandshakeMessage())
-    connection ! Tcp.Write(hb)
+
+    val packet = ScorexPacket(
+      handshakeSerializer.messageCode,
+      handshakeSerializer.toByteString(createHandshakeMessage()),
+      None)
+
+    connection ! Tcp.Write(ScorexPacket.serialize(packet))
     log.info(s"Handshake sent to $remote")
 
     receiveAndHandleHandshake { receivedHandshake =>
@@ -114,7 +119,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
       networkControllerRef ! Handshaked(peerInfo)
       handshakeTimeoutCancellableOpt.map(_.cancel())
-      connection ! ResumeReading
       context become workingCycle
     } orElse handshakeTimeout orElse processErrors("Handshaking")
   }
@@ -136,9 +140,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   private def receiveAndHandleHandshake(handler: Handshake => Unit): Receive = {
-    case Received(data) =>
+    receiveAndHandlePacket { packet =>
       try {
-        val handshake = handshakeSerializer.parse(data)
+        val handshake = handshakeSerializer.parseByteString(packet.payload)
         handler(handshake)
       } catch {
         case t: Throwable =>
@@ -146,6 +150,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
           //todo: blacklist?
           self ! CloseConnection
       }
+    }
   }
 
   private def processErrors(stateName: String): Receive = {
@@ -182,7 +187,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     case message.Message(spec, content, source) =>
       def sendOutMessage() {
         log.info("Send message " + spec + " to " + remote)
-        val packet = ScorexPacket(spec.messageCode, spec.serialize(content), source)
+        val packet = ScorexPacket(spec.messageCode, spec.toByteString(content), source)
         connection ! Write(ScorexPacket.serialize(packet))
       }
 
@@ -201,6 +206,17 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   def workingCycleRemoteInterface: Receive = {
+    receiveAndHandlePacket { packet =>
+      val spec = scorexContext.specsMap
+        .getOrElse(packet.messageCode, throw new Error(s"No message handler found for ${packet.messageCode}"))
+
+      log.info("Received message " + spec + " from " + remote)
+      val message = parseMessage(spec, packet.payload, packet.source)
+      networkControllerRef ! message
+    }
+  }
+
+  private def receiveAndHandlePacket(handler: ScorexPacket => Unit): Receive = {
     case Received(data) =>
 
       chunksBuffer ++= data
@@ -209,12 +225,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       def process():Unit = {
         ScorexPacket.deserialize(chunksBuffer, selfPeer) match {
           case Some(packet) =>
-            val spec = scorexContext.specsMap
-              .getOrElse(packet.messageCode, throw new Error(s"No message handler found for ${packet.messageCode}"))
 
-            log.info("Received message " + spec + " from " + remote)
-            val message = parseMessage(spec, packet.payload, packet.source)
-            networkControllerRef ! message
+            handler(packet)
+
             chunksBuffer = chunksBuffer.drop(packet.length)
             process()
 
@@ -232,8 +245,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeReading
   }
 
+
   private def parseMessage[T](spec: MessageSpec[T], payload: ByteString, source: Option[ConnectedPeer]): Message[T] = {
-    Message[T](spec, spec.parse(payload), source)
+    Message[T](spec, spec.parseByteString(payload), source)
   }
 
   private def reportStrangeInput: Receive= {

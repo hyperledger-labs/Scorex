@@ -94,13 +94,13 @@ object PosBlock extends ScorexEncoding {
              privateKey: PrivateKey25519): PosBlock = {
     require(java.util.Arrays.equals(box.proposition.pubKeyBytes, privateKey.publicKeyBytes))
     val unsigned = PosBlock(parentId, timestamp, txs, box, attachment, Signature25519(Signature @@ Array[Byte]()))
-    val signature = Curve25519.sign(privateKey.privKeyBytes, PosBlockSerializer.serialize(unsigned).toArray)
+    val signature = Curve25519.sign(privateKey.privKeyBytes, PosBlockSerializer.toByteString(unsigned).toArray)
     unsigned.copy(signature = Signature25519(signature))
   }
 
   def signatureValid(posBlock: PosBlock): Boolean = {
     val unsigned = posBlock.copy(signature = Signature25519(Signature @@ Array[Byte]()))
-    val unsignedBytes = PosBlockSerializer.serialize(unsigned).toArray
+    val unsignedBytes = PosBlockSerializer.toByteString(unsigned).toArray
     posBlock.generatorBox.proposition.verify(unsignedBytes, posBlock.signature.signature)
   }
 }

@@ -4,7 +4,6 @@ package scorex.core.network
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import akka.util.ByteString
 import scorex.core.NodeViewHolder.DownloadRequest
 import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, ModifiersFromRemote, TransactionsFromRemote}
 import scorex.core.consensus.History._
@@ -323,12 +322,12 @@ MR <: MempoolReader[TX] : ClassTag]
     *
     * @return collection of parsed modifiers
     */
-  private def parseModifiers[M <: NodeViewModifier](modifiers: Map[ModifierId, ByteString],
+  private def parseModifiers[M <: NodeViewModifier](modifiers: Map[ModifierId, Array[Byte]],
                                                     serializer: ScorexSerializer[M],
                                                     remote: ConnectedPeer): Iterable[M] = {
     try {
-      modifiers.flatMap { case (id, byteString) =>
-        val mod = serializer.parse(byteString)
+      modifiers.flatMap { case (id, bytes) =>
+        val mod = serializer.parseBytes(bytes)
         if (id == mod.id) {
           Some(mod)
         } else {
@@ -354,7 +353,7 @@ MR <: MempoolReader[TX] : ClassTag]
     */
   private def processSpam(remote: ConnectedPeer,
                           typeId: ModifierTypeId,
-                          modifiers: Map[ModifierId, ByteString]): Map[ModifierId, ByteString] = {
+                          modifiers: Map[ModifierId, Array[Byte]]): Map[ModifierId, Array[Byte]] = {
 
     val (requested, spam) = modifiers.partition { case (id, _) =>
       deliveryTracker.status(id) == Requested
@@ -420,7 +419,7 @@ MR <: MempoolReader[TX] : ClassTag]
         val modType = head.modifierTypeId
 
         @tailrec
-        def sendByParts(mods: Seq[(ModifierId, ByteString)]): Unit = {
+        def sendByParts(mods: Seq[(ModifierId, Array[Byte])]): Unit = {
           var size = 5 //message type id + message size
           val batch = mods.takeWhile { case (_, modBytes) =>
             size += NodeViewModifier.ModifierIdSize + 4 + modBytes.length
@@ -435,7 +434,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
         modifierSerializers.get(modType) match {
           case Some(serializer: ScorexSerializer[NodeViewModifier]) =>
-            sendByParts(modifiers.map(m => m.id -> serializer.serialize(m)))
+            sendByParts(modifiers.map(m => m.id -> serializer.toBytes(m)))
           case _ =>
             log.error(s"Undefined serializer for modifier of type ${modType}")
         }

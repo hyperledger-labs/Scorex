@@ -20,7 +20,7 @@ import org.scalatest.EitherValues._
 import scorex.core.app.{ScorexContext, Version}
 
 import scala.concurrent.ExecutionContext
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 class NetworkControllerSpec extends FlatSpec with Matchers {
 
@@ -385,7 +385,13 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
       Version(settings.network.appVersion), "test",
       declaredAddress, features, timeProvider.time())
 
-    tcpManagerProbe.send(connectionHandler, Tcp.Received(handshakeSerializer.serialize(handshakeToNode)))
+    val packet = ScorexPacket(
+      handshakeSerializer.messageCode,
+      handshakeSerializer.toByteString(handshakeToNode),
+      None
+    )
+    val byteString = ScorexPacket.serialize(packet)
+    tcpManagerProbe.send(connectionHandler, Tcp.Received(byteString))
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)
   }
 
@@ -396,7 +402,10 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   def receiveHandshake: Try[Handshake] = Try {
     val handshakeFromNode = tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(data, e) =>
-        handshakeSerializer.parse(data)
+        ScorexPacket
+          .deserialize(data, None)
+          .map(p => handshakeSerializer.parseByteString(p.payload))
+          .getOrElse(throw new Exception("Error receive handshake message"))
     }
     handshakeFromNode
   }
@@ -416,7 +425,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   def receiveGetPeers: Unit = {
     val packet = receivePacket
     packet.messageCode should be (GetPeersSpec.messageCode)
-    GetPeersSpec.parse(packet.payload)
+    GetPeersSpec.parseByteString(packet.payload)
   }
 
   /**
@@ -425,7 +434,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   def receivePeers: Seq[InetSocketAddress] = {
     val packet = receivePacket
     packet.messageCode should be (PeersSpec.messageCode)
-    PeersSpec.parse(packet.payload)
+    PeersSpec.parseByteString(packet.payload)
   }
 
   /**
@@ -441,7 +450,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     * @param msg
     */
   def sendMessage[T](msg: Message[T]): Unit = {
-    val packet = ScorexPacket(msg.spec.messageCode, msg.spec.serialize(msg.content), None)
+    val packet = ScorexPacket(msg.spec.messageCode, msg.spec.toByteString(msg.content), None)
     val byteString = ScorexPacket.serialize(packet)
     tcpManagerProbe.send(connectionHandler, Tcp.Received(byteString))
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)

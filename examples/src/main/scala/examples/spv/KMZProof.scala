@@ -31,25 +31,19 @@ object KMZProofSerializer extends ScorexSerializer[KMZProof] with ScorexEncoding
     // TODO: fixme, What should we do if `obj.suffix` is empty?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val suffixHead = obj.suffix.head
-    val suffixHeadWriter = w.newWriter()
-    HeaderSerializer.serialize(suffixHead, suffixHeadWriter)
-    w.putShort(suffixHeadWriter.length().toShort)
-    w.append(suffixHeadWriter)
+    HeaderSerializer.serialize(suffixHead, w)
 
     // TODO: fixme, What should we do if `obj.suffix` is empty?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val suffixTail = obj.suffix.tail
     suffixTail.map { h =>
-      HeaderSerializer.serializeWithoutItrelinks(h, w)
+      HeaderSerializer.serializeWithoutIterlinks(h, w)
     }
 
     val prefixHeaders: Map[String, Header] = obj.prefixProofs.flatten.map(h => h.encodedId -> h).toMap
     w.putShort(prefixHeaders.size.toShort)
     prefixHeaders.foreach { h =>
-      val hw = w.newWriter()
-      HeaderSerializer.serialize(h._2, hw)
-      w.putShort(hw.length().toShort)
-      w.append(hw)
+      HeaderSerializer.serialize(h._2, w)
     }
 
     w.putShort(obj.prefixProofs.length.toShort)
@@ -64,16 +58,14 @@ object KMZProofSerializer extends ScorexSerializer[KMZProof] with ScorexEncoding
   override def parse(r: Reader): KMZProof = {
     val m = r.getByte()
     val k = r.getByte()
-    val headSuffixLength = r.getShort()
-    val headSuffix = HeaderSerializer.parse(r.newReader(r.getChunk(headSuffixLength)))
-    val l = HeaderSerializer.BytesWithoutInterlinksLength
+    val headSuffix = HeaderSerializer.parse(r)
 
     @tailrec
     def parseSuffixes(acc: Seq[Header]): Seq[Header] = {
       if (acc.length == k) {
         acc.reverse
       } else {
-        val headerWithoutInterlinks = HeaderSerializer.parse(r.newReader(r.getChunk(l)))
+        val headerWithoutInterlinks = HeaderSerializer.parseWithoutInterlinks(r)
         // TODO: fixme, What should we do if `acc` is empty?
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
@@ -85,8 +77,7 @@ object KMZProofSerializer extends ScorexSerializer[KMZProof] with ScorexEncoding
 
     val prefixHeadersLength: Int = r.getShort()
     val prefixHeaders: Map[String, Header] = ((0 until prefixHeadersLength) map { i: Int =>
-      val l = r.getShort()
-      val header = HeaderSerializer.parse(r.newReader(r.getChunk(l)))
+      val header = HeaderSerializer.parse(r)
       header.encodedId -> header
     }).toMap
 

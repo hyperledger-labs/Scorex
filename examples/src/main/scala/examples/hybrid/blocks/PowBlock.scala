@@ -30,7 +30,7 @@ class PowBlockHeader(
 
   def correctWork(difficulty: BigInt, s: HybridMiningSettings): Boolean = correctWorkDone(id, difficulty, s)
 
-  lazy val id: ModifierId = bytesToId(Blake2b256(PowBlockHeaderSerializer.serialize(this).toArray))
+  lazy val id: ModifierId = bytesToId(Blake2b256(PowBlockHeaderSerializer.toByteString(this).toArray))
 
   override lazy val toString: String = s"PowBlockHeader(id: ${encoder.encodeId(id)})" +
     s"(parentId: ${encoder.encodeId(parentId)}, posParentId: ${encoder.encodeId(prevPosId)}, time: $timestamp, " +
@@ -97,7 +97,7 @@ case class PowBlock(override val parentId: BlockId,
 object PowBlockSerializer extends ScorexSerializer[PowBlock] {
 
   def brotherBytes(brothers: Seq[PowBlockHeader]): Array[Byte] = {
-    val w = new ByteStringWriter
+    val w = new VLQByteStringWriter
     brothers.foreach(b => PowBlockHeaderSerializer.serialize(b ,w))
     w.result().toArray
   }

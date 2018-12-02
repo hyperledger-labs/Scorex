@@ -1,5 +1,6 @@
 package examples.spv
 
+import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.spv.Constants._
 import io.circe.Encoder
 import io.circe.syntax._
@@ -8,8 +9,8 @@ import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
-import scorex.util.serialization.{Reader, Writer}
-import scorex.util.{ModifierId, bytesToId, idToBytes}
+import scorex.util.serialization.{Reader, VLQByteBufferWriter, Writer}
+import scorex.util.{ByteArrayBuilder, ModifierId, bytesToId, idToBytes}
 
 import scala.annotation.tailrec
 
@@ -22,7 +23,10 @@ case class Header(parentId: BlockId,
 
   override val modifierTypeId: ModifierTypeId = ModifierTypeId @@ 100.toByte
 
-  override lazy val id: ModifierId = bytesToId(hashfn(HeaderSerializer.toBytes(this)))
+  override lazy val id: ModifierId = {
+    val bytes = Bytes.concat(idToBytes(parentId), transactionsRoot, stateRoot, Longs.toByteArray(timestamp), Ints.toByteArray(nonce))
+    bytesToId(hashfn(bytes))
+  }
 
   lazy val realDifficulty: BigInt = SpvAlgos.blockIdDifficulty(id)
 
@@ -45,7 +49,7 @@ object Header extends ScorexEncoding {
 object HeaderSerializer extends ScorexSerializer[Header] {
 
   override def serialize(h: Header, w: Writer): Unit = {
-    serializeWithoutItrelinks(h, w)
+    serializeWithoutIterlinks(h, w)
 
     @tailrec
     def writeInterlinks(links: Seq[ModifierId]):Unit = {
@@ -59,10 +63,11 @@ object HeaderSerializer extends ScorexSerializer[Header] {
       }
     }
 
+    w.putUInt(h.interlinks.size)
     writeInterlinks(h.interlinks)
   }
 
-  def serializeWithoutItrelinks(h: Header, w: Writer): Unit = {
+  def serializeWithoutIterlinks(h: Header, w: Writer): Unit = {
     w.putBytes(idToBytes(h.parentId))
     w.putBytes(h.transactionsRoot)
     w.putBytes(h.stateRoot)
@@ -70,18 +75,13 @@ object HeaderSerializer extends ScorexSerializer[Header] {
     w.putInt(h.nonce)
   }
 
-  val BytesWithoutInterlinksLength: Int = 108
-
   override def parse(r: Reader): Header = {
-    val parentId = bytesToId(r.getBytes(32))
-    val transactionsRoot = r.getBytes(32)
-    val stateRoot = r.getBytes(32)
-    val timestamp = r.getLong()
-    val nonce = r.getInt()
+    val headerWithouInterlinks = parseWithoutInterlinks(r)
+    val interlinksSize = r.getUInt()
 
     @tailrec
     def parseInnerchainLinks(acc: Seq[ModifierId]): Seq[ModifierId] = {
-      if (r.remaining > 0) {
+      if (acc.size < interlinksSize) {
         val repeatN: Int = r.getByte()
         val link: ModifierId = bytesToId(r.getBytes(32))
         val links: Seq[ModifierId] = Array.fill(repeatN)(link)
@@ -92,7 +92,15 @@ object HeaderSerializer extends ScorexSerializer[Header] {
     }
 
     val innerchainLinks = parseInnerchainLinks(Seq())
+    headerWithouInterlinks.copy(interlinks = innerchainLinks)
+  }
 
-    Header(parentId, innerchainLinks, stateRoot, transactionsRoot, timestamp, nonce)
+  def parseWithoutInterlinks(r: Reader): Header = {
+    val parentId = bytesToId(r.getBytes(32))
+    val transactionsRoot = r.getBytes(32)
+    val stateRoot = r.getBytes(32)
+    val timestamp = r.getLong()
+    val nonce = r.getInt()
+    Header(parentId, Seq.empty, stateRoot, transactionsRoot, timestamp, nonce)
   }
 }
