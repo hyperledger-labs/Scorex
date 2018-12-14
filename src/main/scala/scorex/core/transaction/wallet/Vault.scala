@@ -24,8 +24,7 @@ trait Vault[TX <: Transaction, PMOD <: PersistentNodeViewModifier, V <: Vault[TX
 
   def rollback(to: VersionTag): Try[V]
 
-  /**
-    * @return read-only copy of this state
+  /** read-only copy of this state
     */
   def getReader: VaultReader = this
 

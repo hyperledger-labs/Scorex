@@ -5,14 +5,14 @@ import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import io.circe.syntax._
 import scorex.core.NodeViewHolder.CurrentView
+import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.History
 import scorex.core.serialization.SerializerRegistry
 import scorex.core.settings.RESTApiSettings
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
-import scorex.core.transaction.{MemoryPool, Transaction}
+import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.ScorexEncoding
-import scorex.core.PersistentNodeViewModifier
 import scorex.util.{ModifierId, bytesToId}
 
 import scala.concurrent.ExecutionContext
@@ -33,7 +33,7 @@ case class NodeViewApiRoute[TX <: Transaction]
 
   type PM <: PersistentNodeViewModifier
   type HIS <: History[PM, _, _ <: History[PM, _, _]]
-  type MP <: MemoryPool[TX, _ <: MemoryPool[TX, _]]
+  type MP <: MempoolReader[TX]
   type MS <: MinimalState[PM, _ <: MinimalState[_, _]]
   type VL <: Vault[TX, PM, _ <: Vault[TX, PM, _]]
 

@@ -4,18 +4,14 @@ import scorex.core.consensus.ContainsModifiers
 import scorex.core.NodeViewComponent
 import scorex.util.ModifierId
 
-/**
-  * Unconfirmed transactions pool
+/** Unconfirmed transactions pool reader
   *
-  * @tparam TX -type of transaction the pool contains
+  * @tparam TX - type of transaction the pool contains
   */
 trait MempoolReader[TX <: Transaction] extends NodeViewComponent with ContainsModifiers[TX] {
 
   //getters
   override def modifierById(modifierId: ModifierId): Option[TX]
-
-  @deprecated("use modifierById instead", "2018-08-14")
-  def getById(id: ModifierId): Option[TX] = modifierById(id)
 
   def contains(id: ModifierId): Boolean
 

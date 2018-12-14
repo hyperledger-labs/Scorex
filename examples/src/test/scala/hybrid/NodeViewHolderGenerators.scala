@@ -17,15 +17,25 @@ trait NodeViewHolderGenerators {
 
   class NodeViewHolderForTests(h: HT, s: ST) extends HybridNodeViewHolder(settings, new NetworkTimeProvider(settings.scorexSettings.ntp)) {
 
-    override protected def genesisState: (HIS, MS, VL, MP) = {
-      @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-      val store = lsmStoreGen.sample.get
+    override protected def genesisHistory(): History = h
+
+    override protected def genesisState(): State = s
+
+    override protected def genesisVault(): Vault = {
+      val store = lsmStoreGen.sample.getOrElse(throw new Exception("lsmStoreGen.sample is None"))
       val seed = Array.fill(10)(1: Byte)
-      val gw = new HBoxWallet(seed, store)
-      (h, s, gw, SimpleBoxTransactionMemPool.emptyPool)
+      new HBoxWallet(seed, store)
     }
 
-    override def restoreState(): Option[(HIS, MS, VL, MP)] = None
+    override def genesisMempool(): MPool = SimpleBoxTransactionMemPool.emptyPool
+
+    override def restoreHistory(): Option[History] = None
+
+    override def restoreState(): Option[State] = None
+
+    override def restoreVault(): Option[Vault] = None
+
+    override def restoreMempool(): Option[MPool] = None
   }
 
   object NodeViewHolderForTests {
