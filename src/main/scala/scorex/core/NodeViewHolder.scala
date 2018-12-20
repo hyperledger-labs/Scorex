@@ -19,11 +19,10 @@ import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
 
 
-/** Composite local view of the node.
+/** Local view coordinator of the node.
   *
-  * Contains instances for History, MinimalState, Vault, MemoryPool.
-  * The instances are read-only for external world.
-  * Updates of the composite view(the instances are to be performed atomically.
+  * Coordinates History, MinimalState, Vault, MemoryPool.
+  * Updates of the composite view are to be performed atomically.
   *
   * The main data structure a node software is taking care about, a node view consists
   * of four elements to be updated atomically: history (log of persistent modifiers),
@@ -115,9 +114,9 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
   protected def processModifiers: Receive = {
     case msg: ModifiersFromRemote[PMOD] => processRemoteModifiers(msg.modifiers)
+    case NextRemoteModifier(history) => nextRemoteModifier(history.asInstanceOf[HistoryReader[PMOD, SI]])
     case msg: LocallyGeneratedModifier[PMOD] => processLocalModifier(msg.pmod)
     case response: PersistentModifierResponse[PMOD] => persistentModifierResponse(response)
-    case CleanCacheOverfull => cleanCacheOvefull()
   }
 
   protected def processLocalModifier(modifier: PMOD): Unit = {
@@ -133,22 +132,18 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   protected def processRemoteModifiers(mods: Iterable[PMOD]): Unit = {
     mods.foreach(m => modifiersCache.put(m.id, m))
     log.debug(s"Cache size before: ${modifiersCache.size}")
-    nextRemoteModifier()
+    sendReader[HistoryReader[PMOD, SI]](HistoryComponent) { r => self ! NextRemoteModifier(r) }
   }
 
-  protected def nextRemoteModifier(): Unit = {
-    requestReader[HistoryReader[PMOD, SI]](HistoryComponent) { history =>
-      modifiersCache.popCandidate(history) match {
-        case Some(mod) => stateActor ! ApplyModifier(mod, RemotelyGenerated)
-        case None => self ! CleanCacheOverfull
-      }
+  protected def nextRemoteModifier(history: HistoryReader[PMOD, SI]): Unit = {
+    modifiersCache.popCandidate(history) match {
+      case Some(mod) =>
+        stateActor ! ApplyModifier(mod, RemotelyGenerated)
+      case None =>
+        val cleared = modifiersCache.cleanOverfull()
+        log.debug(s"Cache size after application: ${modifiersCache.size}")
+        context.system.eventStream.publish(ModifiersProcessingResult(Seq.empty, cleared))
     }
-  }
-
-  protected def cleanCacheOvefull(): Unit ={
-    val cleared = modifiersCache.cleanOverfull()
-    log.debug(s"Cache size after application: ${modifiersCache.size}")
-    context.system.eventStream.publish(ModifiersProcessingResult(Seq.empty, cleared))
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
@@ -172,7 +167,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     }
     if (mode == RemotelyGenerated) {
       context.system.eventStream.publish(ModifiersProcessingResult(Seq(pmod), Seq.empty))
-      nextRemoteModifier()
+      sendReader[HistoryReader[PMOD, SI]](HistoryComponent) { r => self ! NextRemoteModifier(r) }
     }
   }
 
@@ -227,51 +222,55 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     case GetDataFromCurrentView(f) =>
       val callback = sender
       for {
-        historyReader <- getReader(HistoryComponent)
-        stateReader <- getReader(StateComponent)
-        mempoolReader <- getReader(MempoolComponent)
+        historyReader <- getReaderFuture(HistoryComponent)
+        stateReader <- getReaderFuture(StateComponent)
+        mempoolReader <- getReaderFuture(MempoolComponent)
       } yield callback ! f(CurrentView(historyReader, stateReader, vault, mempoolReader))
   }
 
   protected def getNodeViewChanges: Receive = {
     case GetNodeViewChanges(components) =>
       val callback = sender
-      components.foreach { c => requestChangeEvent(c)(e => callback ! e) }
+      components.foreach { c => sendChangeEvent(c)(e => callback ! e) }
   }
 
   protected def publishNodeView(components: Set[ComponentType]): Unit = {
-    components.foreach { c => requestChangeEvent(c)(e => context.system.eventStream.publish(e)) }
+    components.foreach { c => sendChangeEvent(c)(e => context.system.eventStream.publish(e)) }
   }
 
-  /** Generate change event and perform small operation with it;
-    * `callback` should not be a heavy operation and it should not access any actor's state.
+
+  /** Send component reader by performing small operation with it (e.g. actor tell, or eventStream publish);
+    * `callback` should not be a heavy operation and it SHOULD NOT UPDATE ANY STATE.
     * @param componentType type of the component to get the reader
     * @param callback lightweight lambda, it shouldn't access any actor's state
     */
-  protected def requestChangeEvent(component: ComponentType)(callback: NodeViewChange => Unit): Unit = component match {
-    case MempoolComponent => requestReader[MempoolReader[TX]](component){ r => callback(ChangedMempool(r)) }
-    case StateComponent => requestReader[StateReader](component){ r => callback(ChangedState(r)) }
-    case HistoryComponent => requestReader[HistoryReader[PMOD, SI]](component){ r => callback(ChangedHistory(r)) }
-    case VaultComponent =>  requestReader[VaultReader](component){ r => callback(ChangedVault(r)) }
-  }
-
-  /** Request reader and perform small operation with it;
-    * `callback` should not be a heavy operation and it should not access any actor's state.
-    * @param componentType type of the component to get the reader
-    * @param callback lightweight lambda, it shouldn't access any actor's state
-    */
-  protected def requestReader[R : ClassTag](componentType: ComponentType)(callback: R => Unit): Unit = {
-    getReader(componentType).mapTo[R].onComplete {
-      case Success(reader) => callback(reader)
+  protected def sendReader[C <: NodeViewComponent : ClassTag](componentType: ComponentType)
+                                                             (callback: C => Unit): Unit = {
+    getReaderFuture(HistoryComponent).mapTo[C].onComplete {
+      case Success(r) => callback(r)
       case Failure(e) => log.error(s"Failed to get $toString reader: ${e.getMessage}", e)
     }
   }
 
-  def getReader(componentType: ComponentType): Future[Any] =  componentType match {
-    case MempoolComponent => memoryPoolActor ? GetReader(componentType)
-    case StateComponent => stateActor ? GetReader(componentType)
+  /** Send change event by performing small operation with it (e.g. actor tell, or eventStream publish);
+    * `callback` should not be a heavy operation and it SHOULD NOT UPDATE ANY STATE.
+    * @param componentType type of the component to get the reader
+    * @param callback lightweight lambda, it shouldn't access any actor's state
+    */
+  protected def sendChangeEvent(componentType: ComponentType)(callback: NodeViewChange => Unit): Unit = {
+    componentType match {
+      case HistoryComponent => sendReader[HistoryReader[PMOD, SI]](MempoolComponent)(r => callback(ChangedHistory(r)))
+      case StateComponent => sendReader[StateReader](MempoolComponent)(r => callback(ChangedState(r)))
+      case VaultComponent => sendReader[VaultReader](MempoolComponent)(r => callback(ChangedVault(r)))
+      case MempoolComponent => sendReader[MempoolReader[TX]](MempoolComponent)(r => callback(ChangedMempool(r)))
+    }
+  }
+
+  def getReaderFuture(componentType: ComponentType): Future[Any] = componentType match {
     case HistoryComponent => stateActor ? GetReader(componentType)
+    case StateComponent => stateActor ? GetReader(componentType)
     case VaultComponent => Future.successful(vault.getReader)
+    case MempoolComponent => memoryPoolActor ? GetReader(componentType)
   }
 
   override def receive: Receive =
@@ -312,7 +311,7 @@ object NodeViewHolder {
 
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
 
-    case object CleanCacheOverfull
+    case class NextRemoteModifier[H <: HistoryReader[_, _]](history: H)
 
   }
 

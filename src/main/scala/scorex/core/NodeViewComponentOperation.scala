@@ -2,8 +2,6 @@ package scorex.core
 
 import scorex.core.NodeViewComponent.ComponentType
 
-import scala.reflect.ClassTag
-
 /** Base trait for all node view operations, which should be sent to a memory node view component
   */
 trait NodeViewComponentOperation
