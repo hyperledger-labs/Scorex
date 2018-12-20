@@ -81,7 +81,7 @@ trait MempoolTransactionsTest[TX <: Transaction]
   property("Mempool transactions should be filtered successfully") {
     forAll(mempoolGenerator, transactionSeqGenerator) { (m: MPool, txs: Seq[TX]) =>
       txs.foreach(m.put)
-      m.removeBy(tx => tx equals txs.headOption.get)
+      m.filterBy(tx => tx equals txs.headOption.get)
       m.size shouldBe 1
     }
   }

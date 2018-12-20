@@ -27,8 +27,8 @@ class ReferenceMempoolActor[TX <: Transaction, M <: ReferenceMempool[TX, M]](pri
     case Remove(tx) =>
       mempool = mempool.remove(tx.asInstanceOf[TX])
 
-    case RemoveBy(condition) =>
-      mempool = mempool.removeBy(condition.asInstanceOf[TX => Boolean])
+    case FilterBy(condition) =>
+      mempool = mempool.filterBy(condition.asInstanceOf[TX => Boolean])
   }
 
   protected def getReader: Receive = {
@@ -64,7 +64,7 @@ trait ReferenceMempool[TX <: Transaction, M <: ReferenceMempool[TX, M]] extends 
 
   def remove(tx: TX): M
 
-  def removeBy(condition: TX => Boolean): M
+  def filterBy(condition: TX => Boolean): M
 
   /** Get the reader for the memory pool
     */

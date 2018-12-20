@@ -9,14 +9,15 @@ import scorex.core.NodeViewComponentOperation.GetReader
 import scorex.core.transaction.MempoolOperation._
 import scorex.core.transaction.{MempoolReader, ReferenceMempool, Transaction}
 import scorex.testkit.utils.BaseActorFixture
-import scorex.util.ModifierId
+import scorex.util.{ModifierId, ScorexLogging}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.concurrent.blocking
 import scala.util.Try
 
 class MempoolFixture[TX <: Transaction](mempoolActorGen: ActorSystem => ActorRef)
-  extends BaseActorFixture with ReferenceMempool[TX, MempoolFixture[TX]] {
+  extends BaseActorFixture with ReferenceMempool[TX, MempoolFixture[TX]] with ScorexLogging {
 
   type M = MempoolFixture[TX]
 
@@ -44,13 +45,14 @@ class MempoolFixture[TX <: Transaction](mempoolActorGen: ActorSystem => ActorRef
     this
   }
 
-  def removeBy(condition: TX => Boolean): M = {
-    mempoolActor ! RemoveBy(condition)
+  def filterBy(condition: TX => Boolean): M = {
+    mempoolActor ! FilterBy(condition)
     this
   }
 
   def clear(): Unit = {
-    mempoolActor ! RemoveBy({ _: TX => true })
+    mempoolActor ! FilterBy({ _: TX => false })
+    blocking(Thread.sleep(10))
   }
 
   /** Get the reader for the memory pool

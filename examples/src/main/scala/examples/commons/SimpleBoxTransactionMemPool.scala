@@ -37,7 +37,7 @@ case class SimpleBoxTransactionMemPool(unconfirmed: TrieMap[ModifierId, SimpleBo
   override def take(limit: Int): Iterable[SimpleBoxTransaction] =
     unconfirmed.values.toSeq.sortBy(_.fee)(Ordering[Long].reverse).take(limit)
 
-  override def removeBy(condition: SimpleBoxTransaction => Boolean): SimpleBoxTransactionMemPool = {
+  override def filterBy(condition: SimpleBoxTransaction => Boolean): SimpleBoxTransactionMemPool = {
     unconfirmed.retain { (_, v) =>
       condition(v)
     }

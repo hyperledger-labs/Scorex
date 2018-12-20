@@ -30,7 +30,7 @@ object MempoolOperation {
 
   /** Remove transaction that complies criteria
     */
-  case class RemoveBy[TX <: Transaction](criteria: TX => Boolean)
+  case class FilterBy[TX <: Transaction](criteria: TX => Boolean)
 
   /** Normal Put operation
     */
