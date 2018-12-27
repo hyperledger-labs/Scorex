@@ -10,13 +10,13 @@ dependencyOverrides in ThisBuild ++= Seq(
   "com.sun.mail" % "javax.mail" % "1.6.0",
   "com.typesafe" % "config" % "1.3.3",
   "com.typesafe" % "ssl-config-core_2.12" % "0.3.6",
-  "com.typesafe.akka" % "akka-actor_2.12" % "2.5.18",
-  "com.typesafe.akka" % "akka-http-core_2.12" % "10.1.5",
-  "com.typesafe.akka" % "akka-http_2.12" % "10.1.5",
-  "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.5",
-  "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.18",
-  "com.typesafe.akka" % "akka-stream_2.12" % "2.5.18",
-  "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.9.0",
+  "com.typesafe.akka" % "akka-actor_2.12" % "2.5.19",
+  "com.typesafe.akka" % "akka-http-core_2.12" % "10.1.6",
+  "com.typesafe.akka" % "akka-http_2.12" % "10.1.6",
+  "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.6",
+  "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.19",
+  "com.typesafe.akka" % "akka-stream_2.12" % "2.5.19",
+  "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.9.2",
   "commons-net" % "commons-net" % "3.6",
   "de.heikoseeberger" % "akka-http-circe_2.12" % "1.19.0",
   "io.circe" % "circe-core_2.12" % "0.9.0",
@@ -33,8 +33,8 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.scala-lang.modules" % "scala-parser-combinators_2.12" % "1.1.1",
   "org.scala-sbt" % "test-interface" % "1.0",
   "org.scalacheck" % "scalacheck_2.12" % "1.13.5",
-  "org.scorexfoundation" % "scorex-util_2.12" % "0.1.3-SNAPSHOT",
-  "org.scorexfoundation" % "scrypto_2.12" % "2.1.5",
+  "org.scorexfoundation" % "scorex-util_2.12" % "0.1.3",
+  "org.scorexfoundation" % "scrypto_2.12" % "2.1.6",
   "org.slf4j" % "slf4j-api" % "1.8.0-beta1",
   "org.spire-math" % "jawn-parser_2.12" % "0.11.0",
   "org.typelevel" % "cats-core_2.12" % "1.0.1",
@@ -44,4 +44,4 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.typelevel" % "macro-compat_2.12" % "1.1.1",
   "org.whispersystems" % "curve25519-java" % "0.5.0"
 )
-// LIBRARY_DEPENDENCIES_HASH 2e5d8cea897843e8d40857f557cf2722e9a0c1ef
+// LIBRARY_DEPENDENCIES_HASH 3cd15da1f5e92166fd2151b72cd7ff70cd48cde8
