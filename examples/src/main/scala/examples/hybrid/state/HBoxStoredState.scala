@@ -37,7 +37,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = {
     store.get(ByteArrayWrapper(boxId))
       .map(_.data)
-      .map(bytes => Try(PublicKey25519NoncedBoxSerializer.parseBytes(bytes)))
+      .map(bytes => PublicKey25519NoncedBoxSerializer.parseBytesTry(bytes))
       .flatMap(_.toOption)
   }
 

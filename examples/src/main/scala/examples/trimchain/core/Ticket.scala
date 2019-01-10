@@ -9,6 +9,7 @@ import scorex.crypto.authds.SerializedAdProof
 import scorex.crypto.signatures.Curve25519
 
 import scala.annotation.tailrec
+import scorex.util.Extensions._
 
 case class Ticket(minerKey: Array[Byte], partialProofs: Seq[SerializedAdProof]) {
 
@@ -29,7 +30,7 @@ object TicketSerializer extends ScorexSerializer[Ticket] {
 
   override def serialize(obj: Ticket, w: Writer): Unit = {
     w.putBytes(obj.minerKey)
-    w.putShort(obj.partialProofs.length.toShort)
+    w.putShort(obj.partialProofs.length.toShortExact)
 
     obj.partialProofs.map { bytes =>
       require(bytes.length == bytes.length.toShort)

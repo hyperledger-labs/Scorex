@@ -8,6 +8,7 @@ import scorex.core.utils.ScorexEncoding
 
 import scala.annotation.tailrec
 import scala.util.Try
+import scorex.util.Extensions._
 
 case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[Header]) {
   lazy val valid: Try[Unit] = Try {
@@ -41,14 +42,14 @@ object KMZProofSerializer extends ScorexSerializer[KMZProof] with ScorexEncoding
     }
 
     val prefixHeaders: Map[String, Header] = obj.prefixProofs.flatten.map(h => h.encodedId -> h).toMap
-    w.putShort(prefixHeaders.size.toShort)
+    w.putShort(prefixHeaders.size.toShortExact)
     prefixHeaders.foreach { h =>
       HeaderSerializer.serialize(h._2, w)
     }
 
-    w.putShort(obj.prefixProofs.length.toShort)
+    w.putShort(obj.prefixProofs.length.toShortExact)
     obj.prefixProofs.foreach { chain =>
-      w.putShort(chain.length.toShort)
+      w.putShort(chain.length.toShortExact)
       chain.foreach { c =>
         w.putBytes(idToBytes(c.id))
       }
