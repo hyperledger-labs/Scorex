@@ -27,13 +27,13 @@ class WalletBoxSerializer[P <: Proposition, B <: Box[P]](subclassDeser: ScorexSe
 
   override def serialize(box: WalletBox[P, B], w: Writer): Unit = {
     w.putBytes(idToBytes(box.transactionId))
-    w.putLong(box.createdAt)
+    w.putULong(box.createdAt)
     subclassDeser.serialize(box.box, w)
   }
 
   override def parse(r: Reader): WalletBox[P, B] = {
     val txId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
-    val createdAt = r.getLong()
+    val createdAt = r.getULong()
     val box = subclassDeser.parse(r)
     WalletBox[P, B](box, txId, createdAt)
   }

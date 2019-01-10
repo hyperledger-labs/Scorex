@@ -16,8 +16,8 @@ import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Blake2b256
-import scorex.crypto.signatures.{Curve25519, PublicKey, Signature}
-import scorex.util.ModifierId
+import scorex.crypto.signatures.Signature
+import scorex.util.Extensions._
 
 import scala.util.Try
 
@@ -157,42 +157,42 @@ object SimpleBoxTransaction extends ScorexEncoding {
 object SimpleBoxTransactionSerializer extends ScorexSerializer[SimpleBoxTransaction] {
 
   override def serialize(m: SimpleBoxTransaction, w: Writer): Unit = {
-    w.putLong(m.fee)
-    w.putLong(m.timestamp)
-    w.putInt(m.signatures.length)
-    w.putInt(m.from.length)
-    w.putInt(m.to.length)
+    w.putULong(m.fee)
+    w.putULong(m.timestamp)
+    w.putUInt(m.signatures.length)
+    w.putUInt(m.from.length)
+    w.putUInt(m.to.length)
     m.signatures.foreach( s =>
       Signature25519Serializer.serialize(s, w)
     )
     m.from.foreach { f =>
       PublicKey25519PropositionSerializer.serialize(f._1, w)
-      w.putLong(f._2)
+      w.putULong(f._2)
     }
 
     m.to.foreach { t =>
       PublicKey25519PropositionSerializer.serialize(t._1, w)
-      w.putLong(t._2)
+      w.putULong(t._2)
     }
   }
 
   override def parse(r: Reader): SimpleBoxTransaction = {
-    val fee = r.getLong()
-    val timestamp = r.getLong()
-    val sigLength = r.getInt()
-    val fromLength = r.getInt()
-    val toLength = r.getInt()
-    val signatures = (0 until sigLength) map { i =>
+    val fee = r.getULong()
+    val timestamp = r.getULong()
+    val sigLength = r.getUInt()
+    val fromLength = r.getUInt()
+    val toLength = r.getUInt()
+    val signatures = (0 until sigLength.toIntExact) map { i =>
       Signature25519Serializer.parse(r)
     }
-    val from = (0 until fromLength) map { i =>
+    val from = (0 until fromLength.toIntExact) map { i =>
       val pk = PublicKey25519PropositionSerializer.parse(r)
-      val v = r.getLong()
+      val v = r.getULong()
       (pk, Nonce @@ v)
     }
-    val to = (0 until toLength) map { i =>
+    val to = (0 until toLength.toIntExact) map { i =>
       val pk = PublicKey25519PropositionSerializer.parse(r)
-      val v = r.getLong()
+      val v = r.getULong()
       (pk, Value @@ v)
     }
     SimpleBoxTransaction(from, to, signatures, fee, timestamp)
