@@ -13,8 +13,7 @@ import scorex.core.transaction.box.proposition.{PublicKey25519Proposition, Publi
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.hash.Blake2b256
 import scorex.util.{ModifierId, bytesToId, idToBytes}
-
-import scala.util.Try
+import scorex.util.Extensions._
 
 class PowBlockHeader(
                       val parentId: BlockId,
@@ -30,7 +29,7 @@ class PowBlockHeader(
 
   def correctWork(difficulty: BigInt, s: HybridMiningSettings): Boolean = correctWorkDone(id, difficulty, s)
 
-  lazy val id: ModifierId = bytesToId(Blake2b256(PowBlockHeaderSerializer.toByteString(this).toArray))
+  lazy val id: ModifierId = bytesToId(Blake2b256(PowBlockHeaderSerializer.toBytes(this)))
 
   override lazy val toString: String = s"PowBlockHeader(id: ${encoder.encodeId(id)})" +
     s"(parentId: ${encoder.encodeId(parentId)}, posParentId: ${encoder.encodeId(prevPosId)}, time: $timestamp, " +
@@ -42,9 +41,9 @@ object PowBlockHeaderSerializer extends ScorexSerializer[PowBlockHeader] {
   override def serialize(h: PowBlockHeader, w: Writer): Unit = {
      w.putBytes(idToBytes(h.parentId))
      w.putBytes(idToBytes(h.prevPosId))
-     w.putLong(h.timestamp)
-     w.putLong(h.nonce)
-     w.putInt(h.brothersCount)
+     w.putULong(h.timestamp)
+     w.putULong(h.nonce)
+     w.putUInt(h.brothersCount)
      w.putBytes(h.brothersHash)
      w.putBytes(h.generatorProposition.pubKeyBytes)
   }
@@ -52,9 +51,9 @@ object PowBlockHeaderSerializer extends ScorexSerializer[PowBlockHeader] {
   override def parse(r: Reader): PowBlockHeader = {
     val parentId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
     val prevPosId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
-    val timestamp = r.getLong()
-    val nonce = r.getLong()
-    val brothersCount = r.getInt()
+    val timestamp = r.getULong()
+    val nonce = r.getULong()
+    val brothersCount = r.getUInt().toIntExact
     val brothersHash = r.getBytes(Blake2b256.DigestSize)
     val prop = PublicKey25519PropositionSerializer.parse(r)
 
@@ -84,7 +83,6 @@ case class PowBlock(override val parentId: BlockId,
   override lazy val version: Version = 0: Byte
 
   override lazy val modifierTypeId: ModifierTypeId = PowBlock.ModifierTypeId
-
 
   lazy val header = new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, generatorProposition)
 

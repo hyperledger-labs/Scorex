@@ -15,6 +15,7 @@ import scorex.core.{ModifierTypeId, TransactionsCarryingPersistentNodeViewModifi
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, Signature}
 import scorex.util.{ModifierId, ScorexLogging, bytesToId}
+import scorex.util.Extensions._
 
 case class PosBlock(override val parentId: BlockId, //PoW block
                     override val timestamp: Block.Timestamp,
@@ -39,32 +40,28 @@ object PosBlockSerializer extends ScorexSerializer[PosBlock] with ScorexEncoding
 
   override def serialize(b: PosBlock, w: Writer): Unit = {
     w.putBytes(idToBytes(b.parentId))
-    w.putLong(b.timestamp)
+    w.putULong(b.timestamp)
     PublicKey25519NoncedBoxSerializer.serialize(b.generatorBox, w)
     Signature25519Serializer.serialize(b.signature, w)
-    w.putInt(b.transactions.length)
+    w.putUInt(b.transactions.length)
     b.transactions.sortBy(t => encoder.encodeId(t.id)).foreach { tx =>
-      val txwriter = w.newWriter()
-      SimpleBoxTransactionSerializer.serialize(tx, txwriter)
-      w.putInt(txwriter.length)
-      w.append(txwriter)
+      SimpleBoxTransactionSerializer.serialize(tx, w)
     }
-    w.putInt(b.attachment.length)
+    w.putUInt(b.attachment.length)
     w.putBytes(b.attachment)
   }
 
   override def parse(r: Reader): PosBlock = {
     require(r.remaining <= PosBlock.MaxBlockSize)
     val parentId = bytesToId(r.getBytes(BlockIdLength))
-    val timestamp = r.getLong()
+    val timestamp = r.getULong()
     val box = PublicKey25519NoncedBoxSerializer.parse(r)
     val signature = Signature25519Serializer.parse(r)
-    val txsLength = r.getInt()
+    val txsLength = r.getUInt().toIntExact
     val txs: Seq[SimpleBoxTransaction] = (0 until txsLength) map { _ =>
-      val l = r.getInt()
       SimpleBoxTransactionSerializer.parse(r)
     }
-    val attachmentLength = r.getInt()
+    val attachmentLength = r.getUInt().toIntExact
     val attachment = r.getBytes(attachmentLength)
     PosBlock(parentId, timestamp, txs, box, attachment, signature)
   }
