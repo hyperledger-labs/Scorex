@@ -73,15 +73,22 @@ class NetworkController(settings: NetworkSettings,
 
   def businessLogic: Receive = {
     //a message coming in from another peer
-    case Message(spec, content, Some(remote)) =>
+    case Message(spec, Left(msgBytes), Some(remote)) =>
       val msgId = spec.messageCode
 
-      messageHandlers.get(msgId) match {
-        case Some(handler) =>
-          handler ! DataFromPeer(spec, content, remote)
-        case None =>
-          log.error(s"No handlers found for message $remote: " + msgId)
-          //todo: ban a peer
+      spec.parseBytesTry(msgBytes) match {
+        case Success(content) =>
+          messageHandlers.get(msgId) match {
+            case Some(handler) =>
+              handler ! DataFromPeer(spec, content, remote)
+
+            case None =>
+              log.error(s"No handlers found for message $remote: " + msgId)
+            //todo: ban a peer
+          }
+        case Failure(e) =>
+          log.error(s"Failed to deserialize data from $remote: ", e)
+        //todo: ban peer
       }
 
     case SendToNetwork(message, sendingStrategy) =>
