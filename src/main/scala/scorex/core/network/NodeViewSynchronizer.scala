@@ -89,7 +89,7 @@ MR <: MempoolReader[TX] : ClassTag]
   private def readersOpt: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
-    val msg = Message(invSpec, m.modifierTypeId -> Seq(m.id), None)
+    val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
@@ -152,7 +152,7 @@ MR <: MempoolReader[TX] : ClassTag]
   protected def sendSync(syncTracker: SyncTracker, history: HR): Unit = {
     val peers = statusTracker.peersToSyncWith()
     if (peers.nonEmpty) {
-      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, history.syncInfo, None), SendToPeers(peers))
+      networkControllerRef ! SendToNetwork(Message(syncInfoSpec, Right(history.syncInfo), None), SendToPeers(peers))
     }
   }
 
@@ -188,7 +188,7 @@ MR <: MempoolReader[TX] : ClassTag]
     case Some(ext) =>
       ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
         case (mid, mods) =>
-          networkControllerRef ! SendToNetwork(Message(invSpec, mid -> mods, None), SendToPeer(remote))
+          networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
       }
   }
 
@@ -230,7 +230,7 @@ MR <: MempoolReader[TX] : ClassTag]
           }
 
           if (newModifierIds.nonEmpty) {
-            val msg = Message(requestModifierSpec, modifierTypeId -> newModifierIds, None)
+            val msg = Message(requestModifierSpec, Right(modifierTypeId -> newModifierIds), None)
             peer.handlerRef ! msg
             deliveryTracker.onRequest(Some(peer), modifierTypeId, newModifierIds)
           }
@@ -265,17 +265,19 @@ MR <: MempoolReader[TX] : ClassTag]
     * parse modifiers and send valid modifiers to NodeViewHolder
     */
   protected def modifiersFromRemote: Receive = {
-    case DataFromPeer(spec, data: ModifiersData, remote)
+    case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
       if spec.messageCode == ModifiersSpec.MessageCode =>
 
-      log.info(s"Got ${data.modifiers.size} modifiers of type ${data.typeId} from remote connected peer: $remote")
-      log.trace(s"Received modifier ids ${data.modifiers.keySet.map(encoder.encodeId).mkString(",")}")
+      val typeId = data._1
+      val modifiers = data._2
+      log.info(s"Got ${modifiers.size} modifiers of type $typeId from remote connected peer: $remote")
+      log.trace(s"Received modifier ids ${modifiers.keySet.map(encoder.encodeId).mkString(",")}")
 
       // filter out non-requested modifiers
-      val requestedModifiers = processSpam(remote, data.typeId, data.modifiers)
+      val requestedModifiers = processSpam(remote, typeId, modifiers)
 
-      modifierSerializers.get(data.typeId) match {
-        case Some(serializer: ScorexSerializer[TX]@unchecked) if data.typeId == Transaction.ModifierTypeId =>
+      modifierSerializers.get(typeId) match {
+        case Some(serializer: ScorexSerializer[TX]@unchecked) if typeId == Transaction.ModifierTypeId =>
           // parse all transactions and send them to node view holder
           val parsed: Iterable[TX] = parseModifiers(requestedModifiers, serializer, remote)
           viewHolderRef ! TransactionsFromRemote(parsed)
@@ -287,7 +289,7 @@ MR <: MempoolReader[TX] : ClassTag]
           if (valid.nonEmpty) viewHolderRef ! ModifiersFromRemote[PMOD](valid)
 
         case _ =>
-          log.error(s"Undefined serializer for modifier of type ${data.typeId}")
+          log.error(s"Undefined serializer for modifier of type ${typeId}")
       }
   }
 
@@ -325,23 +327,16 @@ MR <: MempoolReader[TX] : ClassTag]
   private def parseModifiers[M <: NodeViewModifier](modifiers: Map[ModifierId, Array[Byte]],
                                                     serializer: ScorexSerializer[M],
                                                     remote: ConnectedPeer): Iterable[M] = {
-    try {
-      modifiers.flatMap { case (id, bytes) =>
-        val mod = serializer.parseBytes(bytes)
-        if (id == mod.id) {
+    modifiers.flatMap { case (id, bytes) =>
+      serializer.parseBytesTry(bytes) match {
+        case Success(mod) if id == mod.id =>
           Some(mod)
-        } else {
+        case _ =>
           // Penalize peer and do nothing - it will be switched to correct state on CheckDelivery
           penalizeMisbehavingPeer(remote)
           log.warn(s"Failed to parse modifier with declared id ${encoder.encodeId(id)} from ${remote.toString}")
           None
-        }
       }
-    } catch {
-      case t:Throwable =>
-        penalizeMisbehavingPeer(remote)
-        log.warn(s"Failed to parse modifier from ${remote.toString}", t)
-        Iterable.empty[M]
     }
   }
 
@@ -425,7 +420,7 @@ MR <: MempoolReader[TX] : ClassTag]
             size += NodeViewModifier.ModifierIdSize + 4 + modBytes.length
             size < networkSettings.maxPacketSize
           }
-          peer.handlerRef ! Message(modifiersSpec, ModifiersData(modType, batch.toMap), None)
+          peer.handlerRef ! Message(modifiersSpec, Right(modType -> batch.toMap), None)
           val remaining = mods.drop(batch.length)
           if (remaining.nonEmpty) {
             sendByParts(remaining)
@@ -448,7 +443,7 @@ MR <: MempoolReader[TX] : ClassTag]
     */
   protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
     deliveryTracker.onRequest(None, modifierTypeId, modifierIds)
-    val msg = Message(requestModifierSpec, modifierTypeId -> modifierIds, None)
+    val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
     //todo: A peer which is supposedly having the modifier should be here, not a random peer
     networkControllerRef ! SendToNetwork(msg, SendToRandom)
   }

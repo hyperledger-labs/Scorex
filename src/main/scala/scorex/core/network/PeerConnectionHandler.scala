@@ -9,7 +9,7 @@ import akka.util.{ByteString, CompactByteString}
 import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NetworkController.ReceivableMessages.Handshaked
 import scorex.core.network.PeerFeature.Serializers
-import scorex.core.network.message.{Message, MessageSpec, ScorexPacket}
+import scorex.core.network.message.{Message, MessageSerializer, MessageSpec}
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
 import scorex.core.settings.NetworkSettings
@@ -70,6 +70,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
+  private val messageSerializer = new MessageSerializer(scorexContext.messageSpecs)
 
   // there is no recovery for broken connections
   override val supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
@@ -95,13 +96,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   private def handshaking: Receive = {
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
     (self ! HandshakeTimeout))
-
-    val packet = ScorexPacket(
-      handshakeSerializer.messageCode,
-      handshakeSerializer.toByteString(createHandshakeMessage()),
-      None)
-
-    connection ! Tcp.Write(ScorexPacket.serialize(packet))
+    val hb = handshakeSerializer.toBytes(createHandshakeMessage())
+    connection ! Tcp.Write(ByteString(hb))
     log.info(s"Handshake sent to $remote")
 
     receiveAndHandleHandshake { receivedHandshake =>
@@ -119,6 +115,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
       networkControllerRef ! Handshaked(peerInfo)
       handshakeTimeoutCancellableOpt.map(_.cancel())
+      connection ! ResumeReading
       context become workingCycle
     } orElse handshakeTimeout orElse processErrors("Handshaking")
   }
@@ -140,17 +137,16 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   private def receiveAndHandleHandshake(handler: Handshake => Unit): Receive = {
-    receiveAndHandlePacket { packet =>
-      try {
-        val handshake = handshakeSerializer.parseByteString(packet.payload)
-        handler(handshake)
-      } catch {
-        case t: Throwable =>
+    case Received(data) =>
+      handshakeSerializer.parseBytesTry(data.toArray) match {
+        case Success(handshake) =>
+          handler(handshake)
+
+        case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
           //todo: blacklist?
           self ! CloseConnection
       }
-    }
   }
 
   private def processErrors(stateName: String): Receive = {
@@ -184,11 +180,10 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   def workingCycleLocalInterface: Receive = {
-    case message.Message(spec, content, source) =>
+    case msg: message.Message[_] =>
       def sendOutMessage() {
-        log.info("Send message " + spec + " to " + remote)
-        val packet = ScorexPacket(spec.messageCode, spec.toByteString(content), source)
-        connection ! Write(ScorexPacket.serialize(packet))
+        log.info("Send message " + msg.spec + " to " + remote)
+        connection ! Write(messageSerializer.serialize(msg))
       }
 
       //simulating network delays
@@ -206,48 +201,25 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   def workingCycleRemoteInterface: Receive = {
-    receiveAndHandlePacket { packet =>
-      val spec = scorexContext.specsMap
-        .getOrElse(packet.messageCode, throw new Error(s"No message handler found for ${packet.messageCode}"))
-
-      log.info("Received message " + spec + " from " + remote)
-      val message = parseMessage(spec, packet.payload, packet.source)
-      networkControllerRef ! message
-    }
-  }
-
-  private def receiveAndHandlePacket(handler: ScorexPacket => Unit): Receive = {
     case Received(data) =>
 
       chunksBuffer ++= data
 
       @tailrec
       def process():Unit = {
-        ScorexPacket.deserialize(chunksBuffer, selfPeer) match {
-          case Some(packet) =>
-
-            handler(packet)
-
-            chunksBuffer = chunksBuffer.drop(packet.length)
+        messageSerializer.deserialize(chunksBuffer, selfPeer) match {
+          case Success(Some(message)) =>
+            log.info("Received message " + message.spec + " from " + remote)
+            networkControllerRef ! message
+            chunksBuffer = chunksBuffer.drop(message.messageLength)
             process()
-
-          case None =>
+          case Success(None) =>
+          case Failure(e) =>
+            log.info(s"Corrupted data from: " + remote, e)
         }
       }
-
-      try {
-        process()
-      } catch {
-        case e: Throwable =>
-          log.info(s"Corrupted data from: " + remote, e)
-        //todo: ban peer
-      }
+      process()
       connection ! ResumeReading
-  }
-
-
-  private def parseMessage[T](spec: MessageSpec[T], payload: ByteString, source: Option[ConnectedPeer]): Message[T] = {
-    Message[T](spec, spec.parseByteString(payload), source)
   }
 
   private def reportStrangeInput: Receive= {

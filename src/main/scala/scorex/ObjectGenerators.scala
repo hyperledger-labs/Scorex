@@ -77,7 +77,7 @@ trait ObjectGenerators {
   lazy val modifiersGen: Gen[ModifiersData] = for {
     modifierTypeId: ModifierTypeId <- modifierTypeIdGen
     modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
-  } yield ModifiersData(modifierTypeId, modifiers)
+  } yield (modifierTypeId, modifiers)
 
   lazy val appVersionGen: Gen[Version] = for {
     fd <- Gen.choose(0: Byte, Byte.MaxValue)

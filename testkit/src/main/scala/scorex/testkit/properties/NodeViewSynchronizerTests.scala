@@ -14,7 +14,6 @@ import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.Da
 import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network._
-import scorex.core.network.message.BasicMsgDataTypes.ModifiersData
 import scorex.core.network.message._
 import scorex.util.serialization._
 import scorex.core.serialization.ScorexSerializer
@@ -28,7 +27,6 @@ import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.Failure
 
 @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
 trait NodeViewSynchronizerTests[
@@ -171,7 +169,7 @@ MP <: MemoryPool[TX, MP]
       node ! OtherNodeSyncingStatus(peer, Younger, Some(Seq((mod.modifierTypeId, mod.id))))
       ncProbe.fishForMessage(3 seconds) { case m =>
         m match {
-          case SendToNetwork(Message(_, (tid, ids), None), SendToPeer(p))
+          case SendToNetwork(Message(_, Right((tid, ids)), None), SendToPeer(p))
             if p == peer && tid == mod.modifierTypeId && ids == Seq(mod.id) => true
           case _ => false
         }
@@ -227,7 +225,7 @@ MP <: MemoryPool[TX, MP]
 
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
-      node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> modSerializer.toBytes(mod))), peer)
+      node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> modSerializer.toBytes(mod))), peer)
       val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) { case m => m }
       assert(!messages.exists(_.isInstanceOf[ModifiersFromRemote[PM]]))
     }
@@ -241,7 +239,7 @@ MP <: MemoryPool[TX, MP]
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
       node ! DataFromPeer(new InvSpec(3), (mod.modifierTypeId, Seq(mod.id)), peer)
-      node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> modSerializer.toBytes(mod))), peer)
+      node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> modSerializer.toBytes(mod))), peer)
       vhProbe.fishForMessage(3 seconds) {
         case m: ModifiersFromRemote[PM] => m.modifiers.toSeq.contains(mod)
         case _ => false
@@ -256,9 +254,9 @@ MP <: MemoryPool[TX, MP]
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
       node ! DataFromPeer(new InvSpec(3), (mod.modifierTypeId, Seq(mod.id)), peer)
-      node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> modSerializer.toBytes(mod))), peer)
+      node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> modSerializer.toBytes(mod))), peer)
       system.scheduler.scheduleOnce(1 second, node,
-        DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> modSerializer.toBytes(mod))), peer))
+        DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> modSerializer.toBytes(mod))), peer))
       val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
       assert(!messages.contains(Blacklist(peer)))
     }
