@@ -13,7 +13,8 @@ import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 
 object BasicMsgDataTypes {
   type InvData = (ModifierTypeId, Seq[ModifierId])
-  type ModifiersData = (ModifierTypeId, Map[ModifierId, Array[Byte]])
+  case class ModifiersData(typeId: ModifierTypeId,
+                           modifiers: Map[ModifierId, Array[Byte]])
 }
 
 import scorex.core.network.message.BasicMsgDataTypes._
@@ -109,27 +110,26 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
 
   override def serialize(data: ModifiersData, w: Writer): Unit = {
 
-    val (typeId, modifiers) = data
-    require(modifiers.nonEmpty, "empty modifiers list")
+    require(data.modifiers.nonEmpty, "empty modifiers list")
 
-    val (msgCount, msgSize) = modifiers.foldLeft((0, 5)) { case ((c, s), (id, modifier)) =>
+    val (msgCount, msgSize) = data.modifiers.foldLeft((0, 5)) { case ((c, s), (id, modifier)) =>
       val size = s + NodeViewModifier.ModifierIdSize + 4 + modifier.length
       val count = if (size <= maxMessageSize) c + 1 else c
       count -> size
     }
 
     val start = w.length()
-    w.put(typeId)
+    w.put(data.typeId)
     w.putInt(msgCount)
 
-    modifiers.take(msgCount).foreach { case (id, modifier) =>
+    data.modifiers.take(msgCount).foreach { case (id, modifier) =>
       w.putBytes(idToBytes(id))
       w.putInt(modifier.length)
       w.putBytes(modifier)
     }
 
     if (msgSize > maxMessageSize) {
-      log.warn(s"Message with modifiers ${modifiers.keySet} have size $msgSize exceeding limit $maxMessageSize." +
+      log.warn(s"Message with modifiers ${data.modifiers.keySet} have size $msgSize exceeding limit $maxMessageSize." +
         s" Sending ${w.length() - start} bytes instead")
     }
   }
@@ -143,7 +143,7 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
       val obj = r.getBytes(objBytesCnt)
       id -> obj
     }
-    (typeId, seq.toMap)
+    ModifiersData(typeId, seq.toMap)
   }
 }
 

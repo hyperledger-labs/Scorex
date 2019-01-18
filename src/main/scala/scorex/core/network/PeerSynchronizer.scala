@@ -29,7 +29,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 
     networkControllerRef ! RegisterMessageSpecs(Seq(GetPeersSpec, PeersSpec), self)
 
-    val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
+    val msg = Message[Unit](GetPeersSpec, Unit, None)
     val stn = SendToNetwork(msg, SendToRandom)
     context.system.scheduler.schedule(2.seconds, 10.seconds)(networkControllerRef ! stn)
   }
@@ -56,7 +56,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
             peers.flatMap(_.declaredAddress)
           }
 
-          val msg = Message(PeersSpec, Right(peerAddrs), None)
+          val msg = Message(PeersSpec, peerAddrs, None)
           networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(peer)))
         }
 
