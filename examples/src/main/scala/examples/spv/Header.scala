@@ -1,17 +1,15 @@
 package examples.spv
 
-import com.google.common.primitives.{Bytes, Ints, Longs}
 import examples.spv.Constants._
 import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
 import scorex.core.block.Block
 import scorex.core.block.Block._
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
+import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
 import scorex.util.serialization.{Reader, VLQByteBufferWriter, Writer}
 import scorex.util.{ByteArrayBuilder, ModifierId, bytesToId, idToBytes}
-import scorex.util.Extensions._
 
 import scala.annotation.tailrec
 
@@ -29,8 +27,6 @@ case class Header(parentId: BlockId,
     writer.putBytes(idToBytes(parentId))
     writer.putBytes(transactionsRoot)
     writer.putBytes(stateRoot)
-//    writer.putBytes(Longs.toByteArray(timestamp))
-//    writer.putBytes(Ints.toByteArray(nonce))
     writer.putULong(timestamp)
     writer.putInt(nonce)
     val bytes = writer.toBytes
