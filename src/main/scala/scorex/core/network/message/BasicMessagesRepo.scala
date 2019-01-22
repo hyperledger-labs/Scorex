@@ -162,8 +162,6 @@ object GetPeersSpec extends MessageSpec[Unit] {
 
 object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
   private val AddressLength = 4
-  private val PortLength = 4
-  private val DataLength = 4
 
   override val messageCode: Message.MessageCode = 2: Byte
 

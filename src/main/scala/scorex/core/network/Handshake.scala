@@ -20,8 +20,7 @@ case class Handshake(applicationName: String,
 
 
 class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
-                             maxHandshakeSize: Int) extends ScorexSerializer[Handshake] {
-
+                          maxHandshakeSize: Int) extends ScorexSerializer[Handshake] {
 
   override def serialize(obj: Handshake, w: Writer): Unit = {
 

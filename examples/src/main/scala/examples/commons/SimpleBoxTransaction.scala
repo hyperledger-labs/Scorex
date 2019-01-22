@@ -5,7 +5,7 @@ import examples.hybrid.wallet.HBoxWallet
 import io.circe.Encoder
 import io.circe.syntax._
 import io.iohk.iodb.ByteArrayWrapper
-import scorex.util.serialization._
+import scorex.util.serialization.{VLQByteBufferWriter, _}
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.BoxTransaction
 import scorex.core.transaction.account.PublicKeyNoncedBox
@@ -17,6 +17,7 @@ import scorex.core.utils.ScorexEncoding
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.Signature
+import scorex.util.ByteArrayBuilder
 import scorex.util.Extensions._
 
 import scala.util.Try
@@ -34,16 +35,12 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
 
 
   override val messageToSign: Array[Byte] = {
-    val newBoxesBytes = if (newBoxes.nonEmpty) {
-      scorex.core.utils.concatBytes(newBoxes.map(PublicKey25519NoncedBoxSerializer.toBytes))
-    } else {
-      Array[Byte]()
-    }
-    Bytes.concat(
-      newBoxesBytes,
-      scorex.core.utils.concatFixLengthBytes(unlockers.map(_.closedBoxId)),
-      Longs.toByteArray(timestamp),
-      Longs.toByteArray(fee))
+    val writer = new VLQByteBufferWriter(new ByteArrayBuilder())
+    newBoxes.foreach(box => PublicKey25519NoncedBoxSerializer.serialize(box, writer))
+    unlockers.foreach(unlocker => writer.putBytes(unlocker.closedBoxId))
+    writer.putULong(timestamp)
+    writer.putULong(fee)
+    writer.toBytes
   }
 
   lazy val boxIdsToOpen: IndexedSeq[ADKey] = from.map { case (prop, nonce) =>
@@ -58,12 +55,14 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
       }
   }
 
-  lazy val hashNoNonces = Blake2b256(
-    Bytes.concat(scorex.core.utils.concatFixLengthBytes(to.map(_._1.pubKeyBytes)),
-      scorex.core.utils.concatFixLengthBytes(unlockers.map(_.closedBoxId)),
-      Longs.toByteArray(timestamp),
-      Longs.toByteArray(fee))
-  )
+  lazy val hashNoNonces = Blake2b256 {
+    val writer = new VLQByteBufferWriter(new ByteArrayBuilder())
+    to.foreach { case (prop, _) => writer.putBytes(prop.pubKeyBytes) }
+    unlockers.foreach(unlocker => writer.putBytes(unlocker.closedBoxId))
+    writer.putULong(timestamp)
+    writer.putULong(fee)
+    writer.toBytes
+  }
 
   override lazy val newBoxes: Traversable[PublicKey25519NoncedBox] = to.zipWithIndex.map { case ((prop, value), idx) =>
     val nonce = SimpleBoxTransaction.nonceFromDigest(Blake2b256(prop.pubKeyBytes ++ hashNoNonces ++ Ints.toByteArray(idx)))

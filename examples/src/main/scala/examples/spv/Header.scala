@@ -11,6 +11,7 @@ import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
 import scorex.util.serialization.{Reader, VLQByteBufferWriter, Writer}
 import scorex.util.{ByteArrayBuilder, ModifierId, bytesToId, idToBytes}
+import scorex.util.Extensions._
 
 import scala.annotation.tailrec
 
@@ -24,7 +25,15 @@ case class Header(parentId: BlockId,
   override val modifierTypeId: ModifierTypeId = ModifierTypeId @@ 100.toByte
 
   override lazy val id: ModifierId = {
-    val bytes = Bytes.concat(idToBytes(parentId), transactionsRoot, stateRoot, Longs.toByteArray(timestamp), Ints.toByteArray(nonce))
+    val writer = new VLQByteBufferWriter(new ByteArrayBuilder())
+    writer.putBytes(idToBytes(parentId))
+    writer.putBytes(transactionsRoot)
+    writer.putBytes(stateRoot)
+//    writer.putBytes(Longs.toByteArray(timestamp))
+//    writer.putBytes(Ints.toByteArray(nonce))
+    writer.putULong(timestamp)
+    writer.putInt(nonce)
+    val bytes = writer.toBytes
     bytesToId(hashfn(bytes))
   }
 
