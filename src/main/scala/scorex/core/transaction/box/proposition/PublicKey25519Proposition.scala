@@ -25,6 +25,10 @@ case class PublicKey25519Proposition(pubKeyBytes: PublicKey)
 
   def verify(message: Array[Byte], signature: Signature): Boolean = Curve25519.verify(signature, message, pubKeyBytes)
 
+  override type M = PublicKey25519Proposition
+
+  override def serializer: ScorexSerializer[PublicKey25519Proposition] = PublicKey25519PropositionSerializer
+
   override def equals(obj: scala.Any): Boolean = obj match {
     case p: PublicKey25519Proposition => java.util.Arrays.equals(p.pubKeyBytes, pubKeyBytes)
     case _ => false

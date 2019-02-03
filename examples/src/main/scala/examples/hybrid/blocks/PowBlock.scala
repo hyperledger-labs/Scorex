@@ -80,11 +80,17 @@ case class PowBlock(override val parentId: BlockId,
   extends PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, generatorProposition)
     with HybridBlock {
 
+  override type M = PowBlock
+
+  override lazy val serializer = PowBlockSerializer
+
   override lazy val version: Version = 0: Byte
 
   override lazy val modifierTypeId: ModifierTypeId = PowBlock.ModifierTypeId
 
   lazy val header = new PowBlockHeader(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, generatorProposition)
+
+  lazy val brotherBytes = serializer.brotherBytes(brothers)
 
   override lazy val toString: String = s"PoWBlock(${this.asJson.noSpaces})"
 

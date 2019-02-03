@@ -16,14 +16,18 @@ case class BlockHeader(override val parentId: ModifierId,
                        ticket: Ticket,
                        powNonce: Long
                       ) extends TModifier {
+  override type M = BlockHeader
+
   override val modifierTypeId: ModifierTypeId = TModifier.Header
 
-  override lazy val id: ModifierId = bytesToId(Constants.hashfn.hash(BlockHeaderSerializer.toBytes(this)))
+  override lazy val id: ModifierId = bytesToId(Constants.hashfn.hash(bytes))
 
   def correctWorkDone(difficulty: BigInt): Boolean = {
     val target = Constants.MaxTarget / difficulty
     BigInt(1, idToBytes(id)) < target
   }
+
+  override lazy val serializer = BlockHeaderSerializer
 }
 
 object BlockHeader extends ScorexEncoding {

@@ -16,7 +16,7 @@ import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.util.serialization._
-import scorex.core.serialization.ScorexSerializer
+import scorex.core.serialization.{BytesSerializable, ScorexSerializer}
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
@@ -129,6 +129,10 @@ MP <: MemoryPool[TX, MP]
         def answer: Boolean = true
 
         def startingPoints: History.ModifierIds = Seq((mod.modifierTypeId, mod.id))
+
+        type M = BytesSerializable
+
+        def serializer: ScorexSerializer[M] = throw new Exception
       }
 
       node ! DataFromPeer(dummySyncInfoMessageSpec, dummySyncInfo, peer)

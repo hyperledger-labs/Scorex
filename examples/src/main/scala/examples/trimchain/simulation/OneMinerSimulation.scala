@@ -6,7 +6,7 @@ import java.nio.file.{Files, Paths}
 import com.google.common.primitives.{Ints, Longs}
 import examples.commons.{Nonce, PublicKey25519NoncedBox, SimpleBoxTransaction, Value}
 import examples.trimchain.core.{Algos, Constants, TicketSerializer}
-import examples.trimchain.modifiers.{BlockHeader, BlockHeaderSerializer, TBlock, TBlockSerializer}
+import examples.trimchain.modifiers.{BlockHeader, TBlock}
 import io.iohk.iodb.ByteArrayWrapper
 import io.iohk.iodb.Store.VersionID
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
@@ -101,8 +101,8 @@ object OneMinerSimulation extends App with Simulators {
     val height = currentHeight + 1
     headersChain += height -> block.header
 
-    val blockBytes = TBlockSerializer.toBytes(block)
-    val headerBytes = BlockHeaderSerializer.toBytes(block.header)
+    val blockBytes = block.bytes
+    val headerBytes = block.header.bytes
 
     val wvalid = Algos.validatePow(block.header, IndexedSeq(miningUtxo.rootHash), Constants.Difficulty)
     require(wvalid)

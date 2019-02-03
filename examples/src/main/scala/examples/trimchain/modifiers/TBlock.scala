@@ -24,10 +24,13 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
   override val modifierTypeId: ModifierTypeId = TModifier.Block
 
   override def id: ModifierId = header.id
+
+  override type M = TBlock
+
+  override def serializer: ScorexSerializer[TBlock] = TBlockSerializer
 }
 
 object TBlockSerializer extends ScorexSerializer[TBlock] {
-
 
   override def serialize(obj: TBlock, w: Writer): Unit = {
     w.putLong(obj.timestamp)

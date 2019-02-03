@@ -129,9 +129,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
     log.debug(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encodeVersion(newVersion)}")
 
     val toRemove = boxIdsToRemove.map(ByteArrayWrapper.apply)
-    val toAdd = boxesToAdd.map { b =>
-      ByteArrayWrapper(b.id) -> ByteArrayWrapper(PublicKey25519NoncedBoxSerializer.toBytes(b))
-    }
+    val toAdd = boxesToAdd.map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
     store.update(versionToBAW(newVersion), toRemove, toAdd)
 

@@ -74,9 +74,7 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
                             newVersion: VersionTag): Try[HBoxStoredState] = Try {
     val boxIdsToRemove = changes.toRemove.map(_.boxId).map(ByteArrayWrapper.apply)
       .ensuring(_.forall(i => closedBox(i.data).isDefined) || store.lastVersionID.isEmpty)
-
-    val boxesToAdd = changes.toAppend.map(_.box)
-      .map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(PublicKey25519NoncedBoxSerializer.toBytes(b)))
+    val boxesToAdd = changes.toAppend.map(_.box).map(b => ByteArrayWrapper(b.id) -> ByteArrayWrapper(b.bytes))
 
     log.trace(s"Update HBoxStoredState from version $lastVersionString to version ${encoder.encodeVersion(newVersion)}. " +
       s"Removing boxes with ids ${boxIdsToRemove.map(b => encoder.encode(b.data))}, " +

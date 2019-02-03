@@ -116,7 +116,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
     createdAt <- positiveLongGen
     txId <- modifierIdGen
     box: PublicKey25519NoncedBox <- noncedBoxGen
-  } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)
+  } yield WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, createdAt)(PublicKey25519NoncedBoxSerializer)
 
   //Generators
   val memPoolElementGen: Gen[(ModifierId, SimpleBoxTransaction)] = for {

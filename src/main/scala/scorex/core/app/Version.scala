@@ -1,7 +1,7 @@
 package scorex.core.app
 
 import scorex.util.serialization._
-import scorex.core.serialization.ScorexSerializer
+import scorex.core.serialization.{ScorexSerializer, BytesSerializable}
 
 object Version {
   def apply(v: String): Version = {
@@ -9,7 +9,11 @@ object Version {
     Version(splitted(0).toByte, splitted(1).toByte, splitted(2).toByte)
   }
 }
-case class Version(firstDigit: Byte, secondDigit: Byte, thirdDigit: Byte)
+case class Version(firstDigit: Byte, secondDigit: Byte, thirdDigit: Byte) extends BytesSerializable {
+  override type M = Version
+
+  override def serializer: ScorexSerializer[Version] = ApplicationVersionSerializer
+}
 
 object ApplicationVersionSerializer extends ScorexSerializer[Version] {
   val SerializedVersionLength: Int = 3

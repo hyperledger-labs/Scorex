@@ -24,6 +24,11 @@ case class HybridSyncInfo(answer: Boolean,
 
   override def startingPoints: Seq[(ModifierTypeId, ModifierId)] =
     Seq(lastPowBlockIds.map(b => PowBlock.ModifierTypeId -> b) ++ Seq(PosBlock.ModifierTypeId -> lastPosBlockId)).flatten
+
+
+  override type M = HybridSyncInfo
+
+  override def serializer: ScorexSerializer[HybridSyncInfo] = HybridSyncInfoSerializer
 }
 
 object HybridSyncInfo {
@@ -33,7 +38,6 @@ object HybridSyncInfo {
 object HybridSyncInfoSerializer extends ScorexSerializer[HybridSyncInfo] {
 
   import HybridSyncInfo.MaxLastPowBlocks
-
 
   override def serialize(obj: HybridSyncInfo, w: Writer): Unit = {
     w.put(if (obj.answer) 1 else 0)

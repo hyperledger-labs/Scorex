@@ -4,7 +4,6 @@ import examples.commons.PublicKey25519NoncedBox
 import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.core.transaction.box.proposition.PublicKey25519PropositionSerializer
 import scorex.core.transaction.state.PrivateKey25519Companion
 
 @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
@@ -22,7 +21,7 @@ class PrivateKey25519Suite extends PropSpec
       pair1._1.privKeyBytes shouldBe pair2._1.privKeyBytes
       pair1._1.publicKeyBytes shouldBe pair2._1.publicKeyBytes
       pair1._1.publicKeyBytes shouldBe pair2._2.pubKeyBytes
-      pair1._1.publicKeyBytes shouldBe PublicKey25519PropositionSerializer.toBytes(pair2._2)
+      pair1._1.publicKeyBytes shouldBe pair2._2.bytes
     }
   }
 

@@ -1,8 +1,8 @@
 package examples.hybrid.mining
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction, SimpleBoxTransactionMemPool}
-import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock, PowBlockSerializer}
+import examples.commons.{PublicKey25519NoncedBox, SimpleBoxTransaction, SimpleBoxTransactionMemPool}
+import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import examples.hybrid.wallet.HBoxWallet
@@ -75,7 +75,7 @@ object PosForger extends ScorexLogging {
   import ReceivableMessages.PosForgingInfo
 
   def hit(pwb: PowBlock)(box: PublicKey25519NoncedBox): BigInt = {
-    val h = Blake2b256(PowBlockSerializer.toBytes(pwb) ++ PublicKey25519NoncedBoxSerializer.toBytes(box))
+    val h = Blake2b256(pwb.bytes ++ box.bytes)
     BigInt(1, h)
   }
 

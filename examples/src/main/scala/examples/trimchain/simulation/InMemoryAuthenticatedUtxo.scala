@@ -75,7 +75,7 @@ case class InMemoryAuthenticatedUtxo(size: Int, proverOpt: Option[ProverType], o
 
     changes.operations foreach {
       case Insertion(b) =>
-        prover.performOneOperation(Insert(ADKey @@ b.id, ADValue @@ PublicKey25519NoncedBoxSerializer.toBytes(b)))
+        prover.performOneOperation(Insert(ADKey @@ b.id, ADValue @@ b.bytes))
       case Removal(bid) =>
         prover.performOneOperation(Remove(ADKey @@ bid))
     }

@@ -26,6 +26,10 @@ case class PosBlock(override val parentId: BlockId, //PoW block
                    ) extends HybridBlock
   with TransactionsCarryingPersistentNodeViewModifier[SimpleBoxTransaction] with ScorexLogging {
 
+  override type M = PosBlock
+
+  override lazy val serializer = PosBlockSerializer
+
   override lazy val version: Version = 0: Byte
 
   override lazy val modifierTypeId: ModifierTypeId = PosBlock.ModifierTypeId

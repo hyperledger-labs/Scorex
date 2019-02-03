@@ -33,6 +33,7 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
                                 override val timestamp: Long) extends
   BoxTransaction[PublicKey25519Proposition, PublicKey25519NoncedBox] {
 
+  override type M = SimpleBoxTransaction
 
   override val messageToSign: Array[Byte] = {
     val writer = new VLQByteBufferWriter(new ByteArrayBuilder())
@@ -68,6 +69,8 @@ case class SimpleBoxTransaction(from: IndexedSeq[(PublicKey25519Proposition, Non
     val nonce = SimpleBoxTransaction.nonceFromDigest(Blake2b256(prop.pubKeyBytes ++ hashNoNonces ++ Ints.toByteArray(idx)))
     PublicKey25519NoncedBox(prop, nonce, value)
   }
+
+  override lazy val serializer = SimpleBoxTransactionSerializer
 
   override def toString: String = s"SimpleBoxTransaction(${this.asJson.noSpaces})"
 

@@ -1,6 +1,6 @@
 package scorex.core.network
 
-import scorex.core.serialization.ScorexSerializer
+import scorex.core.serialization.{BytesSerializable, ScorexSerializer}
 
 /**
   * An abstract trait to describe peer capabilities.
@@ -10,10 +10,9 @@ import scorex.core.serialization.ScorexSerializer
   * However, handshake size limit is also to be considered
   * (for all the features to be sent during the handshake).
   */
-trait PeerFeature {
-  type M >: this.type <: PeerFeature
+trait PeerFeature extends BytesSerializable {
+  override type M >: this.type <: PeerFeature
   val featureId: PeerFeature.Id
-  def serializer: ScorexSerializer[M]
 }
 
 object PeerFeature {

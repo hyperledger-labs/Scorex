@@ -1,13 +1,13 @@
 package scorex.core.transaction.state
 
 import scorex.util.serialization._
-import scorex.core.serialization.ScorexSerializer
+import scorex.core.serialization.{BytesSerializable, ScorexSerializer}
 import scorex.core.transaction.box._
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, PublicKey25519Proposition}
 import scorex.core.transaction.proof.{ProofOfKnowledge, Signature25519}
 import scorex.crypto.signatures.{Curve25519, PrivateKey, PublicKey}
 
-trait Secret {
+trait Secret extends BytesSerializable {
   self =>
   type S >: self.type <: Secret
   type PK <: ProofOfKnowledgeProposition[S]
@@ -43,6 +43,9 @@ case class PrivateKey25519(privKeyBytes: PrivateKey, publicKeyBytes: PublicKey) 
   override lazy val companion: SecretCompanion[PrivateKey25519] = PrivateKey25519Companion
 
   override lazy val publicImage: PublicKey25519Proposition = PublicKey25519Proposition(publicKeyBytes)
+  override type M = PrivateKey25519
+
+  override def serializer: ScorexSerializer[PrivateKey25519] = PrivateKey25519Serializer
 }
 
 object PrivateKey25519Serializer extends ScorexSerializer[PrivateKey25519] {

@@ -82,8 +82,8 @@ case class HBoxWallet(seed: Array[Byte], store: LSMStore)
       val boxTransaction = modifier.transactions.find(t => t.newBoxes.exists(tb => java.util.Arrays.equals(tb.id, box.id)))
       val txId = boxTransaction.map(_.id).getOrElse(bytesToId(Array.fill(32)(0: Byte)))
       val ts = boxTransaction.map(_.timestamp).getOrElse(modifier.timestamp)
-      val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, ts)
-      ByteArrayWrapper(box.id) -> ByteArrayWrapper(walletBoxSerializer.toBytes(wb))
+      val wb = WalletBox[PublicKey25519Proposition, PublicKey25519NoncedBox](box, txId, ts)(PublicKey25519NoncedBoxSerializer)
+      ByteArrayWrapper(box.id) -> ByteArrayWrapper(wb.bytes)
     }
 
     val boxIdsToRemove = changes.toRemove.view.map(_.boxId).map(ByteArrayWrapper.apply)

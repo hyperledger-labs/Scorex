@@ -1,8 +1,7 @@
 package scorex.core.transaction.wallet
 
-
 import scorex.util.serialization._
-import scorex.core.serialization.ScorexSerializer
+import scorex.core.serialization.{BytesSerializable, ScorexSerializer}
 import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
@@ -18,7 +17,12 @@ import scorex.util.{ModifierId, bytesToId, idToBytes}
   *
   */
 case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: ModifierId, createdAt: Long)
-  extends ScorexEncoding {
+                                                   (subclassDeser: ScorexSerializer[B]) extends BytesSerializable
+  with ScorexEncoding {
+
+  override type M = WalletBox[P, B]
+
+  override def serializer: ScorexSerializer[WalletBox[P, B]] = new WalletBoxSerializer(subclassDeser)
 
   override def toString: String = s"WalletBox($box, ${encoder.encodeId(transactionId)}, $createdAt)"
 }
@@ -35,7 +39,7 @@ class WalletBoxSerializer[P <: Proposition, B <: Box[P]](subclassDeser: ScorexSe
     val txId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
     val createdAt = r.getLong()
     val box = subclassDeser.parse(r)
-    WalletBox[P, B](box, txId, createdAt)
+    WalletBox[P, B](box, txId, createdAt)(subclassDeser)
   }
 }
 

@@ -22,20 +22,15 @@ case class Header(parentId: BlockId,
 
   override val modifierTypeId: ModifierTypeId = ModifierTypeId @@ 100.toByte
 
-  override lazy val id: ModifierId = {
-    val writer = new VLQByteBufferWriter(new ByteArrayBuilder())
-    writer.putBytes(idToBytes(parentId))
-    writer.putBytes(transactionsRoot)
-    writer.putBytes(stateRoot)
-    writer.putULong(timestamp)
-    writer.putInt(nonce)
-    val bytes = writer.toBytes
-    bytesToId(hashfn(bytes))
-  }
+  override lazy val id: ModifierId = bytesToId(hashfn(bytes))
 
   lazy val realDifficulty: BigInt = SpvAlgos.blockIdDifficulty(id)
 
   override def toString: String = s"Header(${this.asJson.noSpaces})"
+
+  override type M = Header
+
+  override def serializer: ScorexSerializer[Header] = HeaderSerializer
 }
 
 object Header extends ScorexEncoding {
