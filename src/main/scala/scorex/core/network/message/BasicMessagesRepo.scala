@@ -1,15 +1,14 @@
 package scorex.core.network.message
 
-
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.util.ByteString
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
 import scorex.util.serialization._
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
+import scorex.util.Extensions._
 
 object BasicMsgDataTypes {
   type InvData = (ModifierTypeId, Seq[ModifierId])
@@ -50,7 +49,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
     require(elems.nonEmpty, "empty inv list")
     require(elems.lengthCompare(maxInvObjects) <= 0, s"more invs than $maxInvObjects in a message")
     w.put(typeId)
-    w.putInt(elems.size)
+    w.putUInt(elems.size)
     elems.foreach { id =>
       val bytes = idToBytes(id)
       assert(bytes.length == NodeViewModifier.ModifierIdSize)
@@ -60,7 +59,7 @@ class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
 
   override def parse(r: Reader): InvData = {
     val typeId = ModifierTypeId @@ r.getByte()
-    val count = r.getInt()
+    val count = r.getUInt().toIntExact
     require(count > 0, "empty inv list")
     require(count <= maxInvObjects, s"$count elements in a message while limit is $maxInvObjects")
     val elems = (0 until count).map { c =>
@@ -120,11 +119,11 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
 
     val start = w.length()
     w.put(typeId)
-    w.putInt(msgCount)
+    w.putUInt(msgCount)
 
     modifiers.take(msgCount).foreach { case (id, modifier) =>
       w.putBytes(idToBytes(id))
-      w.putInt(modifier.length)
+      w.putUInt(modifier.length)
       w.putBytes(modifier)
     }
 
@@ -136,10 +135,10 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
 
   override def parse(r: Reader): ModifiersData = {
     val typeId = ModifierTypeId @@ r.getByte()
-    val count = r.getInt()
+    val count = r.getUInt().toIntExact
     val seq = (0 until count).map { _ =>
       val id = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
-      val objBytesCnt = r.getInt()
+      val objBytesCnt = r.getUInt().toIntExact
       val obj = r.getBytes(objBytesCnt)
       id -> obj
     }
@@ -168,18 +167,18 @@ object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
   override val messageName: String = "Peers message"
 
   override def serialize(peers: Seq[InetSocketAddress], w: Writer): Unit = {
-    w.putInt(peers.size)
+    w.putUInt(peers.size)
     peers.foreach { peer =>
       w.putBytes(peer.getAddress.getAddress)
-      w.putInt(peer.getPort)
+      w.putUInt(peer.getPort)
     }
   }
 
   override def parse(r: Reader): Seq[InetSocketAddress] = {
-    val length = r.getInt()
+    val length = r.getUInt().toIntExact
     (0 until length).map { _ =>
       val address = InetAddress.getByAddress(r.getBytes(AddressLength))
-      val port = r.getInt()
+      val port = r.getUInt().toIntExact
       new InetSocketAddress(address, port)
     }
   }

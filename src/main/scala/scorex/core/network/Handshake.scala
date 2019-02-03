@@ -31,9 +31,9 @@ class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
 
     w.putOption(obj.declaredAddress) { (writer, isa) =>
       val addr = isa.getAddress.getAddress
-      writer.putInt(addr.size + 4)
+      writer.put((addr.size + 4).toByteExact)
       writer.putBytes(addr)
-      writer.putInt(isa.getPort)
+      writer.putUInt(isa.getPort)
     }
 
     w.put(obj.features.size.toByteExact)
@@ -41,7 +41,7 @@ class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
       w.put(f.featureId)
       val fwriter = w.newWriter()
       f.serializer.serialize(f, fwriter)
-      w.putShort(fwriter.length.toShortExact)
+      w.putUShort(fwriter.length.toShortExact)
       w.append(fwriter)
     }
     w.putLong(obj.time)
@@ -59,16 +59,16 @@ class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
     val nodeName = r.getShortString()
 
     val declaredAddressOpt = r.getOption {
-      val fas = r.getInt()
+      val fas = r.getUByte()
       val fa = r.getBytes(fas - 4)
-      val port = r.getInt()
+      val port = r.getUInt().toIntExact
       new InetSocketAddress(InetAddress.getByAddress(fa), port)
     }
 
     val featuresCount = r.getByte()
     val feats = (1 to featuresCount).flatMap { _ =>
       val featId = r.getByte()
-      val featBytesCount = r.getShort()
+      val featBytesCount = r.getUShort().toShortExact
       val featChunk = r.getChunk(featBytesCount)
       //we ignore a feature found in the handshake if we do not know how to parse it or failed to do that
       featureSerializers.get(featId).flatMap { featureSerializer =>
