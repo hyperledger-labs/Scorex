@@ -4,6 +4,7 @@ import akka.actor.{ActorRef, ActorSystem, Cancellable}
 import scorex.core.consensus.ContainsModifiers
 import scorex.core.network.ModifiersStatus._
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.CheckDelivery
+import scorex.core.network.peer.ConnectedPeer
 import scorex.core.utils.ScorexEncoding
 import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.util.{ModifierId, ScorexLogging}
@@ -12,7 +13,6 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Try}
-
 
 /**
   * This class tracks modifier statuses.

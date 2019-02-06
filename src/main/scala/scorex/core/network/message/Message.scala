@@ -3,7 +3,7 @@ package scorex.core.network.message
 import java.nio.ByteOrder
 
 import akka.util.ByteString
-import scorex.core.network.ConnectedPeer
+import scorex.core.network.peer.ConnectedPeer
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.{Success, Try}

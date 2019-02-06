@@ -13,7 +13,7 @@ import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{Disconnected
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeerExcluding, RemovePeer}
-import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
+import scorex.core.network.peer._
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
 import scorex.util.ScorexLogging
@@ -120,7 +120,7 @@ class NetworkController(settings: NetworkSettings,
       }
 
     case Handshaked(connectedPeer) =>
-      handshaked(connectedPeer, sender())
+      handleHandshake(connectedPeer, sender())
 
     case f@CommandFailed(c: Connect) =>
       outgoing -= c.remoteAddress
@@ -209,7 +209,9 @@ class NetworkController(settings: NetworkSettings,
     * @param connection - connection ActorRef
     * @return
     */
-  private def createPeerConnectionHandler(remote: InetSocketAddress, local: InetSocketAddress, connection: ActorRef) = {
+  private def createPeerConnectionHandler(remote: InetSocketAddress,
+                                          local: InetSocketAddress,
+                                          connection: ActorRef): Unit = {
     val direction: ConnectionType = if (outgoing.contains(remote)) Outgoing else Incoming
     val logMsg = direction match {
       case Incoming => s"New incoming connection from $remote established (bound to local $local)"
@@ -241,7 +243,7 @@ class NetworkController(settings: NetworkSettings,
     * @param peerInfo
     * @param peerHandler
     */
-  private def handshaked(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
+  private def handleHandshake(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
     connectionForHandler(peerHandler).foreach { connectedPeer =>
 
       log.trace(s"Got handshake from $peerInfo")
@@ -253,7 +255,7 @@ class NetworkController(settings: NetworkSettings,
         peerManagerRef ! RemovePeer(peerAddress)
         connections -= connectedPeer.remote
       } else {
-        if (peerInfo.reachablePeer) {
+        if (peerInfo.isReachable) {
           val peerName = peerInfo.nodeName
           val peerFeats = peerInfo.features
           peerManagerRef ! AddOrUpdatePeer(peerAddress, peerName, peerInfo.connectionType, peerFeats)

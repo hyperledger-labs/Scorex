@@ -4,20 +4,22 @@ import java.net.InetSocketAddress
 
 import scorex.core.utils.TimeProvider
 
-
 trait PeerDatabase {
-  def isEmpty():Boolean
+
+  def isEmpty:Boolean
 
   def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit
 
-  def knownPeers(): Map[InetSocketAddress, PeerInfo]
+  def knownPeers: Map[InetSocketAddress, PeerInfo]
 
-  def blacklistPeer(peer: InetSocketAddress, time: TimeProvider.Time): Unit
+  def addToBlacklist(address: InetSocketAddress): Unit
 
-  def blacklistedPeers(): Seq[String]
+  def removeFromBlacklist(address: InetSocketAddress): Unit
+
+  def blacklistedPeers: Seq[InetSocketAddress]
 
   def isBlacklisted(address: InetSocketAddress): Boolean
 
-  def remove(address: InetSocketAddress): Boolean
-}
+  def remove(address: InetSocketAddress): Unit
 
+}

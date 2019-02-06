@@ -4,15 +4,15 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.app.Version
-import scorex.core.network.peer.PeerInfo
-import scorex.core.network.{PeerFeature, Handshake, Incoming, Outgoing}
+import scorex.core.network.peer.{Incoming, Outgoing, PeerInfo}
+import scorex.core.network.{Handshake, PeerFeature}
 
 trait Stubs {
 
   implicit val system: ActorSystem
 
-  val inetAddr1 = new InetSocketAddress("92.92.92.92",27017)
-  val inetAddr2 = new InetSocketAddress("93.93.93.93",27017)
+  val inetAddr1 = new InetSocketAddress("92.92.92.92", 27017)
+  val inetAddr2 = new InetSocketAddress("93.93.93.93", 27017)
   val ts1 = System.currentTimeMillis() - 100
   val ts2 = System.currentTimeMillis() + 100
 

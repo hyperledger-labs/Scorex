@@ -1,6 +1,5 @@
 package scorex.core.network
 
-
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
@@ -14,6 +13,7 @@ import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.Da
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
+import scorex.core.network.peer.ConnectedPeer
 import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.state.StateReader

@@ -10,7 +10,7 @@ import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NetworkController.ReceivableMessages.Handshaked
 import scorex.core.network.PeerFeature.Serializers
 import scorex.core.network.message.MessageSerializer
-import scorex.core.network.peer.PeerInfo
+import scorex.core.network.peer.{ConnectedPeer, ConnectionType, PeerInfo}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
 import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
@@ -21,36 +21,13 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
 
-
-sealed trait ConnectionType
-case object Incoming extends ConnectionType
-case object Outgoing extends ConnectionType
-
-
-case class ConnectedPeer(remote: InetSocketAddress,
-                         handlerRef: ActorRef,
-                         peerInfo: Option[PeerInfo]) {
-
-  import shapeless.syntax.typeable._
-
-  override def hashCode(): Int = remote.hashCode()
-
-  override def equals(obj: Any): Boolean =
-    obj.cast[ConnectedPeer].exists(p => p.remote == this.remote && peerInfo == this.peerInfo)
-
-  override def toString: String = s"ConnectedPeer($remote)"
-}
-
-case object Ack extends Event
-
-
 case class ConnectionDescription(connection: ActorRef,
                                  direction: ConnectionType,
                                  ownSocketAddress: Option[InetSocketAddress],
                                  remote: InetSocketAddress,
                                  localFeatures: Seq[PeerFeature])
 
-class PeerConnectionHandler(val settings: NetworkSettings,
+class PeerConnectionHandler(settings: NetworkSettings,
                             networkControllerRef: ActorRef,
                             peerManagerRef: ActorRef,
                             scorexContext: ScorexContext,
@@ -145,7 +122,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
-          //todo: blacklist?
           self ! CloseConnection
       }
   }
@@ -155,7 +131,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       c.cmd match {
         case w: Write =>
           log.warn(s"$c: Failed to write ${w.data.length} bytes to $remote in state $stateName")
-          //      peerManager ! AddToBlacklist(remote)
           connection ! Close
           connection ! ResumeReading
           connection ! ResumeWriting
@@ -196,14 +171,13 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       }
 
     case Blacklist =>
-      log.info(s"Going to blacklist " + remote)
+      log.debug(s"Going to blacklist $remote")
       peerManagerRef ! AddToBlacklist(remote)
       connection ! Close
   }
 
   def workingCycleRemoteInterface: Receive = {
     case Received(data) =>
-
       chunksBuffer ++= data
 
       @tailrec
@@ -227,6 +201,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       case nonsense: Any =>
         log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
   }
+
 }
 
 object PeerConnectionHandler {
@@ -238,9 +213,11 @@ object PeerConnectionHandler {
     case object CloseConnection
     case object Blacklist
   }
+
 }
 
 object PeerConnectionHandlerRef {
+
   def props(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,

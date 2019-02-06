@@ -11,6 +11,7 @@ import scorex.core._
 import scorex.core.app.Version
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{ChangedHistory, ChangedMempool}
 import scorex.core.network._
+import scorex.core.network.peer.ConnectedPeer
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
 

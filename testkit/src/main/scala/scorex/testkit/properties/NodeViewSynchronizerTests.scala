@@ -15,6 +15,7 @@ import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared,
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network._
 import scorex.core.network.message._
+import scorex.core.network.peer.ConnectedPeer
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}

@@ -2,7 +2,7 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import scorex.core.network.{ConnectionType, PeerFeature}
+import scorex.core.network.PeerFeature
 
 case class PeerInfo(lastSeen: Long,
                     declaredAddress: Option[InetSocketAddress],
@@ -10,11 +10,10 @@ case class PeerInfo(lastSeen: Long,
                     connectionType: Option[ConnectionType] = None,
                     features: Seq[PeerFeature] = Seq()) {
 
-  lazy val reachablePeer: Boolean = {
-    declaredAddress.isDefined || localAddress.isDefined
+  val localAddress: Option[InetSocketAddress] = features.collectFirst {
+    case LocalAddressPeerFeature(address) => address
   }
 
-  lazy val localAddress: Option[InetSocketAddress] = {
-    features.collectFirst { case LocalAddressPeerFeature(addr) => addr }
-  }
+  def isReachable: Boolean = declaredAddress.isDefined || localAddress.isDefined
+
 }

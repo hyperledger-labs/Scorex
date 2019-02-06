@@ -7,6 +7,7 @@ import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.consensus.ContainsModifiers
 import scorex.core.network.ModifiersStatus._
+import scorex.core.network.peer.ConnectedPeer
 import scorex.core.serialization.Serializer
 import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
 import scorex.crypto.hash.Blake2b256
