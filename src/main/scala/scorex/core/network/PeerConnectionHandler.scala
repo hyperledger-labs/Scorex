@@ -23,7 +23,9 @@ import scala.util.{Failure, Random, Success}
 
 
 sealed trait ConnectionType
+
 case object Incoming extends ConnectionType
+
 case object Outgoing extends ConnectionType
 
 
@@ -67,11 +69,11 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   private val localFeatures = connectionDescription.localFeatures
 
   private val featureSerializers: Serializers = {
-    localFeatures.map(f => f.featureId -> (f.serializer:Serializer[_ <: PeerFeature])).toMap
+    localFeatures.map(f => f.featureId -> (f.serializer: Serializer[_ <: PeerFeature])).toMap
   }
 
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
-  private val messageSerializer = new MessageSerializer(scorexContext.messageSpecs)
+  private val messageSerializer = new MessageSerializer(scorexContext.messageSpecs, settings.decodedMagicBytes)
 
   // there is no recovery for broken connections
   override val supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
@@ -127,7 +129,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       processErrors("WorkingCycle") orElse
       reportStrangeInput
 
-  private def createHandshakeMessage()= {
+  private def createHandshakeMessage() = {
     Handshake(settings.agentName,
       Version(settings.appVersion),
       settings.nodeName,
@@ -207,7 +209,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       chunksBuffer ++= data
 
       @tailrec
-      def process():Unit = {
+      def process(): Unit = {
         messageSerializer.deserialize(chunksBuffer, selfPeer) match {
           case Success(Some(message)) =>
             log.info("Received message " + message.spec + " from " + remote)
@@ -215,29 +217,36 @@ class PeerConnectionHandler(val settings: NetworkSettings,
             chunksBuffer = chunksBuffer.drop(message.messageLength)
             process()
           case Success(None) =>
-          case Failure(e) =>
-            log.info(s"Corrupted data from: " + remote, e)
+          case Failure(e) => log.info(s"Corrupted data from ${remote.toString}: ${e.getMessage}")
         }
       }
+
       process()
       connection ! ResumeReading
   }
 
-  private def reportStrangeInput: Receive= {
-      case nonsense: Any =>
-        log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
+  private def reportStrangeInput: Receive = {
+    case nonsense: Any =>
+      log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
   }
 }
 
 object PeerConnectionHandler {
 
   object ReceivableMessages {
+
     private[PeerConnectionHandler] object HandshakeDone
+
     case object StartInteraction
+
     case object HandshakeTimeout
+
     case object CloseConnection
+
     case object Blacklist
+
   }
+
 }
 
 object PeerConnectionHandlerRef {
@@ -246,7 +255,7 @@ object PeerConnectionHandlerRef {
             peerManagerRef: ActorRef,
             scorexContext: ScorexContext,
             connectionDescription: ConnectionDescription
-            )(implicit ec: ExecutionContext): Props =
+           )(implicit ec: ExecutionContext): Props =
     Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, scorexContext, connectionDescription))
 
   def apply(settings: NetworkSettings,
