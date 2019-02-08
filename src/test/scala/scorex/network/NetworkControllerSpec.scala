@@ -355,7 +355,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   private val featureSerializers = Map(LocalAddressPeerFeature.featureId -> LocalAddressPeerFeatureSerializer)
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.network.maxHandshakeSize)
   private val messageSpecs = Seq(GetPeersSpec, PeersSpec)
-  private val messagesSerializer = new MessageSerializer(messageSpecs, settings.network.decodedMagicBytes)
+  private val messagesSerializer = new MessageSerializer(messageSpecs, settings.network.magicBytes)
 
   private var connectionHandler:ActorRef = _
 

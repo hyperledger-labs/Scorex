@@ -44,12 +44,7 @@ case class NetworkSettings(nodeName: String,
                            syncTimeout: Option[FiniteDuration],
                            controllerTimeout: Option[FiniteDuration],
                            maxModifiersCacheSize: Int,
-                           magicBytes: String) {
-
-  @inline def decodedMagicBytes: Array[Byte] = magicBytes.getBytes("UTF-8")
-    .ensuring(_.length == Message.MagicLength)
-
-}
+                           magicBytes: Array[Byte])
 
 case class ScorexSettings(dataDir: File,
                           logDir: File,
@@ -97,5 +92,6 @@ object ScorexSettings extends ScorexLogging with SettingsReaders {
 
   def fromConfig(config: Config): ScorexSettings = {
     config.as[ScorexSettings](configPath)
+      .ensuring(_.network.magicBytes.length == Message.MagicLength)
   }
 }

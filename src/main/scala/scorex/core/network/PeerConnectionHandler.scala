@@ -73,7 +73,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
-  private val messageSerializer = new MessageSerializer(scorexContext.messageSpecs, settings.decodedMagicBytes)
+  private val messageSerializer = new MessageSerializer(scorexContext.messageSpecs, settings.magicBytes)
 
   // there is no recovery for broken connections
   override val supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
