@@ -81,7 +81,7 @@ class NetworkController(settings: NetworkSettings,
             .fold(log.error(s"No handlers found for message $remote: $msgId"))(_ ! DataFromPeer(spec, content, remote))
         case Failure(e) =>
           log.error(s"Failed to deserialize data from $remote: ", e)
-          self ! Blacklist(remote)
+          remote.handlerRef ! PeerConnectionHandler.ReceivableMessages.Blacklist
       }
 
     case SendToNetwork(message, sendingStrategy) =>
@@ -97,11 +97,6 @@ class NetworkController(settings: NetworkSettings,
     case DisconnectFrom(peer) =>
       log.info(s"Disconnected from ${peer.remote}")
       peer.handlerRef ! CloseConnection
-
-    case Blacklist(peer) =>
-      peer.handlerRef ! PeerConnectionHandler.ReceivableMessages.Blacklist
-      // todo: the following message might become unnecessary if we refactor PeerManager to automatically
-      // todo: remove peer from `connectedPeers` on receiving `AddToBlackList` message.
 
     case Connected(remote, local) =>
       val connection = sender()
@@ -386,7 +381,6 @@ object NetworkController {
     case object ShutdownNetwork
     case class ConnectTo(peer: PeerInfo)
     case class DisconnectFrom(peer: ConnectedPeer)
-    case class Blacklist(peer: ConnectedPeer)
     case object GetConnectedPeers
   }
 }
