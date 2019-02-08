@@ -38,7 +38,7 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
   override def addToBlacklist(address: InetSocketAddress): Unit = {
     log.info(s"$address blacklisted")
     peers -= address
-    if (!isBlacklisted(address)) blacklist += address -> timeProvider.time()
+    if (!blacklist.contains(address)) blacklist += address -> timeProvider.time()
   }
 
   override def removeFromBlacklist(address: InetSocketAddress): Unit = {
