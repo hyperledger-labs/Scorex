@@ -171,7 +171,6 @@ class PeerConnectionHandler(settings: NetworkSettings,
       }
 
     case Blacklist =>
-      log.debug(s"Going to blacklist $remote")
       peerManagerRef ! AddToBlacklist(remote)
       connection ! Close
   }

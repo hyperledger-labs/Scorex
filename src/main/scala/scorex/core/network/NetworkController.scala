@@ -68,7 +68,6 @@ class NetworkController(settings: NetworkSettings,
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
       context stop self
-    //TODO catch?
   }
 
   def businessLogic: Receive = {
@@ -78,17 +77,11 @@ class NetworkController(settings: NetworkSettings,
 
       spec.parseBytes(msgBytes) match {
         case Success(content) =>
-          messageHandlers.get(msgId) match {
-            case Some(handler) =>
-              handler ! DataFromPeer(spec, content, remote)
-
-            case None =>
-              log.error(s"No handlers found for message $remote: " + msgId)
-            //todo: ban a peer
-          }
+          messageHandlers.get(msgId)
+            .fold(log.error(s"No handlers found for message $remote: $msgId"))(_ ! DataFromPeer(spec, content, remote))
         case Failure(e) =>
           log.error(s"Failed to deserialize data from $remote: ", e)
-        //todo: ban peer
+          self ! Blacklist(remote)
       }
 
     case SendToNetwork(message, sendingStrategy) =>

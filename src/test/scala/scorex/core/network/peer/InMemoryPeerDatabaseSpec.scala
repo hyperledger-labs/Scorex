@@ -57,17 +57,6 @@ class InMemoryPeerDatabaseSpec extends FlatSpec with Matchers {
     db.knownPeers shouldBe Map(peerAddress1 -> newPeerInfo)
   }
 
-  it should "return a blacklisted peer after blacklisting" in {
-    val db = newDb
-    db.addOrUpdateKnownPeer(PeerInfo(currentTime, Some(peerAddress1)))
-    db.addOrUpdateKnownPeer(PeerInfo(currentTime, Some(peerAddress2)))
-    db.addToBlacklist(peerAddress1)
-
-    db.isBlacklisted(peerAddress1) shouldBe true
-    db.isBlacklisted(peerAddress2) shouldBe false
-    db.blacklistedPeers shouldBe Seq(peerAddress1.getHostName)
-  }
-
   it should "the blacklisted peer be absent in knownPeers" in {
     val db = newDb
     val peerInfo1 = PeerInfo(currentTime, Some(peerAddress1))
@@ -81,13 +70,13 @@ class InMemoryPeerDatabaseSpec extends FlatSpec with Matchers {
   it should "remove peers from db correctly" in {
     val db = newDb
 
-    db.remove(peerAddress1) shouldBe false
     db.addOrUpdateKnownPeer(PeerInfo(currentTime, Some(peerAddress1)))
     db.isEmpty shouldBe false
     db.blacklistedPeers.isEmpty shouldBe true
     db.knownPeers.isEmpty shouldBe false
 
-    db.remove(peerAddress1) shouldBe true
+    db.remove(peerAddress1)
+
     db.isEmpty shouldBe true
   }
 
