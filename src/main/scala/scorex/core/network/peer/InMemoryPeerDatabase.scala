@@ -53,7 +53,7 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
 
   override def isBlacklisted(address: InetSocketAddress): Boolean = {
     blacklist.get(address).exists { banTime =>
-      val stillBanned = timeProvider.time() - banTime < settings.network.misbehavingBanTime
+      val stillBanned = timeProvider.time() - banTime < settings.network.misbehavingBanTime.toMillis
       if (!stillBanned) removeFromBlacklist(address)
       stillBanned
     }

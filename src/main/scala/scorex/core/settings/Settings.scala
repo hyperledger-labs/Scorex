@@ -43,7 +43,7 @@ case class NetworkSettings(nodeName: String,
                            syncTimeout: Option[FiniteDuration],
                            controllerTimeout: Option[FiniteDuration],
                            maxModifiersCacheSize: Int,
-                           misbehavingBanTime: Long)
+                           misbehavingBanTime: FiniteDuration)
 
 case class ScorexSettings(dataDir: File,
                           logDir: File,
