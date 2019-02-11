@@ -18,7 +18,6 @@ import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
 import scorex.util.ScorexLogging
 
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
@@ -42,12 +41,12 @@ class NetworkController(settings: NetworkSettings,
 
   private implicit val timeout: Timeout = Timeout(settings.controllerTimeout.getOrElse(5 seconds))
 
-  private val messageHandlers = mutable.Map[MessageCode, ActorRef]()
-
   private lazy val bindAddress = settings.bindAddress
 
+  private var messageHandlers = Map.empty[MessageCode, ActorRef]
+
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
-  private var outgoing = Set.empty[InetSocketAddress]
+  private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
   //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
   private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
@@ -63,7 +62,7 @@ class NetworkController(settings: NetworkSettings,
   private def bindingLogic: Receive = {
     case Bound(_) =>
       log.info("Successfully bound to the port " + settings.bindAddress.getPort)
-      scheduleConnectToPeer()
+      scheduleConnectionToPeer()
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
@@ -111,20 +110,20 @@ class NetworkController(settings: NetworkSettings,
       handleHandshake(connectedPeer, sender())
 
     case f@CommandFailed(c: Connect) =>
-      outgoing -= c.remoteAddress
+      unconfirmedConnections -= c.remoteAddress
       f.cause match {
         case Some(t) =>
-          log.info("Failed to connect to : " + c.remoteAddress, t)
+          log.info(s"Failed to connect to: ${c.remoteAddress}", t)
         case None =>
-          log.info("Failed to connect to : " + c.remoteAddress)
+          log.info("Failed to connect to: ${c.remoteAddress}")
       }
 
     case Terminated(ref) =>
       connectionForHandler(ref).foreach { connectedPeer =>
-        val addr = connectedPeer.remote
-        connections -= addr
-        outgoing -= addr
-        context.system.eventStream.publish(DisconnectedPeer(addr))
+        val address = connectedPeer.remote
+        connections -= address
+        unconfirmedConnections -= address
+        context.system.eventStream.publish(DisconnectedPeer(address))
       }
   }
 
@@ -134,7 +133,7 @@ class NetworkController(settings: NetworkSettings,
       sender() ! connections.values.flatMap(_.peerInfo).toSeq
 
     case ShutdownNetwork =>
-      log.info("Going to shutdown all connections & unbind port")
+      log.info("Going to close all connections and unbind port")
       filterConnections(Broadcast).foreach { connectedPeer =>
         connectedPeer.handlerRef ! CloseConnection
       }
@@ -148,16 +147,16 @@ class NetworkController(settings: NetworkSettings,
       messageHandlers ++= specs.map(_.messageCode -> handler)
 
     case CommandFailed(cmd: Command) =>
-      log.info("Failed to execute command : " + cmd)
+      log.info(s"Failed to execute command: $cmd")
 
-    case nonsense: Any =>
-      log.warn(s"NetworkController: got something strange $nonsense")
+    case nonsense =>
+      log.warn(s"Unhandled message: $nonsense")
   }
 
   /**
     * Schedule a periodic connection to a random known peer
     */
-  private def scheduleConnectToPeer(): Unit = {
+  private def scheduleConnectionToPeer(): Unit = {
     context.system.scheduler.schedule(5.seconds, 5.seconds){
       if (connections.size < settings.maxConnections) {
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
@@ -176,8 +175,8 @@ class NetworkController(settings: NetworkSettings,
     log.info(s"Connecting to peer: $peer")
     getPeerAddress(peer) match {
       case Some(remote) =>
-        if (connectionForPeerAddress(remote).isEmpty && !outgoing.contains(remote)) {
-          outgoing += remote
+        if (connectionForPeerAddress(remote).isEmpty && !unconfirmedConnections.contains(remote)) {
+          unconfirmedConnections += remote
           tcpManager ! Connect(remote,
             options = KeepAlive(true) :: Nil,
             timeout = Some(settings.connectionTimeout),
@@ -200,10 +199,10 @@ class NetworkController(settings: NetworkSettings,
   private def createPeerConnectionHandler(remote: InetSocketAddress,
                                           local: InetSocketAddress,
                                           connection: ActorRef): Unit = {
-    val direction: ConnectionType = if (outgoing.contains(remote)) Outgoing else Incoming
+    val direction: ConnectionType = if (unconfirmedConnections.contains(remote)) Outgoing else Incoming
     val logMsg = direction match {
       case Incoming => s"New incoming connection from $remote established (bound to local $local)"
-      case Outgoing => s"New outgoing connection to $remote established (bound to local $local)"
+      case Outgoing => s"New unconfirmedConnections connection to $remote established (bound to local $local)"
     }
     log.info(logMsg)
 
@@ -223,7 +222,7 @@ class NetworkController(settings: NetworkSettings,
     context.watch(handler)
     val connectedPeer = ConnectedPeer(remote, handler, None)
     connections += remote -> connectedPeer
-    outgoing -= remote
+    unconfirmedConnections -= remote
   }
 
   /**
@@ -346,7 +345,7 @@ class NetworkController(settings: NetworkSettings,
     }
   }
 
-  private def validateDeclaredAddress() = {
+  private def validateDeclaredAddress(): Unit = {
     if (!settings.localOnly) {
       settings.declaredAddress.foreach { myAddress =>
         Try {
@@ -371,6 +370,7 @@ class NetworkController(settings: NetworkSettings,
       }
     }
   }
+
 }
 
 object NetworkController {

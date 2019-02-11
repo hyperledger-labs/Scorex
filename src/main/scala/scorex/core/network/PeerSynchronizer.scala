@@ -35,7 +35,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
   }
 
   override def receive: Receive = {
-    case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, remote)
+    case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, _)
       if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[InetSocketAddress]].isDefined =>
 
       peers.foreach(isa => peerManager ! AddOrUpdatePeer(isa, None, None, Seq()))
@@ -46,7 +46,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
       (peerManager ? RandomPeers(3))
         .mapTo[Seq[PeerInfo]]
         .foreach { peers =>
-          val peerAddrs = if (peer.remote.getAddress.isSiteLocalAddress) {
+          val addresses = if (peer.remote.getAddress.isSiteLocalAddress) {
             peers.flatMap { peer =>
               peer.features
                 .collectFirst { case LocalAddressPeerFeature(addr) => addr }
@@ -56,15 +56,18 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
             peers.flatMap(_.declaredAddress)
           }
 
-          val msg = Message(PeersSpec, Right(peerAddrs), None)
+          val msg = Message(PeersSpec, Right(addresses), None)
           networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(peer)))
         }
 
-    case nonsense: Any => log.warn(s"PeerSynchronizer: got something strange $nonsense")
+    case nonsense =>
+      log.warn(s"Unhandled message: $nonsense")
   }
+
 }
 
 object PeerSynchronizerRef {
+
   def props(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
            (implicit ec: ExecutionContext): Props =
     Props(new PeerSynchronizer(networkControllerRef, peerManager, settings))
