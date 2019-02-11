@@ -109,6 +109,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       val peerInfo = PeerInfo(
         scorexContext.timeProvider.time(),
         receivedHandshake.declaredAddress,
+        receivedHandshake.protocolVersion,
         Some(receivedHandshake.nodeName),
         Some(direction),
         receivedHandshake.features

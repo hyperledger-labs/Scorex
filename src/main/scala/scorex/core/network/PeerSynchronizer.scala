@@ -19,15 +19,19 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 
-class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
+class PeerSynchronizer(val networkControllerRef: ActorRef,
+                       peerManager: ActorRef,
+                       settings: NetworkSettings,
+                       featureSerializers: PeerFeature.Serializers)
                       (implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
   private implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
+  private val peersSpec = new PeersSpec(featureSerializers)
 
   override def preStart: Unit = {
     super.preStart()
 
-    networkControllerRef ! RegisterMessageSpecs(Seq(GetPeersSpec, PeersSpec), self)
+    networkControllerRef ! RegisterMessageSpecs(Seq(GetPeersSpec, peersSpec), self)
 
     val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
     val stn = SendToNetwork(msg, SendToRandom)
@@ -35,28 +39,19 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
   }
 
   override def receive: Receive = {
-    case DataFromPeer(spec, peers: Seq[InetSocketAddress]@unchecked, remote)
-      if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[InetSocketAddress]].isDefined =>
+    case DataFromPeer(spec, peers: Seq[PeerInfo]@unchecked, remote)
+      if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[PeerInfo]].isDefined =>
 
-      peers.foreach(isa => peerManager ! AddOrUpdatePeer(isa, None, None, Seq()))
+      peers.foreach(peerInfo => peerManager ! AddOrUpdatePeer(peerInfo))
 
     case DataFromPeer(spec, _, peer) if spec.messageCode == GetPeersSpec.messageCode =>
 
-      //todo: externalize the number, check on receiving
+      //todo: externalize the number or increase it (bitcoin uses 1000)
+      //todo: check on receiving
       (peerManager ? RandomPeers(3))
         .mapTo[Seq[PeerInfo]]
         .foreach { peers =>
-          val peerAddrs = if (peer.remote.getAddress.isSiteLocalAddress) {
-            peers.flatMap { peer =>
-              peer.features
-                .collectFirst { case LocalAddressPeerFeature(addr) => addr }
-                .orElse(peer.declaredAddress)
-            }
-          } else {
-            peers.flatMap(_.declaredAddress)
-          }
-
-          val msg = Message(PeersSpec, Right(peerAddrs), None)
+          val msg = Message(peersSpec, Right(peers.map(_.handshake)), None)
           networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(peer)))
         }
 
@@ -65,15 +60,15 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
 }
 
 object PeerSynchronizerRef {
-  def props(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
-           (implicit ec: ExecutionContext): Props =
-    Props(new PeerSynchronizer(networkControllerRef, peerManager, settings))
+  def props(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings,
+            featureSerializers: PeerFeature.Serializers)(implicit ec: ExecutionContext): Props =
+    Props(new PeerSynchronizer(networkControllerRef, peerManager, settings, featureSerializers))
 
-  def apply(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
-           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(networkControllerRef, peerManager, settings))
+  def apply(networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings,
+            featureSerializers: PeerFeature.Serializers)(implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+    system.actorOf(props(networkControllerRef, peerManager, settings, featureSerializers))
 
-  def apply(name: String, networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
-           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(networkControllerRef, peerManager, settings), name)
+  def apply(name: String, networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings,
+            featureSerializers: PeerFeature.Serializers)(implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
+    system.actorOf(props(networkControllerRef, peerManager, settings, featureSerializers), name)
 }

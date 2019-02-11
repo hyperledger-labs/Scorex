@@ -31,6 +31,6 @@ trait MessageSpec[Content] extends Serializer[Content] {
   */
 trait MessageSpecV1[Content] extends MessageSpec[Content] {
 
-  override val protocolVersion: Version = Version(0, 0, 1)
+  override val protocolVersion: Version = Version.initial
 
 }

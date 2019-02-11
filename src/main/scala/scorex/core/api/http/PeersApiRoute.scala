@@ -8,7 +8,9 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
 import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse}
+import scorex.core.app.Version
 import scorex.core.network.NetworkController.ReceivableMessages.{ConnectTo, GetConnectedPeers}
+import scorex.core.network.PeerFeature
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers}
 import scorex.core.settings.RESTApiSettings
@@ -38,7 +40,7 @@ case class PeersApiRoute(peerManager: ActorRef,
     val result = askActor[Seq[PeerInfo]](networkController, GetConnectedPeers).map {
       _.map { peerInfo =>
         PeerInfoResponse(
-          address = peerInfo.declaredAddress.map(_.toString).getOrElse(""),
+          address = peerInfo.address.map(_.toString).getOrElse(""),
           lastSeen = peerInfo.lastSeen,
           name = peerInfo.nodeName,
           connectionType = peerInfo.connectionType.map(_.toString)
@@ -57,7 +59,10 @@ case class PeersApiRoute(peerManager: ActorRef,
       case Some(addressAndPort) =>
         val host = InetAddress.getByName(addressAndPort.group(1))
         val port = addressAndPort.group(2).toInt
-        val peerInfo = PeerInfo(timeProvider.time(), Some(new InetSocketAddress(host, port)), None, None, Seq())
+        // todo get correct version and features
+        val version = Version.initial
+        val features: Seq[PeerFeature] = Seq()
+        val peerInfo = PeerInfo(timeProvider.time(), Some(new InetSocketAddress(host, port)), version, None, None, features)
         networkController ! ConnectTo(peerInfo)
         ApiResponse.OK
     }

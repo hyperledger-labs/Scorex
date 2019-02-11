@@ -50,7 +50,9 @@ class NetworkController(settings: NetworkSettings,
   private var outgoing = Set.empty[InetSocketAddress]
 
   //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
-  private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings)
+  private val featureSerializers: PeerFeature.Serializers = scorexContext.features.map(f => f.featureId -> f.serializer).toMap
+  private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings,
+    featureSerializers)
 
   //check own declared address for validity
   validateDeclaredAddress()
@@ -107,8 +109,8 @@ class NetworkController(settings: NetworkSettings,
 
     case Blacklist(peer) =>
       peer.handlerRef ! PeerConnectionHandler.ReceivableMessages.Blacklist
-      // todo: the following message might become unnecessary if we refactor PeerManager to automatically
-      // todo: remove peer from `connectedPeers` on receiving `AddToBlackList` message.
+    // todo: the following message might become unnecessary if we refactor PeerManager to automatically
+    // todo: remove peer from `connectedPeers` on receiving `AddToBlackList` message.
 
     case Connected(remote, local) =>
       val connection = sender()
@@ -170,7 +172,7 @@ class NetworkController(settings: NetworkSettings,
     * Schedule a periodic connection to a random known peer
     */
   private def scheduleConnectToPeer(): Unit = {
-    context.system.scheduler.schedule(5.seconds, 5.seconds){
+    context.system.scheduler.schedule(5.seconds, 5.seconds) {
       if (connections.size < settings.maxConnections) {
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
@@ -182,6 +184,7 @@ class NetworkController(settings: NetworkSettings,
 
   /**
     * Connect to peer
+    *
     * @param peer - PeerInfo
     */
   private def connectTo(peer: PeerInfo): Unit = {
@@ -204,8 +207,9 @@ class NetworkController(settings: NetworkSettings,
 
   /**
     * Creates a PeerConnectionHandler for the established connection
-    * @param remote - remote address of socket to peer
-    * @param local - local address of socket to peer
+    *
+    * @param remote     - remote address of socket to peer
+    * @param local      - local address of socket to peer
     * @param connection - connection ActorRef
     * @return
     */
@@ -238,6 +242,7 @@ class NetworkController(settings: NetworkSettings,
 
   /**
     * The logic of handling the handshake
+    *
     * @param peerInfo
     * @param peerHandler
     */
@@ -245,7 +250,7 @@ class NetworkController(settings: NetworkSettings,
     connectionForHandler(peerHandler).foreach { connectedPeer =>
 
       log.trace(s"Got handshake from $peerInfo")
-      val peerAddress = peerInfo.declaredAddress.orElse(peerInfo.localAddress).getOrElse(connectedPeer.remote)
+      val peerAddress = peerInfo.address.orElse(peerInfo.localAddressOpt).getOrElse(connectedPeer.remote)
 
       //drop connection to self if occurred or peer already connected
       if (isSelf(connectedPeer.remote) || connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)) {
@@ -254,9 +259,8 @@ class NetworkController(settings: NetworkSettings,
         connections -= connectedPeer.remote
       } else {
         if (peerInfo.reachablePeer) {
-          val peerName = peerInfo.nodeName
-          val peerFeats = peerInfo.features
-          peerManagerRef ! AddOrUpdatePeer(peerAddress, peerName, peerInfo.connectionType, peerFeats)
+          val infoWithAddress = peerInfo.copy(address = Some(peerAddress))
+          peerManagerRef ! AddOrUpdatePeer(infoWithAddress)
         } else {
           peerManagerRef ! RemovePeer(peerAddress)
         }
@@ -269,6 +273,7 @@ class NetworkController(settings: NetworkSettings,
 
   /**
     * Returns connections filtered by given SendingStrategy
+    *
     * @param sendingStrategy SendingStrategy
     * @return sequence of ConnectedPeer instances according SendingStrategy
     */
@@ -278,29 +283,32 @@ class NetworkController(settings: NetworkSettings,
 
   /**
     * Returns connection for given PeerConnectionHandler ActorRef
+    *
     * @param handler ActorRef on PeerConnectionHandler actor
     * @return Some(ConnectedPeer) when the connection exists for this handler, and None otherwise
     */
   private def connectionForHandler(handler: ActorRef) = {
     connections.values.find { connectedPeer =>
-       connectedPeer.handlerRef == handler
+      connectedPeer.handlerRef == handler
     }
   }
 
   /**
     * Returns connection for given address of the peer
+    *
     * @param peerAddress - socket address of peer
     * @return Some(ConnectedPeer) when the connection exists for this peer, and None otherwise
     */
   private def connectionForPeerAddress(peerAddress: InetSocketAddress) = {
     connections.values.find { connectedPeer =>
       connectedPeer.remote == peerAddress ||
-      connectedPeer.peerInfo.exists(peerInfo => getPeerAddress(peerInfo).contains(peerAddress))
+        connectedPeer.peerInfo.exists(peerInfo => getPeerAddress(peerInfo).contains(peerAddress))
     }
   }
 
   /**
     * Checks the node owns the address
+    *
     * @param peerAddress
     * @return returns `true` if the peer is the same is this node.
     */
@@ -311,12 +319,12 @@ class NetworkController(settings: NetworkSettings,
   /**
     * Returns local address of peer for local connections and WAN address of peer for
     * external connections. When local address is not known, try to ask it at the UPnP gateway
+    *
     * @param peer - known information about peer
     * @return socket address of the peer
     */
   private def getPeerAddress(peer: PeerInfo): Option[InetSocketAddress] = {
-    val peerLocalAddress = peer.features.collectFirst { case LocalAddressPeerFeature(addr) => addr }
-    (peerLocalAddress, peer.declaredAddress) match {
+    (peer.localAddressOpt, peer.address) match {
       case (Some(localAddr), _) =>
         Some(localAddr)
 
@@ -328,12 +336,13 @@ class NetworkController(settings: NetworkSettings,
       case (None, declaredAddressOpt) =>
         declaredAddressOpt
 
-      case _ => peer.declaredAddress
+      case _ => peer.address
     }
   }
 
   /**
     * Returns the node address reachable from Internet
+    *
     * @param localSocketAddress - local socket address of the connection to the peer
     * @return - socket address of the node
     */
@@ -345,7 +354,7 @@ class NetworkController(settings: NetworkSettings,
 
       case None =>
         if (!localAddr.isSiteLocalAddress && !localAddr.isLoopbackAddress
-            && localSocketAddress.getPort == settings.bindAddress.getPort) {
+          && localSocketAddress.getPort == settings.bindAddress.getPort) {
           Some(localSocketAddress)
         } else {
           val listenAddrs = NetworkUtils.getListenAddresses(settings.bindAddress)
@@ -384,16 +393,27 @@ class NetworkController(settings: NetworkSettings,
 }
 
 object NetworkController {
+
   object ReceivableMessages {
+
     case class Handshaked(peer: PeerInfo)
+
     case class RegisterMessageSpecs(specs: Seq[MessageSpec[_]], handler: ActorRef)
+
     case class SendToNetwork(message: Message[_], sendingStrategy: SendingStrategy)
+
     case object ShutdownNetwork
+
     case class ConnectTo(peer: PeerInfo)
+
     case class DisconnectFrom(peer: ConnectedPeer)
+
     case class Blacklist(peer: ConnectedPeer)
+
     case object GetConnectedPeers
+
   }
+
 }
 
 object NetworkControllerRef {

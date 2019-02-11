@@ -17,7 +17,7 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with Score
   override def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit = {
     log.trace(s"Add or Update known peer: $peerInfo")
 
-    peerInfo.declaredAddress.foreach { address =>
+    peerInfo.address.foreach { address =>
       val updatedPeerInfo = whitelistPersistence.get(address).fold(peerInfo) { dbPeerInfo =>
         val nodeNameOpt = peerInfo.nodeName orElse dbPeerInfo.nodeName
         val connTypeOpt = peerInfo.connectionType orElse dbPeerInfo.connectionType
@@ -26,7 +26,7 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with Score
         } else {
           peerInfo.features
         }
-        PeerInfo(peerInfo.lastSeen, peerInfo.declaredAddress, nodeNameOpt, connTypeOpt, feats)
+        PeerInfo(peerInfo.lastSeen, peerInfo.address, peerInfo.version, nodeNameOpt, connTypeOpt, feats)
       }
       whitelistPersistence.put(address, updatedPeerInfo)
     }

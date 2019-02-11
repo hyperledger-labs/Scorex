@@ -3,7 +3,7 @@ package scorex.core.network.peer
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import scorex.core.app.ScorexContext
+import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network._
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.NetworkUtils
@@ -24,7 +24,11 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address)) {
-        val defaultPeerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), None, None, Seq())
+        // todo get correct version and features
+        val version = Version.initial
+        val features: Seq[PeerFeature] = Seq()
+
+        val defaultPeerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), version, None, None, features)
         peerDatabase.addOrUpdateKnownPeer(defaultPeerInfo)
       }
     }
@@ -39,11 +43,8 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   }: Receive) orElse peerListOperations orElse apiInterface
 
   private def peerListOperations: Receive = {
-    case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt, features) =>
-      if (!isSelf(address)) {
-        val peerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), peerNameOpt, connTypeOpt, features)
-        peerDatabase.addOrUpdateKnownPeer(peerInfo)
-      }
+    case AddOrUpdatePeer(peerInfo) =>
+      peerDatabase.addOrUpdateKnownPeer(peerInfo)
 
     case RemovePeer(address) =>
       peerDatabase.remove(address)
@@ -86,7 +87,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   private def randomPeerExcluded(excludedPeers: Seq[PeerInfo]): Option[PeerInfo] = {
     val candidates = peerDatabase.knownPeers().values.filterNot { p =>
       excludedPeers.exists(e =>
-        e.declaredAddress == p.declaredAddress || (e.localAddress.isDefined && e.localAddress == p.localAddress)
+        e.address == p.address || (e.localAddressOpt.isDefined && e.localAddressOpt == p.localAddressOpt)
       )
     }.toSeq
 
@@ -102,23 +103,29 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 object PeerManager {
 
   object ReceivableMessages {
+
     case class AddToBlacklist(remote: InetSocketAddress)
 
     // peerListOperations messages
-    case class AddOrUpdatePeer(address: InetSocketAddress,
-                               peerName: Option[String],
-                               direction: Option[ConnectionType],
-                               features: Seq[PeerFeature])
+    case class AddOrUpdatePeer(peerInfo: PeerInfo)
+
     case class RemovePeer(address: InetSocketAddress)
+
     case object KnownPeers
+
     case object RandomPeer
+
     case class RandomPeers(hawMany: Int)
+
     case class RandomPeerExcluding(excludedPeers: Seq[PeerInfo])
 
     // apiInterface messages
     case object GetAllPeers
+
     case object GetBlacklistedPeers
+
   }
+
 }
 
 object PeerManagerRef {

@@ -4,6 +4,7 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import com.google.common.primitives.{Bytes, Ints, Longs, Shorts}
 import scorex.core.app.{ApplicationVersionSerializer, Version}
+import scorex.core.network.peer.LocalAddressPeerFeature
 import scorex.core.serialization.Serializer
 
 import scala.util.Try
@@ -15,8 +16,12 @@ case class Handshake(applicationName: String,
                      features: Seq[PeerFeature],
                      time: Long) {
 
-  require(Option(applicationName).isDefined)
-  require(Option(protocolVersion).isDefined)
+  assert(Option(applicationName).isDefined)
+  assert(Option(protocolVersion).isDefined)
+
+  lazy val localAddressOpt: Option[InetSocketAddress] = {
+    features.collectFirst { case LocalAddressPeerFeature(addr) => addr }
+  }
 }
 
 class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,

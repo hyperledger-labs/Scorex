@@ -6,10 +6,13 @@ import java.util
 
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.consensus.SyncInfo
+import scorex.core.network.{Handshake, HandshakeSerializer, PeerFeature}
 import scorex.core.network.message.Message.MessageCode
+import scorex.core.network.peer.PeerInfo
 import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 
+import scala.annotation.tailrec
 import scala.util.Try
 
 
@@ -147,36 +150,41 @@ object GetPeersSpec extends MessageSpecV1[Unit] {
   override def toBytes(data: Unit): Array[Byte] = Array()
 }
 
-object PeersSpec extends MessageSpecV1[Seq[InetSocketAddress]] {
-  private val AddressLength = 4
-  private val PortLength = 4
-  private val DataLength = 4
+object PeersSpec {
+  val messageCode: Message.MessageCode = 2: Byte
 
-  override val messageCode: Message.MessageCode = 2: Byte
+  val messageName: String = "Peers message"
 
-  override val messageName: String = "Peers message"
+}
 
-  override def parseBytes(bytes: Array[Byte]): Try[Seq[InetSocketAddress]] = Try {
-    val lengthBytes = util.Arrays.copyOfRange(bytes, 0, DataLength)
-    val length = Ints.fromByteArray(lengthBytes)
+class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Seq[Handshake]] {
+  // todo real maxHandshakeSize ?
+  private val MaxHandshakeSize: Int = 1024
+  private val handshakeSerializer = new HandshakeSerializer(featureSerializers, MaxHandshakeSize)
 
-    require(bytes.length == DataLength + (length * (AddressLength + PortLength)), "Data does not match length")
+  override val messageCode: Message.MessageCode = PeersSpec.messageCode
 
-    (0 until length).map { i =>
-      val position = lengthBytes.length + (i * (AddressLength + PortLength))
-      val addressBytes = util.Arrays.copyOfRange(bytes, position, position + AddressLength)
-      val address = InetAddress.getByAddress(addressBytes)
-      val portBytes = util.Arrays.copyOfRange(bytes, position + AddressLength, position + AddressLength + PortLength)
-      new InetSocketAddress(address, Ints.fromByteArray(portBytes))
-    }
+  override val messageName: String = PeersSpec.messageName
+
+  // todo rewrite with new serialization
+  override def toBytes(peers: Seq[Handshake]): Array[Byte] = {
+    peers.flatMap { p =>
+      val b = handshakeSerializer.toBytes(p)
+      Ints.toByteArray(b.length) ++ b
+    }.toArray
   }
 
-  override def toBytes(peers: Seq[InetSocketAddress]): Array[Byte] = {
-    val length = peers.size
-    val lengthBytes = Ints.toByteArray(length)
-
-    peers.foldLeft(lengthBytes) { case (bs, peer) =>
-      Bytes.concat(bs, peer.getAddress.getAddress, Ints.toByteArray(peer.getPort))
+  override def parseBytes(bytes: Array[Byte]): Try[Seq[Handshake]] = Try {
+    @tailrec
+    def loop(i: Int, acc: Seq[Handshake]): Seq[Handshake] = if (i < bytes.length) {
+      val l = Ints.fromByteArray(bytes.slice(i, i + 4))
+      val peer = handshakeSerializer.parseBytes(bytes.slice(i + 4, i + 4 + l)).get
+      loop(i + 4 + l, peer +: acc)
+    } else {
+      acc
     }
+
+    loop(0, Seq())
   }
+
 }
