@@ -169,12 +169,12 @@ object SimpleBoxTransactionSerializer extends ScorexSerializer[SimpleBoxTransact
     )
     m.from.foreach { f =>
       PublicKey25519PropositionSerializer.serialize(f._1, w)
-      w.putULong(f._2)
+      w.putLong(f._2)
     }
 
     m.to.foreach { t =>
       PublicKey25519PropositionSerializer.serialize(t._1, w)
-      w.putULong(t._2)
+      w.putLong(t._2)
     }
   }
 
@@ -189,12 +189,12 @@ object SimpleBoxTransactionSerializer extends ScorexSerializer[SimpleBoxTransact
     }
     val from = (0 until fromLength.toIntExact) map { i =>
       val pk = PublicKey25519PropositionSerializer.parse(r)
-      val v = r.getULong()
+      val v = r.getLong()
       (pk, Nonce @@ v)
     }
     val to = (0 until toLength.toIntExact) map { i =>
       val pk = PublicKey25519PropositionSerializer.parse(r)
-      val v = r.getULong()
+      val v = r.getLong()
       (pk, Value @@ v)
     }
     SimpleBoxTransaction(from, to, signatures, fee, timestamp)

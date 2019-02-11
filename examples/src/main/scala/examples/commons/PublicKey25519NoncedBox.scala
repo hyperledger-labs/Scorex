@@ -42,15 +42,15 @@ object PublicKey25519NoncedBoxSerializer extends ScorexSerializer[PublicKey25519
 
   override def serialize(obj: PublicKey25519NoncedBox, w: Writer): Unit = {
     PublicKey25519PropositionSerializer.serialize(obj.proposition, w)
-    w.putULong(obj.nonce)
-    w.putULong(obj.value)
+    w.putLong(obj.nonce)
+    w.putLong(obj.value)
   }
 
   override def parse(r: Reader): PublicKey25519NoncedBox = {
     PublicKey25519NoncedBox(
       PublicKey25519PropositionSerializer.parse(r),
-      Nonce @@ r.getULong(),
-      Value @@ r.getULong()
+      Nonce @@ r.getLong(),
+      Value @@ r.getLong()
     )
   }
 }

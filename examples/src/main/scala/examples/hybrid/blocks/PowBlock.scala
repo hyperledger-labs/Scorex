@@ -42,7 +42,7 @@ object PowBlockHeaderSerializer extends ScorexSerializer[PowBlockHeader] {
      w.putBytes(idToBytes(h.parentId))
      w.putBytes(idToBytes(h.prevPosId))
      w.putULong(h.timestamp)
-     w.putULong(h.nonce)
+     w.putLong(h.nonce)
      w.putUInt(h.brothersCount)
      w.putBytes(h.brothersHash)
      w.putBytes(h.generatorProposition.pubKeyBytes)
@@ -52,7 +52,7 @@ object PowBlockHeaderSerializer extends ScorexSerializer[PowBlockHeader] {
     val parentId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
     val prevPosId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
     val timestamp = r.getULong()
-    val nonce = r.getULong()
+    val nonce = r.getLong()
     val brothersCount = r.getUInt().toIntExact
     val brothersHash = r.getBytes(Blake2b256.DigestSize)
     val prop = PublicKey25519PropositionSerializer.parse(r)
