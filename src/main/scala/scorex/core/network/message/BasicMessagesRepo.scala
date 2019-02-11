@@ -20,7 +20,7 @@ object BasicMsgDataTypes {
 
 import scorex.core.network.message.BasicMsgDataTypes._
 
-class SyncInfoMessageSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) extends MessageSpec[SI] {
+class SyncInfoMessageSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) extends MessageSpecV1[SI] {
 
   override val messageCode: MessageCode = 65: Byte
   override val messageName: String = "Sync"
@@ -35,7 +35,7 @@ object InvSpec {
   val MessageName: String = "Inv"
 }
 
-class InvSpec(maxInvObjects: Int) extends MessageSpec[InvData] {
+class InvSpec(maxInvObjects: Int) extends MessageSpecV1[InvData] {
 
   import InvSpec._
 
@@ -70,8 +70,7 @@ object RequestModifierSpec {
   val MessageName: String = "RequestModifier"
 }
 
-class RequestModifierSpec(maxInvObjects: Int)
-  extends MessageSpec[InvData] {
+class RequestModifierSpec(maxInvObjects: Int) extends MessageSpecV1[InvData] {
 
   import RequestModifierSpec._
 
@@ -93,7 +92,7 @@ object ModifiersSpec {
   val MessageName: String = "Modifier"
 }
 
-class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with ScorexLogging {
+class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] with ScorexLogging {
 
   import ModifiersSpec._
 
@@ -137,7 +136,7 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpec[ModifiersData] with
   }
 }
 
-object GetPeersSpec extends MessageSpec[Unit] {
+object GetPeersSpec extends MessageSpecV1[Unit] {
   override val messageCode: Message.MessageCode = 1: Byte
 
   override val messageName: String = "GetPeers message"
@@ -148,7 +147,7 @@ object GetPeersSpec extends MessageSpec[Unit] {
   override def toBytes(data: Unit): Array[Byte] = Array()
 }
 
-object PeersSpec extends MessageSpec[Seq[InetSocketAddress]] {
+object PeersSpec extends MessageSpecV1[Seq[InetSocketAddress]] {
   private val AddressLength = 4
   private val PortLength = 4
   private val DataLength = 4

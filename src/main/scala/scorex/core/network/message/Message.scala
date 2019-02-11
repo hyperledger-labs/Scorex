@@ -11,6 +11,7 @@ import scala.util.{Success, Try}
 case class Message[Content](spec: MessageSpec[Content],
                             input: Either[Array[Byte], Content],
                             source: Option[ConnectedPeer]) {
+
   import Message._
 
   lazy val dataBytes: Array[Byte] = input match {
@@ -35,6 +36,7 @@ class MessageSerializer(specs: Seq[MessageSpec[_]], magicBytes: Array[Byte]) {
   import Message.{ChecksumLength, HeaderLength, MagicLength}
 
   import scala.language.existentials
+
   private implicit val byteOrder: ByteOrder = ByteOrder.BIG_ENDIAN
 
   private val specsMap = Map(specs.map(s => s.messageCode -> s): _*)
