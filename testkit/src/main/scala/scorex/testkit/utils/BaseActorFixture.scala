@@ -10,6 +10,11 @@ object SysId {
   def incrementAndGet(): Int = i.incrementAndGet()
 }
 
-class AkkaFixture
-  extends TestKit(ActorSystem("WithIsoFix-%d".format(SysId.incrementAndGet())))
-    with ImplicitSender
+class BaseActorFixture(system: ActorSystem = ActorSystem("WithIsoFix-%d".format(SysId.incrementAndGet())))
+  extends TestKit(system)
+    with ImplicitSender {
+
+  def close(): Unit = {
+    shutdown(system)
+  }
+}

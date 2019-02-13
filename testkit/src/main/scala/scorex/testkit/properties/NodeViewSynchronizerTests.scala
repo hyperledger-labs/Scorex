@@ -1,10 +1,14 @@
 package scorex.testkit.properties
 
 import akka.actor._
-import akka.testkit.TestProbe
+import akka.pattern.ask
+import akka.testkit.{ImplicitSender, TestProbe}
+import akka.util.Timeout
 import org.scalacheck.Gen
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
+import scorex.core.NodeViewComponent.MempoolComponent
+import scorex.core.NodeViewComponentOperation.GetReader
 import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, ModifiersFromRemote}
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
@@ -17,45 +21,34 @@ import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.state.MinimalState
-import scorex.core.transaction.{MemoryPool, Transaction}
+import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
-import scorex.testkit.utils.AkkaFixture
+import scorex.testkit.utils.BaseActorFixture
 import scorex.util.ScorexLogging
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.Failure
+import scala.util.{Failure, Success}
 
 @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
-trait NodeViewSynchronizerTests[
-TX <: Transaction,
-PM <: PersistentNodeViewModifier,
-ST <: MinimalState[PM, ST],
-SI <: SyncInfo,
-HT <: History[PM, SI, HT],
-MP <: MemoryPool[TX, MP]
-] extends PropSpec
+trait NodeViewSynchronizerTests[TX <: Transaction, PM <: PersistentNodeViewModifier, State <: MinimalState[PM, State],
+                                SI <: SyncInfo, HT <: History[PM, SI, HT]]
+  extends PropSpec
   with Matchers
   with PropertyChecks
   with ScorexLogging
   with SyntacticallyTargetedModifierProducer[PM, SI, HT]
-  with TotallyValidModifierProducer[PM, ST, SI, HT] {
+  with TotallyValidModifierProducer[PM, State, SI, HT] {
 
   val historyGen: Gen[HT]
-  val memPool: MP
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
-
-  class SynchronizerFixture extends AkkaFixture {
-    @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-    val (node, syncInfo, mod, tx, peer, pchProbe, ncProbe, vhProbe, eventListener) = nodeViewSynchronizer
-  }
+  def createFixture(): SynchronizerFixture[TX, PM, SI]
 
   // ToDo: factor this out of here and NVHTests?
-  private def withFixture(testCode: SynchronizerFixture => Any): Unit = {
-    val fixture = new SynchronizerFixture
+  private def withFixture(testCode: SynchronizerFixture[TX, PM, SI] => Any): Unit = {
+    val fixture = createFixture()
     try {
       testCode(fixture)
     }
@@ -63,6 +56,8 @@ MP <: MemoryPool[TX, MP]
       Await.result(fixture.system.terminate(), Duration.Inf)
     }
   }
+
+  implicit val timeout: Timeout = Timeout(10.seconds)
 
   property("NodeViewSynchronizer: SuccessfulTransaction") {
     withFixture { ctx =>
@@ -203,12 +198,14 @@ MP <: MemoryPool[TX, MP]
       val h = historyGen.sample.get
       val mod = syntacticallyValidModifier(h)
       val (newH, _) = h.append(mod).get
-      val m = memPool
       val spec = new RequestModifierSpec(3)
       val modifiers = Seq(mod.id)
       node ! ChangedHistory(newH)
-      node ! ChangedMempool(m)
       node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
+      (memoryPool ? GetReader(MempoolComponent)).mapTo[MempoolReader[TX]].onComplete {
+        case Success(reader) => node ! ChangedMempool(reader)
+        case Failure(e) => log.error(s"Cannot get memory pool reader ${e.getMessage}", e)
+      }
 
       pchProbe.fishForMessage(5 seconds) {
         case _: Message[_] => true
@@ -268,3 +265,17 @@ MP <: MemoryPool[TX, MP]
   }
 
 }
+
+class SynchronizerFixture[TX <: Transaction, PM <: PersistentNodeViewModifier, SI <: SyncInfo](
+    system: ActorSystem,
+    val node: ActorRef,
+    val memoryPool: ActorRef,
+    val syncInfo: SI,
+    val mod: PM,
+    val tx: TX,
+    val peer: ConnectedPeer,
+    val pchProbe: TestProbe,
+    val ncProbe: TestProbe,
+    val vhProbe: TestProbe,
+    val eventListener: TestProbe
+) extends BaseActorFixture(system)

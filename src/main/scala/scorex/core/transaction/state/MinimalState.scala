@@ -9,15 +9,14 @@ import scala.util.Try
 /**
   * Abstract functional interface of state which is a result of a sequential blocks applying
   */
-trait MinimalState[M <: PersistentNodeViewModifier, MS <: MinimalState[M, MS]] extends StateReader {
-  self: MS =>
+trait MinimalState[M <: PersistentNodeViewModifier, State <: MinimalState[M, State]] extends StateReader {
+  self: State =>
 
-  def applyModifier(mod: M): Try[MS]
+  def applyModifier(mod: M): Try[State]
 
-  def rollbackTo(version: VersionTag): Try[MS]
+  def rollbackTo(version: VersionTag): Try[State]
 
-  /**
-    * @return read-only copy of this state
+  /** read-only copy of this state
     */
   def getReader: StateReader = this
 

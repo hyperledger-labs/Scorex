@@ -26,10 +26,8 @@ import scala.util.Try
   */
 object PrivateChain extends App with ScorexLogging with ScorexEncoding {
 
-  val proposition: PublicKey25519Proposition = PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
-
-  def genesisState(): (HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool)  = {
-    HybridNodeViewHolder.generateGenesisState(hybridSettings, new NetworkTimeProvider(settings.ntp))
+  val proposition: PublicKey25519Proposition = {
+    PublicKey25519Proposition(PublicKey @@ scorex.utils.Random.randomBytes(32))
   }
 
   def generatePow(h: HybridHistory, brother: Boolean, hashesPerSecond: Int): PowBlock = {
@@ -64,8 +62,12 @@ object PrivateChain extends App with ScorexLogging with ScorexEncoding {
 
     Path.apply(settings.dataDir).deleteRecursively()
 
-    var (history, _, wallet, _) = genesisState()
-
+    val timeProvider = new NetworkTimeProvider(settings.ntp)
+    val genesisPow = HybridNodeViewHolder.generateGenesisPow(hybridSettings)
+    val genesisPos = HybridNodeViewHolder.generateGenesisPos(genesisPow)
+    var history = HybridNodeViewHolder.generateGenesisHistory(hybridSettings, timeProvider, genesisPow, genesisPos)
+    val genesisState = HybridNodeViewHolder.generateGenesisState(hybridSettings, genesisPow, genesisPos)
+    val wallet =  HybridNodeViewHolder.generateGenesisWallet(hybridSettings, genesisState, genesisPow, genesisPos)
     val boxes = wallet.boxes().map(_.box).take(adversarialStakePercent)
     val boxKeys = boxes.flatMap(b => wallet.secretByPublicImage(b.proposition).map(s => (b, s)))
 

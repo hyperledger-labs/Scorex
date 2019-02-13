@@ -9,6 +9,7 @@ import examples.hybrid.state.HBoxStoredState
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.block.Block._
+import scorex.core.transaction.MempoolReader
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
 import scorex.core.transaction.state._
@@ -169,9 +170,8 @@ trait HybridGenerators extends ExamplesCommonGenerators
     } yield PosBlock.create(id, timestamp, txs, box.copy(proposition = generator.publicImage), attach, generator)
   }.apply(Gen.Parameters.default, Seed.random()).get
 
-
-  def modifierWithTransactions(memoryPoolOpt: Option[SimpleBoxTransactionMemPool],
-                               customTransactionsOpt: Option[Seq[SimpleBoxTransaction]]): PosBlock = {
+  def modifierWithTransactions(memoryPoolOpt: Option[MempoolReader[TX]],
+                               customTransactionsOpt: Option[Seq[TX]]): PosBlock = {
 
     val (id, timestamp, box, attach, generator) = (for {
       id <- modifierIdGen

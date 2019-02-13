@@ -12,9 +12,9 @@ import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.wallet.Vault
-import scorex.core.transaction.{MemoryPool, Transaction}
+import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.testkit.generators._
-import scorex.testkit.utils.AkkaFixture
+import scorex.testkit.utils.BaseActorFixture
 import scorex.util.ScorexLogging
 
 import scala.concurrent.Await
@@ -27,7 +27,7 @@ PM <: PersistentNodeViewModifier,
 ST <: MinimalState[PM, ST],
 SI <: SyncInfo,
 HT <: History[PM, SI, HT],
-MPool <: MemoryPool[TX, MPool]]
+MPool <: MempoolReader[TX]]
   extends PropSpec
     with Matchers
     with PropertyChecks
@@ -40,7 +40,7 @@ MPool <: MemoryPool[TX, MPool]]
 
   def nodeViewHolder(implicit system: ActorSystem): (ActorRef, TestProbe, PM, ST, HT)
 
-  class HolderFixture extends AkkaFixture {
+  class HolderFixture extends BaseActorFixture {
     @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
     val (node, eventListener, mod, s, h) = nodeViewHolder
   }

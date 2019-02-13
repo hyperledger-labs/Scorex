@@ -94,4 +94,10 @@ object History {
     }
   }
 
+  object ProgressInfo {
+    def empty[PM <: PersistentNodeViewModifier](implicit encoder: ScorexEncoder): ProgressInfo[PM] = {
+      apply(None, Seq.empty, Seq.empty, Seq.empty)
+    }
+  }
+
 }

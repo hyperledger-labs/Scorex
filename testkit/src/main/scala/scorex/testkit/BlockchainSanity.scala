@@ -1,10 +1,10 @@
 package scorex.testkit
 
-import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.Proposition
-import scorex.core.transaction.{BoxTransaction, MemoryPool}
+import scorex.core.transaction.{BoxTransaction, MempoolReader}
+import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.mid.state.BoxMinimalState
 import scorex.testkit.generators.AllModifierProducers
 import scorex.testkit.properties._
@@ -21,7 +21,7 @@ PM <: PersistentNodeViewModifier,
 CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[TX],
 SI <: SyncInfo,
 B <: Box[P],
-MPool <: MemoryPool[TX, MPool],
+MPool <: MempoolReader[TX],
 ST <: BoxMinimalState[P, B, TX, PM, ST],
 HT <: History[PM, SI, HT]]
   extends
@@ -31,10 +31,10 @@ HT <: History[PM, SI, HT]]
     with BoxStateApplyChangesTest[P, TX, PM, B, ST]
     with WalletSecretsTest[P, TX, PM]
     with BoxStateRollbackTest[P, TX, PM, CTM, B, ST]
-    with MempoolTransactionsTest[TX, MPool]
-    with MempoolFilterPerformanceTest[TX, MPool]
-    with MempoolRemovalTest[TX, MPool, PM, CTM, HT, SI]
-    with AllModifierProducers[TX, MPool, PM, CTM, ST, SI, HT]
+    with MempoolTransactionsTest[TX]
+    with MempoolFilterPerformanceTest[TX]
+    with MempoolRemovalTest[TX, PM, CTM, HT, SI]
+    with AllModifierProducers[TX, PM, CTM, ST, SI, HT]
     with NodeViewHolderTests[TX, PM, ST, SI, HT, MPool]
-    with NodeViewSynchronizerTests[TX, PM, ST, SI, HT, MPool] {
+    with NodeViewSynchronizerTests[TX, PM, ST, SI, HT] {
 }
