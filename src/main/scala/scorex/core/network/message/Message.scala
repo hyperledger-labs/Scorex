@@ -30,9 +30,9 @@ case class Message[Content](spec: MessageSpec[Content],
   }
 }
 
-class MessageSerializer(specs: Seq[MessageSpec[_]]) {
+class MessageSerializer(specs: Seq[MessageSpec[_]], magicBytes: Array[Byte]) {
 
-  import Message.{ChecksumLength, HeaderLength, MAGIC, MagicLength}
+  import Message.{ChecksumLength, HeaderLength, MagicLength}
 
   import scala.language.existentials
   private implicit val byteOrder: ByteOrder = ByteOrder.BIG_ENDIAN
@@ -42,7 +42,7 @@ class MessageSerializer(specs: Seq[MessageSpec[_]]) {
 
   def serialize(obj: Message[_]): ByteString = {
     val builder = ByteString.createBuilder
-      .putBytes(MAGIC)
+      .putBytes(magicBytes)
       .putByte(obj.spec.messageCode)
       .putInt(obj.dataLength)
 
@@ -63,7 +63,7 @@ class MessageSerializer(specs: Seq[MessageSpec[_]]) {
       val magic = it.getBytes(MagicLength)
       val msgCode = it.getByte
       val length = it.getInt
-      require(java.util.Arrays.equals(magic, Message.MAGIC), "Wrong magic bytes" + magic.mkString)
+      require(java.util.Arrays.equals(magic, magicBytes), "Wrong magic bytes" + magic.mkString)
       require(length >= 0, "Data length is negative!")
 
       val spec = specsMap.getOrElse(msgCode, throw new Error(s"No message handler found for $msgCode"))
@@ -90,10 +90,7 @@ class MessageSerializer(specs: Seq[MessageSpec[_]]) {
 object Message {
   type MessageCode = Byte
 
-  val MAGIC: Array[Byte] = Array[Byte](0x12: Byte, 0x34: Byte, 0x56: Byte, 0x78: Byte)
-
-  val MagicLength: Int = MAGIC.length
-
+  val MagicLength: Int = 4
   val ChecksumLength: Int = 4
   val HeaderLength: Int = MagicLength + 5
 }
