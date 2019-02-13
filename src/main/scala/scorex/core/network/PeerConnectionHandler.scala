@@ -169,10 +169,6 @@ class PeerConnectionHandler(settings: NetworkSettings,
         case None =>
           sendOutMessage()
       }
-
-    case Blacklist =>
-      peerManagerRef ! AddToBlacklist(remote)
-      connection ! Close
   }
 
   def workingCycleRemoteInterface: Receive = {
@@ -210,7 +206,6 @@ object PeerConnectionHandler {
     case object StartInteraction
     case object HandshakeTimeout
     case object CloseConnection
-    case object Blacklist
   }
 
 }

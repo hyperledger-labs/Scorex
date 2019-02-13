@@ -18,7 +18,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-
 class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef, settings: NetworkSettings)
                       (implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
@@ -46,7 +45,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef, peerManager: ActorRef
       (peerManager ? RandomPeers(3))
         .mapTo[Seq[PeerInfo]]
         .foreach { peers =>
-          val addresses = if (peer.remote.getAddress.isSiteLocalAddress) {
+          val addresses = if (peer.remoteAddress.getAddress.isSiteLocalAddress) {
             peers.flatMap { peer =>
               peer.features
                 .collectFirst { case LocalAddressPeerFeature(addr) => addr }

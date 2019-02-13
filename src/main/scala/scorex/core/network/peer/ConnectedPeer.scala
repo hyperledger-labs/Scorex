@@ -4,16 +4,16 @@ import java.net.InetSocketAddress
 
 import akka.actor.ActorRef
 
-case class ConnectedPeer(remote: InetSocketAddress,
+case class ConnectedPeer(remoteAddress: InetSocketAddress,
                          handlerRef: ActorRef,
                          peerInfo: Option[PeerInfo]) {
 
   import shapeless.syntax.typeable._
 
-  override def hashCode(): Int = remote.hashCode()
+  override def hashCode(): Int = remoteAddress.hashCode()
 
   override def equals(obj: Any): Boolean =
-    obj.cast[ConnectedPeer].exists(p => p.remote == this.remote && peerInfo == this.peerInfo)
+    obj.cast[ConnectedPeer].exists(p => p.remoteAddress == this.remoteAddress && peerInfo == this.peerInfo)
 
-  override def toString: String = s"ConnectedPeer($remote)"
+  override def toString: String = s"ConnectedPeer($remoteAddress)"
 }
