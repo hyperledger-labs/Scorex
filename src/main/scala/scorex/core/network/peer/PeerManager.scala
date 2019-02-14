@@ -43,8 +43,12 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   }: Receive) orElse peerListOperations orElse apiInterface
 
   private def peerListOperations: Receive = {
-    case AddOrUpdatePeer(peerInfo) =>
-      peerDatabase.addOrUpdateKnownPeer(peerInfo)
+    case AddOrUpdatePeer(handshake) =>
+      if (!(handshake.declaredAddress.exists(isSelf) || handshake.localAddressOpt.exists(isSelf))) {
+        val peerInfo = PeerInfo(handshake.time, handshake.declaredAddress, handshake.protocolVersion,
+          Some(handshake.nodeName), None, handshake.features)
+        peerDatabase.addOrUpdateKnownPeer(peerInfo)
+      }
 
     case RemovePeer(address) =>
       peerDatabase.remove(address)
@@ -107,7 +111,7 @@ object PeerManager {
     case class AddToBlacklist(remote: InetSocketAddress)
 
     // peerListOperations messages
-    case class AddOrUpdatePeer(peerInfo: PeerInfo)
+    case class AddOrUpdatePeer(handshake: Handshake)
 
     case class RemovePeer(address: InetSocketAddress)
 

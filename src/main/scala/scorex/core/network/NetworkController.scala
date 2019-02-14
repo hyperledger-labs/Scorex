@@ -260,7 +260,7 @@ class NetworkController(settings: NetworkSettings,
       } else {
         if (peerInfo.reachablePeer) {
           val infoWithAddress = peerInfo.copy(address = Some(peerAddress))
-          peerManagerRef ! AddOrUpdatePeer(infoWithAddress)
+          peerManagerRef ! AddOrUpdatePeer(infoWithAddress.handshake)
         } else {
           peerManagerRef ! RemovePeer(peerAddress)
         }

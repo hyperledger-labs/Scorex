@@ -32,7 +32,7 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
     val peerManager = PeerManagerRef(settings, scorexContext)(system)
     val peerInfo = PeerInfo(timeProvider.time(), Some(selfAddress), Version.last)
 
-    peerManager ! AddOrUpdatePeer(peerInfo)
+    peerManager ! AddOrUpdatePeer(peerInfo.handshake)
     peerManager ! GetAllPeers
     val data = p.expectMsgClass(classOf[Data])
 
@@ -52,7 +52,7 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
     val peerAddress = new InetSocketAddress("1.1.1.1", DefaultPort)
     val peerInfo = PeerInfo(timeProvider.time(), Some(peerAddress), Version.last)
 
-    peerManager ! AddOrUpdatePeer(peerInfo)
+    peerManager ! AddOrUpdatePeer(peerInfo.handshake)
     peerManager ! GetAllPeers
 
     val data = p.expectMsgClass(classOf[Data])
