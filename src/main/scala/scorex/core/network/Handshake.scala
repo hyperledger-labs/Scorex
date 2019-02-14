@@ -24,8 +24,10 @@ case class Handshake(applicationName: String,
   }
 }
 
-class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
-                          maxHandshakeSize: Int) extends Serializer[Handshake] {
+class HandshakeSerializer(featureSerializers: PeerFeature.Serializers) extends Serializer[Handshake] {
+
+  // todo what is the real limit?
+  private val maxHandshakeSize: Int = 2048
 
   override def toBytes(obj: Handshake): Array[Byte] = {
     val anb = obj.applicationName.getBytes
@@ -113,4 +115,5 @@ class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
 
     Handshake(an, av, nodeName, isaOpt, feats, time)
   }
+
 }

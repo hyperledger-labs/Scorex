@@ -35,7 +35,7 @@ class HandshakeSpecification extends PropSpec
 
         whenever(appName.nonEmpty) {
 
-          val handshakeSerializer = new HandshakeSerializer(serializers, 2048)
+          val handshakeSerializer = new HandshakeSerializer(serializers)
 
           val h1 = Handshake(appName, av, nodeName, None, feats, time)
           val hr1: Handshake = handshakeSerializer.parseBytes(handshakeSerializer.toBytes(h1)).get

@@ -34,6 +34,7 @@ case class NetworkSettings(nodeName: String,
                            appVersion: String,
                            agentName: String,
                            maxPacketSize: Int,
+                          //todo remove maxHandshakeSize?
                            maxHandshakeSize: Int,
                            maxInvObjects: Int,
                            desiredInvObjects: Int,

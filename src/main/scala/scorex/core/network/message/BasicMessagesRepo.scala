@@ -1,14 +1,10 @@
 package scorex.core.network.message
 
 
-import java.net.{InetAddress, InetSocketAddress}
-import java.util
-
 import com.google.common.primitives.{Bytes, Ints}
 import scorex.core.consensus.SyncInfo
-import scorex.core.network.{Handshake, HandshakeSerializer, PeerFeature}
 import scorex.core.network.message.Message.MessageCode
-import scorex.core.network.peer.PeerInfo
+import scorex.core.network.{Handshake, HandshakeSerializer, PeerFeature}
 import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 
@@ -158,9 +154,7 @@ object PeersSpec {
 }
 
 class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Seq[Handshake]] {
-  // todo real maxHandshakeSize ?
-  private val MaxHandshakeSize: Int = 1024
-  private val handshakeSerializer = new HandshakeSerializer(featureSerializers, MaxHandshakeSize)
+  private val handshakeSerializer = new HandshakeSerializer(featureSerializers)
 
   override val messageCode: Message.MessageCode = PeersSpec.messageCode
 
@@ -186,5 +180,30 @@ class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpec
 
     loop(0, Seq())
   }
+
+}
+
+
+object HandshakeSpec {
+  val messageCode: MessageCode = 75: Byte
+  val messageName: String = "Handshake"
+}
+
+class HandshakeSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Handshake] {
+
+  private val handshakeSerializer = new HandshakeSerializer(featureSerializers)
+
+  /**
+    * Code which identifies what message type is contained in the payload
+    */
+  override val messageCode: MessageCode = HandshakeSpec.messageCode
+  /**
+    * Name of this message type. For debug purposes only.
+    */
+  override val messageName: String = HandshakeSpec.messageName
+
+  override def toBytes(obj: Handshake): Array[Byte] = handshakeSerializer.toBytes(obj)
+
+  override def parseBytes(bytes: Array[Byte]): Try[Handshake] = handshakeSerializer.parseBytes(bytes)
 
 }
