@@ -24,7 +24,9 @@ case class PeersApiRoute(peerManager: ActorRef,
                          override val settings: RESTApiSettings)
                         (implicit val context: ActorRefFactory, val ec: ExecutionContext) extends ApiRoute {
 
-  override lazy val route: Route = pathPrefix("peers") { allPeers ~ connectedPeers ~ blacklistedPeers ~ connect }
+  override lazy val route: Route = pathPrefix("peers") {
+    allPeers ~ connectedPeers ~ blacklistedPeers ~ connect
+  }
 
   def allPeers: Route = (path("all") & get) {
     val result = askActor[Map[InetSocketAddress, PeerInfo]](peerManager, GetAllPeers).map {
@@ -36,10 +38,8 @@ case class PeersApiRoute(peerManager: ActorRef,
   }
 
   def connectedPeers: Route = (path("connected") & get) {
-    val now = System.currentTimeMillis()
     val result = askActor[Seq[PeerInfo]](networkController, GetConnectedPeers).map {
       _.map { peerInfo =>
-        // todo
         PeerInfoResponse(
           address = peerInfo.peerData.declaredAddress.map(_.toString).getOrElse(""),
           lastSeen = peerInfo.lastSeen,
@@ -60,14 +60,7 @@ case class PeersApiRoute(peerManager: ActorRef,
       case Some(addressAndPort) =>
         val host = InetAddress.getByName(addressAndPort.group(1))
         val port = addressAndPort.group(2).toInt
-/*
-        // todo get correct version and features
-        val version = Version.initial
-        val features: Seq[PeerFeature] = Seq()
-        val name: String = s"api-$host:$port"
-        val peerInfo = PeerInfo(timeProvider.time(), Some(new InetSocketAddress(host, port)), version, name, None, features)
-        networkController ! ConnectTo(peerInfo)
-*/
+        networkController ! ConnectTo(PeerInfo.fromAddress(new InetSocketAddress(host, port), timeProvider.time()))
         ApiResponse.OK
     }
   }
