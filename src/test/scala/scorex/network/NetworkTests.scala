@@ -17,8 +17,8 @@ class NetworkTests extends FlatSpec with Matchers {
 
   protected def currentTime(): TimeProvider.Time = timeProvider.time()
 
-  protected def getPeerInfo(address: InetSocketAddress): PeerInfo = {
-    val data = PeerData("full node", Version.last, address.toString, Some(address), Seq())
+  protected def getPeerInfo(address: InetSocketAddress, nameOpt: Option[String] = None): PeerInfo = {
+    val data = PeerData("full node", Version.last, nameOpt.getOrElse(address.toString), Some(address), Seq())
     PeerInfo(data, currentTime(), None)
   }
 

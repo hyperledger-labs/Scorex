@@ -37,9 +37,9 @@ class PeerDatabaseImplSpec extends NetworkTests {
 
   it should "return an updated peer after updating a peer" in {
     val db = new PeerDatabaseImpl(None)
-    val peerInfo = getPeerInfo(peerAddress1)
+    val peerInfo = getPeerInfo(peerAddress1, Some("initialName"))
     db.addOrUpdateKnownPeer(peerInfo)
-    val newPeerInfo = getPeerInfo(peerAddress1)
+    val newPeerInfo = getPeerInfo(peerAddress1, Some("updatedName"))
     db.addOrUpdateKnownPeer(newPeerInfo)
 
     (peerInfo == newPeerInfo) shouldBe false
