@@ -24,15 +24,10 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address)) {
-        // todo
-/*
-        val version = Version.initial
-        val features: Seq[PeerFeature] = Seq()
-        val name = s"settings-node-$address"
-
-        val defaultPeerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), version, name, None, features)
+        // fill database with peers from config file if empty
+        val peerData = PeerData("configNode", Version.last, s"config-${address}", Some(address), Seq())
+        val defaultPeerInfo = PeerInfo(peerData, scorexContext.timeProvider.time(), None)
         peerDatabase.addOrUpdateKnownPeer(defaultPeerInfo)
-*/
       }
     }
   }
@@ -117,8 +112,10 @@ object PeerManager {
 
     case class RemovePeer(address: InetSocketAddress)
 
+    //todo unused?
     case object KnownPeers
 
+    //todo unused?
     case object RandomPeer
 
     case class RandomPeers(hawMany: Int)
