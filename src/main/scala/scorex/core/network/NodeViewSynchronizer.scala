@@ -95,18 +95,18 @@ MR <: MempoolReader[TX] : ClassTag]
 
   protected def viewHolderEvents: Receive = {
     case SuccessfulTransaction(tx) =>
-      deliveryTracker.onApply(tx.id)
+      deliveryTracker.setHeld(tx.id)
       broadcastModifierInv(tx)
 
     case FailedTransaction(tx, _) =>
-      deliveryTracker.onInvalid(tx.id)
+      deliveryTracker.setInvalid(tx.id)
     //todo: penalize source peer?
 
     case SyntacticallySuccessfulModifier(mod) =>
-      deliveryTracker.onApply(mod.id)
+      deliveryTracker.setHeld(mod.id)
 
     case SyntacticallyFailedModification(mod, _) =>
-      deliveryTracker.onInvalid(mod.id)
+      deliveryTracker.setInvalid(mod.id)
     //todo: penalize source peer?
 
     case SemanticallySuccessfulModifier(mod) =>
@@ -124,7 +124,7 @@ MR <: MempoolReader[TX] : ClassTag]
     case ModifiersProcessingResult(applied: Seq[PMOD], cleared: Seq[PMOD]) =>
       // stop processing for cleared modifiers
       // applied modifiers state was already changed at `SyntacticallySuccessfulModifier`
-      cleared.foreach(m => deliveryTracker.stopProcessing(m.id))
+      cleared.foreach(m => deliveryTracker.setUnknown(m.id))
       requestMoreModifiers(applied)
   }
 
@@ -232,7 +232,7 @@ MR <: MempoolReader[TX] : ClassTag]
           if (newModifierIds.nonEmpty) {
             val msg = Message(requestModifierSpec, Right(modifierTypeId -> newModifierIds), None)
             peer.handlerRef ! msg
-            deliveryTracker.onRequest(Some(peer), modifierTypeId, newModifierIds)
+            deliveryTracker.setRequested(newModifierIds, modifierTypeId, Some(peer))
           }
 
         case _ =>
@@ -303,16 +303,16 @@ MR <: MempoolReader[TX] : ClassTag]
         hr.applicableTry(pmod) match {
           case Failure(e) if e.isInstanceOf[MalformedModifierError] =>
             log.warn(s"Modifier ${pmod.encodedId} is permanently invalid", e)
-            deliveryTracker.onInvalid(pmod.id)
+            deliveryTracker.setInvalid(pmod.id)
             penalizeMisbehavingPeer(remote)
             false
           case _ =>
-            deliveryTracker.onReceive(pmod.id)
+            deliveryTracker.setReceived(pmod.id, remote)
             true
         }
       case None =>
         log.error("Got modifier while history reader is not ready")
-        deliveryTracker.onReceive(pmod.id)
+        deliveryTracker.setReceived(pmod.id, remote)
         true
     }
   }
@@ -380,7 +380,7 @@ MR <: MempoolReader[TX] : ClassTag]
             // Random peer did not delivered modifier we need, ask another peer
             // We need this modifier - no limit for number of attempts
             log.info(s"Modifier ${encoder.encodeId(modifierId)} was not delivered on time")
-            deliveryTracker.stopProcessing(modifierId)
+            deliveryTracker.setUnknown(modifierId)
             requestDownload(modifierTypeId, Seq(modifierId))
         }
       }
@@ -437,7 +437,7 @@ MR <: MempoolReader[TX] : ClassTag]
     * Request this modifier from random peer.
     */
   protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
-    deliveryTracker.onRequest(None, modifierTypeId, modifierIds)
+    deliveryTracker.setRequested(modifierIds, modifierTypeId, None)
     val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
     //todo: A peer which is supposedly having the modifier should be here, not a random peer
     networkControllerRef ! SendToNetwork(msg, SendToRandom)
