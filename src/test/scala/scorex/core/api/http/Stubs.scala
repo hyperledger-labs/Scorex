@@ -20,8 +20,8 @@ trait Stubs {
   val peerFeatures: Seq[PeerFeature] = Seq()
 
   val peers = Map(
-    inetAddr1 -> PeerInfo(ts1, Some(inetAddr1), version, Some("first"), Some(Incoming), peerFeatures),
-    inetAddr2 -> PeerInfo(ts2, Some(inetAddr2), version, Some("second"), Some(Outgoing), peerFeatures)
+    inetAddr1 -> PeerInfo(ts1, Some(inetAddr1), version, "first", Some(Incoming), peerFeatures),
+    inetAddr2 -> PeerInfo(ts2, Some(inetAddr2), version, "second", Some(Outgoing), peerFeatures)
   )
 
   val protocolVersion = Version("1.1.1")

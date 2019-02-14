@@ -27,8 +27,9 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
         // todo get correct version and features
         val version = Version.initial
         val features: Seq[PeerFeature] = Seq()
+        val name = s"settings-node-$address"
 
-        val defaultPeerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), version, None, None, features)
+        val defaultPeerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), version, name, None, features)
         peerDatabase.addOrUpdateKnownPeer(defaultPeerInfo)
       }
     }
@@ -46,7 +47,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     case AddOrUpdatePeer(handshake) =>
       if (!(handshake.declaredAddress.exists(isSelf) || handshake.localAddressOpt.exists(isSelf))) {
         val peerInfo = PeerInfo(handshake.time, handshake.declaredAddress, handshake.protocolVersion,
-          Some(handshake.nodeName), None, handshake.features)
+          handshake.nodeName, None, handshake.features)
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 

@@ -62,7 +62,8 @@ case class PeersApiRoute(peerManager: ActorRef,
         // todo get correct version and features
         val version = Version.initial
         val features: Seq[PeerFeature] = Seq()
-        val peerInfo = PeerInfo(timeProvider.time(), Some(new InetSocketAddress(host, port)), version, None, None, features)
+        val name: String = s"api-$host:$port"
+        val peerInfo = PeerInfo(timeProvider.time(), Some(new InetSocketAddress(host, port)), version, name, None, features)
         networkController ! ConnectTo(peerInfo)
         ApiResponse.OK
     }
@@ -78,7 +79,7 @@ object PeersApiRoute {
 
   case class PeerInfoResponse(address: String,
                               lastSeen: Long,
-                              name: Option[String],
+                              name: String,
                               connectionType: Option[String])
 
   object PeerInfoResponse {

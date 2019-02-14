@@ -5,15 +5,17 @@ import java.net.InetSocketAddress
 import scorex.core.app.Version
 import scorex.core.network.{ConnectionType, Handshake, PeerFeature}
 
-//todo does this make sense to have address == None?
+/**
+  * Information about peer to be stored in PeerDatabase
+  */
 case class PeerInfo(lastSeen: Long,
                     address: Option[InetSocketAddress],
                     version: Version,
-                    nodeName: Option[String] = None,
+                    nodeName: String,
                     connectionType: Option[ConnectionType] = None,
                     features: Seq[PeerFeature] = Seq()) {
 
-  lazy val handshake: Handshake = Handshake("??", version, nodeName.getOrElse("??"), address, features: Seq[PeerFeature],
+  lazy val handshake: Handshake = Handshake("??", version, nodeName, address, features: Seq[PeerFeature],
     lastSeen)
 
   lazy val reachablePeer: Boolean = {

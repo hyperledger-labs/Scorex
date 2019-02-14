@@ -19,14 +19,13 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with Score
 
     peerInfo.address.foreach { address =>
       val updatedPeerInfo = whitelistPersistence.get(address).fold(peerInfo) { dbPeerInfo =>
-        val nodeNameOpt = peerInfo.nodeName orElse dbPeerInfo.nodeName
         val connTypeOpt = peerInfo.connectionType orElse dbPeerInfo.connectionType
         val feats = if (dbPeerInfo.features.nonEmpty && peerInfo.features.isEmpty) {
           dbPeerInfo.features
         } else {
           peerInfo.features
         }
-        PeerInfo(peerInfo.lastSeen, peerInfo.address, peerInfo.version, nodeNameOpt, connTypeOpt, feats)
+        PeerInfo(peerInfo.lastSeen, peerInfo.address, peerInfo.version, peerInfo.nodeName, connTypeOpt, feats)
       }
       whitelistPersistence.put(address, updatedPeerInfo)
     }

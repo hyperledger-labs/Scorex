@@ -110,7 +110,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
         scorexContext.timeProvider.time(),
         receivedHandshake.declaredAddress,
         receivedHandshake.protocolVersion,
-        Some(receivedHandshake.nodeName),
+        receivedHandshake.nodeName,
         Some(direction),
         receivedHandshake.features
       )

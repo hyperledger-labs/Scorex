@@ -265,7 +265,7 @@ class NetworkControllerSpec extends FlatSpec with Matchers {
     val handshakeFromNode = testPeer.receiveHandshake
     val nodeLocalAddress = extractLocalAddrFeat(handshakeFromNode).value.address
     testPeer.sendHandshake(None, Some(peerLocalAddress))
-    testPeer.sendPeers(Seq(PeerInfo(System.currentTimeMillis(), Some(nodeLocalAddress), Version.last)))
+    testPeer.sendPeers(Seq(PeerInfo(System.currentTimeMillis(), Some(nodeLocalAddress), Version.last, "peer1")))
 
     testPeer.sendGetPeers
     val peers = testPeer.receivePeers

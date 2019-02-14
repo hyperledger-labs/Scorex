@@ -9,14 +9,14 @@ import scorex.core.serialization.Serializer
 
 import scala.util.Try
 
-case class Handshake(applicationName: String,
+case class Handshake(agentName: String,
                      protocolVersion: Version,
                      nodeName: String,
                      declaredAddress: Option[InetSocketAddress],
                      features: Seq[PeerFeature],
                      time: Long) {
 
-  assert(Option(applicationName).isDefined)
+  assert(Option(agentName).isDefined)
   assert(Option(protocolVersion).isDefined)
 
   lazy val localAddressOpt: Option[InetSocketAddress] = {
@@ -30,7 +30,7 @@ class HandshakeSerializer(featureSerializers: PeerFeature.Serializers) extends S
   private val maxHandshakeSize: Int = 2048
 
   override def toBytes(obj: Handshake): Array[Byte] = {
-    val anb = obj.applicationName.getBytes
+    val anb = obj.agentName.getBytes
 
     val fab = obj.declaredAddress.map { isa =>
       Bytes.concat(isa.getAddress.getAddress, Ints.toByteArray(isa.getPort))
