@@ -35,8 +35,8 @@ class PeersApiRouteSpec extends FlatSpec
 
   val connectedPeersResp: Json = connectedPeers.map { handshake =>
     Map(
-      "address" -> handshake.declaredAddress.toString.asJson,
-      "name" -> handshake.nodeName.asJson,
+      "address" -> handshake.peerData.declaredAddress.toString.asJson,
+      "name" -> handshake.peerData.nodeName.asJson,
       "lastSeen" -> handshake.time.asJson
     ).asJson
   }.asJson

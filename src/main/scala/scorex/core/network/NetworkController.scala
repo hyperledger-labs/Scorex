@@ -250,7 +250,7 @@ class NetworkController(settings: NetworkSettings,
     connectionForHandler(peerHandler).foreach { connectedPeer =>
 
       log.trace(s"Got handshake from $peerInfo")
-      val peerAddress = peerInfo.address.orElse(peerInfo.localAddressOpt).getOrElse(connectedPeer.remote)
+      val peerAddress = peerInfo.peerData.address.getOrElse(connectedPeer.remote)
 
       //drop connection to self if occurred or peer already connected
       if (isSelf(connectedPeer.remote) || connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)) {
@@ -258,9 +258,8 @@ class NetworkController(settings: NetworkSettings,
         peerManagerRef ! RemovePeer(peerAddress)
         connections -= connectedPeer.remote
       } else {
-        if (peerInfo.reachablePeer) {
-          val infoWithAddress = peerInfo.copy(address = Some(peerAddress))
-          peerManagerRef ! AddOrUpdatePeer(infoWithAddress.handshake)
+        if (peerInfo.peerData.reachablePeer) {
+          peerManagerRef ! AddOrUpdatePeer(peerInfo.peerData)
         } else {
           peerManagerRef ! RemovePeer(peerAddress)
         }
@@ -324,7 +323,7 @@ class NetworkController(settings: NetworkSettings,
     * @return socket address of the peer
     */
   private def getPeerAddress(peer: PeerInfo): Option[InetSocketAddress] = {
-    (peer.localAddressOpt, peer.address) match {
+    (peer.peerData.localAddressOpt, peer.peerData.declaredAddress) match {
       case (Some(localAddr), _) =>
         Some(localAddr)
 
@@ -333,10 +332,7 @@ class NetworkController(settings: NetworkSettings,
 
         scorexContext.upnpGateway.flatMap(_.getLocalAddressForExternalPort(declaredAddress.getPort))
 
-      case (None, declaredAddressOpt) =>
-        declaredAddressOpt
-
-      case _ => peer.address
+      case _ => peer.peerData.declaredAddress
     }
   }
 

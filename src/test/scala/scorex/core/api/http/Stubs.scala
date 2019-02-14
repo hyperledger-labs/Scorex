@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.app.Version
 import scorex.core.network.peer.PeerInfo
-import scorex.core.network.{PeerFeature, Handshake, Incoming, Outgoing}
+import scorex.core.network._
 
 trait Stubs {
 
@@ -20,8 +20,8 @@ trait Stubs {
   val peerFeatures: Seq[PeerFeature] = Seq()
 
   val peers = Map(
-    inetAddr1 -> PeerInfo(ts1, Some(inetAddr1), version, "first", Some(Incoming), peerFeatures),
-    inetAddr2 -> PeerInfo(ts2, Some(inetAddr2), version, "second", Some(Outgoing), peerFeatures)
+    inetAddr1 -> PeerInfo(PeerData("app", version, "first", Some(inetAddr1), peerFeatures), ts1, Some(Incoming)),
+    inetAddr2 -> PeerInfo(PeerData("app", version, "second", Some(inetAddr2), peerFeatures), ts1, Some(Outgoing))
   )
 
   val protocolVersion = Version("1.1.1")

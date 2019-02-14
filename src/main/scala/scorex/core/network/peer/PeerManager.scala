@@ -24,13 +24,15 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   if (peerDatabase.isEmpty()) {
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address)) {
-        // todo get correct version and features
+        // todo
+/*
         val version = Version.initial
         val features: Seq[PeerFeature] = Seq()
         val name = s"settings-node-$address"
 
         val defaultPeerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), version, name, None, features)
         peerDatabase.addOrUpdateKnownPeer(defaultPeerInfo)
+*/
       }
     }
   }
@@ -44,10 +46,11 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   }: Receive) orElse peerListOperations orElse apiInterface
 
   private def peerListOperations: Receive = {
-    case AddOrUpdatePeer(handshake) =>
-      if (!(handshake.declaredAddress.exists(isSelf) || handshake.localAddressOpt.exists(isSelf))) {
-        val peerInfo = PeerInfo(handshake.time, handshake.declaredAddress, handshake.protocolVersion,
-          handshake.nodeName, None, handshake.features)
+    case AddOrUpdatePeer(peerData) =>
+      if (!(peerData.declaredAddress.exists(isSelf) || peerData.localAddressOpt.exists(isSelf))) {
+        // todo
+        val currentTime = System.currentTimeMillis()
+        val peerInfo = PeerInfo(peerData, currentTime, None)
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 
@@ -91,9 +94,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 
   private def randomPeerExcluded(excludedPeers: Seq[PeerInfo]): Option[PeerInfo] = {
     val candidates = peerDatabase.knownPeers().values.filterNot { p =>
-      excludedPeers.exists(e =>
-        e.address == p.address || (e.localAddressOpt.isDefined && e.localAddressOpt == p.localAddressOpt)
-      )
+      excludedPeers.exists(_.peerData.address == p.peerData.address)
     }.toSeq
 
     randomPeer(candidates)
@@ -112,7 +113,7 @@ object PeerManager {
     case class AddToBlacklist(remote: InetSocketAddress)
 
     // peerListOperations messages
-    case class AddOrUpdatePeer(handshake: Handshake)
+    case class AddOrUpdatePeer(data: PeerData)
 
     case class RemovePeer(address: InetSocketAddress)
 

@@ -1,10 +1,10 @@
 package scorex.core.network.message
 
 
-import com.google.common.primitives.{Bytes, Ints}
+import com.google.common.primitives.{Bytes, Ints, Longs}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.Message.MessageCode
-import scorex.core.network.{Handshake, HandshakeSerializer, PeerFeature}
+import scorex.core.network._
 import scorex.core.{ModifierTypeId, NodeViewModifier}
 import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 
@@ -153,24 +153,23 @@ object PeersSpec {
 
 }
 
-class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Seq[Handshake]] {
-  private val handshakeSerializer = new HandshakeSerializer(featureSerializers)
+class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Seq[PeerData]] {
+  private val handshakeSerializer = new PeerDataSerializer(featureSerializers)
 
   override val messageCode: Message.MessageCode = PeersSpec.messageCode
 
   override val messageName: String = PeersSpec.messageName
 
-  // todo rewrite with new serialization
-  override def toBytes(peers: Seq[Handshake]): Array[Byte] = {
+  override def toBytes(peers: Seq[PeerData]): Array[Byte] = {
     peers.flatMap { p =>
       val b = handshakeSerializer.toBytes(p)
       Ints.toByteArray(b.length) ++ b
     }.toArray
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[Seq[Handshake]] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[Seq[PeerData]] = Try {
     @tailrec
-    def loop(i: Int, acc: Seq[Handshake]): Seq[Handshake] = if (i < bytes.length) {
+    def loop(i: Int, acc: Seq[PeerData]): Seq[PeerData] = if (i < bytes.length) {
       val l = Ints.fromByteArray(bytes.slice(i, i + 4))
       val peer = handshakeSerializer.parseBytes(bytes.slice(i + 4, i + 4 + l)).get
       loop(i + 4 + l, peer +: acc)
@@ -191,19 +190,17 @@ object HandshakeSpec {
 
 class HandshakeSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Handshake] {
 
-  private val handshakeSerializer = new HandshakeSerializer(featureSerializers)
+  private val peersDataSerializer = new PeerDataSerializer(featureSerializers)
 
-  /**
-    * Code which identifies what message type is contained in the payload
-    */
   override val messageCode: MessageCode = HandshakeSpec.messageCode
-  /**
-    * Name of this message type. For debug purposes only.
-    */
   override val messageName: String = HandshakeSpec.messageName
 
-  override def toBytes(obj: Handshake): Array[Byte] = handshakeSerializer.toBytes(obj)
+  override def toBytes(obj: Handshake): Array[Byte] = {
+    Bytes.concat(Longs.toByteArray(obj.time), peersDataSerializer.toBytes(obj.peerData))
+  }
 
-  override def parseBytes(bytes: Array[Byte]): Try[Handshake] = handshakeSerializer.parseBytes(bytes)
+  override def parseBytes(bytes: Array[Byte]): Try[Handshake] = Try {
+    Handshake(peersDataSerializer.parseBytes(bytes.drop(8)).get, Longs.fromByteArray(bytes.take(8)))
+  }
 
 }

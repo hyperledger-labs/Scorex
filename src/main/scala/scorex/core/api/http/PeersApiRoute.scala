@@ -39,10 +39,11 @@ case class PeersApiRoute(peerManager: ActorRef,
     val now = System.currentTimeMillis()
     val result = askActor[Seq[PeerInfo]](networkController, GetConnectedPeers).map {
       _.map { peerInfo =>
+        // todo
         PeerInfoResponse(
-          address = peerInfo.address.map(_.toString).getOrElse(""),
+          address = peerInfo.peerData.declaredAddress.map(_.toString).getOrElse(""),
           lastSeen = peerInfo.lastSeen,
-          name = peerInfo.nodeName,
+          name = peerInfo.peerData.nodeName,
           connectionType = peerInfo.connectionType.map(_.toString)
         )
       }
@@ -59,12 +60,14 @@ case class PeersApiRoute(peerManager: ActorRef,
       case Some(addressAndPort) =>
         val host = InetAddress.getByName(addressAndPort.group(1))
         val port = addressAndPort.group(2).toInt
+/*
         // todo get correct version and features
         val version = Version.initial
         val features: Seq[PeerFeature] = Seq()
         val name: String = s"api-$host:$port"
         val peerInfo = PeerInfo(timeProvider.time(), Some(new InetSocketAddress(host, port)), version, name, None, features)
         networkController ! ConnectTo(peerInfo)
+*/
         ApiResponse.OK
     }
   }
@@ -87,7 +90,7 @@ object PeersApiRoute {
     def fromAddressAndInfo(address: InetSocketAddress, peerInfo: PeerInfo): PeerInfoResponse = PeerInfoResponse(
       address.toString,
       peerInfo.lastSeen,
-      peerInfo.nodeName,
+      peerInfo.peerData.nodeName,
       peerInfo.connectionType.map(_.toString)
     )
   }
