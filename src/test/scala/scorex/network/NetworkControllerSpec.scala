@@ -248,8 +248,7 @@ class NetworkControllerSpec extends NetworkTests {
     system.terminate()
   }
 
-  // todo
-  ignore should "not connect to itself" in {
+  it should "not connect to itself" in {
     implicit val system = ActorSystem()
 
     val tcpManagerProbe = TestProbe()
@@ -270,7 +269,7 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.sendGetPeers
     val peers = testPeer.receivePeers
 
-    peers.flatMap(_.declaredAddress) should contain theSameElementsAs Seq(peerLocalAddress)
+    peers.flatMap(_.address) should contain theSameElementsAs Seq(peerLocalAddress)
     system.terminate()
   }
 
