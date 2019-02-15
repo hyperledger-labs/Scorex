@@ -7,6 +7,7 @@ import scorex.ObjectGenerators
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, ModifiersSpec, RequestModifierSpec}
 import scorex.core.ModifierTypeId
+import scorex.core.app.Version
 import scorex.util.ModifierId
 
 import scala.util.Try
@@ -18,6 +19,13 @@ class MessageSpecification extends PropSpec
   with ObjectGenerators {
 
   private val maxInvObjects = 500
+
+  property("version comparison") {
+    Version(10, 10, 10) > Version(10, 10, 9) shouldBe true
+    Version(10, 10, 10) > Version(10, 9, 11) shouldBe true
+    Version(10, 10, 10) > Version(9, 11, 11) shouldBe true
+    Version(10, 10, 10) == Version(10, 10, 10) shouldBe true
+  }
 
   property("InvData should remain the same after serialization/deserialization") {
     val invSpec = new InvSpec(maxInvObjects)

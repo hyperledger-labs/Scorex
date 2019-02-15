@@ -33,12 +33,12 @@ case class ConnectedPeer(remote: InetSocketAddress,
                          handlerRef: ActorRef,
                          peerInfo: Option[PeerInfo]) {
 
-  import shapeless.syntax.typeable._
-
   override def hashCode(): Int = remote.hashCode()
 
-  override def equals(obj: Any): Boolean =
-    obj.cast[ConnectedPeer].exists(p => p.remote == this.remote && peerInfo == this.peerInfo)
+  override def equals(obj: Any): Boolean = obj match {
+    case p: ConnectedPeer => p.remote == this.remote && peerInfo == this.peerInfo
+    case _ => false
+  }
 
   override def toString: String = s"ConnectedPeer($remote)"
 }

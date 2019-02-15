@@ -7,10 +7,18 @@ import scala.util.Try
 /**
   * Version of p2p protocol. Node can only process messages of it's version or lower.
   */
-case class Version(firstDigit: Byte, secondDigit: Byte, thirdDigit: Byte) extends BytesSerializable {
+case class Version(firstDigit: Byte, secondDigit: Byte, thirdDigit: Byte) extends BytesSerializable with Ordered[Version] {
   override type M = Version
 
   override def serializer: Serializer[Version] = ApplicationVersionSerializer
+
+  override def compare(that: Version): Int = if (this.firstDigit != that.firstDigit) {
+    this.firstDigit - that.firstDigit
+  } else if (this.secondDigit != that.secondDigit) {
+    this.secondDigit - that.secondDigit
+  } else {
+    this.thirdDigit - that.thirdDigit
+  }
 }
 
 object Version {

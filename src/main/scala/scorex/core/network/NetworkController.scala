@@ -8,7 +8,7 @@ import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.core.app.ScorexContext
+import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
@@ -94,7 +94,7 @@ class NetworkController(settings: NetworkSettings,
       }
 
     case SendToNetwork(message, sendingStrategy) =>
-      filterConnections(sendingStrategy).foreach { connectedPeer =>
+      filterConnections(sendingStrategy, message.spec.protocolVersion).foreach { connectedPeer =>
         connectedPeer.handlerRef ! message
       }
   }
@@ -149,7 +149,7 @@ class NetworkController(settings: NetworkSettings,
 
     case ShutdownNetwork =>
       log.info("Going to shutdown all connections & unbind port")
-      filterConnections(Broadcast).foreach { connectedPeer =>
+      filterConnections(Broadcast, Version.initial).foreach { connectedPeer =>
         connectedPeer.handlerRef ! CloseConnection
       }
       self ! Unbind
@@ -276,8 +276,8 @@ class NetworkController(settings: NetworkSettings,
     * @param sendingStrategy SendingStrategy
     * @return sequence of ConnectedPeer instances according SendingStrategy
     */
-  private def filterConnections(sendingStrategy: SendingStrategy) = {
-    sendingStrategy.choose(connections.values.toSeq)
+  private def filterConnections(sendingStrategy: SendingStrategy, version: Version): Seq[ConnectedPeer] = {
+    sendingStrategy.choose(connections.values.toSeq.filter(_.peerInfo.exists(_.peerData.protocolVersion >= version)))
   }
 
   /**
