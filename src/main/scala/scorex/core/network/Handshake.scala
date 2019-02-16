@@ -9,6 +9,9 @@ import scorex.core.app.Version
   * When a node creates an outgoing connection, it will immediately advertise its Handshake.
   * The remote node will respond with its Handshake.
   * No further communication is possible until both peers have exchanged their handshakes.
+  *
+  * @param peerData - general (declared) information about peer
+  * @param time     - handshake time
   */
 case class Handshake(peerData: PeerData,
                      time: Long)

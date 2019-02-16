@@ -28,7 +28,13 @@ case object Incoming extends ConnectionType
 
 case object Outgoing extends ConnectionType
 
-
+/**
+  * Peer connected to our node
+  *
+  * @param remote - connection address
+  * @param handlerRef - reference to PeerConnectionHandler that is responsible for communication with this peer
+  * @param peerInfo - information about this peer. May be None if peer is connected, but is not handshaked yet
+  */
 case class ConnectedPeer(remote: InetSocketAddress,
                          handlerRef: ActorRef,
                          peerInfo: Option[PeerInfo]) {

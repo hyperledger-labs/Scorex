@@ -25,7 +25,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address)) {
         // fill database with peers from config file if empty
-        peerDatabase.addOrUpdateKnownPeer(PeerInfo.fromAddress(address, scorexContext.timeProvider.time()))
+        peerDatabase.addOrUpdateKnownPeer(PeerInfo.fromAddress(address))
       }
     }
   }

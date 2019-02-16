@@ -60,7 +60,7 @@ case class PeersApiRoute(peerManager: ActorRef,
       case Some(addressAndPort) =>
         val host = InetAddress.getByName(addressAndPort.group(1))
         val port = addressAndPort.group(2).toInt
-        networkController ! ConnectTo(PeerInfo.fromAddress(new InetSocketAddress(host, port), timeProvider.time()))
+        networkController ! ConnectTo(PeerInfo.fromAddress(new InetSocketAddress(host, port)))
         ApiResponse.OK
     }
   }

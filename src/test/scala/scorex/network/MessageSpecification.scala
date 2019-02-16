@@ -27,7 +27,7 @@ class MessageSpecification extends PropSpec
     Version(10, 10, 10) == Version(10, 10, 10) shouldBe true
   }
 
-  property("InvData should remain the same after serialization/deserialization") {
+  property("InvData should remain the same after serializatiHandshakeon/deserialization") {
     val invSpec = new InvSpec(maxInvObjects)
     forAll(invDataGen) { data: InvData =>
       whenever(data._2.length < maxInvObjects) {
