@@ -40,9 +40,6 @@ case class PeerData(agentName: String,
 
 class PeerDataSerializer(featureSerializers: PeerFeature.Serializers) extends Serializer[PeerData] {
 
-  // todo what is the real limit?
-  private val maxPeerDataSize: Int = 2048
-
   override def toBytes(obj: PeerData): Array[Byte] = {
     val anb = obj.agentName.getBytes
 
@@ -70,8 +67,6 @@ class PeerDataSerializer(featureSerializers: PeerFeature.Serializers) extends Se
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[PeerData] = Try {
-    require(bytes.length <= maxPeerDataSize)
-
     var position = 0
     val appNameSize = bytes.head
     require(appNameSize > 0)

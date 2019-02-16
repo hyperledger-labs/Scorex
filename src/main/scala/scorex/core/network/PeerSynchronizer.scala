@@ -1,15 +1,13 @@
 package scorex.core.network
 
-import java.net.InetSocketAddress
-
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
-import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
-import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
-import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, AddPeerIfEmpty, RandomPeers}
+import scorex.core.network.message.{GetPeersSpec, Message, PeersSpec}
+import scorex.core.network.peer.PeerInfo
+import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddPeerIfEmpty, RecentlySeenPeers}
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
 import shapeless.syntax.typeable._
@@ -46,9 +44,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
 
     case DataFromPeer(spec, _, peer) if spec.messageCode == GetPeersSpec.messageCode =>
 
-      //todo: externalize the number or increase it (bitcoin uses 1000)
-      //todo: check on receiving
-      (peerManager ? RandomPeers(3))
+      (peerManager ? RecentlySeenPeers(PeersSpec.MaxPeersInMessage))
         .mapTo[Seq[PeerInfo]]
         .foreach { peers =>
           val msg = Message(peersSpec, Right(peers.map(_.peerData)), None)

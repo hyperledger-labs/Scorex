@@ -147,6 +147,12 @@ object GetPeersSpec extends MessageSpecV1[Unit] {
 }
 
 object PeersSpec {
+
+  /**
+    * Limit number of peers to send to always fit in 0.5 Mb.
+    */
+  val MaxPeersInMessage: Int = 524288 / (HandshakeSpec.MaxHandshakeSize + 4)
+
   val messageCode: Message.MessageCode = 2: Byte
 
   val messageName: String = "Peers message"
@@ -170,6 +176,7 @@ class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpec
   override def parseBytes(bytes: Array[Byte]): Try[Seq[PeerData]] = Try {
     @tailrec
     def loop(i: Int, acc: Seq[PeerData]): Seq[PeerData] = if (i < bytes.length) {
+      require(acc.size <= PeersSpec.MaxPeersInMessage)
       val l = Ints.fromByteArray(bytes.slice(i, i + 4))
       val peer = handshakeSerializer.parseBytes(bytes.slice(i + 4, i + 4 + l)).get
       loop(i + 4 + l, peer +: acc)
@@ -184,6 +191,9 @@ class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpec
 
 
 object HandshakeSpec {
+  // todo what is the real limit?
+  val MaxHandshakeSize: Int = 16384
+
   val messageCode: MessageCode = 75: Byte
   val messageName: String = "Handshake"
 }
@@ -200,6 +210,7 @@ class HandshakeSpec(featureSerializers: PeerFeature.Serializers) extends Message
   }
 
   override def parseBytes(bytes: Array[Byte]): Try[Handshake] = Try {
+    require(bytes.length <= HandshakeSpec.MaxHandshakeSize)
     Handshake(peersDataSerializer.parseBytes(bytes.drop(8)).get, Longs.fromByteArray(bytes.take(8)))
   }
 
