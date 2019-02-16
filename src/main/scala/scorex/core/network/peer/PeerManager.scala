@@ -39,11 +39,16 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   }: Receive) orElse peerListOperations orElse apiInterface
 
   private def peerListOperations: Receive = {
-    case AddOrUpdatePeer(peerData) =>
-      if (!(peerData.declaredAddress.exists(isSelf) || peerData.localAddressOpt.exists(isSelf))) {
-        // todo
-        val currentTime = System.currentTimeMillis()
-        val peerInfo = PeerInfo(peerData, currentTime, None)
+    case AddOrUpdatePeer(peerInfo) =>
+      // We have connected to a peer and got his peerInfo from him
+      if (!isSelf(peerInfo.peerData)) {
+        peerDatabase.addOrUpdateKnownPeer(peerInfo)
+      }
+
+    case AddPeerIfEmpty(peerData) =>
+      // We have received peer data from other peers. It might be modified and should not affect existing data if any
+      if (peerData.address.forall(a => peerDatabase.get(a).isEmpty) && !isSelf(peerData)) {
+        val peerInfo: PeerInfo = PeerInfo(peerData, 0, None)
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 
@@ -81,6 +86,10 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     NetworkUtils.isSelf(peerAddress, settings.network.bindAddress, scorexContext.externalNodeAddress)
   }
 
+  private def isSelf(peerData: PeerData): Boolean = {
+    peerData.declaredAddress.exists(isSelf) || peerData.localAddressOpt.exists(isSelf)
+  }
+
   private def randomPeer(): Option[PeerInfo] = {
     randomPeer(peerDatabase.knownPeers().values.toSeq)
   }
@@ -106,7 +115,9 @@ object PeerManager {
     case class AddToBlacklist(remote: InetSocketAddress)
 
     // peerListOperations messages
-    case class AddOrUpdatePeer(data: PeerData)
+    case class AddOrUpdatePeer(data: PeerInfo)
+
+    case class AddPeerIfEmpty(data: PeerData)
 
     case class RemovePeer(address: InetSocketAddress)
 

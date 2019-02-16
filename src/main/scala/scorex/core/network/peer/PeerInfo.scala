@@ -4,7 +4,6 @@ import java.net.InetSocketAddress
 
 import scorex.core.app.Version
 import scorex.core.network.{ConnectionType, Handshake, PeerData}
-import scorex.core.utils.TimeProvider
 
 /**
   * Information about peer to be stored in PeerDatabase

@@ -37,6 +37,10 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with Score
     knownPeersVar.keys.flatMap(k => knownPeersVar.get(k).map(v => k -> v)).toMap
   }
 
+  override def get(address: InetSocketAddress): Option[PeerInfo] = {
+    knownPeersVar.get(address)
+  }
+
   override def blacklistedPeers(): Seq[String] = blacklist.keys.toSeq
 
   override def isEmpty(): Boolean = knownPeersVar.isEmpty

@@ -9,7 +9,7 @@ import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessage
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.message.{GetPeersSpec, Message, MessageSpec, PeersSpec}
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
-import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeers}
+import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, AddPeerIfEmpty, RandomPeers}
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
 import shapeless.syntax.typeable._
@@ -42,7 +42,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
     case DataFromPeer(spec, peers: Seq[PeerData]@unchecked, remote)
       if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[PeerData]].isDefined =>
 
-      peers.foreach(peerData => peerManager ! AddOrUpdatePeer(peerData))
+      peers.foreach(peerData => peerManager ! AddPeerIfEmpty(peerData))
 
     case DataFromPeer(spec, _, peer) if spec.messageCode == GetPeersSpec.messageCode =>
 

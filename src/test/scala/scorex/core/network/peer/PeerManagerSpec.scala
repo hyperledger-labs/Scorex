@@ -28,7 +28,7 @@ class PeerManagerSpec extends NetworkTests {
     val peerManager = PeerManagerRef(settings, scorexContext)(system)
     val peerInfo = getPeerInfo(selfAddress)
 
-    peerManager ! AddOrUpdatePeer(peerInfo.peerData)
+    peerManager ! AddOrUpdatePeer(peerInfo)
     peerManager ! GetAllPeers
     val data = p.expectMsgClass(classOf[Data])
 
@@ -46,7 +46,7 @@ class PeerManagerSpec extends NetworkTests {
     val peerAddress = new InetSocketAddress("1.1.1.1", DefaultPort)
     val peerInfo = getPeerInfo(peerAddress)
 
-    peerManager ! AddOrUpdatePeer(peerInfo.peerData)
+    peerManager ! AddOrUpdatePeer(peerInfo)
     peerManager ! GetAllPeers
 
     val data = p.expectMsgClass(classOf[Data])

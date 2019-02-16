@@ -132,6 +132,8 @@ class NetworkController(settings: NetworkSettings,
         case None =>
           log.info("Failed to connect to : " + c.remoteAddress)
       }
+      // remove not responding peer from database
+      peerManagerRef ! RemovePeer(c.remoteAddress)
 
     case Terminated(ref) =>
       connectionForHandler(ref).foreach { connectedPeer =>
@@ -211,9 +213,10 @@ class NetworkController(settings: NetworkSettings,
     * @param remote     - remote address of socket to peer
     * @param local      - local address of socket to peer
     * @param connection - connection ActorRef
-    * @return
     */
-  private def createPeerConnectionHandler(remote: InetSocketAddress, local: InetSocketAddress, connection: ActorRef) = {
+  private def createPeerConnectionHandler(remote: InetSocketAddress,
+                                          local: InetSocketAddress,
+                                          connection: ActorRef): Unit = {
     val direction: ConnectionType = if (outgoing.contains(remote)) Outgoing else Incoming
     val logMsg = direction match {
       case Incoming => s"New incoming connection from $remote established (bound to local $local)"
@@ -259,7 +262,7 @@ class NetworkController(settings: NetworkSettings,
         connections -= connectedPeer.remote
       } else {
         if (peerInfo.peerData.reachablePeer) {
-          peerManagerRef ! AddOrUpdatePeer(peerInfo.peerData)
+          peerManagerRef ! AddOrUpdatePeer(peerInfo)
         } else {
           peerManagerRef ! RemovePeer(peerAddress)
         }
