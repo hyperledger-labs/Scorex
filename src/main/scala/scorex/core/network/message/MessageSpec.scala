@@ -1,8 +1,8 @@
 package scorex.core.network.message
 
-import scorex.core.serialization.Serializer
+import scorex.core.serialization.ScorexSerializer
 
-trait MessageSpec[Content] extends Serializer[Content] {
+trait MessageSpec[Content] extends ScorexSerializer[Content] {
   val messageCode: Message.MessageCode
   val messageName: String
 

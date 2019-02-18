@@ -2,11 +2,10 @@ package scorex.core.network
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import com.google.common.primitives.{Bytes, Ints, Longs, Shorts}
 import scorex.core.app.{ApplicationVersionSerializer, Version}
-import scorex.core.serialization.Serializer
-
-import scala.util.Try
+import scorex.core.serialization.ScorexSerializer
+import scorex.util.serialization._
+import scorex.util.Extensions._
 
 case class Handshake(applicationName: String,
                      protocolVersion: Version,
@@ -19,93 +18,65 @@ case class Handshake(applicationName: String,
   require(Option(protocolVersion).isDefined)
 }
 
+
 class HandshakeSerializer(featureSerializers: PeerFeature.Serializers,
-                          maxHandshakeSize: Int) extends Serializer[Handshake] {
+                          maxHandshakeSize: Int) extends ScorexSerializer[Handshake] {
 
-  override def toBytes(obj: Handshake): Array[Byte] = {
-    val anb = obj.applicationName.getBytes
+  override def serialize(obj: Handshake, w: Writer): Unit = {
 
-    val fab = obj.declaredAddress.map { isa =>
-      Bytes.concat(isa.getAddress.getAddress, Ints.toByteArray(isa.getPort))
-    }.getOrElse(Array[Byte]())
+    w.putShortString(obj.applicationName)
+    ApplicationVersionSerializer.serialize(obj.protocolVersion, w)
+    w.putShortString(obj.nodeName)
 
-    val nodeNameBytes = obj.nodeName.getBytes
 
-    val featureBytes = obj.features.foldLeft(Array(obj.features.size.toByte)) { case (fb, f) =>
-      val featId = f.featureId
-      val featBytes = f.bytes
-      Bytes.concat(fb, featId +: Shorts.toByteArray(featBytes.length.toShort), featBytes)
+    w.putOption(obj.declaredAddress) { (writer, isa) =>
+      val addr = isa.getAddress.getAddress
+      writer.put((addr.size + 4).toByteExact)
+      writer.putBytes(addr)
+      writer.putUInt(isa.getPort)
     }
 
-    Bytes.concat(
-      Array(anb.size.toByte),
-      anb,
-      obj.protocolVersion.bytes,
-      Array(nodeNameBytes.size.toByte),
-      nodeNameBytes,
-      Ints.toByteArray(fab.length),
-      fab,
-      featureBytes,
-      Longs.toByteArray(obj.time))
+    w.put(obj.features.size.toByteExact)
+    obj.features.foreach { f =>
+      w.put(f.featureId)
+      val fwriter = w.newWriter()
+      f.serializer.serialize(f, fwriter)
+      w.putUShort(fwriter.length.toShortExact)
+      w.append(fwriter)
+    }
+    w.putLong(obj.time)
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[Handshake] = Try {
-    require(bytes.length <= maxHandshakeSize)
+  override def parse(r: Reader): Handshake = {
 
-    var position = 0
-    val appNameSize = bytes.head
-    require(appNameSize > 0)
+    require(r.remaining <= maxHandshakeSize)
 
-    position += 1
+    val appName = r.getShortString()
+    require(appName.size > 0)
 
-    val an = new String(bytes.slice(position, position + appNameSize))
-    position += appNameSize
+    val protocolVersion = ApplicationVersionSerializer.parse(r)
 
-    val av = ApplicationVersionSerializer.parseBytes(
-      bytes.slice(position, position + ApplicationVersionSerializer.SerializedVersionLength)).get
-    position += ApplicationVersionSerializer.SerializedVersionLength
+    val nodeName = r.getShortString()
 
-    val nodeNameSize = bytes.slice(position, position + 1).head
-    position += 1
-
-    val nodeName = new String(bytes.slice(position, position + nodeNameSize))
-    position += nodeNameSize
-
-    val fas = Ints.fromByteArray(bytes.slice(position, position + 4))
-    position += 4
-
-    val isaOpt = if (fas > 0) {
-      val fa = bytes.slice(position, position + fas - 4)
-      position += fas - 4
-
-      val port = Ints.fromByteArray(bytes.slice(position, position + 4))
-      position += 4
-
-      Some(new InetSocketAddress(InetAddress.getByAddress(fa), port))
-    } else None
-
-    val featuresCount = bytes.slice(position, position + 1).head
-    position += 1
-
-    val feats = (1 to featuresCount).flatMap { _ =>
-      val featId = bytes.slice(position, position + 1).head
-      position += 1
-
-      val featBytesCount = Shorts.fromByteArray(bytes.slice(position, position + 2))
-      position += 2
-
-      //we ignore a feature found in the handshake if we do not know how to parse it or failed to do that
-
-      val featOpt = featureSerializers.get(featId).flatMap { featureSerializer =>
-        featureSerializer.parseBytes(bytes.slice(position, position + featBytesCount)).toOption
-      }
-      position += featBytesCount
-
-      featOpt
+    val declaredAddressOpt = r.getOption {
+      val fas = r.getUByte()
+      val fa = r.getBytes(fas - 4)
+      val port = r.getUInt().toIntExact
+      new InetSocketAddress(InetAddress.getByAddress(fa), port)
     }
 
-    val time = Longs.fromByteArray(bytes.slice(position, position + 8))
+    val featuresCount = r.getByte()
+    val feats = (1 to featuresCount).flatMap { _ =>
+      val featId = r.getByte()
+      val featBytesCount = r.getUShort().toShortExact
+      val featChunk = r.getChunk(featBytesCount)
+      //we ignore a feature found in the handshake if we do not know how to parse it or failed to do that
+      featureSerializers.get(featId).flatMap { featureSerializer =>
+        featureSerializer.parseTry(r.newReader(featChunk)).toOption
+      }
+    }
 
-    Handshake(an, av, nodeName, isaOpt, feats, time)
+    val time = r.getLong()
+    Handshake(appName, protocolVersion, nodeName, declaredAddressOpt, feats, time)
   }
 }

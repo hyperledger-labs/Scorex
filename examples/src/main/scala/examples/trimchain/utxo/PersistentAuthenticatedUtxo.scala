@@ -83,7 +83,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
   override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
     store.get(ByteArrayWrapper(boxId))
       .map(_.data)
-      .map(PublicKey25519NoncedBoxSerializer.parseBytes)
+      .map(bytes => PublicKey25519NoncedBoxSerializer.parseBytesTry(bytes))
       .flatMap(_.toOption)
 
   //there's no easy way to know boxes associated with a proposition, without an additional index
@@ -114,7 +114,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
       .foldLeft(Seq[Array[Byte]]() -> Seq[PublicKey25519NoncedBox]()) { case ((btr, bta), op) =>
         op match {
           case Insertion(b) =>
-            prover.performOneOperation(Insert(b.id, ADValue @@ b.bytes))
+            prover.performOneOperation(Insert(b.id, ADValue @@ PublicKey25519NoncedBoxSerializer.toBytes(b)))
             (btr, bta :+ b)
           case Removal(bid) =>
             prover.performOneOperation(Remove(bid))
@@ -157,7 +157,7 @@ case class PersistentAuthenticatedUtxo(store: LSMStore,
 
   def randomElement: Try[PublicKey25519NoncedBox] = Try {
     val bytes = store.getAll().drop(Random.nextInt(size - 1)).next()._2.data
-    PublicKey25519NoncedBoxSerializer.parseBytes(bytes)
+    PublicKey25519NoncedBoxSerializer.parseBytesTry(bytes)
   }.flatten
 }
 

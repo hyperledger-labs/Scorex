@@ -1,21 +1,21 @@
 package examples.hybrid.blocks
 
-import com.google.common.primitives.{Bytes, Ints, Longs}
-import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction, SimpleBoxTransactionCompanion}
+import com.google.common.primitives.Longs
+import examples.commons._
 import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.block.Block
 import scorex.core.block.Block._
-import scorex.core.serialization.Serializer
-import scorex.core.transaction.proof.Signature25519
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
+import scorex.core.transaction.proof.{Signature25519, Signature25519Serializer}
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexEncoding
 import scorex.core.{ModifierTypeId, TransactionsCarryingPersistentNodeViewModifier, idToBytes}
 import scorex.crypto.hash.Blake2b256
 import scorex.crypto.signatures.{Curve25519, Signature}
 import scorex.util.{ModifierId, ScorexLogging, bytesToId}
-
-import scala.util.Try
+import scorex.util.Extensions._
 
 case class PosBlock(override val parentId: BlockId, //PoW block
                     override val timestamp: Block.Timestamp,
@@ -25,9 +25,10 @@ case class PosBlock(override val parentId: BlockId, //PoW block
                     signature: Signature25519
                    ) extends HybridBlock
   with TransactionsCarryingPersistentNodeViewModifier[SimpleBoxTransaction] with ScorexLogging {
+
   override type M = PosBlock
 
-  override lazy val serializer = PosBlockCompanion
+  override lazy val serializer = PosBlockSerializer
 
   override lazy val version: Version = 0: Byte
 
@@ -39,41 +40,33 @@ case class PosBlock(override val parentId: BlockId, //PoW block
   override def toString: String = s"PoSBlock(${this.asJson.noSpaces})"
 }
 
-object PosBlockCompanion extends Serializer[PosBlock] with ScorexEncoding {
-  override def toBytes(b: PosBlock): Array[Byte] = {
-    val txsBytes = b.transactions.sortBy(t => encoder.encodeId(t.id)).foldLeft(Array[Byte]()) { (a, b) =>
-      Bytes.concat(Ints.toByteArray(b.bytes.length), b.bytes, a)
+object PosBlockSerializer extends ScorexSerializer[PosBlock] with ScorexEncoding {
+
+  override def serialize(b: PosBlock, w: Writer): Unit = {
+    w.putBytes(idToBytes(b.parentId))
+    w.putULong(b.timestamp)
+    PublicKey25519NoncedBoxSerializer.serialize(b.generatorBox, w)
+    Signature25519Serializer.serialize(b.signature, w)
+    w.putUInt(b.transactions.length)
+    b.transactions.sortBy(t => encoder.encodeId(t.id)).foreach { tx =>
+      SimpleBoxTransactionSerializer.serialize(tx, w)
     }
-    Bytes.concat(idToBytes(b.parentId), Longs.toByteArray(b.timestamp), b.generatorBox.bytes, b.signature.bytes,
-      Ints.toByteArray(b.transactions.length), txsBytes, Ints.toByteArray(b.attachment.length), b.attachment)
+    w.putUInt(b.attachment.length)
+    w.putBytes(b.attachment)
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[PosBlock] = Try {
-    require(bytes.length <= PosBlock.MaxBlockSize)
-
-    val parentId = bytesToId(bytes.slice(0, BlockIdLength))
-    var position = BlockIdLength
-    val timestamp = Longs.fromByteArray(bytes.slice(position, position + 8))
-    position = position + 8
-
-    val boxBytes = bytes.slice(position, position + PublicKey25519NoncedBox.BoxLength)
-    val box = PublicKey25519NoncedBoxSerializer.parseBytes(boxBytes).get
-    position = position + PublicKey25519NoncedBox.BoxLength
-
-    val signature = Signature25519(Signature @@ bytes.slice(position, position + Signature25519.SignatureSize))
-    position = position + Signature25519.SignatureSize
-
-    val txsLength = Ints.fromByteArray(bytes.slice(position, position + 4))
-    position = position + 4
+  override def parse(r: Reader): PosBlock = {
+    require(r.remaining <= PosBlock.MaxBlockSize)
+    val parentId = bytesToId(r.getBytes(BlockIdLength))
+    val timestamp = r.getULong()
+    val box = PublicKey25519NoncedBoxSerializer.parse(r)
+    val signature = Signature25519Serializer.parse(r)
+    val txsLength = r.getUInt().toIntExact
     val txs: Seq[SimpleBoxTransaction] = (0 until txsLength) map { _ =>
-      val l = Ints.fromByteArray(bytes.slice(position, position + 4))
-      val tx = SimpleBoxTransactionCompanion.parseBytes(bytes.slice(position + 4, position + 4 + l)).get
-      position = position + 4 + l
-      tx
+      SimpleBoxTransactionSerializer.parse(r)
     }
-
-    val attachmentLength = Ints.fromByteArray(bytes.slice(position, position + 4))
-    val attachment = bytes.slice(position + 4, position + 4 + attachmentLength)
+    val attachmentLength = r.getUInt().toIntExact
+    val attachment = r.getBytes(attachmentLength)
     PosBlock(parentId, timestamp, txs, box, attachment, signature)
   }
 }
@@ -90,7 +83,7 @@ object PosBlock extends ScorexEncoding {
       "timestamp" -> psb.timestamp.asJson,
       "transactions" -> psb.transactions.map(_.asJson).asJson,
       "generatorBox" -> psb.generatorBox.asJson,
-      "signature" -> encoder.encode(psb.signature.bytes).asJson
+      "signature" -> encoder.encode(psb.signature.signature).asJson
     ).asJson
   }
 
@@ -102,12 +95,13 @@ object PosBlock extends ScorexEncoding {
              privateKey: PrivateKey25519): PosBlock = {
     require(java.util.Arrays.equals(box.proposition.pubKeyBytes, privateKey.publicKeyBytes))
     val unsigned = PosBlock(parentId, timestamp, txs, box, attachment, Signature25519(Signature @@ Array[Byte]()))
-    val signature = Curve25519.sign(privateKey.privKeyBytes, unsigned.bytes)
+    val signature = Curve25519.sign(privateKey.privKeyBytes, PosBlockSerializer.toByteString(unsigned).toArray)
     unsigned.copy(signature = Signature25519(signature))
   }
 
   def signatureValid(posBlock: PosBlock): Boolean = {
-    val unsignedBytes = posBlock.copy(signature = Signature25519(Signature @@ Array[Byte]())).bytes
+    val unsigned = posBlock.copy(signature = Signature25519(Signature @@ Array[Byte]()))
+    val unsignedBytes = PosBlockSerializer.toByteString(unsigned).toArray
     posBlock.generatorBox.proposition.verify(unsignedBytes, posBlock.signature.signature)
   }
 }

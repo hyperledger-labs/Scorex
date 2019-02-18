@@ -83,7 +83,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
     proposition: PublicKey25519Proposition <- propositionGen
     brothers <- Gen.listOfN(brothersCount, powHeaderGen)
   } yield {
-    val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
+    val brotherBytes = PowBlockSerializer.brotherBytes(brothers)
     val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
     new PowBlock(parentId, prevPosId, timestamp, nonce, brothersCount, brothersHash, proposition, brothers)
   }
@@ -131,7 +131,7 @@ trait HybridGenerators extends ExamplesCommonGenerators
   def stateChangesGenerator(state: HBoxStoredState): ChangesGen = {
     val removals: List[BoxStateChangeOperation[PublicKey25519Proposition, PublicKey25519NoncedBox]] =
       state.store.getAll().take(5).map(_._2).map(_.data)
-        .map(PublicKey25519NoncedBoxSerializer.parseBytes).map(_.get).toList
+        .map(PublicKey25519NoncedBoxSerializer.parseBytes).toList
         .map(b => Removal[PublicKey25519Proposition, PublicKey25519NoncedBox](b.id))
 
     noncedBoxListGen.map { boxesToAdd: List[PublicKey25519NoncedBox] =>

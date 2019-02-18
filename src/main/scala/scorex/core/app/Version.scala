@@ -1,8 +1,7 @@
 package scorex.core.app
 
-import scorex.core.serialization.{BytesSerializable, Serializer}
-
-import scala.util.Try
+import scorex.util.serialization._
+import scorex.core.serialization.{ScorexSerializer, BytesSerializable}
 
 object Version {
   def apply(v: String): Version = {
@@ -13,20 +12,24 @@ object Version {
 case class Version(firstDigit: Byte, secondDigit: Byte, thirdDigit: Byte) extends BytesSerializable {
   override type M = Version
 
-  override def serializer: Serializer[Version] = ApplicationVersionSerializer
+  override def serializer: ScorexSerializer[Version] = ApplicationVersionSerializer
 }
 
-object ApplicationVersionSerializer extends Serializer[Version] {
+object ApplicationVersionSerializer extends ScorexSerializer[Version] {
   val SerializedVersionLength: Int = 3
 
-  override def toBytes(obj: Version): Array[Byte] =
-    Array(obj.firstDigit, obj.secondDigit, obj.thirdDigit)
 
-  override def parseBytes(bytes: Array[Byte]): Try[Version] = Try {
+  override def serialize(obj: Version, w: Writer): Unit = {
+    w.put(obj.firstDigit)
+    w.put(obj.secondDigit)
+    w.put(obj.thirdDigit)
+  }
+
+  override def parse(r: Reader): Version = {
     Version(
-      bytes(0),
-      bytes(1),
-      bytes(2)
+      r.getByte(),
+      r.getByte(),
+      r.getByte()
     )
   }
 }

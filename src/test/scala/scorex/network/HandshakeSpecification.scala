@@ -1,4 +1,4 @@
-package scorex.core.network
+package scorex.network
 
 import java.net.InetSocketAddress
 
@@ -7,7 +7,7 @@ import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.ObjectGenerators
 import scorex.core.app.Version
-
+import scorex.core.network.{Handshake, HandshakeSerializer, PeerFeature}
 
 class HandshakeSpecification extends PropSpec
   with PropertyChecks
@@ -38,7 +38,8 @@ class HandshakeSpecification extends PropSpec
           val handshakeSerializer = new HandshakeSerializer(serializers, 2048)
 
           val h1 = Handshake(appName, av, nodeName, None, feats, time)
-          val hr1: Handshake = handshakeSerializer.parseBytes(handshakeSerializer.toBytes(h1)).get
+          val bs1 = handshakeSerializer.toByteString(h1)
+          val hr1: Handshake = handshakeSerializer.parseByteString(bs1)
           hr1.applicationName should be(h1.applicationName)
           hr1.protocolVersion should be(h1.protocolVersion)
           hr1.declaredAddress should be(h1.declaredAddress)
@@ -46,7 +47,8 @@ class HandshakeSpecification extends PropSpec
           hr1.time should be(h1.time)
 
           val h2 = Handshake(appName, av, nodeName, Some(isa), feats, time)
-          val hr2 = handshakeSerializer.parseBytes(handshakeSerializer.toBytes(h2)).get
+          val bs2 = handshakeSerializer.toByteString(h2)
+          val hr2 = handshakeSerializer.parseByteString(bs2)
           hr2.applicationName should be(h2.applicationName)
           hr2.protocolVersion should be(h2.protocolVersion)
           hr2.declaredAddress should be(h2.declaredAddress)
@@ -54,7 +56,8 @@ class HandshakeSpecification extends PropSpec
           hr2.time should be(h2.time)
 
           val h3 = Handshake(appName, av, nodeName, Some(isa), Seq(), time)
-          val hr3 = handshakeSerializer.parseBytes(handshakeSerializer.toBytes(h3)).get
+          val bs3 = handshakeSerializer.toByteString(h3)
+          val hr3 = handshakeSerializer.parseByteString(bs3)
           hr3.applicationName should be(h3.applicationName)
           hr3.protocolVersion should be(h3.protocolVersion)
           hr3.declaredAddress should be(h3.declaredAddress)

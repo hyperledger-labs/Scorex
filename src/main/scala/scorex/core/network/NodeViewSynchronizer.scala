@@ -14,7 +14,7 @@ import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.Da
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
-import scorex.core.serialization.Serializer
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.state.StateReader
 import scorex.core.transaction.wallet.VaultReader
@@ -51,7 +51,7 @@ MR <: MempoolReader[TX] : ClassTag]
  syncInfoSpec: SIS,
  networkSettings: NetworkSettings,
  timeProvider: NetworkTimeProvider,
- modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext) extends Actor
+ modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext) extends Actor
   with ScorexLogging with ScorexEncoding {
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
@@ -277,19 +277,19 @@ MR <: MempoolReader[TX] : ClassTag]
       val requestedModifiers = processSpam(remote, typeId, modifiers)
 
       modifierSerializers.get(typeId) match {
-        case Some(serializer: Serializer[TX]@unchecked) if typeId == Transaction.ModifierTypeId =>
+        case Some(serializer: ScorexSerializer[TX]@unchecked) if typeId == Transaction.ModifierTypeId =>
           // parse all transactions and send them to node view holder
           val parsed: Iterable[TX] = parseModifiers(requestedModifiers, serializer, remote)
           viewHolderRef ! TransactionsFromRemote(parsed)
 
-        case Some(serializer: Serializer[PMOD]@unchecked) =>
+        case Some(serializer: ScorexSerializer[PMOD]@unchecked) =>
           // parse all modifiers and put them to modifiers cache
           val parsed: Iterable[PMOD] = parseModifiers(requestedModifiers, serializer, remote)
           val valid: Iterable[PMOD] = parsed.filter(pmod => validateAndSetStatus(remote, pmod))
           if (valid.nonEmpty) viewHolderRef ! ModifiersFromRemote[PMOD](valid)
 
         case _ =>
-          log.error(s"Undefined serializer for modifier of type $typeId")
+          log.error(s"Undefined serializer for modifier of type ${typeId}")
       }
   }
 
@@ -325,10 +325,10 @@ MR <: MempoolReader[TX] : ClassTag]
     * @return collection of parsed modifiers
     */
   private def parseModifiers[M <: NodeViewModifier](modifiers: Map[ModifierId, Array[Byte]],
-                                                    serializer: Serializer[M],
+                                                    serializer: ScorexSerializer[M],
                                                     remote: ConnectedPeer): Iterable[M] = {
     modifiers.flatMap { case (id, bytes) =>
-      serializer.parseBytes(bytes) match {
+      serializer.parseBytesTry(bytes) match {
         case Success(mod) if id == mod.id =>
           Some(mod)
         case _ =>
@@ -427,7 +427,12 @@ MR <: MempoolReader[TX] : ClassTag]
           }
         }
 
-        sendByParts(modifiers.map(m => m.id -> m.bytes))
+        modifierSerializers.get(modType) match {
+          case Some(serializer: ScorexSerializer[NodeViewModifier]) =>
+            sendByParts(modifiers.map(m => m.id -> serializer.toBytes(m)))
+          case _ =>
+            log.error(s"Undefined serializer for modifier of type ${modType}")
+        }
       }
   }
 
@@ -563,7 +568,7 @@ object NodeViewSynchronizerRef {
    syncInfoSpec: SIS,
    networkSettings: NetworkSettings,
    timeProvider: NetworkTimeProvider,
-   modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext): Props =
+   modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext): Props =
     Props(new NodeViewSynchronizer[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef, syncInfoSpec,
       networkSettings, timeProvider, modifierSerializers))
 
@@ -578,7 +583,7 @@ object NodeViewSynchronizerRef {
    syncInfoSpec: SIS,
    networkSettings: NetworkSettings,
    timeProvider: NetworkTimeProvider,
-   modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])
+   modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]])
   (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider, modifierSerializers))
@@ -595,7 +600,7 @@ object NodeViewSynchronizerRef {
    syncInfoSpec: SIS,
    networkSettings: NetworkSettings,
    timeProvider: NetworkTimeProvider,
-   modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]])
+   modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]])
   (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props[TX, SI, SIS, PMOD, HR, MR](networkControllerRef, viewHolderRef,
       syncInfoSpec, networkSettings, timeProvider, modifierSerializers), name)

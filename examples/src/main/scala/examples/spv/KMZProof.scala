@@ -1,12 +1,13 @@
 package examples.spv
 
-import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core._
-import scorex.core.serialization.Serializer
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
 
 import scala.annotation.tailrec
 import scala.util.Try
+import scorex.util.Extensions._
 
 case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[Header]) {
   lazy val valid: Try[Unit] = Try {
@@ -20,75 +21,72 @@ case class KMZProof(m: Int, k: Int, prefixProofs: Seq[Seq[Header]], suffix: Seq[
   }
 }
 
-object KMZProofSerializer extends Serializer[KMZProof] with ScorexEncoding {
+object KMZProofSerializer extends ScorexSerializer[KMZProof] with ScorexEncoding {
 
-  override def toBytes(obj: KMZProof): Array[Byte] = {
-    // TODO: fixme, What should we do if `obj.suffix` is empty?
-    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-    val suffixTailBytes = scorex.core.utils.concatBytes(obj.suffix.tail.map { h =>
-      HeaderSerializer.bytesWithoutInterlinks(h)
-    })
-    val prefixHeaders: Map[String, Header] = obj.prefixProofs.flatten.map(h => h.encodedId -> h).toMap
-    val prefixHeadersBytes: Array[Byte] = prefixHeaders.flatMap { h =>
-      val bytes = h._2.bytes
-      Bytes.concat(Shorts.toByteArray(bytes.length.toShort), bytes)
-    }.toArray
-    val prefixIdsBytes: Array[Byte] = scorex.core.utils.concatBytes(obj.prefixProofs.map { chain =>
-      Shorts.toByteArray(chain.length.toShort) ++ chain.flatMap(c => idToBytes(c.id))
-    })
+  override def serialize(obj: KMZProof, w: Writer): Unit = {
+
+    w.put(obj.m.toByte)
+    w.put(obj.k.toByte)
 
     // TODO: fixme, What should we do if `obj.suffix` is empty?
     @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
     val suffixHead = obj.suffix.head
-    Bytes.concat(Array(obj.m.toByte, obj.k.toByte),
-      Shorts.toByteArray(suffixHead.bytes.length.toShort),
-      suffixHead.bytes,
-      suffixTailBytes,
-      Shorts.toByteArray(prefixHeaders.size.toShort),
-      prefixHeadersBytes,
-      Shorts.toByteArray(obj.prefixProofs.length.toShort),
-      prefixIdsBytes)
+    HeaderSerializer.serialize(suffixHead, w)
+
+    // TODO: fixme, What should we do if `obj.suffix` is empty?
+    @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+    val suffixTail = obj.suffix.tail
+    suffixTail.map { h =>
+      HeaderSerializer.serializeWithoutIterlinks(h, w)
+    }
+
+    val prefixHeaders: Map[String, Header] = obj.prefixProofs.flatten.map(h => h.encodedId -> h).toMap
+    w.putShort(prefixHeaders.size.toShortExact)
+    prefixHeaders.foreach { h =>
+      HeaderSerializer.serialize(h._2, w)
+    }
+
+    w.putShort(obj.prefixProofs.length.toShortExact)
+    obj.prefixProofs.foreach { chain =>
+      w.putShort(chain.length.toShortExact)
+      chain.foreach { c =>
+        w.putBytes(idToBytes(c.id))
+      }
+    }
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[KMZProof] = Try {
-
-    val m = bytes.head
-    val k = bytes(1)
-    val headSuffixLength = Shorts.fromByteArray(bytes.slice(2, 4))
-    val headSuffix = HeaderSerializer.parseBytes(bytes.slice(4, 4 + headSuffixLength)).get
-    val l = HeaderSerializer.BytesWithoutInterlinksLength
+  override def parse(r: Reader): KMZProof = {
+    val m = r.getByte()
+    val k = r.getByte()
+    val headSuffix = HeaderSerializer.parse(r)
 
     @tailrec
-    def parseSuffixes(index: Int, acc: Seq[Header]): (Int, Seq[Header]) = {
-      if (acc.length == k) (index, acc.reverse)
-      else {
-        val headerWithoutInterlinks = HeaderSerializer.parseBytes(bytes.slice(index, index + l)).get
+    def parseSuffixes(acc: Seq[Header]): Seq[Header] = {
+      if (acc.length == k) {
+        acc.reverse
+      } else {
+        val headerWithoutInterlinks = HeaderSerializer.parseWithoutInterlinks(r)
         // TODO: fixme, What should we do if `acc` is empty?
         @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
         val interlinks = SpvAlgos.constructInterlinkVector(acc.head)
-        parseSuffixes(index + l, headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
+        parseSuffixes(headerWithoutInterlinks.copy(interlinks = interlinks) +: acc)
       }
     }
-    var (index, suffix) = parseSuffixes(4 + headSuffixLength, Seq(headSuffix))
 
-    val prefixHeadersLength: Int = Shorts.fromByteArray(bytes.slice(index, index + 2))
-    index = index + 2
+    val suffix = parseSuffixes(Seq(headSuffix))
+
+    val prefixHeadersLength: Int = r.getShort()
     val prefixHeaders: Map[String, Header] = ((0 until prefixHeadersLength) map { i: Int =>
-      val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
-      val header = HeaderSerializer.parseBytes(bytes.slice(index + 2, index + 2 + l)).get
-      index = index + 2 + l
+      val header = HeaderSerializer.parse(r)
       header.encodedId -> header
     }).toMap
 
 
-    val prefixProofsLength = Shorts.fromByteArray(bytes.slice(index, index + 2))
-    index = index + 2
+    val prefixProofsLength = r.getShort()
     val prefixIds: Seq[Seq[String]] = (0 until prefixProofsLength) map { _ =>
-      val l = Shorts.fromByteArray(bytes.slice(index, index + 2))
-      index = index + 2
+      val l = r.getShort()
       (1 to l).map { i =>
-        val b = bytes.slice(index, index + 32)
-        index = index + 32
+        val b = r.getBytes(32)
         encoder.encode(b)
       }
     }

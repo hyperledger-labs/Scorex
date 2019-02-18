@@ -397,7 +397,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   def receiveHandshake: Try[Handshake] = {
     val handshakeFromNode = tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(data, e) =>
-        handshakeSerializer.parseBytes(data.toByteBuffer.array)
+        handshakeSerializer.parseBytesTry(data.toByteBuffer.array)
     }
     handshakeFromNode
   }
@@ -426,7 +426,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   def receivePeers: Seq[InetSocketAddress] = {
     val message = receiveMessage
     message.spec.messageCode should be (PeersSpec.messageCode)
-    PeersSpec.parseBytes(message.input.left.value).success.value
+    PeersSpec.parseBytes(message.input.left.value)
   }
 
   /**

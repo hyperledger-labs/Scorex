@@ -9,10 +9,10 @@ import akka.util.{ByteString, CompactByteString}
 import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NetworkController.ReceivableMessages.Handshaked
 import scorex.core.network.PeerFeature.Serializers
-import scorex.core.network.message.MessageSerializer
+import scorex.core.network.message.{Message, MessageSerializer, MessageSpec}
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
-import scorex.core.serialization.Serializer
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
 
@@ -69,7 +69,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   private val localFeatures = connectionDescription.localFeatures
 
   private val featureSerializers: Serializers = {
-    localFeatures.map(f => f.featureId -> (f.serializer: Serializer[_ <: PeerFeature])).toMap
+    localFeatures.map(f => f.featureId -> (f.serializer: ScorexSerializer[_ <: PeerFeature])).toMap
   }
 
   private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
@@ -141,7 +141,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private def receiveAndHandleHandshake(handler: Handshake => Unit): Receive = {
     case Received(data) =>
-      handshakeSerializer.parseBytes(data.toArray) match {
+      handshakeSerializer.parseBytesTry(data.toArray) match {
         case Success(handshake) =>
           handler(handshake)
 

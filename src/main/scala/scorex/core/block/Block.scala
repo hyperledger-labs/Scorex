@@ -2,7 +2,7 @@ package scorex.core.block
 
 import scorex.core.block.Block.{Timestamp, Version}
 import scorex.core.consensus.History
-import scorex.core.serialization.Serializer
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction._
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.{NodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
@@ -42,7 +42,7 @@ object Block {
 }
 
 trait BlockCompanion[P <: Proposition, TX <: Transaction, B <: Block[TX]]
-  extends Serializer[B] {
+  extends ScorexSerializer[B] {
 
   def isValid(block: B): Boolean
 

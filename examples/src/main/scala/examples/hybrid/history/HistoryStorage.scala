@@ -47,17 +47,19 @@ class HistoryStorage(storage: LSMStore,
     storage.get(ByteArrayWrapper(idToBytes(blockId))).flatMap { bw =>
       val bytes = bw.data
       val mtypeId = bytes.head
-      val parsed: Try[HybridBlock] = mtypeId match {
-        case t: Byte if t == PowBlock.ModifierTypeId =>
-          PowBlockCompanion.parseBytes(bytes.tail)
-        case t: Byte if t == PosBlock.ModifierTypeId =>
-          PosBlockCompanion.parseBytes(bytes.tail)
+      try {
+        val parsed: HybridBlock = mtypeId match {
+          case t: Byte if t == PowBlock.ModifierTypeId =>
+            PowBlockSerializer.parseBytes(bytes.tail)
+          case t: Byte if t == PosBlock.ModifierTypeId =>
+            PosBlockSerializer.parseBytes(bytes.tail)
+        }
+        Some(parsed)
+      } catch {
+        case t: Throwable =>
+          log.warn("Failed to parse bytes from bd", t)
+          None
       }
-      parsed match {
-        case Failure(e) => log.warn("Failed to parse bytes from bd", e)
-        case _ =>
-      }
-      parsed.toOption
     }
   }
 
@@ -79,11 +81,11 @@ class HistoryStorage(storage: LSMStore,
 
   def update(b: HybridBlock, difficulty: Option[(BigInt, BigInt)], isBest: Boolean): Unit = {
     log.debug(s"Write new best=$isBest block ${b.encodedId}")
-    val typeByte = b match {
-      case _: PowBlock =>
-        PowBlock.ModifierTypeId
-      case _: PosBlock =>
-        PosBlock.ModifierTypeId
+    val (typeByte, blockBytes) = b match {
+      case powBlock: PowBlock =>
+        PowBlock.ModifierTypeId -> PowBlockSerializer.toBytes(powBlock)
+      case posBlock: PosBlock =>
+        PosBlock.ModifierTypeId -> PosBlockSerializer.toBytes(posBlock)
     }
 
     val blockH: Iterable[(ByteArrayWrapper, ByteArrayWrapper)] =
@@ -108,7 +110,7 @@ class HistoryStorage(storage: LSMStore,
       blockDiff ++
         blockH ++
         bestBlockSeq ++
-        Seq(idToBAW(b.id) -> ByteArrayWrapper(typeByte +: b.bytes)))
+        Seq(idToBAW(b.id) -> ByteArrayWrapper(typeByte +: blockBytes)))
   }
 
   // TODO: review me .get
