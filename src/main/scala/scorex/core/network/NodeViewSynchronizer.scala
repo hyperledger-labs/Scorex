@@ -12,7 +12,6 @@ import scorex.core.network.ModifiersStatus.Requested
 import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
-import scorex.core.network.message.BasicMsgDataTypes._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
@@ -89,7 +88,7 @@ MR <: MempoolReader[TX] : ClassTag]
   private def readersOpt: Option[(HR, MR)] = historyReaderOpt.flatMap(h => mempoolReaderOpt.map(mp => (h, mp)))
 
   protected def broadcastModifierInv[M <: NodeViewModifier](m: M): Unit = {
-    val msg = Message(invSpec, Right(m.modifierTypeId -> Seq(m.id)), None)
+    val msg = Message(invSpec, Right(InvData(m.modifierTypeId, Seq(m.id))), None)
     networkControllerRef ! SendToNetwork(msg, Broadcast)
   }
 
@@ -188,7 +187,7 @@ MR <: MempoolReader[TX] : ClassTag]
     case Some(ext) =>
       ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
         case (mid, mods) =>
-          networkControllerRef ! SendToNetwork(Message(invSpec, Right(mid -> mods), None), SendToPeer(remote))
+          networkControllerRef ! SendToNetwork(Message(invSpec, Right(InvData(mid, mods)), None), SendToPeer(remote))
       }
   }
 
@@ -221,16 +220,16 @@ MR <: MempoolReader[TX] : ClassTag]
 
       (mempoolReaderOpt, historyReaderOpt) match {
         case (Some(mempool), Some(history)) =>
-          val modifierTypeId = invData._1
+          val modifierTypeId = invData.typeId
           val newModifierIds = modifierTypeId match {
             case Transaction.ModifierTypeId =>
-              invData._2.filter(mid => deliveryTracker.status(mid, mempool) == ModifiersStatus.Unknown)
+              invData.ids.filter(mid => deliveryTracker.status(mid, mempool) == ModifiersStatus.Unknown)
             case _ =>
-              invData._2.filter(mid => deliveryTracker.status(mid, history) == ModifiersStatus.Unknown)
+              invData.ids.filter(mid => deliveryTracker.status(mid, history) == ModifiersStatus.Unknown)
           }
 
           if (newModifierIds.nonEmpty) {
-            val msg = Message(requestModifierSpec, Right(modifierTypeId -> newModifierIds), None)
+            val msg = Message(requestModifierSpec, Right(InvData(modifierTypeId, newModifierIds)), None)
             peer.handlerRef ! msg
             deliveryTracker.onRequest(Some(peer), modifierTypeId, newModifierIds)
           }
@@ -246,16 +245,16 @@ MR <: MempoolReader[TX] : ClassTag]
       if spec.messageCode == RequestModifierSpec.MessageCode =>
 
       readersOpt.foreach { readers =>
-        val objs: Seq[NodeViewModifier] = invData._1 match {
+        val objs: Seq[NodeViewModifier] = invData.typeId match {
           case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
-            readers._2.getAll(invData._2)
+            readers._2.getAll(invData.ids)
           case _: ModifierTypeId =>
-            invData._2.flatMap(id => readers._1.modifierById(id))
+            invData.ids.flatMap(id => readers._1.modifierById(id))
         }
 
-        log.debug(s"Requested ${invData._2.length} modifiers ${idsToString(invData)}, " +
-          s"sending ${objs.length} modifiers ${idsToString(invData._1, objs.map(_.id))} ")
-        self ! ResponseFromLocal(remote, invData._1, objs)
+        log.debug(s"Requested ${invData.ids.length} modifiers ${idsToString(invData)}, " +
+          s"sending ${objs.length} modifiers ${idsToString(invData.typeId, objs.map(_.id))} ")
+        self ! ResponseFromLocal(remote, invData.typeId, objs)
       }
   }
 
@@ -268,8 +267,8 @@ MR <: MempoolReader[TX] : ClassTag]
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
       if spec.messageCode == ModifiersSpec.MessageCode =>
 
-      val typeId = data._1
-      val modifiers = data._2
+      val typeId = data.typeId
+      val modifiers = data.modifiers
       log.info(s"Got ${modifiers.size} modifiers of type $typeId from remote connected peer: $remote")
       log.trace(s"Received modifier ids ${modifiers.keySet.map(encoder.encodeId).mkString(",")}")
 
@@ -420,7 +419,7 @@ MR <: MempoolReader[TX] : ClassTag]
             size += NodeViewModifier.ModifierIdSize + 4 + modBytes.length
             size < networkSettings.maxPacketSize
           }
-          peer.handlerRef ! Message(modifiersSpec, Right(modType -> batch.toMap), None)
+          peer.handlerRef ! Message(modifiersSpec, Right(ModifiersData(modType, batch.toMap)), None)
           val remaining = mods.drop(batch.length)
           if (remaining.nonEmpty) {
             sendByParts(remaining)
@@ -438,7 +437,7 @@ MR <: MempoolReader[TX] : ClassTag]
     */
   protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
     deliveryTracker.onRequest(None, modifierTypeId, modifierIds)
-    val msg = Message(requestModifierSpec, Right(modifierTypeId -> modifierIds), None)
+    val msg = Message(requestModifierSpec, Right(InvData(modifierTypeId, modifierIds)), None)
     //todo: A peer which is supposedly having the modifier should be here, not a random peer
     networkControllerRef ! SendToNetwork(msg, SendToRandom)
   }

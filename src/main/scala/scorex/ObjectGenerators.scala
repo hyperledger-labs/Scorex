@@ -5,7 +5,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import akka.actor.ActorRef
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.app.Version
-import scorex.core.network.message.BasicMsgDataTypes._
+import scorex.core.network.message.{InvData, ModifiersData}
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.{ConnectedPeer, Handshake, Outgoing, PeerFeature}
 import scorex.core.serialization.Serializer
@@ -61,7 +61,7 @@ trait ObjectGenerators {
   lazy val invDataGen: Gen[InvData] = for {
     modifierTypeId: ModifierTypeId <- modifierTypeIdGen
     modifierIds: Seq[ModifierId] <- Gen.nonEmptyListOf(modifierIdGen) if modifierIds.nonEmpty
-  } yield modifierTypeId -> modifierIds
+  } yield InvData(modifierTypeId, modifierIds)
 
   lazy val modifierWithIdGen: Gen[(ModifierId, Array[Byte])] = for {
     id <- modifierIdGen
@@ -71,7 +71,7 @@ trait ObjectGenerators {
   lazy val modifiersGen: Gen[ModifiersData] = for {
     modifierTypeId: ModifierTypeId <- modifierTypeIdGen
     modifiers: Map[ModifierId, Array[Byte]] <- Gen.nonEmptyMap(modifierWithIdGen).suchThat(_.nonEmpty)
-  } yield modifierTypeId -> modifiers
+  } yield ModifiersData(modifierTypeId, modifiers)
 
   lazy val appVersionGen: Gen[Version] = for {
     fd <- Gen.choose(0: Byte, Byte.MaxValue)

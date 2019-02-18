@@ -167,7 +167,7 @@ MP <: MemoryPool[TX, MP]
       node ! OtherNodeSyncingStatus(peer, Younger, Some(Seq((mod.modifierTypeId, mod.id))))
       ncProbe.fishForMessage(3 seconds) { case m =>
         m match {
-          case SendToNetwork(Message(_, Right((tid, ids)), None), SendToPeer(p))
+          case SendToNetwork(Message(_, Right(InvData(tid, ids)), None), SendToPeer(p))
             if p == peer && tid == mod.modifierTypeId && ids == Seq(mod.id) => true
           case _ => false
         }
@@ -188,7 +188,7 @@ MP <: MemoryPool[TX, MP]
       import ctx._
       val spec = new InvSpec(3)
       val modifiers = Seq(mod.id)
-      node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
+      node ! DataFromPeer(spec, InvData(mod.modifierTypeId, modifiers), peer)
       pchProbe.fishForMessage(5 seconds) {
         case _: Message[_] => true
         case _ => false
@@ -208,7 +208,7 @@ MP <: MemoryPool[TX, MP]
       val modifiers = Seq(mod.id)
       node ! ChangedHistory(newH)
       node ! ChangedMempool(m)
-      node ! DataFromPeer(spec, (mod.modifierTypeId, modifiers), peer)
+      node ! DataFromPeer(spec, InvData(mod.modifierTypeId, modifiers), peer)
 
       pchProbe.fishForMessage(5 seconds) {
         case _: Message[_] => true
@@ -223,7 +223,7 @@ MP <: MemoryPool[TX, MP]
 
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
-      node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+      node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
       val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) { case m => m }
       assert(!messages.exists(_.isInstanceOf[ModifiersFromRemote[PM]]))
     }
@@ -236,8 +236,8 @@ MP <: MemoryPool[TX, MP]
 
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
-      node ! DataFromPeer(new InvSpec(3), (mod.modifierTypeId, Seq(mod.id)), peer)
-      node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+      node ! DataFromPeer(new InvSpec(3), InvData(mod.modifierTypeId, Seq(mod.id)), peer)
+      node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
       vhProbe.fishForMessage(3 seconds) {
         case m: ModifiersFromRemote[PM] => m.modifiers.toSeq.contains(mod)
         case _ => false
@@ -251,9 +251,9 @@ MP <: MemoryPool[TX, MP]
 
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
 
-      node ! DataFromPeer(new InvSpec(3), (mod.modifierTypeId, Seq(mod.id)), peer)
-      node ! DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-      system.scheduler.scheduleOnce(1 second, node, DataFromPeer(modifiersSpec, (mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer))
+      node ! DataFromPeer(new InvSpec(3), InvData(mod.modifierTypeId, Seq(mod.id)), peer)
+      node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+      system.scheduler.scheduleOnce(1 second, node, DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer))
       val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
       assert(!messages.contains(Blacklist(peer)))
     }

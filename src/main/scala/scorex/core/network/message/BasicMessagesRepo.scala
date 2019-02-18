@@ -11,13 +11,8 @@ import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 import scala.annotation.tailrec
 import scala.util.Try
 
-
-object BasicMsgDataTypes {
-  type InvData = (ModifierTypeId, Seq[ModifierId])
-  type ModifiersData = (ModifierTypeId, Map[ModifierId, Array[Byte]])
-}
-
-import scorex.core.network.message.BasicMsgDataTypes._
+case class ModifiersData(typeId: ModifierTypeId, modifiers: Map[ModifierId, Array[Byte]])
+case class InvData(typeId: ModifierTypeId, ids: Seq[ModifierId])
 
 class SyncInfoMessageSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) extends MessageSpecV1[SI] {
 
@@ -52,15 +47,15 @@ class InvSpec(maxInvObjects: Int) extends MessageSpecV1[InvData] {
       bytesToId(bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize))
     }
 
-    typeId -> elems
+    InvData(typeId, elems)
   }
 
   override def toBytes(data: InvData): Array[Byte] = {
-    require(data._2.nonEmpty, "empty inv list")
-    require(data._2.lengthCompare(maxInvObjects) <= 0, s"more invs than $maxInvObjects in a message")
-    val idsBytes = data._2.map(idToBytes).ensuring(_.forall(_.lengthCompare(NodeViewModifier.ModifierIdSize) == 0))
+    require(data.ids.nonEmpty, "empty inv list")
+    require(data.ids.lengthCompare(maxInvObjects) <= 0, s"more invs than $maxInvObjects in a message")
+    val idsBytes = data.ids.map(idToBytes).ensuring(_.forall(_.lengthCompare(NodeViewModifier.ModifierIdSize) == 0))
 
-    Bytes.concat(Array(data._1), Ints.toByteArray(data._2.size), scorex.core.utils.concatBytes(idsBytes))
+    Bytes.concat(Array(data.typeId), Ints.toByteArray(data.ids.size), scorex.core.utils.concatBytes(idsBytes))
   }
 }
 
@@ -111,13 +106,13 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] wi
 
         (pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt) -> (collected :+ (id -> obj))
     }
-    typeId -> seq.toMap
+    ModifiersData(typeId, seq.toMap)
   }
 
   override def toBytes(data: ModifiersData): Array[Byte] = {
-    require(data._2.nonEmpty, "empty modifiers list")
-    val typeId = data._1
-    val modifiers = data._2
+    require(data.modifiers.nonEmpty, "empty modifiers list")
+    val typeId = data.typeId
+    val modifiers = data.modifiers
 
     var msgSize = 5
     val payload: Seq[Array[Byte]] = modifiers.flatMap { case (id, modifier) =>
@@ -128,7 +123,7 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] wi
 
     val bytes = scorex.core.utils.concatBytes(Seq(Array(typeId), Ints.toByteArray(payload.size / 3)) ++ payload)
     if (msgSize > maxMessageSize) {
-      log.warn(s"Message with modifiers ${data._2.keySet} have size $msgSize exceeding limit $maxMessageSize." +
+      log.warn(s"Message with modifiers ${data.modifiers.keySet} have size $msgSize exceeding limit $maxMessageSize." +
         s" Sending ${bytes.length} bytes instead")
     }
     bytes
