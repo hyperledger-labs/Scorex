@@ -11,7 +11,7 @@ import scorex.core.network.NetworkController.ReceivableMessages.Handshaked
 import scorex.core.network.PeerFeature.Serializers
 import scorex.core.network.message.{HandshakeSpec, MessageSerializer}
 import scorex.core.network.peer.PeerInfo
-import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
+import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, RemovePeer}
 import scorex.core.serialization.Serializer
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
@@ -152,6 +152,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
           //todo: blacklist?
+          selfPeer.foreach(c => peerManagerRef ! RemovePeer(c.remote))
           self ! CloseConnection
       }
   }
