@@ -1,6 +1,6 @@
 package examples.hybrid.blocks
 
-import com.google.common.primitives.{Bytes, Ints, Longs}
+import com.google.common.primitives.Longs
 import examples.commons._
 import io.circe.Encoder
 import io.circe.syntax._

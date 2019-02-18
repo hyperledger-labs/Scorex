@@ -1,6 +1,6 @@
 package examples.commons
 
-import com.google.common.primitives.{Bytes, Ints, Longs}
+import com.google.common.primitives.{Ints, Longs}
 import examples.hybrid.wallet.HBoxWallet
 import io.circe.Encoder
 import io.circe.syntax._
@@ -174,7 +174,7 @@ object SimpleBoxTransactionSerializer extends ScorexSerializer[SimpleBoxTransact
 
     m.to.foreach { t =>
       PublicKey25519PropositionSerializer.serialize(t._1, w)
-      w.putLong(t._2)
+      w.putULong(t._2)
     }
   }
 
@@ -194,7 +194,7 @@ object SimpleBoxTransactionSerializer extends ScorexSerializer[SimpleBoxTransact
     }
     val to = (0 until toLength.toIntExact) map { i =>
       val pk = PublicKey25519PropositionSerializer.parse(r)
-      val v = r.getLong()
+      val v = r.getULong()
       (pk, Value @@ v)
     }
     SimpleBoxTransaction(from, to, signatures, fee, timestamp)

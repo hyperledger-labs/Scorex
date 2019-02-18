@@ -8,8 +8,8 @@ import scorex.core.block.Block._
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
 import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
-import scorex.util.serialization.{Reader, VLQByteBufferWriter, Writer}
-import scorex.util.{ByteArrayBuilder, ModifierId, bytesToId, idToBytes}
+import scorex.util.serialization.{Reader, Writer}
+import scorex.util.{ModifierId, bytesToId, idToBytes}
 
 import scala.annotation.tailrec
 

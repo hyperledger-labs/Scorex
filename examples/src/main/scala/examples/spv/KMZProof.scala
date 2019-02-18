@@ -1,6 +1,5 @@
 package examples.spv
 
-import com.google.common.primitives.{Bytes, Shorts}
 import scorex.core._
 import scorex.util.serialization.{Reader, Writer}
 import scorex.core.serialization.ScorexSerializer

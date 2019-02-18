@@ -108,7 +108,7 @@ object PowBlockSerializer extends ScorexSerializer[PowBlock] {
 
   override def serialize(block: PowBlock, w: Writer): Unit = {
     PowBlockHeaderSerializer.serialize(block.header, w)
-    block.brothers.foreach(b => PowBlockHeaderSerializer.serialize(b ,w))
+    block.brothers.foreach(b => PowBlockHeaderSerializer.serialize(b, w))
     PublicKey25519PropositionSerializer.serialize(block.generatorProposition, w)
   }
 

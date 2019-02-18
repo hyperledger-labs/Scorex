@@ -9,7 +9,6 @@ import examples.hybrid.blocks.{PosBlock, PosBlockSerializer, PowBlock, PowBlockS
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core._
-import scorex.core.app.Version
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{ChangedHistory, ChangedMempool}
 import scorex.core.network._
 import scorex.util.serialization.{Reader, Writer}
