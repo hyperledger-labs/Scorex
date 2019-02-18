@@ -22,8 +22,12 @@ case class PeerInfo(peerData: PeerData,
 
 object PeerInfo {
 
+  /**
+    * Create peer info from address only, when we don't know other fields
+    * (e.g. we got this information from config or from API)
+    */
   def fromAddress(address: InetSocketAddress): PeerInfo = {
-    val peerData = PeerData("configNode", Version.last, s"config-$address", Some(address), Seq())
+    val peerData = PeerData("unknown", Version.initial, s"unknown-$address", Some(address), Seq())
     PeerInfo(peerData, 0L, None)
   }
 

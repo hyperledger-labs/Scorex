@@ -13,8 +13,7 @@ import scorex.core.app.Version
   * @param peerData - general (declared) information about peer
   * @param time     - handshake time
   */
-case class Handshake(peerData: PeerData,
-                     time: Long)
+case class Handshake(peerData: PeerData, time: Long)
 
 object Handshake {
   def apply(agentName: String,
