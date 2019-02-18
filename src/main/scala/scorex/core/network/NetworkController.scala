@@ -274,9 +274,11 @@ class NetworkController(settings: NetworkSettings,
   }
 
   /**
-    * Returns connections filtered by given SendingStrategy
+    * Returns connections filtered by given SendingStrategy and Version.
+    * Exclude all connections with lower version and apply sendingStrategy to remaining connected peers
     *
-    * @param sendingStrategy SendingStrategy
+    * @param sendingStrategy - SendingStrategy
+    * @param version         - minimal version required
     * @return sequence of ConnectedPeer instances according SendingStrategy
     */
   private def filterConnections(sendingStrategy: SendingStrategy, version: Version): Seq[ConnectedPeer] = {
