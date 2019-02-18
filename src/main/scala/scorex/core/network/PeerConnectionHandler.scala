@@ -12,7 +12,7 @@ import scorex.core.network.PeerFeature.Serializers
 import scorex.core.network.message.{HandshakeSpec, MessageSerializer}
 import scorex.core.network.peer.PeerInfo
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, RemovePeer}
-import scorex.core.serialization.Serializer
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
 
@@ -31,9 +31,9 @@ case object Outgoing extends ConnectionType
 /**
   * Peer connected to our node
   *
-  * @param remote - connection address
+  * @param remote     - connection address
   * @param handlerRef - reference to PeerConnectionHandler that is responsible for communication with this peer
-  * @param peerInfo - information about this peer. May be None if peer is connected, but is not handshaked yet
+  * @param peerInfo   - information about this peer. May be None if peer is connected, but is not handshaked yet
   */
 case class ConnectedPeer(remote: InetSocketAddress,
                          handlerRef: ActorRef,
@@ -75,7 +75,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   private val localFeatures = connectionDescription.localFeatures
 
   private val featureSerializers: Serializers = {
-    localFeatures.map(f => f.featureId -> (f.serializer: Serializer[_ <: PeerFeature])).toMap
+    localFeatures.map(f => f.featureId -> (f.serializer: ScorexSerializer[_ <: PeerFeature])).toMap
   }
 
   private val handshakeSerializer = new HandshakeSpec(featureSerializers)
@@ -145,7 +145,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private def receiveAndHandleHandshake(handler: Handshake => Unit): Receive = {
     case Received(data) =>
-      handshakeSerializer.parseBytes(data.toArray) match {
+      handshakeSerializer.parseBytesTry(data.toArray) match {
         case Success(handshake) =>
           handler(handshake)
 

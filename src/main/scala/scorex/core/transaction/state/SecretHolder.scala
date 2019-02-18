@@ -1,13 +1,11 @@
 package scorex.core.transaction.state
 
-import com.google.common.primitives.Bytes
-import scorex.core.serialization.{BytesSerializable, Serializer}
+import scorex.util.serialization._
+import scorex.core.serialization.{BytesSerializable, ScorexSerializer}
 import scorex.core.transaction.box._
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, PublicKey25519Proposition}
 import scorex.core.transaction.proof.{ProofOfKnowledge, Signature25519}
 import scorex.crypto.signatures.{Curve25519, PrivateKey, PublicKey}
-
-import scala.util.Try
 
 trait Secret extends BytesSerializable {
   self =>
@@ -47,14 +45,18 @@ case class PrivateKey25519(privKeyBytes: PrivateKey, publicKeyBytes: PublicKey) 
   override lazy val publicImage: PublicKey25519Proposition = PublicKey25519Proposition(publicKeyBytes)
   override type M = PrivateKey25519
 
-  override def serializer: Serializer[PrivateKey25519] = PrivateKey25519Serializer
+  override def serializer: ScorexSerializer[PrivateKey25519] = PrivateKey25519Serializer
 }
 
-object PrivateKey25519Serializer extends Serializer[PrivateKey25519] {
-  override def toBytes(obj: PrivateKey25519): Array[Byte] = Bytes.concat(obj.privKeyBytes, obj.publicKeyBytes)
+object PrivateKey25519Serializer extends ScorexSerializer[PrivateKey25519] {
 
-  override def parseBytes(bytes: Array[Byte]): Try[PrivateKey25519] = Try {
-    PrivateKey25519(PrivateKey @@ bytes.slice(0, 32), PublicKey @@ bytes.slice(32, 64))
+  override def serialize(obj: PrivateKey25519, w: Writer): Unit = {
+    w.putBytes(obj.privKeyBytes)
+    w.putBytes(obj.publicKeyBytes)
+  }
+
+  override def parse(r: Reader): PrivateKey25519 = {
+    PrivateKey25519(PrivateKey @@ r.getBytes(32), PublicKey @@ r.getBytes(32))
   }
 }
 

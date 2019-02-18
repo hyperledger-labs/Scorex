@@ -4,7 +4,7 @@ import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import scorex.core.consensus.{History, HistoryReader, ModifierSemanticValidity, SyncInfo}
 import scorex.core.consensus.History.ModifierIds
-import scorex.core.serialization.Serializer
+import scorex.core.serialization.ScorexSerializer
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
@@ -19,13 +19,13 @@ class DefaultModifiersCacheSpecification extends PropSpec
     override val modifierTypeId: ModifierTypeId = ModifierTypeId @@ (0: Byte)
     override def id: scorex.util.ModifierId = ???
     override type M = this.type
-    override def serializer: Serializer[FakeModifier.this.type] = ???
+    override def serializer: ScorexSerializer[FakeModifier.this.type] = ???
   }
 
   private class FakeSyncInfo extends SyncInfo {
     override def startingPoints: ModifierIds = ???
     override type M = this.type
-    override def serializer: Serializer[FakeSyncInfo.this.type] = ???
+    override def serializer: ScorexSerializer[FakeSyncInfo.this.type] = ???
   }
 
   private class FakeHr extends HistoryReader[FakeModifier, FakeSyncInfo] {

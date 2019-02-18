@@ -1,12 +1,12 @@
 package scorex.core.network.message
 
 import scorex.core.app.Version
-import scorex.core.serialization.Serializer
+import scorex.core.serialization.ScorexSerializer
 
 /**
   * Base trait for app p2p messages in the network
   */
-trait MessageSpec[Content] extends Serializer[Content] {
+trait MessageSpec[Content] extends ScorexSerializer[Content] {
 
   /**
     * The p2p protocol version in which this message type first appeared
@@ -16,6 +16,7 @@ trait MessageSpec[Content] extends Serializer[Content] {
   /**
     * Code which identifies what message type is contained in the payload
     */
+
   val messageCode: Message.MessageCode
 
   /**

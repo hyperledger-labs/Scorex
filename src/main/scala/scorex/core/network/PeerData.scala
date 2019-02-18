@@ -2,12 +2,11 @@ package scorex.core.network
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import com.google.common.primitives.{Bytes, Ints, Longs, Shorts}
 import scorex.core.app.{ApplicationVersionSerializer, Version}
 import scorex.core.network.peer.LocalAddressPeerFeature
-import scorex.core.serialization.Serializer
-
-import scala.util.Try
+import scorex.core.serialization.ScorexSerializer
+import scorex.util.Extensions._
+import scorex.util.serialization.{Reader, Writer}
 
 /**
   * Declared information about peer
@@ -38,88 +37,56 @@ case class PeerData(agentName: String,
 }
 
 
-class PeerDataSerializer(featureSerializers: PeerFeature.Serializers) extends Serializer[PeerData] {
+class PeerDataSerializer(featureSerializers: PeerFeature.Serializers) extends ScorexSerializer[PeerData] {
+  override def serialize(obj: PeerData, w: Writer): Unit = {
 
-  override def toBytes(obj: PeerData): Array[Byte] = {
-    val anb = obj.agentName.getBytes
+    w.putShortString(obj.agentName)
+    ApplicationVersionSerializer.serialize(obj.protocolVersion, w)
+    w.putShortString(obj.nodeName)
 
-    val fab = obj.declaredAddress.map { isa =>
-      Bytes.concat(isa.getAddress.getAddress, Ints.toByteArray(isa.getPort))
-    }.getOrElse(Array[Byte]())
 
-    val nodeNameBytes = obj.nodeName.getBytes
-
-    val featureBytes = obj.features.foldLeft(Array(obj.features.size.toByte)) { case (fb, f) =>
-      val featId = f.featureId
-      val featBytes = f.bytes
-      Bytes.concat(fb, featId +: Shorts.toByteArray(featBytes.length.toShort), featBytes)
+    w.putOption(obj.declaredAddress) { (writer, isa) =>
+      val addr = isa.getAddress.getAddress
+      writer.put((addr.size + 4).toByteExact)
+      writer.putBytes(addr)
+      writer.putUInt(isa.getPort)
     }
 
-    Bytes.concat(
-      Array(anb.size.toByte),
-      anb,
-      obj.protocolVersion.bytes,
-      Array(nodeNameBytes.size.toByte),
-      nodeNameBytes,
-      Ints.toByteArray(fab.length),
-      fab,
-      featureBytes)
+    w.put(obj.features.size.toByteExact)
+    obj.features.foreach { f =>
+      w.put(f.featureId)
+      w.putBytes(f.bytes)
+    }
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[PeerData] = Try {
-    var position = 0
-    val appNameSize = bytes.head
-    require(appNameSize > 0)
+  override def parse(r: Reader): PeerData = {
 
-    position += 1
+    val appName = r.getShortString()
+    require(appName.nonEmpty)
 
-    val an = new String(bytes.slice(position, position + appNameSize))
-    position += appNameSize
+    val protocolVersion = ApplicationVersionSerializer.parse(r)
 
-    val av = ApplicationVersionSerializer.parseBytes(
-      bytes.slice(position, position + ApplicationVersionSerializer.SerializedVersionLength)).get
-    position += ApplicationVersionSerializer.SerializedVersionLength
+    val nodeName = r.getShortString()
 
-    val nodeNameSize = bytes.slice(position, position + 1).head
-    position += 1
-
-    val nodeName = new String(bytes.slice(position, position + nodeNameSize))
-    position += nodeNameSize
-
-    val fas = Ints.fromByteArray(bytes.slice(position, position + 4))
-    position += 4
-
-    val isaOpt = if (fas > 0) {
-      val fa = bytes.slice(position, position + fas - 4)
-      position += fas - 4
-
-      val port = Ints.fromByteArray(bytes.slice(position, position + 4))
-      position += 4
-
-      Some(new InetSocketAddress(InetAddress.getByAddress(fa), port))
-    } else None
-
-    val featuresCount = bytes.slice(position, position + 1).head
-    position += 1
-
-    val feats = (1 to featuresCount).flatMap { _ =>
-      val featId = bytes.slice(position, position + 1).head
-      position += 1
-
-      val featBytesCount = Shorts.fromByteArray(bytes.slice(position, position + 2))
-      position += 2
-
-      //we ignore a feature found in the handshake if we do not know how to parse it or failed to do that
-
-      val featOpt = featureSerializers.get(featId).flatMap { featureSerializer =>
-        featureSerializer.parseBytes(bytes.slice(position, position + featBytesCount)).toOption
-      }
-      position += featBytesCount
-
-      featOpt
+    val declaredAddressOpt = r.getOption {
+      val fas = r.getUByte()
+      val fa = r.getBytes(fas - 4)
+      val port = r.getUInt().toIntExact
+      new InetSocketAddress(InetAddress.getByAddress(fa), port)
     }
 
-    PeerData(an, av, nodeName, isaOpt, feats)
+    val featuresCount = r.getByte()
+    val feats = (1 to featuresCount).flatMap { _ =>
+      val featId = r.getByte()
+      val featBytesCount = r.getUShort().toShortExact
+      val featChunk = r.getChunk(featBytesCount)
+      //we ignore a feature found in the handshake if we do not know how to parse it or failed to do that
+      featureSerializers.get(featId).flatMap { featureSerializer =>
+        featureSerializer.parseTry(r.newReader(featChunk)).toOption
+      }
+    }
+
+    PeerData(appName, protocolVersion, nodeName, declaredAddressOpt, feats)
   }
 
 }

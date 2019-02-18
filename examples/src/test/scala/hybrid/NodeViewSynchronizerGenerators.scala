@@ -5,12 +5,14 @@ import akka.testkit.TestProbe
 import commons.ExamplesCommonGenerators
 import examples.commons.SimpleBoxTransactionMemPool
 import examples.hybrid.HybridApp
+import examples.hybrid.blocks.{PosBlock, PosBlockSerializer, PowBlock, PowBlockSerializer}
 import examples.hybrid.history.HybridSyncInfoMessageSpec
 import io.iohk.iodb.ByteArrayWrapper
 import scorex.core._
-import scorex.core.app.Version
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{ChangedHistory, ChangedMempool}
 import scorex.core.network._
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.NetworkTimeProvider
 import scorex.testkit.generators.CoreGenerators
 
@@ -32,7 +34,7 @@ trait NodeViewSynchronizerGenerators {
   }
 
   def nodeViewSynchronizer(implicit system: ActorSystem):
-  (ActorRef, HSI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe) = {
+  (ActorRef, HSI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe, ScorexSerializer[PM]) = {
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val h = historyGen.sample.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
@@ -51,11 +53,27 @@ trait NodeViewSynchronizerGenerators {
     ref ! ChangedHistory(h)
     ref ! ChangedMempool(mempool)
     val m = totallyValidModifier(h, s)
+    val modSerializer = new ScorexSerializer[PM] {
+      override def serialize(obj: PM, w: Writer): Unit = {
+        obj match {
+          case block: PowBlock => PowBlockSerializer.serialize(block, w)
+          case block: PosBlock => PosBlockSerializer.serialize(block, w)
+        }
+      }
+
+      override def parse(r: Reader): PM = {
+        m match {
+          case block: PowBlock => PowBlockSerializer.parse(r)
+          case block: PosBlock => PosBlockSerializer.parse(r)
+        }
+      }
+    }
+
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val tx = simpleBoxTransactionGen.sample.get
     @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
     val p: ConnectedPeer = connectedPeerGen(pchProbe.ref).sample.get
 
-    (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, eventListener)
+    (ref, h.syncInfo, m, tx, p, pchProbe, ncProbe, vhProbe, eventListener, modSerializer)
   }
 }

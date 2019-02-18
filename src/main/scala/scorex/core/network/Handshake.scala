@@ -16,6 +16,8 @@ import scorex.core.app.Version
 case class Handshake(peerData: PeerData, time: Long)
 
 object Handshake {
+
+  // todo do we need it?
   def apply(agentName: String,
             protocolVersion: Version,
             nodeName: String,
@@ -25,4 +27,5 @@ object Handshake {
     val peerData = PeerData(agentName, protocolVersion, nodeName, declaredAddress, features)
     Handshake(peerData, time)
   }
+
 }

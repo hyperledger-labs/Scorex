@@ -1,8 +1,8 @@
 package examples.trimchain.modifiers
 
 import examples.trimchain.utxo.PersistentAuthenticatedUtxo
-import scorex.core.serialization.Serializer
 import scorex.core.ModifierTypeId
+import scorex.core.serialization.ScorexSerializer
 import scorex.util.ModifierId
 
 class UtxoSnapshot(override val parentId: ModifierId,
@@ -19,5 +19,5 @@ class UtxoSnapshot(override val parentId: ModifierId,
   override type M = UtxoSnapshot
 
   //todo: for Dmitry: implement: dump all the boxes
-  override def serializer: Serializer[M] = ???
+  override def serializer: ScorexSerializer[M] = ???
 }

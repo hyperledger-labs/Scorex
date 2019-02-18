@@ -1,6 +1,7 @@
 package scorex.core.transaction.box.proposition
 
-import scorex.core.serialization.Serializer
+import scorex.util.serialization._
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.state.PrivateKey25519
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.hash.Blake2b256
@@ -26,7 +27,7 @@ case class PublicKey25519Proposition(pubKeyBytes: PublicKey)
 
   override type M = PublicKey25519Proposition
 
-  override def serializer: Serializer[PublicKey25519Proposition] = PublicKey25519PropositionSerializer
+  override def serializer: ScorexSerializer[PublicKey25519Proposition] = PublicKey25519PropositionSerializer
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case p: PublicKey25519Proposition => java.util.Arrays.equals(p.pubKeyBytes, pubKeyBytes)
@@ -37,11 +38,15 @@ case class PublicKey25519Proposition(pubKeyBytes: PublicKey)
 
 }
 
-object PublicKey25519PropositionSerializer extends Serializer[PublicKey25519Proposition] {
-  override def toBytes(obj: PublicKey25519Proposition): Array[Byte] = obj.pubKeyBytes
+object PublicKey25519PropositionSerializer extends ScorexSerializer[PublicKey25519Proposition] {
 
-  override def parseBytes(bytes: Array[Byte]): Try[PublicKey25519Proposition] =
-    Try(PublicKey25519Proposition(PublicKey @@ bytes))
+  override def serialize(obj: PublicKey25519Proposition, w: Writer): Unit = {
+    w.putBytes(obj.pubKeyBytes)
+  }
+
+  override def parse(r: Reader): PublicKey25519Proposition = {
+    PublicKey25519Proposition(PublicKey @@ r.getBytes(Curve25519.KeyLength))
+  }
 }
 
 object PublicKey25519Proposition extends ScorexEncoding {

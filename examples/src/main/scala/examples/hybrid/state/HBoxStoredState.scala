@@ -34,11 +34,12 @@ case class HBoxStoredState(store: LSMStore, override val version: VersionTag) ex
 
   override def semanticValidity(tx: SimpleBoxTransaction): Try[Unit] = HBoxStoredState.semanticValidity(tx)
 
-  override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] =
+  override def closedBox(boxId: Array[Byte]): Option[PublicKey25519NoncedBox] = {
     store.get(ByteArrayWrapper(boxId))
       .map(_.data)
-      .map(PublicKey25519NoncedBoxSerializer.parseBytes)
+      .map(bytes => PublicKey25519NoncedBoxSerializer.parseBytesTry(bytes))
       .flatMap(_.toOption)
+  }
 
   //there's no easy way to know boxes associated with a proposition without an additional index
   override def boxesOf(proposition: PublicKey25519Proposition): Seq[PublicKey25519NoncedBox] = ???

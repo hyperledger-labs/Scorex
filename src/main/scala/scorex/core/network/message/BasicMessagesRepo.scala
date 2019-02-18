@@ -1,27 +1,28 @@
 package scorex.core.network.message
 
 
-import com.google.common.primitives.{Bytes, Ints, Longs}
 import scorex.core.consensus.SyncInfo
-import scorex.core.network.message.Message.MessageCode
 import scorex.core.network._
+import scorex.core.network.message.Message.MessageCode
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.{ModifierTypeId, NodeViewModifier}
+import scorex.util.Extensions._
+import scorex.util.serialization.{Reader, Writer}
 import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 
-import scala.annotation.tailrec
-import scala.util.Try
-
 case class ModifiersData(typeId: ModifierTypeId, modifiers: Map[ModifierId, Array[Byte]])
+
 case class InvData(typeId: ModifierTypeId, ids: Seq[ModifierId])
 
-class SyncInfoMessageSpec[SI <: SyncInfo](deserializer: Array[Byte] => Try[SI]) extends MessageSpecV1[SI] {
+class SyncInfoMessageSpec[SI <: SyncInfo](serializer: ScorexSerializer[SI]) extends MessageSpecV1[SI] {
+
 
   override val messageCode: MessageCode = 65: Byte
   override val messageName: String = "Sync"
 
-  override def parseBytes(bytes: Array[Byte]): Try[SI] = deserializer(bytes)
+  override def serialize(data: SI, w: Writer): Unit = serializer.serialize(data, w)
 
-  override def toBytes(data: SI): Array[Byte] = data.bytes
+  override def parse(r: Reader): SI = serializer.parse(r)
 }
 
 object InvSpec {
@@ -36,27 +37,32 @@ class InvSpec(maxInvObjects: Int) extends MessageSpecV1[InvData] {
   override val messageCode: MessageCode = MessageCode
   override val messageName: String = MessageName
 
-  override def parseBytes(bytes: Array[Byte]): Try[InvData] = Try {
-    val typeId = ModifierTypeId @@ bytes.head
-    val count = Ints.fromByteArray(bytes.slice(1, 5))
+  override def serialize(data: InvData, w: Writer): Unit = {
+    val typeId = data.typeId
+    val elems = data.ids
+    require(elems.nonEmpty, "empty inv list")
+    require(elems.lengthCompare(maxInvObjects) <= 0, s"more invs than $maxInvObjects in a message")
+    w.put(typeId)
+    w.putUInt(elems.size)
+    elems.foreach { id =>
+      val bytes = idToBytes(id)
+      assert(bytes.length == NodeViewModifier.ModifierIdSize)
+      w.putBytes(bytes)
+    }
+  }
 
+  override def parse(r: Reader): InvData = {
+    val typeId = ModifierTypeId @@ r.getByte()
+    val count = r.getUInt().toIntExact
     require(count > 0, "empty inv list")
     require(count <= maxInvObjects, s"$count elements in a message while limit is $maxInvObjects")
-
     val elems = (0 until count).map { c =>
-      bytesToId(bytes.slice(5 + c * NodeViewModifier.ModifierIdSize, 5 + (c + 1) * NodeViewModifier.ModifierIdSize))
+      bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
     }
 
     InvData(typeId, elems)
   }
 
-  override def toBytes(data: InvData): Array[Byte] = {
-    require(data.ids.nonEmpty, "empty inv list")
-    require(data.ids.lengthCompare(maxInvObjects) <= 0, s"more invs than $maxInvObjects in a message")
-    val idsBytes = data.ids.map(idToBytes).ensuring(_.forall(_.lengthCompare(NodeViewModifier.ModifierIdSize) == 0))
-
-    Bytes.concat(Array(data.typeId), Ints.toByteArray(data.ids.size), scorex.core.utils.concatBytes(idsBytes))
-  }
 }
 
 object RequestModifierSpec {
@@ -73,13 +79,15 @@ class RequestModifierSpec(maxInvObjects: Int) extends MessageSpecV1[InvData] {
 
   private val invSpec = new InvSpec(maxInvObjects)
 
-  override def toBytes(typeAndId: InvData): Array[Byte] =
-    invSpec.toBytes(typeAndId)
 
-  override def parseBytes(bytes: Array[Byte]): Try[InvData] =
-    invSpec.parseBytes(bytes)
+  override def serialize(data: InvData, w: Writer): Unit = {
+    invSpec.serialize(data, w)
+  }
+
+  override def parse(r: Reader): InvData = {
+    invSpec.parse(r)
+  }
 }
-
 
 object ModifiersSpec {
   val MessageCode: MessageCode = 33: Byte
@@ -93,40 +101,45 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] wi
   override val messageCode: MessageCode = MessageCode
   override val messageName: String = MessageName
 
-  override def parseBytes(bytes: Array[Byte]): Try[ModifiersData] = Try {
-    val typeId = ModifierTypeId @@ bytes.head
-    val count = Ints.fromByteArray(bytes.slice(1, 5))
-    val objBytes = bytes.slice(5, bytes.length)
-    val (_, seq) = (0 until count).foldLeft(0 -> Seq[(ModifierId, Array[Byte])]()) {
-      case ((pos, collected), _) =>
 
-        val id = bytesToId(objBytes.slice(pos, pos + NodeViewModifier.ModifierIdSize))
-        val objBytesCnt = Ints.fromByteArray(objBytes.slice(pos + NodeViewModifier.ModifierIdSize, pos + NodeViewModifier.ModifierIdSize + 4))
-        val obj = objBytes.slice(pos + NodeViewModifier.ModifierIdSize + 4, pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt)
+  override def serialize(data: ModifiersData, w: Writer): Unit = {
 
-        (pos + NodeViewModifier.ModifierIdSize + 4 + objBytesCnt) -> (collected :+ (id -> obj))
-    }
-    ModifiersData(typeId, seq.toMap)
-  }
-
-  override def toBytes(data: ModifiersData): Array[Byte] = {
-    require(data.modifiers.nonEmpty, "empty modifiers list")
     val typeId = data.typeId
     val modifiers = data.modifiers
+    require(modifiers.nonEmpty, "empty modifiers list")
 
-    var msgSize = 5
-    val payload: Seq[Array[Byte]] = modifiers.flatMap { case (id, modifier) =>
-      msgSize += NodeViewModifier.ModifierIdSize + 4 + modifier.length
-      if (msgSize <= maxMessageSize) Seq(idToBytes(id), Ints.toByteArray(modifier.length), modifier) else Seq()
-    }.toSeq
-
-
-    val bytes = scorex.core.utils.concatBytes(Seq(Array(typeId), Ints.toByteArray(payload.size / 3)) ++ payload)
-    if (msgSize > maxMessageSize) {
-      log.warn(s"Message with modifiers ${data.modifiers.keySet} have size $msgSize exceeding limit $maxMessageSize." +
-        s" Sending ${bytes.length} bytes instead")
+    val (msgCount, msgSize) = modifiers.foldLeft((0, 5)) { case ((c, s), (id, modifier)) =>
+      val size = s + NodeViewModifier.ModifierIdSize + 4 + modifier.length
+      val count = if (size <= maxMessageSize) c + 1 else c
+      count -> size
     }
-    bytes
+
+    val start = w.length()
+    w.put(typeId)
+    w.putUInt(msgCount)
+
+    modifiers.take(msgCount).foreach { case (id, modifier) =>
+      w.putBytes(idToBytes(id))
+      w.putUInt(modifier.length)
+      w.putBytes(modifier)
+    }
+
+    if (msgSize > maxMessageSize) {
+      log.warn(s"Message with modifiers ${modifiers.keySet} have size $msgSize exceeding limit $maxMessageSize." +
+        s" Sending ${w.length() - start} bytes instead")
+    }
+  }
+
+  override def parse(r: Reader): ModifiersData = {
+    val typeId = ModifierTypeId @@ r.getByte()
+    val count = r.getUInt().toIntExact
+    val seq = (0 until count).map { _ =>
+      val id = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
+      val objBytesCnt = r.getUInt().toIntExact
+      val obj = r.getBytes(objBytesCnt)
+      id -> obj
+    }
+    ModifiersData(typeId, seq.toMap)
   }
 }
 
@@ -135,10 +148,12 @@ object GetPeersSpec extends MessageSpecV1[Unit] {
 
   override val messageName: String = "GetPeers message"
 
-  override def parseBytes(bytes: Array[Byte]): Try[Unit] =
-    Try(require(bytes.isEmpty, "Non-empty data for GetPeers"))
+  override def serialize(obj: Unit, w: Writer): Unit = {
+  }
 
-  override def toBytes(data: Unit): Array[Byte] = Array()
+  override def parse(r: Reader): Unit = {
+    require(r.remaining == 0, "Non-empty data for GetPeers")
+  }
 }
 
 object PeersSpec {
@@ -155,33 +170,24 @@ object PeersSpec {
 }
 
 class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Seq[PeerData]] {
-  private val handshakeSerializer = new PeerDataSerializer(featureSerializers)
+  private val peerDataSerializer = new PeerDataSerializer(featureSerializers)
 
   override val messageCode: Message.MessageCode = PeersSpec.messageCode
 
   override val messageName: String = PeersSpec.messageName
 
-  override def toBytes(peers: Seq[PeerData]): Array[Byte] = {
-    peers.flatMap { p =>
-      val b = handshakeSerializer.toBytes(p)
-      Ints.toByteArray(b.length) ++ b
-    }.toArray
+  override def serialize(peers: Seq[PeerData], w: Writer): Unit = {
+    w.putUInt(peers.size)
+    peers.foreach(p => peerDataSerializer.serialize(p, w))
+
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[Seq[PeerData]] = Try {
-    @tailrec
-    def loop(i: Int, acc: Seq[PeerData]): Seq[PeerData] = if (i < bytes.length) {
-      require(acc.size <= PeersSpec.MaxPeersInMessage)
-      val l = Ints.fromByteArray(bytes.slice(i, i + 4))
-      val peer = handshakeSerializer.parseBytes(bytes.slice(i + 4, i + 4 + l)).get
-      loop(i + 4 + l, peer +: acc)
-    } else {
-      acc
+  override def parse(r: Reader): Seq[PeerData] = {
+    val length = r.getUInt().toIntExact
+    (0 until length).map { _ =>
+      peerDataSerializer.parse(r)
     }
-
-    loop(0, Seq())
   }
-
 }
 
 
@@ -200,13 +206,14 @@ class HandshakeSpec(featureSerializers: PeerFeature.Serializers) extends Message
   override val messageCode: MessageCode = HandshakeSpec.messageCode
   override val messageName: String = HandshakeSpec.messageName
 
-  override def toBytes(obj: Handshake): Array[Byte] = {
-    Bytes.concat(Longs.toByteArray(obj.time), peersDataSerializer.toBytes(obj.peerData))
+  override def serialize(obj: Handshake, w: Writer): Unit = {
+    w.putULong(obj.time)
+    peersDataSerializer.serialize(obj.peerData, w)
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[Handshake] = Try {
-    require(bytes.length <= HandshakeSpec.MaxHandshakeSize)
-    Handshake(peersDataSerializer.parseBytes(bytes.drop(8)).get, Longs.fromByteArray(bytes.take(8)))
+  override def parse(r: Reader): Handshake = {
+    val t = r.getULong()
+    val data = peersDataSerializer.parse(r)
+    Handshake(data, t)
   }
-
 }

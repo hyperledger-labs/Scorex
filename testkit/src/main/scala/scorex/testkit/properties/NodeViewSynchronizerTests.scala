@@ -15,7 +15,8 @@ import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared,
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network._
 import scorex.core.network.message._
-import scorex.core.serialization.{BytesSerializable, Serializer}
+import scorex.util.serialization._
+import scorex.core.serialization.{BytesSerializable, ScorexSerializer}
 import scorex.core.transaction.state.MinimalState
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.testkit.generators.{SyntacticallyTargetedModifierProducer, TotallyValidModifierProducer}
@@ -26,7 +27,6 @@ import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.Failure
 
 @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
 trait NodeViewSynchronizerTests[
@@ -46,11 +46,11 @@ MP <: MemoryPool[TX, MP]
   val historyGen: Gen[HT]
   val memPool: MP
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe)
+  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe, ScorexSerializer[PM])
 
   class SynchronizerFixture extends AkkaFixture {
     @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-    val (node, syncInfo, mod, tx, peer, pchProbe, ncProbe, vhProbe, eventListener) = nodeViewSynchronizer
+    val (node, syncInfo, mod, tx, peer, pchProbe, ncProbe, vhProbe, eventListener, modSerializer) = nodeViewSynchronizer
   }
 
   // ToDo: factor this out of here and NVHTests?
@@ -117,7 +117,13 @@ MP <: MemoryPool[TX, MP]
     withFixture { ctx =>
       import ctx._
 
-      val dummySyncInfoMessageSpec = new SyncInfoMessageSpec[SyncInfo](_ => Failure[SyncInfo](new Exception)) {}
+      val dummySyncInfoMessageSpec = new SyncInfoMessageSpec[SyncInfo](new ScorexSerializer[SyncInfo]{
+        override def parse(r: Reader): SyncInfo = {
+          throw new Exception()
+        }
+
+        override def serialize(obj: SyncInfo, w: Writer): Unit = {}
+      }) {}
 
       val dummySyncInfo = new SyncInfo {
         def answer: Boolean = true
@@ -126,7 +132,7 @@ MP <: MemoryPool[TX, MP]
 
         type M = BytesSerializable
 
-        def serializer: Serializer[M] = throw new Exception
+        def serializer: ScorexSerializer[M] = throw new Exception
       }
 
       node ! DataFromPeer(dummySyncInfoMessageSpec, dummySyncInfo, peer)

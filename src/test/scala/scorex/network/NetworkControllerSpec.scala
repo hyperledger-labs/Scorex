@@ -15,7 +15,7 @@ import org.scalatest.TryValues._
 import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network._
 import scorex.core.network.message.{PeersSpec, _}
-import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerInfo, PeerManagerRef}
+import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerManagerRef}
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.LocalTimeProvider
 
@@ -405,7 +405,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   def receiveHandshake: Try[Handshake] = {
     val handshakeFromNode = tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(data, e) =>
-        handshakeSerializer.parseBytes(data.toByteBuffer.array)
+        handshakeSerializer.parseBytesTry(data.toByteBuffer.array)
     }
     handshakeFromNode
   }
@@ -435,7 +435,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   def receivePeers: Seq[PeerData] = {
     val message = receiveMessage
     message.spec.messageCode should be(PeersSpec.messageCode)
-    peersSpec.parseBytes(message.input.left.value).success.value
+    peersSpec.parseBytes(message.input.left.value)
   }
 
   /**

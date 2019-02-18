@@ -1,16 +1,14 @@
 package scorex.core.transaction.wallet
 
-import com.google.common.primitives.{Bytes, Longs}
+import scorex.util.serialization._
+import scorex.core.serialization.{BytesSerializable, ScorexSerializer}
 import scorex.core.{NodeViewModifier, PersistentNodeViewModifier}
-import scorex.core.serialization.{BytesSerializable, Serializer}
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.Box
 import scorex.core.transaction.box.proposition.{ProofOfKnowledgeProposition, Proposition}
 import scorex.core.transaction.state.Secret
 import scorex.core.utils.ScorexEncoding
 import scorex.util.{ModifierId, bytesToId, idToBytes}
-
-import scala.util.Try
 
 /**
   * TODO WalletBox is not used in Scorex and should be moved to `mid` layer.
@@ -19,28 +17,28 @@ import scala.util.Try
   *
   */
 case class WalletBox[P <: Proposition, B <: Box[P]](box: B, transactionId: ModifierId, createdAt: Long)
-                                                   (subclassDeser: Serializer[B]) extends BytesSerializable
+                                                   (subclassDeser: ScorexSerializer[B]) extends BytesSerializable
   with ScorexEncoding {
 
   override type M = WalletBox[P, B]
 
-  override def serializer: Serializer[WalletBox[P, B]] = new WalletBoxSerializer(subclassDeser)
+  override def serializer: ScorexSerializer[WalletBox[P, B]] = new WalletBoxSerializer(subclassDeser)
 
   override def toString: String = s"WalletBox($box, ${encoder.encodeId(transactionId)}, $createdAt)"
 }
 
+class WalletBoxSerializer[P <: Proposition, B <: Box[P]](subclassDeser: ScorexSerializer[B]) extends ScorexSerializer[WalletBox[P, B]] {
 
-class WalletBoxSerializer[P <: Proposition, B <: Box[P]](subclassDeser: Serializer[B]) extends Serializer[WalletBox[P, B]] {
-  override def toBytes(box: WalletBox[P, B]): Array[Byte] = {
-    Bytes.concat(idToBytes(box.transactionId), Longs.toByteArray(box.createdAt), box.box.bytes)
+  override def serialize(box: WalletBox[P, B], w: Writer): Unit = {
+    w.putBytes(idToBytes(box.transactionId))
+    w.putLong(box.createdAt)
+    subclassDeser.serialize(box.box, w)
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[WalletBox[P, B]] = Try {
-    val txId = bytesToId(bytes.slice(0, NodeViewModifier.ModifierIdSize))
-    val createdAt = Longs.fromByteArray(
-      bytes.slice(NodeViewModifier.ModifierIdSize, NodeViewModifier.ModifierIdSize + 8))
-    val boxB = bytes.slice(NodeViewModifier.ModifierIdSize + 8, bytes.length)
-    val box: B = subclassDeser.parseBytes(boxB).get
+  override def parse(r: Reader): WalletBox[P, B] = {
+    val txId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
+    val createdAt = r.getLong()
+    val box = subclassDeser.parse(r)
     WalletBox[P, B](box, txId, createdAt)(subclassDeser)
   }
 }

@@ -19,7 +19,6 @@ import scorex.util.ScorexLogging
 
 import scala.util.Try
 
-
 case class HBoxWallet(seed: Array[Byte], store: LSMStore)
   extends BoxWallet[PublicKey25519Proposition, SimpleBoxTransaction, HybridBlock, HBoxWallet]
     with ScorexLogging with ScorexEncoding {
@@ -46,14 +45,13 @@ case class HBoxWallet(seed: Array[Byte], store: LSMStore)
       .flatMap(id => store.get(ByteArrayWrapper(id)))
       .map(_.data)
       .map(ba => walletBoxSerializer.parseBytes(ba))
-      .map(_.get)
       .filter(_.box.value > 0)
   }
 
   override def publicKeys: Set[PublicKey25519Proposition] = secrets.map(_.publicImage)
 
   override def secrets: Set[PrivateKey25519] = store.get(SecretsKey)
-    .map(_.data.grouped(64).map(b => PrivateKey25519Serializer.parseBytes(b).get).toSet)
+    .map(_.data.grouped(64).map(b => PrivateKey25519Serializer.parseBytes(b)).toSet)
     .getOrElse(Set.empty[PrivateKey25519])
 
   override def secretByPublicImage(publicImage: PublicKey25519Proposition): Option[PrivateKey25519] =
