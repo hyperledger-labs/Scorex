@@ -32,7 +32,8 @@ import scala.util.{Failure, Success, Try}
 class NetworkController(settings: NetworkSettings,
                         peerManagerRef: ActorRef,
                         scorexContext: ScorexContext,
-                        tcpManager: ActorRef
+                        tcpManager: ActorRef,
+                        daRef: ActorRef
                        )(implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
   import NetworkController.ReceivableMessages._
@@ -84,8 +85,7 @@ class NetworkController(settings: NetworkSettings,
           messageHandlers.get(msgId) match {
             case Some(handler) =>
               handler ! DataFromPeer(spec, content, remote)
-              system.actorSelection("/user/DiagnosticsActor") !
-                InNetworkMessage(Message(spec, Right(content), Some(remote)), remote.remote.toString, System.currentTimeMillis())
+              daRef ! InNetworkMessage(Message(spec, Right(content), Some(remote)), remote.remote.toString, System.currentTimeMillis())
 
             case None =>
               log.error(s"No handlers found for message $remote: " + msgId)
@@ -98,8 +98,7 @@ class NetworkController(settings: NetworkSettings,
 
     case SendToNetwork(message, sendingStrategy) =>
       val connections = filterConnections(sendingStrategy, message.spec.protocolVersion)
-      system.actorSelection("/user/DiagnosticsActor") !
-        OutNetworkMessage(message, sendingStrategy, connections.map(_.remote.toString), System.currentTimeMillis())
+      daRef ! OutNetworkMessage(message, sendingStrategy, connections.map(_.remote.toString), System.currentTimeMillis())
       connections.foreach { connectedPeer =>
         connectedPeer.handlerRef ! message
       }
@@ -427,8 +426,10 @@ object NetworkControllerRef {
   def props(settings: NetworkSettings,
             peerManagerRef: ActorRef,
             scorexContext: ScorexContext,
-            tcpManager: ActorRef)(implicit ec: ExecutionContext): Props = {
-    Props(new NetworkController(settings, peerManagerRef, scorexContext, tcpManager))
+            tcpManager: ActorRef,
+            diagRef: ActorRef
+           )(implicit ec: ExecutionContext): Props = {
+    Props(new NetworkController(settings, peerManagerRef, scorexContext, tcpManager, diagRef))
   }
 
   def apply(settings: NetworkSettings,
@@ -436,7 +437,7 @@ object NetworkControllerRef {
             scorexContext: ScorexContext)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef = {
     system.actorOf(
-      props(settings, peerManagerRef, scorexContext, IO(Tcp))
+      props(settings, peerManagerRef, scorexContext, IO(Tcp), peerManagerRef)
     )
   }
 
@@ -447,7 +448,7 @@ object NetworkControllerRef {
             tcpManager: ActorRef)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef = {
     system.actorOf(
-      props(settings, peerManagerRef, scorexContext, tcpManager),
+      props(settings, peerManagerRef, scorexContext, tcpManager, peerManagerRef),
       name)
   }
 
@@ -458,7 +459,19 @@ object NetworkControllerRef {
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef = {
 
     system.actorOf(
-      props(settings, peerManagerRef, scorexContext, IO(Tcp)),
+      props(settings, peerManagerRef, scorexContext, IO(Tcp), peerManagerRef),
+      name)
+  }
+
+  def apply(name: String,
+            settings: NetworkSettings,
+            peerManagerRef: ActorRef,
+            diagRef: ActorRef,
+            scorexContext: ScorexContext)
+           (implicit system: ActorSystem, ec: ExecutionContext): ActorRef = {
+
+    system.actorOf(
+      props(settings, peerManagerRef, scorexContext, IO(Tcp), diagRef),
       name)
   }
 }

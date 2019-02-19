@@ -61,7 +61,7 @@ trait Application extends ScorexLogging {
     )
   }
 
-  val _ = DiagnosticsActorRef("DiagnosticsActor")
+  val diagnosticsActorRef = DiagnosticsActorRef("DiagnosticsActor")
 
   val nodeViewHolderRef: ActorRef
   val nodeViewSynchronizer: ActorRef
@@ -90,7 +90,7 @@ trait Application extends ScorexLogging {
   val peerManagerRef = PeerManagerRef(settings, scorexContext)
 
   val networkControllerRef: ActorRef = NetworkControllerRef(
-    "networkController", settings.network, peerManagerRef, scorexContext)
+    "networkController", settings.network, peerManagerRef, diagnosticsActorRef, scorexContext)
 
   lazy val combinedRoute: Route = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 
