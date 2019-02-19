@@ -14,6 +14,14 @@ case class ModifiersData(typeId: ModifierTypeId, modifiers: Map[ModifierId, Arra
 
 case class InvData(typeId: ModifierTypeId, ids: Seq[ModifierId])
 
+/**
+  * The `SyncInfo` message requests an `Inv` message that provides modifier ids
+  * required be sender to synchronize his blockchain with the recipient.
+  * It allows a peer which has been disconnected or started for the first
+  * time to get the data it needs to request the blocks it hasn't seen.
+  *
+  * Payload of this message should be determined in underlying applications.
+  */
 class SyncInfoMessageSpec[SI <: SyncInfo](serializer: ScorexSerializer[SI]) extends MessageSpecV1[SI] {
 
 
@@ -30,6 +38,13 @@ object InvSpec {
   val MessageName: String = "Inv"
 }
 
+/**
+  * The `Inv` message (inventory message) transmits one or more inventories of
+  * objects known to the transmitting peer.
+  * It can be sent unsolicited to announce new transactions or blocks,
+  * or it can be sent in reply to a `SyncInfo` message (or application-specific messages like `GetMempool`).
+  *
+  */
 class InvSpec(maxInvObjects: Int) extends MessageSpecV1[InvData] {
 
   import InvSpec._
@@ -70,6 +85,18 @@ object RequestModifierSpec {
   val MessageName: String = "RequestModifier"
 }
 
+/**
+  * The `RequestModifier` message requests one or more modifiers from another node.
+  * The objects are requested by an inventory, which the requesting node
+  * typically received previously by way of an `Inv` message.
+  *
+  * This message cannot be used to request arbitrary data, such as historic transactions no
+  * longer in the memory pool. Full nodes may not even be able to provide older blocks if
+  * they’ve pruned old transactions from their block database.
+  * For this reason, the `RequestModifier` message should usually only be used to request
+  * data from a node which previously advertised it had that data by sending an `Inv` message.
+  *
+  */
 class RequestModifierSpec(maxInvObjects: Int) extends MessageSpecV1[InvData] {
 
   import RequestModifierSpec._
@@ -94,6 +121,9 @@ object ModifiersSpec {
   val MessageName: String = "Modifier"
 }
 
+/**
+  * The `Modifier` message is a reply to a `RequestModifier` message which requested these modifiers.
+  */
 class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] with ScorexLogging {
 
   import ModifiersSpec._
@@ -143,6 +173,13 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] wi
   }
 }
 
+/**
+  * The `GetPeer` message requests an `Peers` message from the receiving node,
+  * preferably one with lots of `PeerData` of other receiving nodes.
+  * The transmitting node can use those `PeerData` addresses to quickly update
+  * its database of available nodes rather than waiting for unsolicited `Peers`
+  * messages to arrive over time.
+  */
 object GetPeersSpec extends MessageSpecV1[Unit] {
   override val messageCode: Message.MessageCode = 1: Byte
 
@@ -169,6 +206,10 @@ object PeersSpec {
 
 }
 
+/**
+  * The `Peers` message is a reply to a `GetPeer` message and relays connection information about peers
+  * on the network.
+  */
 class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Seq[PeerData]] {
   private val peerDataSerializer = new PeerDataSerializer(featureSerializers)
 
@@ -199,6 +240,11 @@ object HandshakeSpec {
   val messageName: String = "Handshake"
 }
 
+/**
+  * The `Handshake` message provides information about the transmitting node
+  * to the receiving node at the beginning of a connection. Until both peers
+  * have exchanged `Handshake` messages, no other messages will be accepted.
+  */
 class HandshakeSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Handshake] {
 
   private val peersDataSerializer = new PeerDataSerializer(featureSerializers)

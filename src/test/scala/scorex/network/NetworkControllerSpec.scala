@@ -20,7 +20,6 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.utils.LocalTimeProvider
 
 import scala.concurrent.ExecutionContext
-import scala.util.Try
 
 class NetworkControllerSpec extends NetworkTests {
 
