@@ -356,7 +356,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
 
   private val timeProvider = LocalTimeProvider
   private val featureSerializers = Map(LocalAddressPeerFeature.featureId -> LocalAddressPeerFeatureSerializer)
-  private val handshakeSerializer = new HandshakeSpec(featureSerializers)
+  private val handshakeSerializer = new HandshakeSpec(featureSerializers, Int.MaxValue)
   private val peersSpec = new PeersSpec(featureSerializers)
   private val messageSpecs = Seq(GetPeersSpec, peersSpec)
   private val messagesSerializer = new MessageSerializer(messageSpecs, settings.network.magicBytes)

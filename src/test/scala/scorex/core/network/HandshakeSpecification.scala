@@ -34,7 +34,7 @@ class HandshakeSpecification extends PropSpec
         whenever(appName.nonEmpty) {
           val feats: Seq[PeerFeature] = featuresGen.sample.getOrElse(Seq())
 
-          val handshakeSerializer = new HandshakeSpec(serializers)
+          val handshakeSerializer = new HandshakeSpec(serializers, Int.MaxValue)
 
           val h = Handshake(appName, av, nodeName, isaOpt, feats, time)
           val hr = handshakeSerializer.parseBytes(handshakeSerializer.toBytes(h))
