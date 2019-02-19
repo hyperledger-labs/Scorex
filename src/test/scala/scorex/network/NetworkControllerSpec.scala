@@ -41,7 +41,7 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.connect(peerAddr, nodeAddr)
 
     val handshakeFromNode = testPeer.receiveHandshake
-    handshakeFromNode.success.value.peerData.declaredAddress shouldBe empty
+    handshakeFromNode.peerData.declaredAddress shouldBe empty
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
     localAddressFeature.value should be(nodeAddr)
 
@@ -59,7 +59,7 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.connect(new InetSocketAddress("192.168.0.1", 5678), nodeAddr)
 
     val handshakeFromNode = testPeer.receiveHandshake
-    handshakeFromNode.success.value.peerData.declaredAddress shouldBe empty
+    handshakeFromNode.peerData.declaredAddress shouldBe empty
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
     localAddressFeature.value should be(nodeAddr)
 
@@ -77,7 +77,7 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.connect(new InetSocketAddress("88.77.66.55", 5678), nodeAddr)
 
     val handshakeFromNode = testPeer.receiveHandshake
-    handshakeFromNode.success.value.peerData.declaredAddress shouldBe empty
+    handshakeFromNode.peerData.declaredAddress shouldBe empty
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
     localAddressFeature shouldBe empty
 
@@ -98,7 +98,7 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.connect(new InetSocketAddress("88.77.66.55", 5678), bindAddress)
 
     val handshakeFromNode = testPeer.receiveHandshake
-    handshakeFromNode.success.value.peerData.declaredAddress.value should be(bindAddress)
+    handshakeFromNode.peerData.declaredAddress.value should be(bindAddress)
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
     localAddressFeature shouldBe empty
 
@@ -214,7 +214,7 @@ class NetworkControllerSpec extends NetworkTests {
     val peer1DecalredAddr = new InetSocketAddress("88.77.66.55", 5678)
     val peer1LocalAddr = new InetSocketAddress("192.168.1.55", 5678)
     testPeer1.connect(peer1LocalAddr, nodeAddr)
-    val handshakeFromPeer1 = testPeer1.receiveHandshake.success.value
+    val handshakeFromPeer1 = testPeer1.receiveHandshake
     handshakeFromPeer1.peerData.declaredAddress.value.getAddress should be(InetAddress.getByName("88.44.33.11"))
     handshakeFromPeer1.peerData.declaredAddress.value.getPort should be(settings.network.bindAddress.getPort)
 
@@ -299,8 +299,8 @@ class NetworkControllerSpec extends NetworkTests {
     system.terminate()
   }
 
-  private def extractLocalAddrFeat(handshakeFromNode: Try[Handshake]): Option[InetSocketAddress] = {
-    handshakeFromNode.success.value.peerData.localAddressOpt
+  private def extractLocalAddrFeat(handshakeFromNode: Handshake): Option[InetSocketAddress] = {
+    handshakeFromNode.peerData.localAddressOpt
   }
 
   /**
@@ -402,12 +402,11 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     *
     * @return Success with handshake message if received valid handshake message and Fail for invalid message
     */
-  def receiveHandshake: Try[Handshake] = {
-    val handshakeFromNode = tcpManagerProbe.expectMsgPF() {
+  def receiveHandshake: Handshake = {
+    tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(data, e) =>
-        handshakeSerializer.parseBytesTry(data.toByteBuffer.array)
+        handshakeSerializer.parseBytes(data.toByteBuffer.array)
     }
-    handshakeFromNode
   }
 
   /**
