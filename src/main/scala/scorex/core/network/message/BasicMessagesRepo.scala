@@ -207,7 +207,7 @@ object PeersSpec {
   * The `Peers` message is a reply to a `GetPeer` message and relays connection information about peers
   * on the network.
   */
-class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpecV1[Seq[PeerData]] {
+class PeersSpec(featureSerializers: PeerFeature.Serializers, peersLimit: Int) extends MessageSpecV1[Seq[PeerData]] {
   private val peerDataSerializer = new PeerDataSerializer(featureSerializers)
 
   override val messageCode: Message.MessageCode = PeersSpec.messageCode
@@ -217,11 +217,11 @@ class PeersSpec(featureSerializers: PeerFeature.Serializers) extends MessageSpec
   override def serialize(peers: Seq[PeerData], w: Writer): Unit = {
     w.putUInt(peers.size)
     peers.foreach(p => peerDataSerializer.serialize(p, w))
-
   }
 
   override def parse(r: Reader): Seq[PeerData] = {
     val length = r.getUInt().toIntExact
+    require(length <= peersLimit, s"Too many peers. $length exceeds limit $peersLimit")
     (0 until length).map { _ =>
       peerDataSerializer.parse(r)
     }
@@ -253,7 +253,7 @@ class HandshakeSpec(featureSerializers: PeerFeature.Serializers, sizeLimit: Int)
   }
 
   override def parse(r: Reader): Handshake = {
-    require(r.remaining < sizeLimit, s"Too big handshake ${r.remaining} < $sizeLimit}")
+    require(r.remaining <= sizeLimit, s"Too big handshake. Size ${r.remaining} exceeds $sizeLimit limit")
     val t = r.getULong()
     val data = peersDataSerializer.parse(r)
     Handshake(data, t)

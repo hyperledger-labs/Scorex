@@ -44,7 +44,9 @@ case class NetworkSettings(nodeName: String,
                            syncTimeout: Option[FiniteDuration],
                            controllerTimeout: Option[FiniteDuration],
                            maxModifiersCacheSize: Int,
-                           magicBytes: Array[Byte])
+                           magicBytes: Array[Byte],
+                           getPeersInterval: FiniteDuration,
+                           maxPeerDataObjects: Int)
 
 case class ScorexSettings(dataDir: File,
                           logDir: File,
