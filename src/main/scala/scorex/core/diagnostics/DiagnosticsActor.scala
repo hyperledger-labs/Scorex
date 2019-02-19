@@ -5,8 +5,9 @@ import java.io.{File, PrintWriter}
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.network.SendingStrategy
 import scorex.core.network.message.{InvData, Message, ModifiersData}
+import scorex.util.ScorexLogging
 
-class DiagnosticsActor extends Actor {
+class DiagnosticsActor extends Actor with ScorexLogging {
 
   import DiagnosticsActor.ReceivableMessages._
 
@@ -32,6 +33,9 @@ class DiagnosticsActor extends Actor {
         s"""{"timestamp":$timestamp,"msgType":"${spec.messageName}","data":${decodeData(data)},
            |"sender":"$sender"\n""".stripMargin
       outWriter.write(record)
+
+    case other =>
+      log.info(s"DiagnosticsActor: unknown message: $other")
   }
 
   private def decodeData(data: Any) = data match {
