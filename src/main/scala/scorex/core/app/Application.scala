@@ -7,6 +7,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
 import akka.stream.ActorMaterializer
 import scorex.core.api.http.{ApiErrorHandler, ApiRejectionHandler, ApiRoute, CompositeHttpService}
+import scorex.core.diagnostics.DiagnosticsActorRef
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.network.peer.PeerManagerRef
@@ -59,6 +60,8 @@ trait Application extends ScorexLogging {
       modifiersSpec
     )
   }
+
+  val _ = DiagnosticsActorRef("DiagnosticsActor")
 
   val nodeViewHolderRef: ActorRef
   val nodeViewSynchronizer: ActorRef

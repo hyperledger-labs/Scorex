@@ -9,6 +9,7 @@ import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.app.{ScorexContext, Version}
+import scorex.core.diagnostics.DiagnosticsActor.ReceivableMessages.{InNetworkMessage, OutNetworkMessage}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
@@ -83,6 +84,8 @@ class NetworkController(settings: NetworkSettings,
           messageHandlers.get(msgId) match {
             case Some(handler) =>
               handler ! DataFromPeer(spec, content, remote)
+              system.actorSelection("/user/DiagnosticsActor") !
+                InNetworkMessage(Message(spec, Right(content), Some(remote)), remote.remote.toString, System.currentTimeMillis())
 
             case None =>
               log.error(s"No handlers found for message $remote: " + msgId)
@@ -94,7 +97,10 @@ class NetworkController(settings: NetworkSettings,
       }
 
     case SendToNetwork(message, sendingStrategy) =>
-      filterConnections(sendingStrategy, message.spec.protocolVersion).foreach { connectedPeer =>
+      val connections = filterConnections(sendingStrategy, message.spec.protocolVersion)
+      system.actorSelection("/user/DiagnosticsActor") !
+        OutNetworkMessage(message, sendingStrategy, connections.map(_.remote.toString), System.currentTimeMillis())
+      connections.foreach { connectedPeer =>
         connectedPeer.handlerRef ! message
       }
   }
