@@ -10,8 +10,8 @@ class DiagnosticsActor extends Actor {
 
   import DiagnosticsActor.ReceivableMessages._
 
-  private val outWriter = new PrintWriter(new File(s"out-messages-${context.system.startTime}.json"))
-  private val inWriter = new PrintWriter(new File(s"in-messages-${context.system.startTime}.json"))
+  private val outWriter = new PrintWriter(new File(s"/tmp/ergo/out-messages-${context.system.startTime}.json"))
+  private val inWriter = new PrintWriter(new File(s"/tmp/ergo/in-messages-${context.system.startTime}.json"))
 
   override def postStop(): Unit = {
     outWriter.close()
