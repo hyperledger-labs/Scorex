@@ -55,7 +55,9 @@ class PeerDataSerializer(featureSerializers: PeerFeature.Serializers) extends Sc
     w.put(obj.features.size.toByteExact)
     obj.features.foreach { f =>
       w.put(f.featureId)
-      w.putBytes(f.bytes)
+      val fBytes = f.bytes
+      w.putUShort(fBytes.length.toShortExact)
+      w.putBytes(fBytes)
     }
   }
 
