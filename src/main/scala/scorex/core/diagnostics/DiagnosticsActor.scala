@@ -14,6 +14,8 @@ class DiagnosticsActor extends Actor with ScorexLogging {
   private val outWriter = new PrintWriter(new File(s"/tmp/ergo/out-messages-${context.system.startTime}.json"))
   private val inWriter = new PrintWriter(new File(s"/tmp/ergo/in-messages-${context.system.startTime}.json"))
 
+  override def preStart(): Unit = log.info("Starting diagnostics actor...")
+
   override def postStop(): Unit = {
     outWriter.close()
     inWriter.close()
