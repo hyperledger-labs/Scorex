@@ -46,7 +46,7 @@ class DiagnosticsActor extends Actor with ScorexLogging {
       s"""{"typeId":"$typeId","ids":[${mods.keys.map(id => s""""$id"""").mkString(",")}]}"""
     case si: SyncInfo =>
       val ids = si.startingPoints
-      s"""{"typeId":"${ids.head._1}","ids":[${ids.map(id => s""""${id._2}"""").mkString(",")}]}"""
+      s"""{"typeId":"101","ids":[${ids.map(id => s""""${id._2}"""").mkString(",")}]}"""
     case other =>
       s""""?$other""""
   }
