@@ -96,6 +96,9 @@ class NetworkController(settings: NetworkSettings,
         //todo: ban peer
       }
 
+    case msg: Message[_] =>
+      log.warn(s"NetworkController got unexpected msg: $msg")
+
     case SendToNetwork(message, sendingStrategy) =>
       val connections = filterConnections(sendingStrategy, message.spec.protocolVersion)
       daRef ! OutNetworkMessage(message, sendingStrategy, connections.map(_.remote.toString), System.currentTimeMillis())
