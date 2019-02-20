@@ -20,7 +20,7 @@ import scorex.util.serialization.{Reader, Writer}
   * @param declaredAddress - Public network address of the node if any
   * @param features        - Set of node capabilities
   */
-case class PeerData(agentName: String,
+case class PeerSpec(agentName: String,
                     protocolVersion: Version,
                     nodeName: String,
                     declaredAddress: Option[InetSocketAddress],
@@ -36,9 +36,8 @@ case class PeerData(agentName: String,
 
 }
 
-
-class PeerDataSerializer(featureSerializers: PeerFeature.Serializers) extends ScorexSerializer[PeerData] {
-  override def serialize(obj: PeerData, w: Writer): Unit = {
+class PeerSpecSerializer(featureSerializers: PeerFeature.Serializers) extends ScorexSerializer[PeerSpec] {
+  override def serialize(obj: PeerSpec, w: Writer): Unit = {
 
     w.putShortString(obj.agentName)
     ApplicationVersionSerializer.serialize(obj.protocolVersion, w)
@@ -61,7 +60,7 @@ class PeerDataSerializer(featureSerializers: PeerFeature.Serializers) extends Sc
     }
   }
 
-  override def parse(r: Reader): PeerData = {
+  override def parse(r: Reader): PeerSpec = {
 
     val appName = r.getShortString()
     require(appName.nonEmpty)
@@ -88,7 +87,7 @@ class PeerDataSerializer(featureSerializers: PeerFeature.Serializers) extends Sc
       }
     }
 
-    PeerData(appName, protocolVersion, nodeName, declaredAddressOpt, feats)
+    PeerSpec(appName, protocolVersion, nodeName, declaredAddressOpt, feats)
   }
 
 }

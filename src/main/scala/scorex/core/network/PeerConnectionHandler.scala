@@ -113,7 +113,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       log.info(s"Got a Handshake from $remote")
 
       val peerInfo = PeerInfo(
-        receivedHandshake.peerData,
+        receivedHandshake.peerSpec,
         scorexContext.timeProvider.time(),
         Some(direction)
       )

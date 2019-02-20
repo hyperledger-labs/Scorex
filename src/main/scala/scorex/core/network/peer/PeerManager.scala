@@ -41,14 +41,14 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   private def peerListOperations: Receive = {
     case AddOrUpdatePeer(peerInfo) =>
       // We have connected to a peer and got his peerInfo from him
-      if (!isSelf(peerInfo.peerData)) {
+      if (!isSelf(peerInfo.peerSpec)) {
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 
-    case AddPeerIfEmpty(peerData) =>
+    case AddPeerIfEmpty(peerSpec) =>
       // We have received peer data from other peers. It might be modified and should not affect existing data if any
-      if (peerData.address.forall(a => peerDatabase.get(a).isEmpty) && !isSelf(peerData)) {
-        val peerInfo: PeerInfo = PeerInfo(peerData, 0, None)
+      if (peerSpec.address.forall(a => peerDatabase.get(a).isEmpty) && !isSelf(peerSpec)) {
+        val peerInfo: PeerInfo = PeerInfo(peerSpec, 0, None)
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 
@@ -78,8 +78,8 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     NetworkUtils.isSelf(peerAddress, settings.network.bindAddress, scorexContext.externalNodeAddress)
   }
 
-  private def isSelf(peerData: PeerData): Boolean = {
-    peerData.declaredAddress.exists(isSelf) || peerData.localAddressOpt.exists(isSelf)
+  private def isSelf(peerSpec: PeerSpec): Boolean = {
+    peerSpec.declaredAddress.exists(isSelf) || peerSpec.localAddressOpt.exists(isSelf)
   }
 
 }
@@ -93,7 +93,7 @@ object PeerManager {
     // peerListOperations messages
     case class AddOrUpdatePeer(data: PeerInfo)
 
-    case class AddPeerIfEmpty(data: PeerData)
+    case class AddPeerIfEmpty(data: PeerSpec)
 
     case class RemovePeer(address: InetSocketAddress)
 
@@ -126,7 +126,7 @@ object PeerManager {
 
       override def choose(knownPeers: Map[InetSocketAddress, PeerInfo], sc: ScorexContext): Option[PeerInfo] = {
         val candidates = knownPeers.values.filterNot { p =>
-          excludedPeers.exists(_.peerData.address == p.peerData.address)
+          excludedPeers.exists(_.peerSpec.address == p.peerSpec.address)
         }.toSeq
         if (candidates.nonEmpty) Some(candidates(Random.nextInt(candidates.size)))
         else None

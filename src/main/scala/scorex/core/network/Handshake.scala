@@ -10,10 +10,10 @@ import scorex.core.app.Version
   * The remote node will respond with its Handshake.
   * No further communication is possible until both peers have exchanged their handshakes.
   *
-  * @param peerData - general (declared) information about peer
+  * @param peerSpec - general (declared) information about peer
   * @param time     - handshake time
   */
-case class Handshake(peerData: PeerData, time: Long)
+case class Handshake(peerSpec: PeerSpec, time: Long)
 
 object Handshake {
 
@@ -24,7 +24,7 @@ object Handshake {
             declaredAddress: Option[InetSocketAddress],
             features: Seq[PeerFeature],
             time: Long): Handshake = {
-    val peerData = PeerData(agentName, protocolVersion, nodeName, declaredAddress, features)
+    val peerData = PeerSpec(agentName, protocolVersion, nodeName, declaredAddress, features)
     Handshake(peerData, time)
   }
 

@@ -253,7 +253,7 @@ class NetworkController(settings: NetworkSettings,
     connectionForHandler(peerHandler).foreach { connectedPeer =>
 
       log.trace(s"Got handshake from $peerInfo")
-      val peerAddress = peerInfo.peerData.address.getOrElse(connectedPeer.remote)
+      val peerAddress = peerInfo.peerSpec.address.getOrElse(connectedPeer.remote)
 
       //drop connection to self if occurred or peer already connected
       if (isSelf(connectedPeer.remote) || connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)) {
@@ -261,7 +261,7 @@ class NetworkController(settings: NetworkSettings,
         peerManagerRef ! RemovePeer(peerAddress)
         connections -= connectedPeer.remote
       } else {
-        if (peerInfo.peerData.reachablePeer) {
+        if (peerInfo.peerSpec.reachablePeer) {
           peerManagerRef ! AddOrUpdatePeer(peerInfo)
         } else {
           peerManagerRef ! RemovePeer(peerAddress)
@@ -282,7 +282,7 @@ class NetworkController(settings: NetworkSettings,
     * @return sequence of ConnectedPeer instances according SendingStrategy
     */
   private def filterConnections(sendingStrategy: SendingStrategy, version: Version): Seq[ConnectedPeer] = {
-    sendingStrategy.choose(connections.values.toSeq.filter(_.peerInfo.exists(_.peerData.protocolVersion >= version)))
+    sendingStrategy.choose(connections.values.toSeq.filter(_.peerInfo.exists(_.peerSpec.protocolVersion >= version)))
   }
 
   /**
@@ -328,7 +328,7 @@ class NetworkController(settings: NetworkSettings,
     * @return socket address of the peer
     */
   private def getPeerAddress(peer: PeerInfo): Option[InetSocketAddress] = {
-    (peer.peerData.localAddressOpt, peer.peerData.declaredAddress) match {
+    (peer.peerSpec.localAddressOpt, peer.peerSpec.declaredAddress) match {
       case (Some(localAddr), _) =>
         Some(localAddr)
 
@@ -337,7 +337,7 @@ class NetworkController(settings: NetworkSettings,
 
         scorexContext.upnpGateway.flatMap(_.getLocalAddressForExternalPort(declaredAddress.getPort))
 
-      case _ => peer.peerData.declaredAddress
+      case _ => peer.peerSpec.declaredAddress
     }
   }
 

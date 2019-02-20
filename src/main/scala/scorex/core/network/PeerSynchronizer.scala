@@ -24,7 +24,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
                       (implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
   private implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
-  private val peersSpec = new PeersSpec(featureSerializers, settings.maxPeerDataObjects)
+  private val peersSpec = new PeersSpec(featureSerializers, settings.maxPeerSpecObjects)
 
   override def preStart: Unit = {
     super.preStart()
@@ -37,17 +37,17 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
   }
 
   override def receive: Receive = {
-    case DataFromPeer(spec, peers: Seq[PeerData]@unchecked, remote)
-      if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[PeerData]].isDefined =>
+    case DataFromPeer(spec, peers: Seq[PeerSpec]@unchecked, remote)
+      if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[PeerSpec]].isDefined =>
 
-      peers.foreach(peerData => peerManager ! AddPeerIfEmpty(peerData))
+      peers.foreach(peerSpec => peerManager ! AddPeerIfEmpty(peerSpec))
 
     case DataFromPeer(spec, _, peer) if spec.messageCode == GetPeersSpec.messageCode =>
 
-      (peerManager ? RecentlySeenPeers(settings.maxPeerDataObjects))
+      (peerManager ? RecentlySeenPeers(settings.maxPeerSpecObjects))
         .mapTo[Seq[PeerInfo]]
         .foreach { peers =>
-          val msg = Message(peersSpec, Right(peers.map(_.peerData)), None)
+          val msg = Message(peersSpec, Right(peers.map(_.peerSpec)), None)
           networkControllerRef ! SendToNetwork(msg, SendToPeers(Seq(peer)))
         }
 

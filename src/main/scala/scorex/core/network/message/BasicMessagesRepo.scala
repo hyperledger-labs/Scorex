@@ -174,8 +174,8 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] wi
 
 /**
   * The `GetPeer` message requests an `Peers` message from the receiving node,
-  * preferably one with lots of `PeerData` of other receiving nodes.
-  * The transmitting node can use those `PeerData` addresses to quickly update
+  * preferably one with lots of `PeerSpec` of other receiving nodes.
+  * The transmitting node can use those `PeerSpec` addresses to quickly update
   * its database of available nodes rather than waiting for unsolicited `Peers`
   * messages to arrive over time.
   */
@@ -206,23 +206,23 @@ object PeersSpec {
   * The `Peers` message is a reply to a `GetPeer` message and relays connection information about peers
   * on the network.
   */
-class PeersSpec(featureSerializers: PeerFeature.Serializers, peersLimit: Int) extends MessageSpecV1[Seq[PeerData]] {
-  private val peerDataSerializer = new PeerDataSerializer(featureSerializers)
+class PeersSpec(featureSerializers: PeerFeature.Serializers, peersLimit: Int) extends MessageSpecV1[Seq[PeerSpec]] {
+  private val peerSpecSerializer = new PeerSpecSerializer(featureSerializers)
 
   override val messageCode: Message.MessageCode = PeersSpec.messageCode
 
   override val messageName: String = PeersSpec.messageName
 
-  override def serialize(peers: Seq[PeerData], w: Writer): Unit = {
+  override def serialize(peers: Seq[PeerSpec], w: Writer): Unit = {
     w.putUInt(peers.size)
-    peers.foreach(p => peerDataSerializer.serialize(p, w))
+    peers.foreach(p => peerSpecSerializer.serialize(p, w))
   }
 
-  override def parse(r: Reader): Seq[PeerData] = {
+  override def parse(r: Reader): Seq[PeerSpec] = {
     val length = r.getUInt().toIntExact
     require(length <= peersLimit, s"Too many peers. $length exceeds limit $peersLimit")
     (0 until length).map { _ =>
-      peerDataSerializer.parse(r)
+      peerSpecSerializer.parse(r)
     }
   }
 }
@@ -240,14 +240,14 @@ object HandshakeSpec {
   */
 class HandshakeSpec(featureSerializers: PeerFeature.Serializers, sizeLimit: Int) extends MessageSpecV1[Handshake] {
 
-  private val peersDataSerializer = new PeerDataSerializer(featureSerializers)
+  private val peersDataSerializer = new PeerSpecSerializer(featureSerializers)
 
   override val messageCode: MessageCode = HandshakeSpec.messageCode
   override val messageName: String = HandshakeSpec.messageName
 
   override def serialize(obj: Handshake, w: Writer): Unit = {
     w.putULong(obj.time)
-    peersDataSerializer.serialize(obj.peerData, w)
+    peersDataSerializer.serialize(obj.peerSpec, w)
   }
 
   override def parse(r: Reader): Handshake = {
