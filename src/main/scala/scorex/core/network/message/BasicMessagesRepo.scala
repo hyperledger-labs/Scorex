@@ -131,7 +131,6 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] wi
   override val messageCode: MessageCode = MessageCode
   override val messageName: String = MessageName
 
-
   override def serialize(data: ModifiersData, w: Writer): Unit = {
 
     val typeId = data.typeId
@@ -227,7 +226,6 @@ class PeersSpec(featureSerializers: PeerFeature.Serializers, peersLimit: Int) ex
     }
   }
 }
-
 
 object HandshakeSpec {
 
