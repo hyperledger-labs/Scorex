@@ -3,6 +3,7 @@ package scorex.core.diagnostics
 import java.io.{File, PrintWriter}
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import scorex.core.consensus.SyncInfo
 import scorex.core.network.SendingStrategy
 import scorex.core.network.message.{InvData, Message, ModifiersData}
 import scorex.util.ScorexLogging
@@ -25,15 +26,13 @@ class DiagnosticsActor extends Actor with ScorexLogging {
     case OutNetworkMessage(Message(spec, Right(data), _), strategy, receivers, timestamp) =>
       receivers.foreach { r =>
         val record =
-          s"""{"timestamp":$timestamp,"msgType":"${spec.messageName}","data":${decodeData(data)},
-             |"strategy":"$strategy","receiver":"$r"\n""".stripMargin
+          s"""{"timestamp":$timestamp,"msgType":"${spec.messageName}","data":${decodeData(data)},"strategy":"$strategy","receiver":"$r"},\n""".stripMargin
         outWriter.write(record)
       }
 
     case InNetworkMessage(Message(spec, Right(data), _), sender, timestamp) =>
       val record =
-        s"""{"timestamp":$timestamp,"msgType":"${spec.messageName}","data":${decodeData(data)},
-           |"sender":"$sender"\n""".stripMargin
+        s"""{"timestamp":$timestamp,"msgType":"${spec.messageName}","data":${decodeData(data)},"sender":"$sender"},\n""".stripMargin
       outWriter.write(record)
 
     case other =>
@@ -45,8 +44,11 @@ class DiagnosticsActor extends Actor with ScorexLogging {
       s"""{"typeId":"$typeId","ids":[${ids.map(id => s""""$id"""").mkString(",")}]}"""
     case ModifiersData(typeId, mods) =>
       s"""{"typeId":"$typeId","ids":[${mods.keys.map(id => s""""$id"""").mkString(",")}]}"""
+    case si: SyncInfo =>
+      val ids = si.startingPoints
+      s"""{"typeId":"${ids.head._1}","ids":[${ids.map(id => s""""${id._2}"""").mkString(",")}]}"""
     case other =>
-      s"?$other"
+      s""""?$other""""
   }
 
 }
