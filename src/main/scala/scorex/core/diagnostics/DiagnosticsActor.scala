@@ -15,9 +15,15 @@ class DiagnosticsActor extends Actor with ScorexLogging {
   private val outWriter = new PrintWriter(new File(s"/tmp/ergo/out-messages-${context.system.startTime}.json"))
   private val inWriter = new PrintWriter(new File(s"/tmp/ergo/in-messages-${context.system.startTime}.json"))
 
-  override def preStart(): Unit = log.info("Starting diagnostics actor...")
+  override def preStart(): Unit = {
+    outWriter.write("[")
+    inWriter.write("[")
+    log.info("Starting diagnostics actor...")
+  }
 
   override def postStop(): Unit = {
+    outWriter.write("]")
+    inWriter.write("]")
     outWriter.close()
     inWriter.close()
   }
@@ -33,7 +39,7 @@ class DiagnosticsActor extends Actor with ScorexLogging {
     case InNetworkMessage(Message(spec, Right(data), _), sender, timestamp) =>
       val record =
         s"""{"timestamp":$timestamp,"msgType":"${spec.messageName}","data":${decodeData(data)},"sender":"$sender"},\n""".stripMargin
-      outWriter.write(record)
+      inWriter.write(record)
 
     case other =>
       log.info(s"DiagnosticsActor: unknown message: $other")
