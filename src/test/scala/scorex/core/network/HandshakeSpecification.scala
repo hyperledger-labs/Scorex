@@ -36,7 +36,7 @@ class HandshakeSpecification extends PropSpec
 
           val handshakeSerializer = new HandshakeSpec(serializers, Int.MaxValue)
 
-          val h = Handshake(appName, av, nodeName, isaOpt, feats, time)
+          val h = Handshake(PeerSpec(appName, av, nodeName, isaOpt, feats), time)
           val hr = handshakeSerializer.parseBytes(handshakeSerializer.toBytes(h))
           hr.peerSpec.agentName should be(h.peerSpec.agentName)
           hr.peerSpec.protocolVersion should be(h.peerSpec.protocolVersion)

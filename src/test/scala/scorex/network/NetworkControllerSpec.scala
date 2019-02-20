@@ -388,9 +388,9 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     */
   def sendHandshake(declaredAddress: Option[InetSocketAddress], localAddress: Option[InetSocketAddress]): Tcp.ResumeReading.type = {
     val features = localAddress.map(LocalAddressPeerFeature(_)).toSeq
-    val handshakeToNode = Handshake(settings.network.agentName,
+    val handshakeToNode = Handshake(PeerSpec(settings.network.agentName,
       Version(settings.network.appVersion), "test",
-      declaredAddress, features, timeProvider.time())
+      declaredAddress, features), timeProvider.time())
 
     tcpManagerProbe.send(connectionHandler, Tcp.Received(ByteString(handshakeSerializer.toBytes(handshakeToNode))))
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)

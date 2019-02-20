@@ -134,11 +134,11 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       reportStrangeInput
 
   private def createHandshakeMessage() = {
-    Handshake(settings.agentName,
+    Handshake(PeerSpec(settings.agentName,
       Version(settings.appVersion),
       settings.nodeName,
       ownSocketAddress,
-      localFeatures,
+      localFeatures),
       scorexContext.timeProvider.time()
     )
   }

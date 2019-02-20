@@ -1,9 +1,5 @@
 package scorex.core.network
 
-import java.net.InetSocketAddress
-
-import scorex.core.app.Version
-
 /**
   * Network message to be send when nodes establish a new connection.
   * When a node creates an outgoing connection, it will immediately advertise its Handshake.
@@ -14,18 +10,3 @@ import scorex.core.app.Version
   * @param time     - handshake time
   */
 case class Handshake(peerSpec: PeerSpec, time: Long)
-
-object Handshake {
-
-  // todo do we need it?
-  def apply(agentName: String,
-            protocolVersion: Version,
-            nodeName: String,
-            declaredAddress: Option[InetSocketAddress],
-            features: Seq[PeerFeature],
-            time: Long): Handshake = {
-    val peerData = PeerSpec(agentName, protocolVersion, nodeName, declaredAddress, features)
-    Handshake(peerData, time)
-  }
-
-}
