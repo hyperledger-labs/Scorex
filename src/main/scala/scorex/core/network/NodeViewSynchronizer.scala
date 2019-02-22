@@ -420,6 +420,7 @@ MR <: MempoolReader[TX] : ClassTag]
             size < networkSettings.maxPacketSize
           }
           peer.handlerRef ! Message(modifiersSpec, Right(ModifiersData(modType, batch.toMap)), None)
+          // todo: forward messages to diagnostics actor.
           val remaining = mods.drop(batch.length)
           if (remaining.nonEmpty) {
             sendByParts(remaining)

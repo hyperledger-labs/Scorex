@@ -7,6 +7,7 @@ import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
 import scorex.core.app.{ScorexContext, Version}
+import scorex.core.diagnostics.DiagnosticsActor.ReceivableMessages.OutNetworkMessage
 import scorex.core.network.NetworkController.ReceivableMessages.Handshaked
 import scorex.core.network.PeerFeature.Serializers
 import scorex.core.network.message.{HandshakeSpec, MessageSerializer}
@@ -61,6 +62,7 @@ case class ConnectionDescription(connection: ActorRef,
 class PeerConnectionHandler(val settings: NetworkSettings,
                             networkControllerRef: ActorRef,
                             peerManagerRef: ActorRef,
+                            daRef: ActorRef,
                             scorexContext: ScorexContext,
                             connectionDescription: ConnectionDescription
                            )(implicit ec: ExecutionContext)
@@ -192,6 +194,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       def sendOutMessage() {
         log.info("Send message " + msg.spec + " to " + remote)
         connection ! Write(messageSerializer.serialize(msg))
+        daRef ! OutNetworkMessage(msg, Broadcast, Seq(connectionDescription.remote.toString), System.currentTimeMillis())
       }
 
       //simulating network delays
@@ -258,25 +261,28 @@ object PeerConnectionHandlerRef {
   def props(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
+            daRef: ActorRef,
             scorexContext: ScorexContext,
             connectionDescription: ConnectionDescription
            )(implicit ec: ExecutionContext): Props =
-    Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, scorexContext, connectionDescription))
+    Props(new PeerConnectionHandler(settings, networkControllerRef, peerManagerRef, daRef, scorexContext, connectionDescription))
 
   def apply(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
+            daRef: ActorRef,
             scorexContext: ScorexContext,
             connectionDescription: ConnectionDescription)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, networkControllerRef, peerManagerRef, scorexContext, connectionDescription))
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, daRef, scorexContext, connectionDescription))
 
   def apply(name: String,
             settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
+            daRef: ActorRef,
             scorexContext: ScorexContext,
             connectionDescription: ConnectionDescription)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
-    system.actorOf(props(settings, networkControllerRef, peerManagerRef, scorexContext, connectionDescription), name)
+    system.actorOf(props(settings, networkControllerRef, peerManagerRef, daRef, scorexContext, connectionDescription), name)
 }
