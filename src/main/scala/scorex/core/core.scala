@@ -1,6 +1,6 @@
 package scorex
 
-import scorex.core.network.message.BasicMsgDataTypes.InvData
+import scorex.core.network.message.InvData
 import scorex.core.utils.ScorexEncoder
 import scorex.util.encode.Base16
 import supertagged.TaggedType
@@ -33,7 +33,7 @@ package object core {
     idsToString(ids.map(id => (modifierType, id)))
   }
 
-  def idsToString(invData: InvData)(implicit encoder: ScorexEncoder): String = idsToString(invData._1, invData._2)
+  def idsToString(invData: InvData)(implicit encoder: ScorexEncoder): String = idsToString(invData.typeId, invData.ids)
 
   def bytesToId: Array[Byte] => util.ModifierId = scorex.util.bytesToId
 

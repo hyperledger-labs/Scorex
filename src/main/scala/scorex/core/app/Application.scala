@@ -50,9 +50,10 @@ trait Application extends ScorexLogging {
     val invSpec = new InvSpec(settings.network.maxInvObjects)
     val requestModifierSpec = new RequestModifierSpec(settings.network.maxInvObjects)
     val modifiersSpec = new ModifiersSpec(settings.network.maxPacketSize)
+    val featureSerializers: PeerFeature.Serializers = features.map(f => f.featureId -> f.serializer).toMap
     Seq(
       GetPeersSpec,
-      PeersSpec,
+      new PeersSpec(featureSerializers, settings.network.maxPeerSpecObjects),
       invSpec,
       requestModifierSpec,
       modifiersSpec

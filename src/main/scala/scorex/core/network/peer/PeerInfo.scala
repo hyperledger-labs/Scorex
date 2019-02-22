@@ -2,19 +2,29 @@ package scorex.core.network.peer
 
 import java.net.InetSocketAddress
 
-import scorex.core.network.{ConnectionType, PeerFeature}
+import scorex.core.app.Version
+import scorex.core.network.{ConnectionType, PeerSpec}
 
-case class PeerInfo(lastSeen: Long,
-                    declaredAddress: Option[InetSocketAddress],
-                    nodeName: Option[String] = None,
-                    connectionType: Option[ConnectionType] = None,
-                    features: Seq[PeerFeature] = Seq()) {
+/**
+  * Information about peer to be stored in PeerDatabase
+  *
+  * @param peerSpec       - general information about the peer
+  * @param lastSeen       - timestamp when this peer was last seen in the network
+  * @param connectionType - type of connection (Incoming/Outgoing) established to this peer if any
+  */
+case class PeerInfo(peerSpec: PeerSpec,
+                    lastSeen: Long,
+                    connectionType: Option[ConnectionType] = None)
 
-  lazy val reachablePeer: Boolean = {
-    declaredAddress.isDefined || localAddress.isDefined
+object PeerInfo {
+
+  /**
+    * Create peer info from address only, when we don't know other fields
+    * (e.g. we got this information from config or from API)
+    */
+  def fromAddress(address: InetSocketAddress): PeerInfo = {
+    val peerSpec = PeerSpec("unknown", Version.initial, s"unknown-$address", Some(address), Seq())
+    PeerInfo(peerSpec, 0L, None)
   }
 
-  lazy val localAddress: Option[InetSocketAddress] = {
-    features.collectFirst { case LocalAddressPeerFeature(addr) => addr }
-  }
 }

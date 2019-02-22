@@ -22,7 +22,9 @@ case class PeersApiRoute(peerManager: ActorRef,
                          override val settings: RESTApiSettings)
                         (implicit val context: ActorRefFactory, val ec: ExecutionContext) extends ApiRoute {
 
-  override lazy val route: Route = pathPrefix("peers") { allPeers ~ connectedPeers ~ blacklistedPeers ~ connect }
+  override lazy val route: Route = pathPrefix("peers") {
+    allPeers ~ connectedPeers ~ blacklistedPeers ~ connect
+  }
 
   def allPeers: Route = (path("all") & get) {
     val result = askActor[Map[InetSocketAddress, PeerInfo]](peerManager, GetAllPeers).map {
@@ -34,13 +36,12 @@ case class PeersApiRoute(peerManager: ActorRef,
   }
 
   def connectedPeers: Route = (path("connected") & get) {
-    val now = System.currentTimeMillis()
     val result = askActor[Seq[PeerInfo]](networkController, GetConnectedPeers).map {
       _.map { peerInfo =>
         PeerInfoResponse(
-          address = peerInfo.declaredAddress.map(_.toString).getOrElse(""),
+          address = peerInfo.peerSpec.declaredAddress.map(_.toString).getOrElse(""),
           lastSeen = peerInfo.lastSeen,
-          name = peerInfo.nodeName,
+          name = peerInfo.peerSpec.nodeName,
           connectionType = peerInfo.connectionType.map(_.toString)
         )
       }
@@ -57,8 +58,7 @@ case class PeersApiRoute(peerManager: ActorRef,
       case Some(addressAndPort) =>
         val host = InetAddress.getByName(addressAndPort.group(1))
         val port = addressAndPort.group(2).toInt
-        val peerInfo = PeerInfo(timeProvider.time(), Some(new InetSocketAddress(host, port)), None, None, Seq())
-        networkController ! ConnectTo(peerInfo)
+        networkController ! ConnectTo(PeerInfo.fromAddress(new InetSocketAddress(host, port)))
         ApiResponse.OK
     }
   }
@@ -73,7 +73,7 @@ object PeersApiRoute {
 
   case class PeerInfoResponse(address: String,
                               lastSeen: Long,
-                              name: Option[String],
+                              name: String,
                               connectionType: Option[String])
 
   object PeerInfoResponse {
@@ -81,7 +81,7 @@ object PeersApiRoute {
     def fromAddressAndInfo(address: InetSocketAddress, peerInfo: PeerInfo): PeerInfoResponse = PeerInfoResponse(
       address.toString,
       peerInfo.lastSeen,
-      peerInfo.nodeName,
+      peerInfo.peerSpec.nodeName,
       peerInfo.connectionType.map(_.toString)
     )
   }

@@ -4,15 +4,11 @@ import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
-import org.scalatest._
-import scorex.ObjectGenerators
 import scorex.core.app.ScorexContext
-import scorex.core.settings.ScorexSettings
-import scorex.core.utils.NetworkTimeProvider
+import scorex.network.NetworkTests
 
-import scala.concurrent.ExecutionContext.Implicits.global
 
-class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
+class PeerManagerSpec extends NetworkTests {
 
   import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, GetAllPeers}
 
@@ -24,14 +20,13 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
     val p = TestProbe("p")(system)
     implicit val defaultSender: ActorRef = p.testActor
 
-    val settings = ScorexSettings.read(None)
-    val timeProvider = new NetworkTimeProvider(settings.ntp)
 
     val selfAddress = settings.network.bindAddress
     val scorexContext = ScorexContext(Seq.empty, Seq.empty, None, timeProvider, Some(selfAddress))
     val peerManager = PeerManagerRef(settings, scorexContext)(system)
+    val peerInfo = getPeerInfo(selfAddress)
 
-    peerManager ! AddOrUpdatePeer(selfAddress, None, None, Seq())
+    peerManager ! AddOrUpdatePeer(peerInfo)
     peerManager ! GetAllPeers
     val data = p.expectMsgClass(classOf[Data])
 
@@ -44,17 +39,17 @@ class PeerManagerSpec extends FlatSpec with Matchers with ObjectGenerators {
     val p = TestProbe("p")(system)
     implicit val defaultSender: ActorRef = p.testActor
 
-    val settings = ScorexSettings.read(None)
-    val timeProvider = new NetworkTimeProvider(settings.ntp)
     val scorexContext = ScorexContext(Seq.empty, Seq.empty, None, timeProvider, None)
     val peerManager = PeerManagerRef(settings, scorexContext)(system)
     val peerAddress = new InetSocketAddress("1.1.1.1", DefaultPort)
+    val peerInfo = getPeerInfo(peerAddress)
 
-    peerManager ! AddOrUpdatePeer(peerAddress, None, None, Seq())
+    peerManager ! AddOrUpdatePeer(peerInfo)
     peerManager ! GetAllPeers
 
     val data = p.expectMsgClass(classOf[Data])
     data.keySet should contain(peerAddress)
     system.terminate()
   }
+
 }

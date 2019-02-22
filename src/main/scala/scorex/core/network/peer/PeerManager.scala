@@ -22,10 +22,10 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   private lazy val peerDatabase = new PeerDatabaseImpl(Some(settings.dataDir + "/peers.dat"))
 
   if (peerDatabase.isEmpty()) {
+    // fill database with peers from config file if empty
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address)) {
-        val defaultPeerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), None, None, Seq())
-        peerDatabase.addOrUpdateKnownPeer(defaultPeerInfo)
+        peerDatabase.addOrUpdateKnownPeer(PeerInfo.fromAddress(address))
       }
     }
   }
@@ -39,26 +39,25 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   }: Receive) orElse peerListOperations orElse apiInterface
 
   private def peerListOperations: Receive = {
-    case AddOrUpdatePeer(address, peerNameOpt, connTypeOpt, features) =>
-      if (!isSelf(address)) {
-        val peerInfo = PeerInfo(scorexContext.timeProvider.time(), Some(address), peerNameOpt, connTypeOpt, features)
+    case AddOrUpdatePeer(peerInfo) =>
+      // We have connected to a peer and got his peerInfo from him
+      if (!isSelf(peerInfo.peerSpec)) {
+        peerDatabase.addOrUpdateKnownPeer(peerInfo)
+      }
+
+    case AddPeerIfEmpty(peerSpec) =>
+      // We have received peer data from other peers. It might be modified and should not affect existing data if any
+      if (peerSpec.address.forall(a => peerDatabase.get(a).isEmpty) && !isSelf(peerSpec)) {
+        val peerInfo: PeerInfo = PeerInfo(peerSpec, 0, None)
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 
     case RemovePeer(address) =>
       peerDatabase.remove(address)
 
-    case KnownPeers =>
-      sender() ! peerDatabase.knownPeers().keys.toSeq
+    case get: GetPeers[_] =>
+      sender() ! get.choose(peerDatabase.knownPeers(), scorexContext)
 
-    case RandomPeer =>
-      sender() ! randomPeer()
-
-    case RandomPeers(howMany: Int) =>
-      sender() ! Random.shuffle(peerDatabase.knownPeers().values.toSeq).take(howMany)
-
-    case RandomPeerExcluding(excludedPeers) =>
-      sender() ! randomPeerExcluded(excludedPeers)
   }
 
   private def apiInterface: Receive = {
@@ -79,46 +78,66 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     NetworkUtils.isSelf(peerAddress, settings.network.bindAddress, scorexContext.externalNodeAddress)
   }
 
-  private def randomPeer(): Option[PeerInfo] = {
-    randomPeer(peerDatabase.knownPeers().values.toSeq)
+  private def isSelf(peerSpec: PeerSpec): Boolean = {
+    peerSpec.declaredAddress.exists(isSelf) || peerSpec.localAddressOpt.exists(isSelf)
   }
 
-  private def randomPeerExcluded(excludedPeers: Seq[PeerInfo]): Option[PeerInfo] = {
-    val candidates = peerDatabase.knownPeers().values.filterNot { p =>
-      excludedPeers.exists(e =>
-        e.declaredAddress == p.declaredAddress || (e.localAddress.isDefined && e.localAddress == p.localAddress)
-      )
-    }.toSeq
-
-    randomPeer(candidates)
-  }
-
-  private def randomPeer(peers: Seq[PeerInfo]): Option[PeerInfo] = {
-    if (peers.nonEmpty) Some(peers(Random.nextInt(peers.size)))
-    else None
-  }
 }
 
 object PeerManager {
 
   object ReceivableMessages {
+
     case class AddToBlacklist(remote: InetSocketAddress)
 
     // peerListOperations messages
-    case class AddOrUpdatePeer(address: InetSocketAddress,
-                               peerName: Option[String],
-                               direction: Option[ConnectionType],
-                               features: Seq[PeerFeature])
-    case class RemovePeer(address: InetSocketAddress)
-    case object KnownPeers
-    case object RandomPeer
-    case class RandomPeers(hawMany: Int)
-    case class RandomPeerExcluding(excludedPeers: Seq[PeerInfo])
+    case class AddOrUpdatePeer(data: PeerInfo)
 
-    // apiInterface messages
-    case object GetAllPeers
+    case class AddPeerIfEmpty(data: PeerSpec)
+
+    case class RemovePeer(address: InetSocketAddress)
+
+    /**
+      * Message to get peers from known peers map filtered by `choose` function
+      */
+    trait GetPeers[T] {
+      def choose(knownPeers: Map[InetSocketAddress, PeerInfo], scorexContext: ScorexContext): T
+    }
+
+    /**
+      * Choose at most `howMany` random peers, that is connected to our peer or was connected in at most 1 hour ago
+      */
+    case class RecentlySeenPeers(howMany: Int) extends GetPeers[Seq[PeerInfo]] {
+      private val TimeDiff: Long = 60 * 60 * 1000
+
+      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo], sc: ScorexContext): Seq[PeerInfo] = {
+        val currentTime = sc.timeProvider.time()
+        val recentlySeen = knownPeers.values.toSeq
+          .filter(p => p.connectionType.isDefined || currentTime - p.lastSeen > TimeDiff)
+        Random.shuffle(recentlySeen).take(howMany)
+      }
+    }
+
+    case object GetAllPeers extends GetPeers[Map[InetSocketAddress, PeerInfo]] {
+      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo], sc: ScorexContext): Map[InetSocketAddress, PeerInfo] = knownPeers
+    }
+
+    case class RandomPeerExcluding(excludedPeers: Seq[PeerInfo]) extends GetPeers[Option[PeerInfo]] {
+
+      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo], sc: ScorexContext): Option[PeerInfo] = {
+        val candidates = knownPeers.values.filterNot { p =>
+          excludedPeers.exists(_.peerSpec.address == p.peerSpec.address)
+        }.toSeq
+        if (candidates.nonEmpty) Some(candidates(Random.nextInt(candidates.size)))
+        else None
+      }
+    }
+
+    // todo extend GetPeers after during blacklist implementation
     case object GetBlacklistedPeers
+
   }
+
 }
 
 object PeerManagerRef {

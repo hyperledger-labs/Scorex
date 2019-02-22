@@ -9,9 +9,9 @@ import akka.util.{ByteString, CompactByteString}
 import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NetworkController.ReceivableMessages.Handshaked
 import scorex.core.network.PeerFeature.Serializers
-import scorex.core.network.message.{Message, MessageSerializer, MessageSpec}
+import scorex.core.network.message.{HandshakeSpec, MessageSerializer}
 import scorex.core.network.peer.PeerInfo
-import scorex.core.network.peer.PeerManager.ReceivableMessages.AddToBlacklist
+import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, RemovePeer}
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
@@ -28,17 +28,23 @@ case object Incoming extends ConnectionType
 
 case object Outgoing extends ConnectionType
 
-
+/**
+  * Peer connected to our node
+  *
+  * @param remote     - connection address
+  * @param handlerRef - reference to PeerConnectionHandler that is responsible for communication with this peer
+  * @param peerInfo   - information about this peer. May be None if peer is connected, but is not handshaked yet
+  */
 case class ConnectedPeer(remote: InetSocketAddress,
                          handlerRef: ActorRef,
                          peerInfo: Option[PeerInfo]) {
 
-  import shapeless.syntax.typeable._
-
   override def hashCode(): Int = remote.hashCode()
 
-  override def equals(obj: Any): Boolean =
-    obj.cast[ConnectedPeer].exists(p => p.remote == this.remote && peerInfo == this.peerInfo)
+  override def equals(obj: Any): Boolean = obj match {
+    case p: ConnectedPeer => p.remote == this.remote && peerInfo == this.peerInfo
+    case _ => false
+  }
 
   override def toString: String = s"ConnectedPeer($remote)"
 }
@@ -72,7 +78,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     localFeatures.map(f => f.featureId -> (f.serializer: ScorexSerializer[_ <: PeerFeature])).toMap
   }
 
-  private val handshakeSerializer = new HandshakeSerializer(featureSerializers, settings.maxHandshakeSize)
+  private val handshakeSerializer = new HandshakeSpec(featureSerializers, settings.maxHandshakeSize)
   private val messageSerializer = new MessageSerializer(scorexContext.messageSpecs, settings.magicBytes)
 
   // there is no recovery for broken connections
@@ -107,11 +113,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       log.info(s"Got a Handshake from $remote")
 
       val peerInfo = PeerInfo(
+        receivedHandshake.peerSpec,
         scorexContext.timeProvider.time(),
-        receivedHandshake.declaredAddress,
-        Some(receivedHandshake.nodeName),
-        Some(direction),
-        receivedHandshake.features
+        Some(direction)
       )
       val peer = ConnectedPeer(remote, self, Some(peerInfo))
       selfPeer = Some(peer)
@@ -130,11 +134,11 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       reportStrangeInput
 
   private def createHandshakeMessage() = {
-    Handshake(settings.agentName,
+    Handshake(PeerSpec(settings.agentName,
       Version(settings.appVersion),
       settings.nodeName,
       ownSocketAddress,
-      localFeatures,
+      localFeatures),
       scorexContext.timeProvider.time()
     )
   }
@@ -148,6 +152,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
           //todo: blacklist?
+          selfPeer.foreach(c => peerManagerRef ! RemovePeer(c.remote))
           self ! CloseConnection
       }
   }
