@@ -22,9 +22,9 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
   private lazy val peerDatabase = new PeerDatabaseImpl(Some(settings.dataDir + "/peers.dat"))
 
   if (peerDatabase.isEmpty()) {
+    // fill database with peers from config file if empty
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address)) {
-        // fill database with peers from config file if empty
         peerDatabase.addOrUpdateKnownPeer(PeerInfo.fromAddress(address))
       }
     }

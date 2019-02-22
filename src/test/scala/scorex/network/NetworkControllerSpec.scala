@@ -26,7 +26,6 @@ class NetworkControllerSpec extends NetworkTests {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   private val featureSerializers = Map(LocalAddressPeerFeature.featureId -> LocalAddressPeerFeatureSerializer)
-  private val peersSpec = new PeersSpec(featureSerializers, settings.network.maxPeerSpecObjects)
 
   "A NetworkController" should "send local address on handshake when peer and node address are in localhost" in {
     implicit val system = ActorSystem()
@@ -458,7 +457,6 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   /**
     * Receive message from node
     *
-    * @param msg
     */
   def receiveMessage: Message[_] = {
     tcpManagerProbe.expectMsgPF() {

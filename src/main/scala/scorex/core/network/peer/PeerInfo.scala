@@ -3,7 +3,7 @@ package scorex.core.network.peer
 import java.net.InetSocketAddress
 
 import scorex.core.app.Version
-import scorex.core.network.{ConnectionType, Handshake, PeerSpec}
+import scorex.core.network.{ConnectionType, PeerSpec}
 
 /**
   * Information about peer to be stored in PeerDatabase
