@@ -101,7 +101,7 @@ MR <: MempoolReader[TX] : ClassTag]
       deliveryTracker.onInvalid(tx.id)
     //todo: penalize source peer?
 
-    case SyntacticallySuccessfulModifier(mod) =>
+    case SyntacticallySuccessfulModifier(mod, _) =>
       deliveryTracker.onApply(mod.id)
 
     case SyntacticallyFailedModification(mod, _) =>
@@ -543,7 +543,7 @@ object NodeViewSynchronizer {
 
     case class SemanticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
 
-    case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
+    case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD, ts: Long = 0) extends ModificationOutcome
 
     case class SemanticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
 

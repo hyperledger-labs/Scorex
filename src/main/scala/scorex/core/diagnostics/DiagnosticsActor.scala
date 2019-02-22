@@ -4,6 +4,7 @@ import java.io.{File, PrintWriter}
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.consensus.SyncInfo
+import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{ModifiersProcessingResult, SyntacticallySuccessfulModifier}
 import scorex.core.network.SendingStrategy
 import scorex.core.network.message.{InvData, Message, ModifiersData}
 import scorex.util.ScorexLogging
@@ -14,18 +15,23 @@ class DiagnosticsActor extends Actor with ScorexLogging {
 
   private val outWriter = new PrintWriter(new File(s"/tmp/ergo/out-messages-${context.system.startTime}.json"))
   private val inWriter = new PrintWriter(new File(s"/tmp/ergo/in-messages-${context.system.startTime}.json"))
+  private val smJournalWriter = new PrintWriter(new File(s"/tmp/ergo/app-journal-${context.system.startTime}.json"))
 
   override def preStart(): Unit = {
     outWriter.write("[")
     inWriter.write("[")
+    smJournalWriter.write("[")
     log.info("Starting diagnostics actor...")
+    context.system.eventStream.subscribe(self, classOf[SyntacticallySuccessfulModifier[_]])
   }
 
   override def postStop(): Unit = {
     outWriter.write("]")
     inWriter.write("]")
+    smJournalWriter.write("]")
     outWriter.close()
     inWriter.close()
+    smJournalWriter.close()
   }
 
   override def receive: Receive = {
@@ -40,6 +46,10 @@ class DiagnosticsActor extends Actor with ScorexLogging {
       val record =
         s"""{"timestamp":$timestamp,"msgType":"${spec.messageName}","data":${decodeData(data)},"sender":"$sender"},\n""".stripMargin
       inWriter.write(record)
+
+    case SyntacticallySuccessfulModifier(mod, ts) =>
+      val record = s"""{"typeId":"${mod.modifierTypeId}","id":"${mod.encodedId}","timestamp":$ts},\n""".stripMargin
+      smJournalWriter.write(record)
 
     case other =>
       log.info(s"DiagnosticsActor: unknown message: $other")
