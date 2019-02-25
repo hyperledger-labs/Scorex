@@ -318,7 +318,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     val t0 = System.nanoTime()
     val result = block    // call-by-name
     val t1 = System.nanoTime()
-    val et = (t1 - t0) / 10000000
+    val et = (t1.toDouble - t0) / 1000000
     println(s">> (:$tag) Elapsed time: " + et + "ms")
     context.actorSelection("../DiagnosticsActor") ! DiagnosticsActor.ReceivableMessages.ElapsedTime(tag, et, System.currentTimeMillis())
     result

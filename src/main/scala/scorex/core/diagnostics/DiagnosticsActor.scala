@@ -85,7 +85,7 @@ object DiagnosticsActor {
 
     case class InNetworkMessage(msg: Message[_], sender: String, timestamp: Long)
 
-    case class ElapsedTime(tag: String, elapsedTime: Long, timestamp: Long)
+    case class ElapsedTime(tag: String, elapsedTime: Double, timestamp: Long)
 
   }
 
