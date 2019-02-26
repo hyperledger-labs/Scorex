@@ -8,6 +8,7 @@ import scorex.core.NodeViewHolder.DownloadRequest
 import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, ModifiersFromRemote, TransactionsFromRemote}
 import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
+import scorex.core.diagnostics.DiagnosticsActor.ReceivableMessages.InternalMessageTrip
 import scorex.core.network.ModifiersStatus.Requested
 import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
@@ -21,6 +22,8 @@ import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
 import scorex.core.validation.MalformedModifierError
 import scorex.core.{ModifierTypeId, NodeViewModifier, PersistentNodeViewModifier, idsToString}
+import scorex.crypto.hash.Blake2b256
+import scorex.util.encode.Base16
 import scorex.util.{ModifierId, ScorexLogging}
 
 import scala.annotation.tailrec
@@ -264,8 +267,11 @@ MR <: MempoolReader[TX] : ClassTag]
     * parse modifiers and send valid modifiers to NodeViewHolder
     */
   protected def modifiersFromRemote: Receive = {
-    case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
+    case DataFromPeer(spec, data: ModifiersData@unchecked, remote, id)
       if spec.messageCode == ModifiersSpec.MessageCode =>
+
+      context.actorSelection("../DiagnosticsActor") !
+        InternalMessageTrip("nvs-received", id.toString, System.currentTimeMillis())
 
       val typeId = data.typeId
       val modifiers = data.modifiers
@@ -285,7 +291,7 @@ MR <: MempoolReader[TX] : ClassTag]
           // parse all modifiers and put them to modifiers cache
           val parsed: Iterable[PMOD] = parseModifiers(requestedModifiers, serializer, remote)
           val valid: Iterable[PMOD] = parsed.filter(pmod => validateAndSetStatus(remote, pmod))
-          if (valid.nonEmpty) viewHolderRef ! ModifiersFromRemote[PMOD](valid)
+          if (valid.nonEmpty) viewHolderRef ! ModifiersFromRemote[PMOD](valid, id)
 
         case _ =>
           log.error(s"Undefined serializer for modifier of type $typeId")

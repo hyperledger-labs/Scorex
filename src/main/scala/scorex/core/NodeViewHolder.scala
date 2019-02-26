@@ -4,6 +4,7 @@ import akka.actor.Actor
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.diagnostics.DiagnosticsActor
+import scorex.core.diagnostics.DiagnosticsActor.ReceivableMessages.InternalMessageTrip
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction._
@@ -319,7 +320,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     val result = block    // call-by-name
     val t1 = System.nanoTime()
     val et = (t1.toDouble - t0) / 1000000
-    println(s">> (:$tag) Elapsed time: " + et + "ms")
     context.actorSelection("../DiagnosticsActor") ! DiagnosticsActor.ReceivableMessages.MethodProfile(tag, et, System.currentTimeMillis())
     result
   }
@@ -331,7 +331,9 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     * Publish `ModifiersProcessingResult` message with all just applied and removed from cache modifiers.
     */
   protected def processRemoteModifiers: Receive = {
-    case ModifiersFromRemote(mods: Seq[PMOD]) =>
+    case ModifiersFromRemote(mods: Seq[PMOD], id) =>
+      context.actorSelection("../DiagnosticsActor") !
+        InternalMessageTrip("nvh-received", id.toString, System.currentTimeMillis())
       time("cacheApply") {
         mods.foreach(m => modifiersCache.put(m.id, m))
 
@@ -407,7 +409,7 @@ object NodeViewHolder {
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
     // Modifiers received from the remote peer with new elements in it
-    case class ModifiersFromRemote[PM <: PersistentNodeViewModifier](modifiers: Iterable[PM])
+    case class ModifiersFromRemote[PM <: PersistentNodeViewModifier](modifiers: Iterable[PM], id: Long = 0)
 
     sealed trait NewTransactions[TX <: Transaction]{
       val txs: Iterable[TX]

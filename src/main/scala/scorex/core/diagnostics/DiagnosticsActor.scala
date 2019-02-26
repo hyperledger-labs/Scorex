@@ -18,15 +18,16 @@ class DiagnosticsActor extends Actor with ScorexLogging {
   private val smJournalWriter = new PrintWriter(new File(s"/tmp/ergo/sm-journal-${context.system.startTime}.json"))
   private val mProfilesWriter = new PrintWriter(new File(s"/tmp/ergo/nvh-profile-${context.system.startTime}.json"))
   private val cacheJournalWriter = new PrintWriter(new File(s"/tmp/ergo/cache-journal-${context.system.startTime}.json"))
+  private val internalMsgsWriter = new PrintWriter(new File(s"/tmp/ergo/ims-journal-${context.system.startTime}.json"))
 
   override def preStart(): Unit = {
-    Seq(outWriter, inWriter, smJournalWriter, mProfilesWriter, cacheJournalWriter).foreach(_.write("["))
+    Seq(outWriter, inWriter, smJournalWriter, mProfilesWriter, cacheJournalWriter, internalMsgsWriter).foreach(_.write("["))
     log.info("Starting diagnostics actor...")
     context.system.eventStream.subscribe(self, classOf[SyntacticallySuccessfulModifier[_]])
   }
 
   override def postStop(): Unit = {
-    Seq(outWriter, inWriter, smJournalWriter, mProfilesWriter, cacheJournalWriter).foreach { w =>
+    Seq(outWriter, inWriter, smJournalWriter, mProfilesWriter, cacheJournalWriter, internalMsgsWriter).foreach { w =>
       w.write("]")
       w.close()
     }
@@ -57,6 +58,10 @@ class DiagnosticsActor extends Actor with ScorexLogging {
       val record = s"""{"sizeBefore":$sizeBefore,"sizeAfter":$sizeAfter,"cleared":[${cleared.map(id => s""""$id"""").mkString(",")}],"timestamp":$ts},\n"""
       cacheJournalWriter.write(record)
 
+    case InternalMessageTrip(tag, msgId, ts) =>
+      val record = s"""{"tag":"$tag","msgId":"$msgId","timestamp":$ts},\n"""
+      internalMsgsWriter.write(record)
+
     case other =>
       log.info(s"DiagnosticsActor: unknown message: $other")
   }
@@ -86,6 +91,8 @@ object DiagnosticsActor {
     case class MethodProfile(tag: String, elapsedTime: Double, timestamp: Long)
 
     case class CacheState(sizeBefore: Int, sizeAfter: Int, cleared: Seq[ModifierId], timestamp: Long)
+
+    case class InternalMessageTrip(tag: String, msgId: String, timestamp: Long)
 
   }
 

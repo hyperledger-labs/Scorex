@@ -9,7 +9,7 @@ import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.app.{ScorexContext, Version}
-import scorex.core.diagnostics.DiagnosticsActor.ReceivableMessages.{InNetworkMessage, OutNetworkMessage}
+import scorex.core.diagnostics.DiagnosticsActor.ReceivableMessages.{InNetworkMessage, InternalMessageTrip, OutNetworkMessage}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
@@ -17,13 +17,15 @@ import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer,
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
+import scorex.crypto.hash.Blake2b256
 import scorex.util.ScorexLogging
+import scorex.util.encode.Base16
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Random, Success, Try}
 
 /**
   * Control all network interaction
@@ -84,7 +86,9 @@ class NetworkController(settings: NetworkSettings,
         case Success(content) =>
           messageHandlers.get(msgId) match {
             case Some(handler) =>
-              handler ! DataFromPeer(spec, content, remote)
+              val id = Random.nextLong()
+              handler ! DataFromPeer(spec, content, remote, id)
+              daRef ! InternalMessageTrip("nc-sent", id.toString, System.currentTimeMillis())
               daRef ! InNetworkMessage(Message(spec, Right(content), Some(remote)), remote.remote.toString, System.currentTimeMillis())
 
             case None =>

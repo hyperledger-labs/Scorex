@@ -122,7 +122,7 @@ class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryRea
       history.applicableTry(v) match {
         case Failure(e: ModifierError) if !e.isFatal =>
           // do nothing - modifier may be applied in future
-          log.info(s"Modifier ${v.id} could not be applied now due to: $e")
+          log.info(s"Modifier ${v.encodedId} could not be applied now", e)
           false
         case Failure(e) =>
           // non-recoverable error - remove modifier from cache
