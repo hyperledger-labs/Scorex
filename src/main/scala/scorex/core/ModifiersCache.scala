@@ -1,7 +1,7 @@
 package scorex.core
 
 import scorex.core.consensus.{ContainsModifiers, HistoryReader}
-import scorex.core.validation.RecoverableModifierError
+import scorex.core.validation.{ModifierError, RecoverableModifierError}
 import scorex.util.ScorexLogging
 
 import scala.annotation.tailrec
@@ -117,18 +117,17 @@ class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryRea
     * @param history - an interface to history which could be needed to define a candidate
     * @return - candidate if it is found
     */
-  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
   override def findCandidateKey(history: HR): Option[K] = {
-
     cache.find { case (k, v) =>
       history.applicableTry(v) match {
-        case Failure(e) if e.isInstanceOf[RecoverableModifierError] =>
+        case Failure(e: ModifierError) if !e.isFatal =>
           // do nothing - modifier may be applied in future
+          log.info(s"Modifier ${v.id} could not be applied now due to: $e")
           false
         case Failure(e) =>
           // non-recoverable error - remove modifier from cache
           // TODO blaklist peer who sent it
-          log.warn(s"Modifier ${v.encodedId} became permanently invalid and will be removed from cache", e)
+          log.info(s"Modifier ${v.encodedId} became permanently invalid and will be removed from cache", e)
           remove(k)
           false
         case Success(_) =>
@@ -136,4 +135,5 @@ class DefaultModifiersCache[PMOD <: PersistentNodeViewModifier, HR <: HistoryRea
       }
     }.map(_._1)
   }
+
 }

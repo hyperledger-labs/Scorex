@@ -320,7 +320,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     val t1 = System.nanoTime()
     val et = (t1.toDouble - t0) / 1000000
     println(s">> (:$tag) Elapsed time: " + et + "ms")
-    context.actorSelection("../DiagnosticsActor") ! DiagnosticsActor.ReceivableMessages.ElapsedTime(tag, et, System.currentTimeMillis())
+    context.actorSelection("../DiagnosticsActor") ! DiagnosticsActor.ReceivableMessages.MethodProfile(tag, et, System.currentTimeMillis())
     result
   }
 
@@ -335,6 +335,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       time("cacheApply") {
         mods.foreach(m => modifiersCache.put(m.id, m))
 
+        val sizeBefore = modifiersCache.size
         log.debug(s"Cache size before: ${modifiersCache.size}")
 
         @tailrec
@@ -353,6 +354,11 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
         context.system.eventStream.publish(ModifiersProcessingResult(applied, cleared))
         log.debug(s"Cache size after: ${modifiersCache.size}")
+
+        val sizeAfter = modifiersCache.size
+
+        context.actorSelection("../DiagnosticsActor") !
+          DiagnosticsActor.ReceivableMessages.CacheState(sizeBefore, sizeAfter, cleared.map(_.id), System.currentTimeMillis())
       }
   }
 
