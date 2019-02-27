@@ -160,7 +160,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
   //sync info is coming from another node
   protected def processSync: Receive = {
-    case DataFromPeer(spec, syncInfo: SI@unchecked, remote)
+    case DataFromPeer(spec, syncInfo: SI@unchecked, remote, _)
       if spec.messageCode == syncInfoSpec.messageCode =>
 
       historyReaderOpt match {
@@ -218,7 +218,7 @@ MR <: MempoolReader[TX] : ClassTag]
     * request unknown ids from peer and set this ids to requested state.
     */
   protected def processInv: Receive = {
-    case DataFromPeer(spec, invData: InvData@unchecked, peer)
+    case DataFromPeer(spec, invData: InvData@unchecked, peer, _)
       if spec.messageCode == InvSpec.MessageCode =>
 
       (mempoolReaderOpt, historyReaderOpt) match {
@@ -244,7 +244,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
   //other node asking for objects by their ids
   protected def modifiersReq: Receive = {
-    case DataFromPeer(spec, invData: InvData@unchecked, remote)
+    case DataFromPeer(spec, invData: InvData@unchecked, remote, _)
       if spec.messageCode == RequestModifierSpec.MessageCode =>
 
       readersOpt.foreach { readers =>
@@ -270,9 +270,6 @@ MR <: MempoolReader[TX] : ClassTag]
     case DataFromPeer(spec, data: ModifiersData@unchecked, remote, id)
       if spec.messageCode == ModifiersSpec.MessageCode =>
 
-      context.actorSelection("../DiagnosticsActor") !
-        InternalMessageTrip("nvs-received", id.toString, System.currentTimeMillis())
-
       val typeId = data.typeId
       val modifiers = data.modifiers
       log.info(s"Got ${modifiers.size} modifiers of type $typeId from remote connected peer: $remote")
@@ -288,6 +285,8 @@ MR <: MempoolReader[TX] : ClassTag]
           viewHolderRef ! TransactionsFromRemote(parsed)
 
         case Some(serializer: Serializer[PMOD]@unchecked) =>
+          context.actorSelection("../DiagnosticsActor") !
+            InternalMessageTrip("nvs-received", id.toString, System.currentTimeMillis())
           // parse all modifiers and put them to modifiers cache
           val parsed: Iterable[PMOD] = parseModifiers(requestedModifiers, serializer, remote)
           val valid: Iterable[PMOD] = parsed.filter(pmod => validateAndSetStatus(remote, pmod))
