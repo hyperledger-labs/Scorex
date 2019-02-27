@@ -12,7 +12,7 @@ import scorex.core.app.{ScorexContext, Version}
 import scorex.core.diagnostics.DiagnosticsActor.ReceivableMessages.{InNetworkMessage, InternalMessageTrip, OutNetworkMessage}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
-import scorex.core.network.message.{Message, MessageSpec}
+import scorex.core.network.message.{Message, MessageSpec, ModifiersSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeerExcluding, RemovePeer}
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
 import scorex.core.settings.NetworkSettings
@@ -88,7 +88,9 @@ class NetworkController(settings: NetworkSettings,
             case Some(handler) =>
               val id = Random.nextLong()
               handler ! DataFromPeer(spec, content, remote, id)
-              daRef ! InternalMessageTrip("nc-sent", id.toString, System.currentTimeMillis())
+              if (spec.messageCode == ModifiersSpec.MessageCode) {
+                daRef ! InternalMessageTrip("nc-sent", id.toString, System.currentTimeMillis())
+              }
               daRef ! InNetworkMessage(Message(spec, Right(content), Some(remote)), remote.remote.toString, System.currentTimeMillis())
 
             case None =>
