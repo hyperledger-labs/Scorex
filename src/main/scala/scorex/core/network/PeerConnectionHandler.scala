@@ -166,8 +166,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       reportStrangeInput
 
   private def fatalCommands: Receive = {
-    case cc: ConnectionClosed =>
-      log.info(s"Connection closed to $remote due to ${cc.getErrorCause}")
+    case _: ConnectionClosed =>
+      log.info(s"Connection closed to $remote")
       context stop self
 
     case Blacklist =>
