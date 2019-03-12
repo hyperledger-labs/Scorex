@@ -201,6 +201,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       outMessagesCounter += 1
       buffer(outMessagesCounter, messageSerializer.serialize(msg))
 
+    case CommandFailed(Write(msg, ReceivableMessages.Ack(id))) =>
+      buffer(id, msg)
+
     case WritingResumed =>
       writeFirst()
 
