@@ -193,6 +193,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       if (outMessagesBuffer.isEmpty) connection ! Close else context become closingWithNonEmptyBuffer
 
     case ReceivableMessages.Ack(_) => // ignore ACKs in stable mode
+
+    case WritingResumed => // ignore in stable mode
   }
 
   // operate in ACK mode until all buffered messages are transmitted
@@ -202,14 +204,21 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       buffer(outMessagesCounter, messageSerializer.serialize(msg))
 
     case CommandFailed(Write(msg, ReceivableMessages.Ack(id))) =>
+      connection ! ResumeWriting
       buffer(id, msg)
+
+    case CommandFailed(ResumeWriting) => // ignore in ACK mode
 
     case WritingResumed =>
       writeFirst()
 
     case ReceivableMessages.Ack(id) =>
       outMessagesBuffer -= id
-      if (outMessagesBuffer.nonEmpty) writeFirst() else context become workingCycleWriting
+      if (outMessagesBuffer.nonEmpty) writeFirst()
+      else {
+        log.info("Buffered messages processed, exiting buffering mode")
+        context become workingCycleWriting
+      }
 
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + remote + s", switching to closing mode")
