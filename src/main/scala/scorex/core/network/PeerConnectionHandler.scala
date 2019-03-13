@@ -20,8 +20,7 @@ import scorex.util.ScorexLogging
 import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import scala.util.{Failure, Random, Success}
+import scala.util.{Failure, Success}
 
 
 sealed trait ConnectionType
@@ -50,9 +49,6 @@ case class ConnectedPeer(remote: InetSocketAddress,
 
   override def toString: String = s"ConnectedPeer($remote)"
 }
-
-case object Ack extends Event
-
 
 case class ConnectionDescription(connection: ActorRef,
                                  direction: ConnectionType,
@@ -189,7 +185,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       context become workingCycleBuffering
 
     case CloseConnection =>
-      log.info(s"Enforced to abort communication with: " + remote + s", switching to closing mode")
+      log.info(s"Enforced to abort communication with: " + remote + ", switching to closing mode")
       if (outMessagesBuffer.isEmpty) connection ! Close else context become closingWithNonEmptyBuffer
 
     case ReceivableMessages.Ack(_) => // ignore ACKs in stable mode
