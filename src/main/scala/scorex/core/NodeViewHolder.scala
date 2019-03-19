@@ -340,9 +340,12 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       log.debug(s"Cache size after: ${modifiersCache.size}")
   }
 
-  protected def processNewTransactions: Receive = {
+  protected def transactionsProcessing: Receive = {
     case newTxs: NewTransactions[TX] =>
       newTxs.txs.foreach(tx => txModify(tx))
+    case EliminateTransactions(ids) =>
+      val updatedPool = memoryPool().filter(tx => !ids.contains(tx.id))
+      updateNodeView(updatedMempool = Some(updatedPool))
   }
 
   protected def processLocallyGeneratedModifiers: Receive = {
@@ -367,7 +370,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
   override def receive: Receive =
     processRemoteModifiers orElse
       processLocallyGeneratedModifiers orElse
-      processNewTransactions orElse
+      transactionsProcessing orElse
       getCurrentInfo orElse
       getNodeViewChanges orElse {
       case a: Any => log.error("Strange input: " + a)
@@ -398,6 +401,8 @@ object NodeViewHolder {
     case class TransactionsFromRemote[TX <: Transaction](txs: Iterable[TX]) extends NewTransactions[TX]
 
     case class LocallyGeneratedModifier[PMOD <: PersistentNodeViewModifier](pmod: PMOD)
+
+    case class EliminateTransactions(ids: Seq[scorex.util.ModifierId])
 
   }
 
