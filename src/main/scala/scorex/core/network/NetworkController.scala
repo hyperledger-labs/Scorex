@@ -37,6 +37,20 @@ class NetworkController(settings: NetworkSettings,
   import NetworkController.ReceivableMessages._
   import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
   import PeerConnectionHandler.ReceivableMessages.CloseConnection
+  import akka.actor.SupervisorStrategy._
+
+  override val supervisorStrategy: OneForOneStrategy = OneForOneStrategy(
+      maxNrOfRetries = NetworkController.ChildActorHandlingRetriesNr,
+      withinTimeRange = 1.minute) {
+        case _: ActorKilledException => Stop
+        case _: DeathPactException => Stop
+        case e: ActorInitializationException =>
+          log.warn(s"Stopping child actor failed with: $e")
+          Stop
+        case e: Exception =>
+          log.warn(s"Restarting child actor failed with: $e")
+          Restart
+      }
 
   private implicit val system: ActorSystem = context.system
 
@@ -394,6 +408,8 @@ class NetworkController(settings: NetworkSettings,
 }
 
 object NetworkController {
+
+  val ChildActorHandlingRetriesNr: Int = 10
 
   object ReceivableMessages {
 
