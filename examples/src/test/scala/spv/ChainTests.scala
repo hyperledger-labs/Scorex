@@ -11,8 +11,6 @@ import scorex.crypto.hash
 import scorex.crypto.hash.Blake2b256
 import scorex.util.ModifierId
 
-import scala.util.{Failure, Try}
-
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class ChainTests extends PropSpec
   with PropertyChecks
@@ -23,7 +21,7 @@ class ChainTests extends PropSpec
 
 
   private val Height = 5000
-  private val Difficulty = BigInt(1)
+  private val Difficulty = BigInt(2)
   val stateRoot: hash.Digest32 = Blake2b256("")
   val minerKeys: (PrivateKey25519, PublicKey25519Proposition) = PrivateKey25519Companion.generateKeys(stateRoot)
 
@@ -110,29 +108,26 @@ class ChainTests extends PropSpec
 
   property("KLS16 proof serialization") {
     forAll(mkGen) { mk =>
-      val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
-      val serializer = KLS16ProofSerializer
-      val parsed = serializer.parseBytes(serializer.toBytes(proof)).get
-      serializer.toBytes(proof) shouldEqual serializer.toBytes(parsed)
-      proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
-      //todo more checks that suffixses are the same
+      whenever(mk._1 >= 1 && mk._2 >= 2) {
+        val proof = SpvAlgos.constructKLS16Proof(mk._1, mk._2, headerChain).get
+        val serializer = KLS16ProofSerializer
+        val parsed = serializer.parseBytes(serializer.toBytes(proof))
+        serializer.toBytes(proof) shouldEqual serializer.toBytes(parsed)
+        proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
+        //todo more checks that suffixses are the same
+      }
     }
   }
 
   property("KMZ proof serialization") {
     forAll(mkGen) { mk =>
-      Try {
+      whenever(mk._1 >= 1 && mk._2 >= 2) {
         val proof = SpvAlgos.constructKMZProof(mk._1, mk._2, headerChain).get
         val serializer = KMZProofSerializer
         val bytes = serializer.toBytes(proof)
-        val parsed = serializer.parseBytes(bytes).get
+        val parsed = serializer.parseBytes(bytes)
         bytes shouldEqual serializer.toBytes(parsed)
         proof.suffix.last.interlinks.flatten shouldEqual parsed.suffix.last.interlinks.flatten
-      }.recoverWith {
-        case e =>
-          e.printStackTrace()
-          System.exit(1)
-          Failure(e)
       }
     }
   }

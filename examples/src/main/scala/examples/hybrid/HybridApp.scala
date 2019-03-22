@@ -1,7 +1,7 @@
 package examples.hybrid
 
 import akka.actor.ActorRef
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion, SimpleBoxTransactionMemPool}
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionMemPool, SimpleBoxTransactionSerializer}
 import examples.hybrid.api.http.{DebugApiRoute, StatsApiRoute, WalletApiRoute}
 import examples.hybrid.blocks._
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo, HybridSyncInfoMessageSpec}
@@ -12,7 +12,7 @@ import scorex.core.api.http.{ApiRoute, NodeViewApiRoute, PeersApiRoute, UtilsApi
 import scorex.core.app.Application
 import scorex.core.network.message.MessageSpec
 import scorex.core.network.{NodeViewSynchronizerRef, PeerFeature}
-import scorex.core.serialization.{Serializer, SerializerRegistry}
+import scorex.core.serialization.{ScorexSerializer, SerializerRegistry}
 import scorex.core.serialization.SerializerRegistry.SerializerRecord
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction.Transaction
@@ -72,10 +72,10 @@ class HybridApp(val settingsFilename: String) extends Application {
 }
 
 object HybridApp extends App {
-  def modifierSerializers: Map[ModifierTypeId, Serializer[_ <: NodeViewModifier]] =
-    Map(PosBlock.ModifierTypeId -> PosBlockCompanion,
-      PowBlock.ModifierTypeId -> PowBlockCompanion,
-      Transaction.ModifierTypeId -> SimpleBoxTransactionCompanion)
+  def modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]] =
+    Map(PosBlock.ModifierTypeId -> PosBlockSerializer,
+      PowBlock.ModifierTypeId -> PowBlockSerializer,
+      Transaction.ModifierTypeId -> SimpleBoxTransactionSerializer)
 
   private val settingsFilename = args.headOption.getOrElse("settings.conf")
   new HybridApp(settingsFilename).run()

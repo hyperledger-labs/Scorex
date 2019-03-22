@@ -3,12 +3,10 @@ package examples.hybrid.history
 import examples.hybrid.blocks.{PosBlock, PowBlock}
 import scorex.core.consensus.SyncInfo
 import scorex.core.network.message.SyncInfoMessageSpec
-import scorex.core.serialization.Serializer
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.{ModifierTypeId, NodeViewModifier}
+import scorex.util.serialization.{Reader, Writer}
 import scorex.util.{ModifierId, bytesToId, idToBytes}
-
-import scala.util.Try
-
 
 /**
   * Stores up to 50 last PoW & Pos blocks
@@ -30,37 +28,42 @@ case class HybridSyncInfo(answer: Boolean,
 
   override type M = HybridSyncInfo
 
-  override def serializer: Serializer[HybridSyncInfo] = HybridSyncInfoSerializer
+  override def serializer: ScorexSerializer[HybridSyncInfo] = HybridSyncInfoSerializer
 }
 
 object HybridSyncInfo {
   val MaxLastPowBlocks: Byte = 50 //don't make it more than 127 without changing serialization!
 }
 
-object HybridSyncInfoSerializer extends Serializer[HybridSyncInfo] {
+object HybridSyncInfoSerializer extends ScorexSerializer[HybridSyncInfo] {
 
   import HybridSyncInfo.MaxLastPowBlocks
 
-  override def toBytes(obj: HybridSyncInfo): Array[Byte] =
-    Array(
-      if (obj.answer) 1: Byte else 0: Byte,
-      obj.lastPowBlockIds.size.toByte
-    ) ++ obj.lastPowBlockIds.foldLeft(Array[Byte]())((a, b) => a ++ idToBytes(b)) ++ idToBytes(obj.lastPosBlockId)
+  override def serialize(obj: HybridSyncInfo, w: Writer): Unit = {
+    w.put(if (obj.answer) 1 else 0)
+    w.put(obj.lastPowBlockIds.size.toByte)
 
-  override def parseBytes(bytes: Array[Byte]): Try[HybridSyncInfo] = Try {
-    val answer: Boolean = if (bytes.head == 1.toByte) true else false
-    val lastPowBlockIdsSize = bytes.slice(1, 2).head
+    obj.lastPowBlockIds.foreach { b =>
+      w.putBytes(idToBytes(b))
+    }
+    w.putBytes(idToBytes(obj.lastPosBlockId))
+  }
+
+  override def parse(r: Reader): HybridSyncInfo = {
+    val answer: Boolean = r.getByte() == 1.toByte
+    val lastPowBlockIdsSize = r.getByte()
 
     require(lastPowBlockIdsSize >= 0 && lastPowBlockIdsSize <= MaxLastPowBlocks)
-    require(bytes.length == 2 + (lastPowBlockIdsSize + 1) * NodeViewModifier.ModifierIdSize)
+    require(r.remaining == (lastPowBlockIdsSize + 1) * NodeViewModifier.ModifierIdSize)
 
-    val lastPowBlockIds = bytes.slice(2, 2 + NodeViewModifier.ModifierIdSize * lastPowBlockIdsSize)
-      .grouped(NodeViewModifier.ModifierIdSize).toSeq.map(id => bytesToId(id))
+    val lastPowBlockIds = (0 until lastPowBlockIdsSize).map { _ =>
+      bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
+    }
 
-    val lastPosBlockId = bytesToId(bytes.slice(2 + NodeViewModifier.ModifierIdSize * lastPowBlockIdsSize, bytes.length))
+    val lastPosBlockId = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
 
     HybridSyncInfo(answer, lastPowBlockIds, lastPosBlockId)
   }
 }
 
-object HybridSyncInfoMessageSpec extends SyncInfoMessageSpec[HybridSyncInfo](HybridSyncInfoSerializer.parseBytes)
+object HybridSyncInfoMessageSpec extends SyncInfoMessageSpec[HybridSyncInfo](HybridSyncInfoSerializer)

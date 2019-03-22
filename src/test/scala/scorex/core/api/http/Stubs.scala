@@ -20,15 +20,15 @@ trait Stubs {
   val peerFeatures: Seq[PeerFeature] = Seq()
 
   val peers = Map(
-    inetAddr1 -> PeerInfo(PeerData("app", version, "first", Some(inetAddr1), peerFeatures), ts1, Some(Incoming)),
-    inetAddr2 -> PeerInfo(PeerData("app", version, "second", Some(inetAddr2), peerFeatures), ts1, Some(Outgoing))
+    inetAddr1 -> PeerInfo(PeerSpec("app", version, "first", Some(inetAddr1), peerFeatures), ts1, Some(Incoming)),
+    inetAddr2 -> PeerInfo(PeerSpec("app", version, "second", Some(inetAddr2), peerFeatures), ts1, Some(Outgoing))
   )
 
   val protocolVersion = Version("1.1.1")
 
   val connectedPeers = Seq(
-    Handshake("node_pop", protocolVersion, "first", Some(inetAddr1), peerFeatures, ts1),
-    Handshake("node_pop", protocolVersion, "second", Some(inetAddr2), peerFeatures, ts2)
+    Handshake(PeerSpec("node_pop", protocolVersion, "first", Some(inetAddr1), peerFeatures), ts1),
+    Handshake(PeerSpec("node_pop", protocolVersion, "second", Some(inetAddr2), peerFeatures), ts2)
   )
 
   val blacklistedPeers = Seq("4.4.4.4:1111", "8.8.8.8:2222")

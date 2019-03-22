@@ -1,15 +1,15 @@
 package examples.trimchain.core
 
-import com.google.common.primitives.{Bytes, Shorts}
 import io.circe.Encoder
 import io.circe.syntax._
-import scorex.core.serialization.Serializer
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.core.utils.ScorexEncoding
 import scorex.crypto.authds.SerializedAdProof
 import scorex.crypto.signatures.Curve25519
 
 import scala.annotation.tailrec
-import scala.util.Try
+import scorex.util.Extensions._
 
 case class Ticket(minerKey: Array[Byte], partialProofs: Seq[SerializedAdProof]) {
 
@@ -24,35 +24,37 @@ object Ticket extends ScorexEncoding {
     ).asJson
 }
 
-object TicketSerializer extends Serializer[Ticket] {
+object TicketSerializer extends ScorexSerializer[Ticket] {
 
   val MinerKeySize: Int = Curve25519.KeyLength
 
-  override def toBytes(obj: Ticket): Array[Byte] = {
-    val proofsBytes = obj.partialProofs.map { bytes =>
+  override def serialize(obj: Ticket, w: Writer): Unit = {
+    w.putBytes(obj.minerKey)
+    w.putShort(obj.partialProofs.length.toShortExact)
+
+    obj.partialProofs.map { bytes =>
       require(bytes.length == bytes.length.toShort)
-      Shorts.toByteArray(bytes.length.toShort) ++ bytes
+      w.putShort(bytes.length.toShort)
+      w.putBytes(bytes)
     }
-    Bytes.concat(obj.minerKey, Shorts.toByteArray(obj.partialProofs.length.toShort),
-      scorex.core.utils.concatBytes(proofsBytes))
   }
 
+  override def parse(r: Reader): Ticket = {
+    val minerKey = r.getBytes(MinerKeySize)
+    val proofNum = r.getShort()
 
-  override def parseBytes(bytes: Array[Byte]): Try[Ticket] = Try {
     @tailrec
-    def parseProofs(index: Int, proofNum: Int, acc: Seq[SerializedAdProof] = Seq.empty): Seq[SerializedAdProof] = {
+    def parseProofs(proofNum: Int, acc: Seq[SerializedAdProof] = Seq.empty): Seq[SerializedAdProof] = {
       if (proofNum > 0) {
-        val proofSize = Shorts.fromByteArray(bytes.slice(index, index + 2))
-        val proof = SerializedAdProof @@ bytes.slice(index + 2, index + 2 + proofSize)
-        parseProofs(index + 2 + proofSize, proofNum - 1, proof +: acc)
+        val proofSize = r.getShort()
+        val proof = SerializedAdProof @@ r.getBytes(proofSize)
+        parseProofs(proofNum - 1, proof +: acc)
       } else {
         acc
       }
     }
 
-    val minerKey = bytes.slice(0, MinerKeySize)
-    val proofNum = Shorts.fromByteArray(bytes.slice(MinerKeySize, MinerKeySize + 2))
-    val proofs = parseProofs(MinerKeySize + 2, proofNum).reverse
+    val proofs = parseProofs(proofNum).reverse
     Ticket(minerKey, proofs)
   }
 }

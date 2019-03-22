@@ -54,7 +54,7 @@ trait Application extends ScorexLogging {
     val featureSerializers: PeerFeature.Serializers = features.map(f => f.featureId -> f.serializer).toMap
     Seq(
       GetPeersSpec,
-      new PeersSpec(featureSerializers),
+      new PeersSpec(featureSerializers, settings.network.maxPeerSpecObjects),
       invSpec,
       requestModifierSpec,
       modifiersSpec

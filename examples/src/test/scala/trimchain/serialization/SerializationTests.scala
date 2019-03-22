@@ -15,7 +15,7 @@ class SerializationTests extends PropSpec
   property("Ticket serialization") {
     forAll(ticketGen) { b: Ticket =>
       val serializer = TicketSerializer
-      val parsed = serializer.parseBytes(serializer.toBytes(b)).get
+      val parsed = serializer.parseBytes(serializer.toBytes(b))
       b.minerKey shouldEqual parsed.minerKey
       serializer.toBytes(b) shouldEqual serializer.toBytes(parsed)
     }
@@ -24,7 +24,7 @@ class SerializationTests extends PropSpec
   property("BlockHeader serialization") {
     forAll(blockHeaderGen) { b: BlockHeader =>
       val serializer = BlockHeaderSerializer
-      val parsed = serializer.parseBytes(serializer.toBytes(b)).get
+      val parsed = serializer.parseBytes(serializer.toBytes(b))
       serializer.toBytes(b) shouldEqual serializer.toBytes(parsed)
     }
   }
@@ -32,7 +32,7 @@ class SerializationTests extends PropSpec
   property("TBlock serialization") {
     forAll(TBlockGen) { b: TBlock =>
       val serializer = TBlockSerializer
-      val parsed = serializer.parseBytes(serializer.toBytes(b)).get
+      val parsed = serializer.parseBytes(serializer.toBytes(b))
       serializer.toBytes(b) shouldEqual serializer.toBytes(parsed)
     }
   }

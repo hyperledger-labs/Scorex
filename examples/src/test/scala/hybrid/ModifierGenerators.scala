@@ -1,7 +1,7 @@
 package hybrid
 
 import examples.commons.{Nonce, PublicKey25519NoncedBox, PublicKey25519NoncedBoxSerializer, SimpleBoxTransaction}
-import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock, PowBlockCompanion}
+import examples.hybrid.blocks._
 import examples.hybrid.history.HybridHistory
 import examples.hybrid.state.HBoxStoredState
 import io.iohk.iodb.ByteArrayWrapper
@@ -45,13 +45,13 @@ trait ModifierGenerators {
     def filterOutForgedBoxes(in: (ByteArrayWrapper, ByteArrayWrapper)): Boolean = {
       //current problem with unstable nodeviewholder spec is caused by coinbase block which always has value 1
       //so for now we just won't use it
-      PublicKey25519NoncedBoxSerializer.parseBytes(in._2.data).map(_.value).getOrElse(0L) > 1L
+      PublicKey25519NoncedBoxSerializer.parseBytes(in._2.data).value > 1L
     }
 
     val stateBoxes = state.store.getAll()
       .filter(filterOutForgedBoxes)
       .take(count * txCount * insPerTx + 1)
-      .map { case (_, wrappedData) => PublicKey25519NoncedBoxSerializer.parseBytes(wrappedData.data).get }
+      .map { case (_, wrappedData) => PublicKey25519NoncedBoxSerializer.parseBytes(wrappedData.data) }
       .toSeq
 
     assert(stateBoxes.size == count * txCount * insPerTx + 1)
@@ -101,7 +101,7 @@ trait ModifierGenerators {
         proposition: PublicKey25519Proposition <- propositionGen
         brothers <- Gen.listOfN(brothersCount, powHeaderGen)
       } yield {
-        val brotherBytes = PowBlockCompanion.brotherBytes(brothers)
+        val brotherBytes = PowBlockSerializer.brotherBytes(brothers)
         val brothersHash: Array[Byte] = Blake2b256(brotherBytes)
 
         val (bestPowId, bestPosId) = blocks.size match {

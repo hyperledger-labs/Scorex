@@ -15,19 +15,17 @@ import org.scalatest.TryValues._
 import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network._
 import scorex.core.network.message.{PeersSpec, _}
-import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerInfo, PeerManagerRef}
+import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerManagerRef}
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.LocalTimeProvider
 
 import scala.concurrent.ExecutionContext
-import scala.util.Try
 
 class NetworkControllerSpec extends NetworkTests {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   private val featureSerializers = Map(LocalAddressPeerFeature.featureId -> LocalAddressPeerFeatureSerializer)
-  private val peersSpec = new PeersSpec(featureSerializers)
 
   "A NetworkController" should "send local address on handshake when peer and node address are in localhost" in {
     implicit val system = ActorSystem()
@@ -41,7 +39,7 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.connect(peerAddr, nodeAddr)
 
     val handshakeFromNode = testPeer.receiveHandshake
-    handshakeFromNode.success.value.peerData.declaredAddress shouldBe empty
+    handshakeFromNode.peerSpec.declaredAddress shouldBe empty
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
     localAddressFeature.value should be(nodeAddr)
 
@@ -59,7 +57,7 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.connect(new InetSocketAddress("192.168.0.1", 5678), nodeAddr)
 
     val handshakeFromNode = testPeer.receiveHandshake
-    handshakeFromNode.success.value.peerData.declaredAddress shouldBe empty
+    handshakeFromNode.peerSpec.declaredAddress shouldBe empty
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
     localAddressFeature.value should be(nodeAddr)
 
@@ -77,7 +75,7 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.connect(new InetSocketAddress("88.77.66.55", 5678), nodeAddr)
 
     val handshakeFromNode = testPeer.receiveHandshake
-    handshakeFromNode.success.value.peerData.declaredAddress shouldBe empty
+    handshakeFromNode.peerSpec.declaredAddress shouldBe empty
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
     localAddressFeature shouldBe empty
 
@@ -98,7 +96,7 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.connect(new InetSocketAddress("88.77.66.55", 5678), bindAddress)
 
     val handshakeFromNode = testPeer.receiveHandshake
-    handshakeFromNode.success.value.peerData.declaredAddress.value should be(bindAddress)
+    handshakeFromNode.peerSpec.declaredAddress.value should be(bindAddress)
     val localAddressFeature = extractLocalAddrFeat(handshakeFromNode)
     localAddressFeature shouldBe empty
 
@@ -214,9 +212,9 @@ class NetworkControllerSpec extends NetworkTests {
     val peer1DecalredAddr = new InetSocketAddress("88.77.66.55", 5678)
     val peer1LocalAddr = new InetSocketAddress("192.168.1.55", 5678)
     testPeer1.connect(peer1LocalAddr, nodeAddr)
-    val handshakeFromPeer1 = testPeer1.receiveHandshake.success.value
-    handshakeFromPeer1.peerData.declaredAddress.value.getAddress should be(InetAddress.getByName("88.44.33.11"))
-    handshakeFromPeer1.peerData.declaredAddress.value.getPort should be(settings.network.bindAddress.getPort)
+    val handshakeFromPeer1 = testPeer1.receiveHandshake
+    handshakeFromPeer1.peerSpec.declaredAddress.value.getAddress should be(InetAddress.getByName("88.44.33.11"))
+    handshakeFromPeer1.peerSpec.declaredAddress.value.getPort should be(settings.network.bindAddress.getPort)
 
     system.terminate()
   }
@@ -264,7 +262,7 @@ class NetworkControllerSpec extends NetworkTests {
     val handshakeFromNode = testPeer.receiveHandshake
     val nodeLocalAddress = extractLocalAddrFeat(handshakeFromNode).value
     testPeer.sendHandshake(None, Some(peerLocalAddress))
-    testPeer.sendPeers(Seq(getPeerInfo(nodeLocalAddress).peerData))
+    testPeer.sendPeers(Seq(getPeerInfo(nodeLocalAddress).peerSpec))
 
     testPeer.sendGetPeers
     val peers = testPeer.receivePeers
@@ -299,8 +297,8 @@ class NetworkControllerSpec extends NetworkTests {
     system.terminate()
   }
 
-  private def extractLocalAddrFeat(handshakeFromNode: Try[Handshake]): Option[InetSocketAddress] = {
-    handshakeFromNode.success.value.peerData.localAddressOpt
+  private def extractLocalAddrFeat(handshakeFromNode: Handshake): Option[InetSocketAddress] = {
+    handshakeFromNode.peerSpec.localAddressOpt
   }
 
   /**
@@ -311,7 +309,7 @@ class NetworkControllerSpec extends NetworkTests {
     val externalAddr = settings.network.declaredAddress
       .orElse(upnp.map(u => new InetSocketAddress(u.externalAddress, settings.network.bindAddress.getPort)))
 
-    val peersSpec: PeersSpec = new PeersSpec(featureSerializers)
+    val peersSpec: PeersSpec = new PeersSpec(featureSerializers, settings.network.maxPeerSpecObjects)
     val messageSpecs = Seq(GetPeersSpec, peersSpec)
     val scorexContext = ScorexContext(messageSpecs, Seq.empty, upnp, timeProvider, externalAddr)
 
@@ -357,8 +355,8 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
 
   private val timeProvider = LocalTimeProvider
   private val featureSerializers = Map(LocalAddressPeerFeature.featureId -> LocalAddressPeerFeatureSerializer)
-  private val handshakeSerializer = new HandshakeSpec(featureSerializers)
-  private val peersSpec = new PeersSpec(featureSerializers)
+  private val handshakeSerializer = new HandshakeSpec(featureSerializers, Int.MaxValue)
+  private val peersSpec = new PeersSpec(featureSerializers, settings.network.maxPeerSpecObjects)
   private val messageSpecs = Seq(GetPeersSpec, peersSpec)
   private val messagesSerializer = new MessageSerializer(messageSpecs, settings.network.magicBytes)
 
@@ -389,9 +387,9 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     */
   def sendHandshake(declaredAddress: Option[InetSocketAddress], localAddress: Option[InetSocketAddress]): Tcp.ResumeReading.type = {
     val features = localAddress.map(LocalAddressPeerFeature(_)).toSeq
-    val handshakeToNode = Handshake(settings.network.agentName,
+    val handshakeToNode = Handshake(PeerSpec(settings.network.agentName,
       Version(settings.network.appVersion), "test",
-      declaredAddress, features, timeProvider.time())
+      declaredAddress, features), timeProvider.time())
 
     tcpManagerProbe.send(connectionHandler, Tcp.Received(ByteString(handshakeSerializer.toBytes(handshakeToNode))))
     tcpManagerProbe.expectMsg(Tcp.ResumeReading)
@@ -402,12 +400,11 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     *
     * @return Success with handshake message if received valid handshake message and Fail for invalid message
     */
-  def receiveHandshake: Try[Handshake] = {
-    val handshakeFromNode = tcpManagerProbe.expectMsgPF() {
+  def receiveHandshake: Handshake = {
+    tcpManagerProbe.expectMsgPF() {
       case Tcp.Write(data, e) =>
         handshakeSerializer.parseBytes(data.toByteBuffer.array)
     }
-    handshakeFromNode
   }
 
   /**
@@ -432,16 +429,16 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   /**
     * Receive sequence of peer addresses from node
     */
-  def receivePeers: Seq[PeerData] = {
+  def receivePeers: Seq[PeerSpec] = {
     val message = receiveMessage
     message.spec.messageCode should be(PeersSpec.messageCode)
-    peersSpec.parseBytes(message.input.left.value).success.value
+    peersSpec.parseBytes(message.input.left.value)
   }
 
   /**
     * Send sequence of peer addresses to node
     */
-  def sendPeers(peers: Seq[PeerData]): Unit = {
+  def sendPeers(peers: Seq[PeerSpec]): Unit = {
     val msg = Message(peersSpec, Right(peers), None)
     sendMessage(msg)
   }
@@ -460,7 +457,6 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   /**
     * Receive message from node
     *
-    * @param msg
     */
   def receiveMessage: Message[_] = {
     tcpManagerProbe.expectMsgPF() {

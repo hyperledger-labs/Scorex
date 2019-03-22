@@ -34,7 +34,6 @@ case class NetworkSettings(nodeName: String,
                            appVersion: String,
                            agentName: String,
                            maxPacketSize: Int,
-                          //todo remove maxHandshakeSize?
                            maxHandshakeSize: Int,
                            maxInvObjects: Int,
                            desiredInvObjects: Int,
@@ -45,7 +44,9 @@ case class NetworkSettings(nodeName: String,
                            syncTimeout: Option[FiniteDuration],
                            controllerTimeout: Option[FiniteDuration],
                            maxModifiersCacheSize: Int,
-                           magicBytes: Array[Byte])
+                           magicBytes: Array[Byte],
+                           getPeersInterval: FiniteDuration,
+                           maxPeerSpecObjects: Int)
 
 case class ScorexSettings(dataDir: File,
                           logDir: File,

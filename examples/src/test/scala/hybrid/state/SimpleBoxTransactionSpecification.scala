@@ -6,7 +6,7 @@ import hybrid.HybridGenerators
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
-import scorex.core.transaction.proof.Signature25519
+import scorex.core.transaction.proof.{Signature25519, Signature25519Serializer}
 import scorex.core.transaction.state.PrivateKey25519Companion
 import scorex.util.encode.Base58
 import scorex.crypto.hash.Sha256
@@ -31,16 +31,17 @@ class SimpleBoxTransactionSpecification extends PropSpec
     val tx = SimpleBoxTransaction(IndexedSeq(genesisAccount -> Nonce @@ 0L), icoMembers.map(_ -> GenesisBalance), 0L, 0L)
     tx.newBoxes.toSeq shouldBe
       Vector(
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("3m6nhP4AZjFn5pgMd3PvH6PwHx23AG4tvpLCuu7Wt3hhAPssKc").get.take(33).tail), Nonce @@ -6219502975712200872L, Value @@ 100000L),
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("4ZJwiEzpTHhvT6BMYZg1FUXysHkuBLRHb7FvXhZGx6HtsWZCeG").get.take(33).tail), Nonce @@ 2326174055960855030L, Value @@ 100000L),
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("3Y7Ji8wrYZ12EPup6ky2mWEaNo1wTgUKVPJ84xaHwHqTC6LXoh").get.take(33).tail), Nonce @@ -2090466149357841238L, Value @@ 100000L),
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("3WqPcQ1w1HEaEDvHpnnqqYxJBzQGcf5gT5G5CrsXFL7UX4SA2N").get.take(33).tail), Nonce @@ -4786344880748433993L, Value @@ 100000L),
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("4m5cG82kztD9bZVf1Tc1Ni1uvHobpKYuAUyxNSnDm7WLGCZvZh").get.take(33).tail), Nonce @@ 2879476891976400353L, Value @@ 100000L),
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("4huPANjYcqcdRm99tsCw29JqFnHMTJZsQjoufRQTEDPPoWmPSt").get.take(33).tail), Nonce @@ 4610029492489107892L, Value @@ 100000L),
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("3s3CauhVba81UefEuuaNqRqGLEV9jCZJpvLFg5dJdu29TivRZk").get.take(33).tail), Nonce @@ 416797087985622128L, Value @@ 100000L),
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("3HHuHxBf2eXmbUcGuFCx3dU6Wp7imeRiN5uz4rYDdQwsLwnwW4").get.take(33).tail), Nonce @@ -8485818448745401936L, Value @@ 100000L),
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("38uZVfModMnCg5FSECtFiBE7Dbjmh7Tt1SgBD8gFTA1XDHxiqQ").get.take(33).tail), Nonce @@ -4750873086163930339L, Value @@ 100000L),
-        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("3WTH7tB28nkbC9KFJTy8EBn1bWkxryiLKDnngeP9BYyuCik3aP").get.take(33).tail), Nonce @@ 1904873933279744536L, Value @@ 100000L))
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("8EjkXVSTxMFjCvNNsTo8RBMDEVQmk7gYkW4SCDuvdsBG").get), Nonce @@ 5440538097828856759L, Value @@ 100000L),
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("FJKTv1un7qsnyKdwKez7B67JJp3oCU5ntCVXcRsWEjtg").get), Nonce @@ -1616008834867344494L, Value @@ 100000L),
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("6FbDRScGruVdATaNWzD51xJkTfYCVwxSZDb7gzqCLzwf").get), Nonce @@ 8479754679609603533L, Value @@ 100000L),
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("64J4UGtfZqfnvxWCwU1aSMN62xqxLiS61iEPuD9JWxAm").get), Nonce @@ -4288295896200546936L, Value @@ 100000L),
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("H6eJWWkvryDNAeocEv5VejKHhG1sR8kWt4jqPmks2TDN").get), Nonce @@ -6878427772037923352L, Value @@ 100000L),
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("GcVQWfSWUKoPuxbhoqx18hD4JKs2L1cvVvJZFzXKWaQ2").get), Nonce @@ 8815511758437892756L, Value @@ 100000L),
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("99NTyZ796bpvwLLhMmsfwo8J3Wu3rUioUQsHE9CSYQKz").get), Nonce @@ -7463379991470698374L, Value @@ 100000L),
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("3zFqfiRPEoshgaZY7qCcSk6mihDhgnGodBDgqP92stci").get), Nonce @@ -3238799622036337810L, Value @@ 100000L),
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("2hw8D3T2Jrf7QZ9k53gDxDWjrnCXLLtDv1oonKGzKw74").get), Nonce @@ -6037688402013706435L, Value @@ 100000L),
+        PublicKey25519NoncedBox(PublicKey25519Proposition(PublicKey @@ Base58.decode("5zv52oTnDQas6WWnftRRhtZiudNaNTJ72WZWfDjRtKCQ").get), Nonce @@ -8390758926615640787L, Value @@ 100000L)
+      )
   }
 
   property("Generated transaction is valid") {
@@ -51,7 +52,8 @@ class SimpleBoxTransactionSpecification extends PropSpec
 
   property("Transaction with modified signature is invalid") {
     forAll(simpleBoxTransactionGen) { tx =>
-      val wrongSig = Signature @@ ((tx.signatures.head.bytes.head + 1).toByte +: tx.signatures.head.bytes.tail)
+      val serializer =Signature25519Serializer
+      val wrongSig = Signature @@ ((serializer.toBytes(tx.signatures.head).head + 1).toByte +: serializer.toBytes(tx.signatures.head).tail)
       val wrongSigs = (Signature25519(wrongSig) +: tx.signatures.tail).toIndexedSeq
       HBoxStoredState.semanticValidity(tx.copy(signatures = wrongSigs)).isSuccess shouldBe false
     }

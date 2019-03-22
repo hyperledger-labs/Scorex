@@ -4,7 +4,7 @@ import java.net.InetSocketAddress
 
 import org.scalatest.{FlatSpec, Matchers}
 import scorex.core.app.Version
-import scorex.core.network.PeerData
+import scorex.core.network.PeerSpec
 import scorex.core.network.peer.PeerInfo
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.{NetworkTimeProvider, TimeProvider}
@@ -18,7 +18,7 @@ class NetworkTests extends FlatSpec with Matchers {
   protected def currentTime(): TimeProvider.Time = timeProvider.time()
 
   protected def getPeerInfo(address: InetSocketAddress, nameOpt: Option[String] = None): PeerInfo = {
-    val data = PeerData("full node", Version.last, nameOpt.getOrElse(address.toString), Some(address), Seq())
+    val data = PeerSpec("full node", Version.last, nameOpt.getOrElse(address.toString), Some(address), Seq())
     PeerInfo(data, currentTime(), None)
   }
 

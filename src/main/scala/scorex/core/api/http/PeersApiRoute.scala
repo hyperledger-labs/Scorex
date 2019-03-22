@@ -39,9 +39,9 @@ case class PeersApiRoute(peerManager: ActorRef,
     val result = askActor[Seq[PeerInfo]](networkController, GetConnectedPeers).map {
       _.map { peerInfo =>
         PeerInfoResponse(
-          address = peerInfo.peerData.declaredAddress.map(_.toString).getOrElse(""),
+          address = peerInfo.peerSpec.declaredAddress.map(_.toString).getOrElse(""),
           lastSeen = peerInfo.lastSeen,
-          name = peerInfo.peerData.nodeName,
+          name = peerInfo.peerSpec.nodeName,
           connectionType = peerInfo.connectionType.map(_.toString)
         )
       }
@@ -81,7 +81,7 @@ object PeersApiRoute {
     def fromAddressAndInfo(address: InetSocketAddress, peerInfo: PeerInfo): PeerInfoResponse = PeerInfoResponse(
       address.toString,
       peerInfo.lastSeen,
-      peerInfo.peerData.nodeName,
+      peerInfo.peerSpec.nodeName,
       peerInfo.connectionType.map(_.toString)
     )
   }

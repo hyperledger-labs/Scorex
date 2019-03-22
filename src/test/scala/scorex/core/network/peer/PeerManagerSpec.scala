@@ -5,8 +5,6 @@ import java.net.InetSocketAddress
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
 import scorex.core.app.ScorexContext
-import scorex.core.settings.ScorexSettings
-import scorex.core.utils.NetworkTimeProvider
 import scorex.network.NetworkTests
 
 

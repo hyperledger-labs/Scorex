@@ -17,7 +17,7 @@ class PeerDatabaseImpl(filename: Option[String]) extends PeerDatabase with Score
   override def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit = {
     log.trace(s"Add or Update known peer: $peerInfo")
 
-    peerInfo.peerData.address.foreach { address =>
+    peerInfo.peerSpec.address.foreach { address =>
       knownPeersMap.put(address, peerInfo)
     }
   }

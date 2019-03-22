@@ -1,17 +1,16 @@
 package examples.trimchain.modifiers
 
-import com.google.common.primitives.{Longs, Shorts}
-import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionCompanion}
+import examples.commons.{SimpleBoxTransaction, SimpleBoxTransactionSerializer}
 import io.circe.Encoder
 import io.circe.syntax._
 import scorex.core.ModifierTypeId
 import scorex.core.block.Block
 import scorex.core.block.Block.{Timestamp, Version}
-import scorex.core.serialization.Serializer
+import scorex.util.serialization.{Reader, Writer}
+import scorex.core.serialization.ScorexSerializer
 import scorex.util.ModifierId
 
 import scala.annotation.tailrec
-import scala.util.Try
 
 case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestamp: Timestamp)
   extends TModifier with Block[SimpleBoxTransaction] {
@@ -28,38 +27,42 @@ case class TBlock(header: BlockHeader, body: Seq[SimpleBoxTransaction], timestam
 
   override type M = TBlock
 
-  override def serializer: Serializer[TBlock] = TBlockSerializer
+  override def serializer: ScorexSerializer[TBlock] = TBlockSerializer
 }
 
-object TBlockSerializer extends Serializer[TBlock] {
-  override def toBytes(obj: TBlock): Array[Byte] = {
-    val txBytes: Array[Byte] = if (obj.body.isEmpty) {
-      Array()
-    } else {
-      scorex.core.utils.concatBytes(obj.body.map { tx =>
-        val transactionBytes = SimpleBoxTransactionCompanion.toBytes(tx)
-        Shorts.toByteArray(transactionBytes.length.toShort) ++ transactionBytes
-      })
+object TBlockSerializer extends ScorexSerializer[TBlock] {
+
+  override def serialize(obj: TBlock, w: Writer): Unit = {
+    w.putLong(obj.timestamp)
+    val headerWriter = w.newWriter()
+    BlockHeaderSerializer.serialize(obj.header, headerWriter)
+    w.putShort(headerWriter.length().toShort)
+    w.append(headerWriter)
+
+    obj.body.foreach { tx =>
+      val txw = w.newWriter()
+      SimpleBoxTransactionSerializer.serialize(tx, txw)
+      w.putShort(txw.length().toShort)
+      w.append(txw)
     }
-    val headerBytes = BlockHeaderSerializer.toBytes(obj.header)
-    Longs.toByteArray(obj.timestamp) ++ Shorts.toByteArray(headerBytes.length.toShort) ++ headerBytes ++ txBytes
   }
 
-  override def parseBytes(bytes: Array[Byte]): Try[TBlock] = Try {
+  override def parse(r: Reader): TBlock = {
+    val timestamp = r.getLong()
+    val headerLength = r.getShort()
+    val header = BlockHeaderSerializer.parse(r.newReader(r.getChunk(headerLength)))
+
     @tailrec
-    def parseTxs(index: Int, acc: Seq[SimpleBoxTransaction] = Seq()): Seq[SimpleBoxTransaction] = {
-      if (bytes.length > index) {
-        val txLength = Shorts.fromByteArray(bytes.slice(index, index + 2))
-        val tx = SimpleBoxTransactionCompanion.parseBytes(bytes.slice(index + 2, index + 2 + txLength)).get
-        parseTxs(index + 2 + txLength, tx +: acc)
+    def parseTxs(acc: Seq[SimpleBoxTransaction] = Seq()): Seq[SimpleBoxTransaction] = {
+      if (r.remaining > 0) {
+        val txLength = r.getShort()
+        val tx = SimpleBoxTransactionSerializer.parse(r.newReader(r.getChunk(txLength)))
+        parseTxs(tx +: acc)
       } else {
         acc
       }
     }
-    val timestamp = Longs.fromByteArray(bytes.slice(0, 8))
-    val headerLength = Shorts.fromByteArray(bytes.slice(8, 10))
-    val header = BlockHeaderSerializer.parseBytes(bytes.slice(10, 10 + headerLength)).get
-    val body = parseTxs(10 + headerLength).reverse
+    val body = parseTxs().reverse
     TBlock(header, body, timestamp)
   }
 }
