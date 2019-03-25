@@ -19,9 +19,9 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 
   import PeerManager.ReceivableMessages._
 
-  private lazy val peerDatabase = new PeerDatabaseImpl(Some(settings.dataDir + "/peers.dat"))
+  private lazy val peerDatabase = new InMemoryPeerDatabase(settings, scorexContext.timeProvider)
 
-  if (peerDatabase.isEmpty()) {
+  if (peerDatabase.isEmpty) {
     // fill database with peers from config file if empty
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address)) {
@@ -30,20 +30,17 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     }
   }
 
-  override def receive: Receive = ({
+  override def receive: Receive = peerOperations orElse apiInterface
 
-    case AddToBlacklist(peer) =>
-      log.info(s"Blacklist peer $peer")
-      peerDatabase.blacklistPeer(peer, scorexContext.timeProvider.time())
-    // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
-  }: Receive) orElse peerListOperations orElse apiInterface
-
-  private def peerListOperations: Receive = {
+  private def peerOperations: Receive = {
     case AddOrUpdatePeer(peerInfo) =>
       // We have connected to a peer and got his peerInfo from him
       if (!isSelf(peerInfo.peerSpec)) {
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
+
+    case AddToBlacklist(peer) =>
+      peerDatabase.addToBlacklist(peer)
 
     case AddPeerIfEmpty(peerSpec) =>
       // We have received peer data from other peers. It might be modified and should not affect existing data if any
@@ -56,18 +53,18 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
       peerDatabase.remove(address)
 
     case get: GetPeers[_] =>
-      sender() ! get.choose(peerDatabase.knownPeers(), scorexContext)
+      sender() ! get.choose(peerDatabase.knownPeers, scorexContext)
 
   }
 
   private def apiInterface: Receive = {
 
     case GetAllPeers =>
-      log.trace(s"Get all peers: ${peerDatabase.knownPeers()}")
-      sender() ! peerDatabase.knownPeers()
+      log.trace(s"Get all peers: ${peerDatabase.knownPeers}")
+      sender() ! peerDatabase.knownPeers
 
     case GetBlacklistedPeers =>
-      sender() ! peerDatabase.blacklistedPeers()
+      sender() ! peerDatabase.blacklistedPeers
 
   }
 
@@ -141,6 +138,7 @@ object PeerManager {
 }
 
 object PeerManagerRef {
+
   def props(settings: ScorexSettings, scorexContext: ScorexContext): Props = {
     Props(new PeerManager(settings, scorexContext))
   }
@@ -154,4 +152,5 @@ object PeerManagerRef {
            (implicit system: ActorSystem): ActorRef = {
     system.actorOf(props(settings, scorexContext), name)
   }
+
 }

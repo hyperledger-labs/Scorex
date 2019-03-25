@@ -46,7 +46,8 @@ case class NetworkSettings(nodeName: String,
                            maxModifiersCacheSize: Int,
                            magicBytes: Array[Byte],
                            getPeersInterval: FiniteDuration,
-                           maxPeerSpecObjects: Int)
+                           maxPeerSpecObjects: Int,
+                           misbehaviorBanTime: FiniteDuration)
 
 case class ScorexSettings(dataDir: File,
                           logDir: File,
