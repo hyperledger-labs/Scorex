@@ -13,7 +13,7 @@ import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{Disconnected
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeerExcluding, RemovePeer}
-import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo}
+import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
 import scorex.util.ScorexLogging
@@ -61,7 +61,7 @@ class NetworkController(settings: NetworkSettings,
   private lazy val bindAddress = settings.bindAddress
 
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
-  private var outgoing = Set.empty[InetSocketAddress]
+  private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
   //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
   private val featureSerializers: PeerFeature.Serializers = scorexContext.features.map(f => f.featureId -> f.serializer).toMap
@@ -79,7 +79,7 @@ class NetworkController(settings: NetworkSettings,
   private def bindingLogic: Receive = {
     case Bound(_) =>
       log.info("Successfully bound to the port " + settings.bindAddress.getPort)
-      scheduleConnectToPeer()
+      scheduleConnectionToPeer()
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
@@ -100,7 +100,6 @@ class NetworkController(settings: NetworkSettings,
 
             case None =>
               log.error(s"No handlers found for message $remote: " + msgId)
-            //todo: ban a peer
           }
         case Failure(e) =>
           log.error(s"Failed to deserialize data from $remote: ", e)
@@ -118,13 +117,11 @@ class NetworkController(settings: NetworkSettings,
       connectTo(peer)
 
     case DisconnectFrom(peer) =>
-      log.info(s"Disconnected from ${peer.remote}")
+      log.info(s"Disconnected from ${peer.remoteAddress}")
       peer.handlerRef ! CloseConnection
 
-    case Blacklist(peer) =>
-      peer.handlerRef ! PeerConnectionHandler.ReceivableMessages.Blacklist
-    // todo: the following message might become unnecessary if we refactor PeerManager to automatically
-    // todo: remove peer from `connectedPeers` on receiving `AddToBlackList` message.
+    case BlacklistPeer(peerAddress) =>
+      blacklist(peerAddress)
 
     case Connected(remote, local) =>
       val connection = sender()
@@ -136,10 +133,10 @@ class NetworkController(settings: NetworkSettings,
       }
 
     case Handshaked(connectedPeer) =>
-      handshaked(connectedPeer, sender())
+      handleHandshake(connectedPeer, sender())
 
     case f@CommandFailed(c: Connect) =>
-      outgoing -= c.remoteAddress
+      unconfirmedConnections -= c.remoteAddress
       f.cause match {
         case Some(t) =>
           log.info("Failed to connect to : " + c.remoteAddress, t)
@@ -151,9 +148,9 @@ class NetworkController(settings: NetworkSettings,
 
     case Terminated(ref) =>
       connectionForHandler(ref).foreach { connectedPeer =>
-        val addr = connectedPeer.remote
+        val addr = connectedPeer.remoteAddress
         connections -= addr
-        outgoing -= addr
+        unconfirmedConnections -= addr
         context.system.eventStream.publish(DisconnectedPeer(addr))
       }
   }
@@ -187,7 +184,7 @@ class NetworkController(settings: NetworkSettings,
   /**
     * Schedule a periodic connection to a random known peer
     */
-  private def scheduleConnectToPeer(): Unit = {
+  private def scheduleConnectionToPeer(): Unit = {
     context.system.scheduler.schedule(5.seconds, 5.seconds) {
       if (connections.size < settings.maxConnections) {
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
@@ -207,12 +204,12 @@ class NetworkController(settings: NetworkSettings,
     log.info(s"Connecting to peer: $peer")
     getPeerAddress(peer) match {
       case Some(remote) =>
-        if (connectionForPeerAddress(remote).isEmpty && !outgoing.contains(remote)) {
-          outgoing += remote
+        if (connectionForPeerAddress(remote).isEmpty && !unconfirmedConnections.contains(remote)) {
+          unconfirmedConnections += remote
           tcpManager ! Connect(remote,
             options = KeepAlive(true) :: Nil,
             timeout = Some(settings.connectionTimeout),
-            pullMode = true) //todo: check pullMode flag
+            pullMode = true)
         } else {
           log.warn(s"Connection to peer $remote is already established")
         }
@@ -231,7 +228,7 @@ class NetworkController(settings: NetworkSettings,
   private def createPeerConnectionHandler(remote: InetSocketAddress,
                                           local: InetSocketAddress,
                                           connection: ActorRef): Unit = {
-    val direction: ConnectionType = if (outgoing.contains(remote)) Outgoing else Incoming
+    val direction: ConnectionType = if (unconfirmedConnections.contains(remote)) Outgoing else Incoming
     val logMsg = direction match {
       case Incoming => s"New incoming connection from $remote established (bound to local $local)"
       case Outgoing => s"New outgoing connection to $remote established (bound to local $local)"
@@ -254,7 +251,7 @@ class NetworkController(settings: NetworkSettings,
     context.watch(handler)
     val connectedPeer = ConnectedPeer(remote, handler, None)
     connections += remote -> connectedPeer
-    outgoing -= remote
+    unconfirmedConnections -= remote
   }
 
   /**
@@ -263,17 +260,17 @@ class NetworkController(settings: NetworkSettings,
     * @param peerInfo
     * @param peerHandler
     */
-  private def handshaked(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
+  private def handleHandshake(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
     connectionForHandler(peerHandler).foreach { connectedPeer =>
 
       log.trace(s"Got handshake from $peerInfo")
-      val peerAddress = peerInfo.peerSpec.address.getOrElse(connectedPeer.remote)
+      val peerAddress = peerInfo.peerSpec.address.getOrElse(connectedPeer.remoteAddress)
 
       //drop connection to self if occurred or peer already connected
-      if (isSelf(connectedPeer.remote) || connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)) {
+      if (isSelf(connectedPeer.remoteAddress) || connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)) {
         connectedPeer.handlerRef ! CloseConnection
         peerManagerRef ! RemovePeer(peerAddress)
-        connections -= connectedPeer.remote
+        connections -= connectedPeer.remoteAddress
       } else {
         if (peerInfo.peerSpec.reachablePeer) {
           peerManagerRef ! AddOrUpdatePeer(peerInfo)
@@ -281,7 +278,7 @@ class NetworkController(settings: NetworkSettings,
           peerManagerRef ! RemovePeer(peerAddress)
         }
         val updatedConnectedPeer = connectedPeer.copy(peerInfo = Some(peerInfo))
-        connections += connectedPeer.remote -> updatedConnectedPeer
+        connections += connectedPeer.remoteAddress -> updatedConnectedPeer
         context.system.eventStream.publish(HandshakedPeer(updatedConnectedPeer))
       }
     }
@@ -319,7 +316,7 @@ class NetworkController(settings: NetworkSettings,
     */
   private def connectionForPeerAddress(peerAddress: InetSocketAddress) = {
     connections.values.find { connectedPeer =>
-      connectedPeer.remote == peerAddress ||
+      connectedPeer.remoteAddress == peerAddress ||
         connectedPeer.peerInfo.exists(peerInfo => getPeerAddress(peerInfo).contains(peerAddress))
     }
   }
@@ -380,7 +377,7 @@ class NetworkController(settings: NetworkSettings,
     }
   }
 
-  private def validateDeclaredAddress() = {
+  private def validateDeclaredAddress(): Unit = {
     if (!settings.localOnly) {
       settings.declaredAddress.foreach { myAddress =>
         Try {
@@ -405,6 +402,19 @@ class NetworkController(settings: NetworkSettings,
       }
     }
   }
+
+  /**
+    * Close connection and temporarily ban peer.
+    */
+  private def blacklist(peer: ConnectedPeer): Unit = {
+    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.remoteAddress)
+    peer.handlerRef ! CloseConnection
+  }
+
+  private def blacklist(peerAddress: InetSocketAddress): Unit = {
+    connections.get(peerAddress).foreach(blacklist)
+  }
+
 }
 
 object NetworkController {
@@ -425,7 +435,7 @@ object NetworkController {
 
     case class DisconnectFrom(peer: ConnectedPeer)
 
-    case class Blacklist(peer: ConnectedPeer)
+    case class BlacklistPeer(address: InetSocketAddress)
 
     case object GetConnectedPeers
 

@@ -1,7 +1,5 @@
 package scorex.core.network
 
-import java.net.InetSocketAddress
-
 import akka.actor.{Actor, ActorRef, ActorSystem, Cancellable, Props, SupervisorStrategy}
 import akka.io.Tcp
 import akka.io.Tcp._
@@ -12,7 +10,7 @@ import scorex.core.network.PeerConnectionHandler.ReceivableMessages
 import scorex.core.network.PeerFeature.Serializers
 import scorex.core.network.message.{HandshakeSpec, MessageSerializer}
 import scorex.core.network.peer.PeerInfo
-import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddToBlacklist, RemovePeer}
+import scorex.core.network.peer.PeerManager.ReceivableMessages.RemovePeer
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
@@ -21,40 +19,6 @@ import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
-
-
-sealed trait ConnectionType
-
-case object Incoming extends ConnectionType
-
-case object Outgoing extends ConnectionType
-
-/**
-  * Peer connected to our node
-  *
-  * @param remote     - connection address
-  * @param handlerRef - reference to PeerConnectionHandler that is responsible for communication with this peer
-  * @param peerInfo   - information about this peer. May be None if peer is connected, but is not handshaked yet
-  */
-case class ConnectedPeer(remote: InetSocketAddress,
-                         handlerRef: ActorRef,
-                         peerInfo: Option[PeerInfo]) {
-
-  override def hashCode(): Int = remote.hashCode()
-
-  override def equals(obj: Any): Boolean = obj match {
-    case p: ConnectedPeer => p.remote == this.remote && peerInfo == this.peerInfo
-    case _ => false
-  }
-
-  override def toString: String = s"ConnectedPeer($remote)"
-}
-
-case class ConnectionDescription(connection: ActorRef,
-                                 direction: ConnectionType,
-                                 ownSocketAddress: Option[InetSocketAddress],
-                                 remote: InetSocketAddress,
-                                 localFeatures: Seq[PeerFeature])
 
 class PeerConnectionHandler(val settings: NetworkSettings,
                             networkControllerRef: ActorRef,
@@ -138,7 +102,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
           //todo: blacklist?
-          selfPeer.foreach(c => peerManagerRef ! RemovePeer(c.remote))
+          selfPeer.foreach(c => peerManagerRef ! RemovePeer(c.remoteAddress))
           self ! CloseConnection
       }
   }
@@ -165,11 +129,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     case _: ConnectionClosed =>
       log.info(s"Connection closed to $remote")
       context stop self
-
-    case Blacklist =>
-      log.info(s"Going to blacklist " + remote)
-      peerManagerRef ! AddToBlacklist(remote)
-      connection ! Close
   }
 
   def localInterfaceWriting: Receive = {
@@ -307,8 +266,6 @@ object PeerConnectionHandler {
     case object HandshakeTimeout
 
     case object CloseConnection
-
-    case object Blacklist
 
     final case class Ack(id: Long) extends Tcp.Event
 

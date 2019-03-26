@@ -16,7 +16,9 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-
+/**
+  * Responsible for discovering and sharing new peers.
+  */
 class PeerSynchronizer(val networkControllerRef: ActorRef,
                        peerManager: ActorRef,
                        settings: NetworkSettings,
@@ -37,7 +39,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
   }
 
   override def receive: Receive = {
-    case DataFromPeer(spec, peers: Seq[PeerSpec]@unchecked, remote)
+    case DataFromPeer(spec, peers: Seq[PeerSpec]@unchecked, _)
       if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[PeerSpec]].isDefined =>
 
       peers.foreach(peerSpec => peerManager ! AddPeerIfEmpty(peerSpec))

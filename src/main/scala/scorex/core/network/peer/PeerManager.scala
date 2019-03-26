@@ -54,7 +54,6 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 
     case get: GetPeers[_] =>
       sender() ! get.choose(peerDatabase.knownPeers, scorexContext)
-
   }
 
   private def apiInterface: Receive = {
