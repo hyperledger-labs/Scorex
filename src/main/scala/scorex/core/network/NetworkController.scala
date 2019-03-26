@@ -56,14 +56,14 @@ class NetworkController(settings: NetworkSettings,
 
   private implicit val timeout: Timeout = Timeout(settings.controllerTimeout.getOrElse(5 seconds))
 
-  private val messageHandlers = mutable.Map[MessageCode, ActorRef]()
+  private var messageHandlers = Map.empty[MessageCode, ActorRef]
 
   private lazy val bindAddress = settings.bindAddress
 
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
-  //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
+  //todo: make usage more clear, now we're relying on pxreStart logic in a actor which is described by a never used val
   private val featureSerializers: PeerFeature.Serializers = scorexContext.features.map(f => f.featureId -> f.serializer).toMap
   private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings,
     featureSerializers)
@@ -84,7 +84,6 @@ class NetworkController(settings: NetworkSettings,
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
       context stop self
-    //TODO catch?
   }
 
   def businessLogic: Receive = {
@@ -103,7 +102,7 @@ class NetworkController(settings: NetworkSettings,
           }
         case Failure(e) =>
           log.error(s"Failed to deserialize data from $remote: ", e)
-        //todo: ban peer
+          blacklist(remote)
       }
 
     case SendToNetwork(message, sendingStrategy) =>

@@ -9,7 +9,7 @@ import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, Modifi
 import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ModifiersStatus.Requested
-import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessageSpecs, SendToNetwork}
+import scorex.core.network.NetworkController.ReceivableMessages.{BlacklistPeer, RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
@@ -94,25 +94,25 @@ MR <: MempoolReader[TX] : ClassTag]
 
   protected def viewHolderEvents: Receive = {
     case SuccessfulTransaction(tx) =>
-      deliveryTracker.onApply(tx.id)
+      deliveryTracker.setHeld(tx.id)
       broadcastModifierInv(tx)
 
-    case FailedTransaction(tx, _) =>
-      deliveryTracker.onInvalid(tx.id)
-    //todo: penalize source peer?
+    case FailedTransaction(id, _, immediateFailure) =>
+      val senderOpt = deliveryTracker.setInvalid(id)
+      // penalize sender only in case transaction was invalidated at first validation.
+      if (immediateFailure) senderOpt.foreach(penalizeMisbehavingPeer)
 
     case SyntacticallySuccessfulModifier(mod) =>
-      deliveryTracker.onApply(mod.id)
+      deliveryTracker.setHeld(mod.id)
 
     case SyntacticallyFailedModification(mod, _) =>
-      deliveryTracker.onInvalid(mod.id)
-    //todo: penalize source peer?
+      deliveryTracker.setInvalid(mod.id).foreach(penalizeMisbehavingPeer)
 
     case SemanticallySuccessfulModifier(mod) =>
       broadcastModifierInv(mod)
 
-    case SemanticallyFailedModification(_, _) =>
-    //todo: penalize source peer?
+    case SemanticallyFailedModification(mod, _) =>
+      deliveryTracker.setInvalid(mod.id).foreach(penalizeMisbehavingPeer)
 
     case ChangedHistory(reader: HR) =>
       historyReaderOpt = Some(reader)
@@ -123,7 +123,7 @@ MR <: MempoolReader[TX] : ClassTag]
     case ModifiersProcessingResult(applied: Seq[PMOD], cleared: Seq[PMOD]) =>
       // stop processing for cleared modifiers
       // applied modifiers state was already changed at `SyntacticallySuccessfulModifier`
-      cleared.foreach(m => deliveryTracker.stopProcessing(m.id))
+      cleared.foreach(m => deliveryTracker.setUnknown(m.id))
       requestMoreModifiers(applied)
   }
 
@@ -178,7 +178,6 @@ MR <: MempoolReader[TX] : ClassTag]
       }
   }
 
-
   // Send history extension to the (less developed) peer 'remote' which does not have it.
   def sendExtension(remote: ConnectedPeer,
                     status: HistoryComparisonResult,
@@ -201,7 +200,6 @@ MR <: MempoolReader[TX] : ClassTag]
           //todo: should we ban peer if its status is unknown after getting info from it?
           log.warn("Peer status is still unknown")
         case Nonsense =>
-          //todo: fix, see https://github.com/ScorexFoundation/Scorex/issues/158
           log.warn("Got nonsense")
         case Younger =>
           sendExtension(remote, status, extOpt)
@@ -231,7 +229,7 @@ MR <: MempoolReader[TX] : ClassTag]
           if (newModifierIds.nonEmpty) {
             val msg = Message(requestModifierSpec, Right(InvData(modifierTypeId, newModifierIds)), None)
             peer.handlerRef ! msg
-            deliveryTracker.onRequest(Some(peer), modifierTypeId, newModifierIds)
+            deliveryTracker.setRequested(newModifierIds, modifierTypeId, Some(peer))
           }
 
         case _ =>
@@ -284,11 +282,11 @@ MR <: MempoolReader[TX] : ClassTag]
         case Some(serializer: ScorexSerializer[PMOD]@unchecked) =>
           // parse all modifiers and put them to modifiers cache
           val parsed: Iterable[PMOD] = parseModifiers(requestedModifiers, serializer, remote)
-          val valid: Iterable[PMOD] = parsed.filter(pmod => validateAndSetStatus(remote, pmod))
+          val valid: Iterable[PMOD] = parsed.filter(validateAndSetStatus(remote, _))
           if (valid.nonEmpty) viewHolderRef ! ModifiersFromRemote[PMOD](valid)
 
         case _ =>
-          log.error(s"Undefined serializer for modifier of type ${typeId}")
+          log.error(s"Undefined serializer for modifier of type $typeId")
       }
   }
 
@@ -302,16 +300,16 @@ MR <: MempoolReader[TX] : ClassTag]
         hr.applicableTry(pmod) match {
           case Failure(e) if e.isInstanceOf[MalformedModifierError] =>
             log.warn(s"Modifier ${pmod.encodedId} is permanently invalid", e)
-            deliveryTracker.onInvalid(pmod.id)
+            deliveryTracker.setInvalid(pmod.id)
             penalizeMisbehavingPeer(remote)
             false
           case _ =>
-            deliveryTracker.onReceive(pmod.id)
+            deliveryTracker.setReceived(pmod.id, remote)
             true
         }
       case None =>
         log.error("Got modifier while history reader is not ready")
-        deliveryTracker.onReceive(pmod.id)
+        deliveryTracker.setReceived(pmod.id, remote)
         true
     }
   }
@@ -379,7 +377,7 @@ MR <: MempoolReader[TX] : ClassTag]
             // Random peer did not delivered modifier we need, ask another peer
             // We need this modifier - no limit for number of attempts
             log.info(s"Modifier ${encoder.encodeId(modifierId)} was not delivered on time")
-            deliveryTracker.stopProcessing(modifierId)
+            deliveryTracker.setUnknown(modifierId)
             requestDownload(modifierTypeId, Seq(modifierId))
         }
       }
@@ -391,8 +389,6 @@ MR <: MempoolReader[TX] : ClassTag]
     //todo: the peer has been penalized for not delivering. In PeerManager,
     //todo: add something similar to FilterPeers to return only peers that
     //todo: have not been penalized too many times.
-
-    // networkControllerRef ! Blacklist(peer)
   }
 
   protected def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
@@ -401,7 +397,7 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   protected def penalizeMisbehavingPeer(peer: ConnectedPeer): Unit = {
-    // todo: peer sent incorrect modifier - blacklist or another serious penalty required
+    networkControllerRef ! BlacklistPeer(peer.remoteAddress)
   }
 
   /**
@@ -430,7 +426,7 @@ MR <: MempoolReader[TX] : ClassTag]
           case Some(serializer: ScorexSerializer[NodeViewModifier]) =>
             sendByParts(modifiers.map(m => m.id -> serializer.toBytes(m)))
           case _ =>
-            log.error(s"Undefined serializer for modifier of type ${modType}")
+            log.error(s"Undefined serializer for modifier of type $modType")
         }
       }
   }
@@ -441,9 +437,8 @@ MR <: MempoolReader[TX] : ClassTag]
     * Request this modifier from random peer.
     */
   protected def requestDownload(modifierTypeId: ModifierTypeId, modifierIds: Seq[ModifierId]): Unit = {
-    deliveryTracker.onRequest(None, modifierTypeId, modifierIds)
+    deliveryTracker.setRequested(modifierIds, modifierTypeId, None)
     val msg = Message(requestModifierSpec, Right(InvData(modifierTypeId, modifierIds)), None)
-    //todo: A peer which is supposedly having the modifier should be here, not a random peer
     networkControllerRef ! SendToNetwork(msg, SendToRandom)
   }
 
@@ -539,7 +534,7 @@ object NodeViewSynchronizer {
     //hierarchy of events regarding modifiers application outcome
     trait ModificationOutcome extends NodeViewHolderEvent
 
-    case class FailedTransaction[TX <: Transaction](transaction: TX, error: Throwable) extends ModificationOutcome
+    case class FailedTransaction(transactionId: ModifierId, error: Throwable, immediateFailure: Boolean) extends ModificationOutcome
 
     case class SuccessfulTransaction[TX <: Transaction](transaction: TX) extends ModificationOutcome
 

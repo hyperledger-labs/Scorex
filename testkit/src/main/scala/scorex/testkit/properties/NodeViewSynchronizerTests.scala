@@ -75,7 +75,7 @@ MP <: MemoryPool[TX, MP]
   property("NodeViewSynchronizer: FailedTransaction") {
     withFixture { ctx =>
       import ctx._
-      node ! FailedTransaction[TX](tx, new Exception)
+      node ! FailedTransaction(tx.id, new Exception, immediateFailure = true)
       // todo: NVS currently does nothing in this case. Should check banning.
     }
   }

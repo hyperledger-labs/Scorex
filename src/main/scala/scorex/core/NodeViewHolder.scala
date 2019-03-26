@@ -102,11 +102,11 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
             context.system.eventStream.publish(SuccessfulTransaction[TX](tx))
 
           case Failure(e) =>
-            context.system.eventStream.publish(FailedTransaction[TX](tx, e))
+            context.system.eventStream.publish(FailedTransaction(tx.id, e, immediateFailure = true))
         }
 
       case Some(e) =>
-        context.system.eventStream.publish(FailedTransaction[TX](tx, e))
+        context.system.eventStream.publish(FailedTransaction(tx.id, e, immediateFailure = true))
     }
   }
 
@@ -145,7 +145,6 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     case tcm: TransactionsCarryingPersistentNodeViewModifier[TX] => tcm.transactions
     case _ => Seq()
   }
-
 
   //todo: this method causes delays in a block processing as it removes transactions from mempool and checks
   //todo: validity of remaining transactions in a synchronous way. Do this job async!
@@ -342,10 +341,14 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
   protected def transactionsProcessing: Receive = {
     case newTxs: NewTransactions[TX] =>
-      newTxs.txs.foreach(tx => txModify(tx))
+      newTxs.txs.foreach(txModify)
     case EliminateTransactions(ids) =>
       val updatedPool = memoryPool().filter(tx => !ids.contains(tx.id))
       updateNodeView(updatedMempool = Some(updatedPool))
+      ids.foreach { id =>
+        val e = new Exception("Became invalid")
+        context.system.eventStream.publish(FailedTransaction(id, e, immediateFailure = false))
+      }
   }
 
   protected def processLocallyGeneratedModifiers: Receive = {
