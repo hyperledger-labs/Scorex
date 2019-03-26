@@ -9,6 +9,7 @@ import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, Modifi
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
 import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.network.NetworkController.PenaltyType
 import scorex.core.network.NetworkController.ReceivableMessages.{BlacklistPeer, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
@@ -261,7 +262,7 @@ MP <: MemoryPool[TX, MP]
       node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
       system.scheduler.scheduleOnce(1 second, node, DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer))
       val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
-      assert(!messages.contains(BlacklistPeer(peer.remoteAddress)))
+      assert(!messages.contains(BlacklistPeer(peer.remoteAddress, PenaltyType.MisbehaviorPenalty)))
     }
   }
 

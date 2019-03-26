@@ -12,8 +12,11 @@ import scorex.util.ScorexLogging
 final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimeProvider)
   extends PeerDatabase with ScorexLogging {
 
+  private val defaultBanDuration = settings.network.misbehaviorBanDuration.toMillis
+
   private var peers = Map.empty[InetSocketAddress, PeerInfo]
 
+  // banned peer ip -> ban expiration timestamp
   private var blacklist = Map.empty[InetSocketAddress, TimeProvider.Time]
 
   override def get(peer: InetSocketAddress): Option[PeerInfo] = peers.get(peer)
@@ -26,11 +29,12 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
     }
   }
 
-  override def addToBlacklist(address: InetSocketAddress): Unit = {
+  override def addToBlacklist(address: InetSocketAddress,
+                              banDuration: Long = defaultBanDuration): Unit = {
     peers -= address
     if (!blacklist.contains(address)) {
       log.info(s"$address blacklisted")
-      blacklist += address -> timeProvider.time()
+      blacklist += address -> (timeProvider.time() + banDuration)
     }
   }
 
@@ -45,8 +49,8 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
   }
 
   override def isBlacklisted(address: InetSocketAddress): Boolean = {
-    blacklist.get(address).exists { banTime =>
-      val stillBanned = timeProvider.time() - banTime < settings.network.misbehaviorBanTime.toMillis
+    blacklist.get(address).exists { bannedTil =>
+      val stillBanned = timeProvider.time() < bannedTil
       if (!stillBanned) removeFromBlacklist(address)
       stillBanned
     }

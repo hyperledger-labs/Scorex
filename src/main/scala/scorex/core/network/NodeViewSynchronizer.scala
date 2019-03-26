@@ -9,6 +9,7 @@ import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, Modifi
 import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ModifiersStatus.Requested
+import scorex.core.network.NetworkController.PenaltyType
 import scorex.core.network.NetworkController.ReceivableMessages.{BlacklistPeer, RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
@@ -392,12 +393,11 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   protected def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
-    //todo: consider something less harsh than blacklisting, see comment for previous function
-    // networkControllerRef ! Blacklist(peer)
+    networkControllerRef ! BlacklistPeer(peer.remoteAddress, PenaltyType.SpamPenalty)
   }
 
   protected def penalizeMisbehavingPeer(peer: ConnectedPeer): Unit = {
-    networkControllerRef ! BlacklistPeer(peer.remoteAddress)
+    networkControllerRef ! BlacklistPeer(peer.remoteAddress, PenaltyType.MisbehaviorPenalty)
   }
 
   /**

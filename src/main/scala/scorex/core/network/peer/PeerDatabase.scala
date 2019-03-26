@@ -14,7 +14,7 @@ trait PeerDatabase {
 
   def knownPeers: Map[InetSocketAddress, PeerInfo]
 
-  def addToBlacklist(address: InetSocketAddress): Unit
+  def addToBlacklist(address: InetSocketAddress, banTime: Long): Unit
 
   def removeFromBlacklist(address: InetSocketAddress): Unit
 

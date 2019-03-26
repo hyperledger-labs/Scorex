@@ -39,8 +39,8 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 
-    case AddToBlacklist(peer) =>
-      peerDatabase.addToBlacklist(peer)
+    case AddToBlacklist(peer, banDuration) =>
+      peerDatabase.addToBlacklist(peer, banDuration)
 
     case AddPeerIfEmpty(peerSpec) =>
       // We have received peer data from other peers. It might be modified and should not affect existing data if any
@@ -84,7 +84,7 @@ object PeerManager {
 
   object ReceivableMessages {
 
-    case class AddToBlacklist(remote: InetSocketAddress)
+    case class AddToBlacklist(remote: InetSocketAddress, banDuration: Long)
 
     // peerListOperations messages
     case class AddOrUpdatePeer(data: PeerInfo)

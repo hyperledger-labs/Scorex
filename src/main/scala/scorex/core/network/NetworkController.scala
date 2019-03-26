@@ -9,6 +9,7 @@ import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.app.{ScorexContext, Version}
+import scorex.core.network.NetworkController.PenaltyType
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
@@ -18,7 +19,6 @@ import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
 import scorex.util.ScorexLogging
 
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
@@ -102,7 +102,7 @@ class NetworkController(settings: NetworkSettings,
           }
         case Failure(e) =>
           log.error(s"Failed to deserialize data from $remote: ", e)
-          blacklist(remote)
+          blacklist(remote, PenaltyType.PermanentPenalty)
       }
 
     case SendToNetwork(message, sendingStrategy) =>
@@ -119,8 +119,8 @@ class NetworkController(settings: NetworkSettings,
       log.info(s"Disconnected from ${peer.remoteAddress}")
       peer.handlerRef ! CloseConnection
 
-    case BlacklistPeer(peerAddress) =>
-      blacklist(peerAddress)
+    case BlacklistPeer(peerAddress, penaltyType) =>
+      blacklist(peerAddress, penaltyType)
 
     case Connected(remote, local) =>
       val connection = sender()
@@ -405,13 +405,20 @@ class NetworkController(settings: NetworkSettings,
   /**
     * Close connection and temporarily ban peer.
     */
-  private def blacklist(peer: ConnectedPeer): Unit = {
-    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.remoteAddress)
+  private def blacklist(peer: ConnectedPeer, penalty: PenaltyType): Unit = {
+    val duration = penaltyDuration(penalty)
+    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.remoteAddress, duration)
     peer.handlerRef ! CloseConnection
   }
 
-  private def blacklist(peerAddress: InetSocketAddress): Unit = {
-    connections.get(peerAddress).foreach(blacklist)
+  private def blacklist(peerAddress: InetSocketAddress, penalty: PenaltyType): Unit = {
+    connections.get(peerAddress).foreach(blacklist(_, penalty))
+  }
+
+  private def penaltyDuration(penalty: PenaltyType): Long = penalty match {
+    case PenaltyType.MisbehaviorPenalty => settings.misbehaviorBanDuration.toMillis
+    case PenaltyType.SpamPenalty => settings.spamBanDuration.toMillis
+    case PenaltyType.PermanentPenalty => Long.MaxValue
   }
 
 }
@@ -419,6 +426,14 @@ class NetworkController(settings: NetworkSettings,
 object NetworkController {
 
   val ChildActorHandlingRetriesNr: Int = 10
+
+  sealed trait PenaltyType
+
+  object PenaltyType {
+    case object MisbehaviorPenalty extends PenaltyType
+    case object SpamPenalty extends PenaltyType
+    case object PermanentPenalty extends PenaltyType
+  }
 
   object ReceivableMessages {
 
@@ -434,7 +449,7 @@ object NetworkController {
 
     case class DisconnectFrom(peer: ConnectedPeer)
 
-    case class BlacklistPeer(address: InetSocketAddress)
+    case class BlacklistPeer(address: InetSocketAddress, penaltyType: PenaltyType)
 
     case object GetConnectedPeers
 
