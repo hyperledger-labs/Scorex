@@ -31,7 +31,7 @@ trait Stubs {
     Handshake(PeerSpec("node_pop", protocolVersion, "second", Some(inetAddr2), peerFeatures), ts2)
   )
 
-  val blacklistedPeers = Seq("4.4.4.4:1111", "8.8.8.8:2222")
+  val blacklistedPeers = Seq("4.4.4.4", "8.8.8.8")
 
   class PeersManagerStub extends Actor {
 
