@@ -64,7 +64,7 @@ case class PeersApiRoute(peerManager: ActorRef,
   }
 
   def blacklistedPeers: Route = (path("blacklisted") & get) {
-    val result = askActor[Seq[String]](peerManager, GetBlacklistedPeers).map(BlacklistedPeers(_).asJson)
+    val result = askActor[Seq[InetSocketAddress]](peerManager, GetBlacklistedPeers).map(BlacklistedPeers(_).asJson)
     ApiResponse(result)
   }
 }
