@@ -14,11 +14,11 @@ trait PeerDatabase {
 
   def addToBlacklist(address: InetSocketAddress, banTime: Long): Unit
 
-  def removeFromBlacklist(address: InetSocketAddress): Unit
+  def removeFromBlacklist(address: InetAddress): Unit
 
   def blacklistedPeers: Seq[InetAddress]
 
-  def isBlacklisted(address: InetSocketAddress): Boolean
+  def isBlacklisted(address: InetAddress): Boolean
 
   def remove(address: InetSocketAddress): Unit
 

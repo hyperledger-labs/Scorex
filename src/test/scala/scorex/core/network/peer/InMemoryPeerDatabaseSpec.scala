@@ -53,9 +53,9 @@ class InMemoryPeerDatabaseSpec extends NetworkTests {
     db.addOrUpdateKnownPeer(getPeerInfo(peerAddress2))
     db.addToBlacklist(peerAddress1)
 
-    db.isBlacklisted(peerAddress1) shouldBe true
-    db.isBlacklisted(peerAddress2) shouldBe false
-    db.blacklistedPeers shouldBe Seq(peerAddress1)
+    db.isBlacklisted(peerAddress1.getAddress) shouldBe true
+    db.isBlacklisted(peerAddress2.getAddress) shouldBe false
+    db.blacklistedPeers shouldBe Seq(peerAddress1.getAddress)
   }
 
   it should "the blacklisted peer be absent in knownPeers" in {

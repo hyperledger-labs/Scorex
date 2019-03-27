@@ -22,7 +22,7 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
   override def get(peer: InetSocketAddress): Option[PeerInfo] = peers.get(peer)
 
   override def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit = {
-    if (!peerInfo.peerSpec.declaredAddress.exists(isBlacklisted)) {
+    if (!peerInfo.peerSpec.declaredAddress.exists(x => isBlacklisted(x.getAddress))) {
       peerInfo.peerSpec.address.foreach { address =>
         peers += address -> peerInfo
       }
@@ -36,17 +36,17 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
     else log.warn(s"$address is already blacklisted")
   }
 
-  override def removeFromBlacklist(address: InetSocketAddress): Unit = {
+  override def removeFromBlacklist(address: InetAddress): Unit = {
     log.info(s"$address removed from blacklist")
-    blacklist -= address.getAddress
+    blacklist -= address
   }
 
   override def remove(address: InetSocketAddress): Unit = {
     peers -= address
   }
 
-  override def isBlacklisted(address: InetSocketAddress): Boolean = {
-    blacklist.get(address.getAddress).exists { bannedTil =>
+  override def isBlacklisted(address: InetAddress): Boolean = {
+    blacklist.get(address).exists { bannedTil =>
       val stillBanned = timeProvider.time() < bannedTil
       if (!stillBanned) removeFromBlacklist(address)
       stillBanned
