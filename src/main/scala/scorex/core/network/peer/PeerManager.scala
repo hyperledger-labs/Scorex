@@ -39,8 +39,9 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
         peerDatabase.addOrUpdateKnownPeer(peerInfo)
       }
 
-    case AddToBlacklist(peer, banDuration) =>
-      peerDatabase.addToBlacklist(peer, banDuration)
+    case AddToBlacklist(peer, penaltyType) =>
+      log.info(s"$peer blacklisted, penalty: $penaltyType")
+      peerDatabase.addToBlacklist(peer, penaltyDuration(penaltyType))
 
     case AddPeerIfEmpty(peerSpec) =>
       // We have received peer data from other peers. It might be modified and should not affect existing data if any
@@ -50,6 +51,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
       }
 
     case RemovePeer(address) =>
+      log.info(s"$address removed")
       peerDatabase.remove(address)
 
     case get: GetPeers[_] =>
@@ -78,13 +80,19 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     peerSpec.declaredAddress.exists(isSelf) || peerSpec.localAddressOpt.exists(isSelf)
   }
 
+  private def penaltyDuration(penalty: PenaltyType): Long = penalty match {
+    case PenaltyType.MisbehaviorPenalty => settings.network.misbehaviorBanDuration.toMillis
+    case PenaltyType.SpamPenalty => settings.network.spamBanDuration.toMillis
+    case PenaltyType.PermanentPenalty => Long.MaxValue
+  }
+
 }
 
 object PeerManager {
 
   object ReceivableMessages {
 
-    case class AddToBlacklist(remote: InetSocketAddress, banDuration: Long)
+    case class AddToBlacklist(remote: InetSocketAddress, penaltyType: PenaltyType)
 
     // peerListOperations messages
     case class AddOrUpdatePeer(data: PeerInfo)

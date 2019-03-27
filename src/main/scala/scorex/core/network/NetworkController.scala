@@ -9,7 +9,6 @@ import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
 import scorex.core.app.{ScorexContext, Version}
-import scorex.core.network.NetworkController.PenaltyType
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
@@ -406,8 +405,7 @@ class NetworkController(settings: NetworkSettings,
     * Close connection and temporarily ban peer.
     */
   private def blacklist(peer: ConnectedPeer, penalty: PenaltyType): Unit = {
-    val duration = penaltyDuration(penalty)
-    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.remoteAddress, duration)
+    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.remoteAddress, penalty)
     peer.handlerRef ! CloseConnection
   }
 
@@ -415,25 +413,11 @@ class NetworkController(settings: NetworkSettings,
     connections.get(peerAddress).foreach(blacklist(_, penalty))
   }
 
-  private def penaltyDuration(penalty: PenaltyType): Long = penalty match {
-    case PenaltyType.MisbehaviorPenalty => settings.misbehaviorBanDuration.toMillis
-    case PenaltyType.SpamPenalty => settings.spamBanDuration.toMillis
-    case PenaltyType.PermanentPenalty => Long.MaxValue
-  }
-
 }
 
 object NetworkController {
 
   val ChildActorHandlingRetriesNr: Int = 10
-
-  sealed trait PenaltyType
-
-  object PenaltyType {
-    case object MisbehaviorPenalty extends PenaltyType
-    case object SpamPenalty extends PenaltyType
-    case object PermanentPenalty extends PenaltyType
-  }
 
   object ReceivableMessages {
 

@@ -9,7 +9,6 @@ import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, Modifi
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
 import scorex.core.consensus.{History, SyncInfo}
-import scorex.core.network.NetworkController.PenaltyType
 import scorex.core.network.NetworkController.ReceivableMessages.{BlacklistPeer, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
