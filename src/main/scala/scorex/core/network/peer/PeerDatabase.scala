@@ -2,8 +2,6 @@ package scorex.core.network.peer
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import scorex.core.utils.TimeProvider
-
 trait PeerDatabase {
 
   def get(peer: InetSocketAddress): Option[PeerInfo]
