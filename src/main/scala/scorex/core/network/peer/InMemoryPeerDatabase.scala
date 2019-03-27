@@ -1,6 +1,6 @@
 package scorex.core.network.peer
 
-import java.net.InetSocketAddress
+import java.net.{InetAddress, InetSocketAddress}
 
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.TimeProvider
@@ -17,7 +17,7 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
   private var peers = Map.empty[InetSocketAddress, PeerInfo]
 
   // banned peer ip -> ban expiration timestamp
-  private var blacklist = Map.empty[InetSocketAddress, TimeProvider.Time]
+  private var blacklist = Map.empty[InetAddress, TimeProvider.Time]
 
   override def get(peer: InetSocketAddress): Option[PeerInfo] = peers.get(peer)
 
@@ -32,13 +32,13 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
   override def addToBlacklist(address: InetSocketAddress,
                               banDuration: Long = defaultBanDuration): Unit = {
     peers -= address
-    if (!blacklist.contains(address)) blacklist += address -> (timeProvider.time() + banDuration)
+    if (!blacklist.contains(address.getAddress)) blacklist += address.getAddress -> (timeProvider.time() + banDuration)
     else log.warn(s"$address is already blacklisted")
   }
 
   override def removeFromBlacklist(address: InetSocketAddress): Unit = {
     log.info(s"$address removed from blacklist")
-    blacklist -= address
+    blacklist -= address.getAddress
   }
 
   override def remove(address: InetSocketAddress): Unit = {
@@ -46,7 +46,7 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
   }
 
   override def isBlacklisted(address: InetSocketAddress): Boolean = {
-    blacklist.get(address).exists { bannedTil =>
+    blacklist.get(address.getAddress).exists { bannedTil =>
       val stillBanned = timeProvider.time() < bannedTil
       if (!stillBanned) removeFromBlacklist(address)
       stillBanned
@@ -55,7 +55,7 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
 
   override def knownPeers: Map[InetSocketAddress, PeerInfo] = peers
 
-  override def blacklistedPeers: Seq[InetSocketAddress] = blacklist.keys.toSeq
+  override def blacklistedPeers: Seq[InetAddress] = blacklist.keys.toSeq
 
   override def isEmpty: Boolean = peers.isEmpty
 
