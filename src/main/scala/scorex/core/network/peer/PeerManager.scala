@@ -124,7 +124,7 @@ object PeerManager {
         val recentlySeenNonBlacklisted = knownPeers.values.toSeq
           .filter { p =>
             (p.connectionType.isDefined || currentTime - p.lastSeen > TimeDiff) &&
-              blacklistedPeers.exists(ip => p.peerSpec.declaredAddress.exists(_.getAddress == ip))
+              !blacklistedPeers.exists(ip => p.peerSpec.declaredAddress.exists(_.getAddress == ip))
           }
         Random.shuffle(recentlySeenNonBlacklisted).take(howMany)
       }
