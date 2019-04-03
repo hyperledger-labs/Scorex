@@ -227,7 +227,7 @@ class NetworkController(settings: NetworkSettings,
                                           local: InetSocketAddress,
                                           connection: ActorRef): Unit = {
     val direction: ConnectionType = if (unconfirmedConnections.contains(remote)) Outgoing else Incoming
-    val logMsg = direction match {
+    val logMsg = direction match { //todo: seems that we need to work with local address (/206.189.130.185:9020) rather than with remote (/95.216.75.95:56298)
       case Incoming => s"New incoming connection from $remote established (bound to local $local)"
       case Outgoing => s"New outgoing connection to $remote established (bound to local $local)"
     }
