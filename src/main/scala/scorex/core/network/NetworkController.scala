@@ -145,10 +145,8 @@ class NetworkController(settings: NetworkSettings,
       peerManagerRef ! RemovePeer(c.remoteAddress)
 
     case Terminated(ref) =>
-      log.info("Connection terminated")
       connectionForHandler(ref).foreach { connectedPeer =>
         val address = connectedPeer.remoteAddress
-        log.info(s"Handler for $address destroyed and will be removed from connections")
         connections -= address
         unconfirmedConnections -= address
         context.system.eventStream.publish(DisconnectedPeer(address))
@@ -379,21 +377,21 @@ class NetworkController(settings: NetworkSettings,
 
   private def validateDeclaredAddress(): Unit = {
     if (!settings.localOnly) {
-      settings.declaredAddress.foreach { myAddress =>
+      settings.declaredAddress.foreach { mySocketAddress =>
         Try {
-          val uri = new URI("http://" + myAddress)
+          val uri = new URI("http://" + mySocketAddress)
           val myHost = uri.getHost
-          val myAddrs = InetAddress.getAllByName(myHost)
+          val myAddress = InetAddress.getAllByName(myHost)
 
           val listenAddresses = NetworkUtils.getListenAddresses(bindAddress)
           val upnpAddress = scorexContext.upnpGateway.map(_.externalAddress)
 
-          val valid = listenAddresses.exists(myAddrs.contains) || upnpAddress.exists(myAddrs.contains)
+          val valid = listenAddresses.exists(myAddress.contains) || upnpAddress.exists(myAddress.contains)
 
           if (!valid) {
             log.error(
               s"""Declared address validation failed:
-                 | $myAddress not match any of the listening address: $listenAddresses
+                 | $mySocketAddress not match any of the listening address: $listenAddresses
                  | or Gateway WAN address: $upnpAddress""".stripMargin)
           }
         } recover { case t: Throwable =>
@@ -407,6 +405,9 @@ class NetworkController(settings: NetworkSettings,
     * Close connection and temporarily ban peer.
     */
   private def blacklist(peer: ConnectedPeer, penalty: PenaltyType): Unit = {
+    connections = connections.filterNot { x => // clear all connection related to banned peer ip
+      Option(peer.remoteAddress.getAddress).exists(Option(x._1.getAddress).contains(_))
+    }
     peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.remoteAddress, penalty)
     peer.handlerRef ! CloseConnection
   }
