@@ -19,7 +19,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 
   import PeerManager.ReceivableMessages._
 
-  private lazy val peerDatabase = new InMemoryPeerDatabase(settings, scorexContext.timeProvider)
+  private val peerDatabase = new InMemoryPeerDatabase(settings, scorexContext.timeProvider)
 
   if (peerDatabase.isEmpty) {
     // fill database with peers from config file if empty
@@ -66,7 +66,6 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 
     case GetBlacklistedPeers =>
       sender() ! peerDatabase.blacklistedPeers
-
   }
 
   /**
@@ -111,8 +110,8 @@ object PeerManager {
     }
 
     /**
-      * Choose at most `howMany` random peers, that is connected to our peer or
-      * was connected in at most 1 hour ago and wasn't blacklisted.
+      * Choose at most `howMany` random peers, which are connected to our peer or
+      * were connected in at most 1 hour ago and weren't blacklisted.
       */
     case class RecentlySeenPeers(howMany: Int) extends GetPeers[Seq[PeerInfo]] {
       private val TimeDiff: Long = 60 * 60 * 1000

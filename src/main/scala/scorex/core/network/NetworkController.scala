@@ -62,7 +62,7 @@ class NetworkController(settings: NetworkSettings,
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
-  //todo: make usage more clear, now we're relying on pxreStart logic in a actor which is described by a never used val
+  //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
   private val featureSerializers: PeerFeature.Serializers = scorexContext.features.map(f => f.featureId -> f.serializer).toMap
   private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings,
     featureSerializers)
@@ -145,11 +145,13 @@ class NetworkController(settings: NetworkSettings,
       peerManagerRef ! RemovePeer(c.remoteAddress)
 
     case Terminated(ref) =>
+      log.info("Connection terminated")
       connectionForHandler(ref).foreach { connectedPeer =>
-        val addr = connectedPeer.remoteAddress
-        connections -= addr
-        unconfirmedConnections -= addr
-        context.system.eventStream.publish(DisconnectedPeer(addr))
+        val address = connectedPeer.remoteAddress
+        log.info(s"Handler for $address destroyed and will be removed from connections")
+        connections -= address
+        unconfirmedConnections -= address
+        context.system.eventStream.publish(DisconnectedPeer(address))
       }
   }
 
@@ -259,22 +261,22 @@ class NetworkController(settings: NetworkSettings,
     * @param peerHandler
     */
   private def handleHandshake(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
+    def dropConnection(connectedPeer: ConnectedPeer, peerAddress: InetSocketAddress): Unit = {
+      connectedPeer.handlerRef ! CloseConnection
+      peerManagerRef ! RemovePeer(peerAddress)
+      connections -= connectedPeer.remoteAddress
+    }
     connectionForHandler(peerHandler).foreach { connectedPeer =>
-
       log.trace(s"Got handshake from $peerInfo")
       val peerAddress = peerInfo.peerSpec.address.getOrElse(connectedPeer.remoteAddress)
 
       //drop connection to self if occurred or peer already connected
       if (isSelf(connectedPeer.remoteAddress) || connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)) {
-        connectedPeer.handlerRef ! CloseConnection
-        peerManagerRef ! RemovePeer(peerAddress)
-        connections -= connectedPeer.remoteAddress
+        dropConnection(connectedPeer, peerAddress)
       } else {
-        if (peerInfo.peerSpec.reachablePeer) {
-          peerManagerRef ! AddOrUpdatePeer(peerInfo)
-        } else {
-          peerManagerRef ! RemovePeer(peerAddress)
-        }
+        if (peerInfo.peerSpec.reachablePeer) peerManagerRef ! AddOrUpdatePeer(peerInfo)
+        else dropConnection(connectedPeer, peerAddress)
+
         val updatedConnectedPeer = connectedPeer.copy(peerInfo = Some(peerInfo))
         connections += connectedPeer.remoteAddress -> updatedConnectedPeer
         context.system.eventStream.publish(HandshakedPeer(updatedConnectedPeer))
