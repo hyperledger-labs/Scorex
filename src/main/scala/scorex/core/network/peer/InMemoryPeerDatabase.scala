@@ -45,18 +45,24 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
     peers -= address
   }
 
-  override def isBlacklisted(address: InetAddress): Boolean = {
-    blacklist.get(address).exists { bannedTil =>
-      val stillBanned = timeProvider.time() < bannedTil
-      if (!stillBanned) removeFromBlacklist(address)
-      stillBanned
-    }
-  }
+  override def isBlacklisted(address: InetAddress): Boolean =
+    blacklist.get(address).exists(checkBanned(address, _))
 
   override def knownPeers: Map[InetSocketAddress, PeerInfo] = peers
 
-  override def blacklistedPeers: Seq[InetAddress] = blacklist.keys.toSeq
+  override def blacklistedPeers: Seq[InetAddress] = blacklist
+    .map { case (address, bannedTil) =>
+      checkBanned(address, bannedTil)
+      address
+    }
+    .toSeq
 
   override def isEmpty: Boolean = peers.isEmpty
+
+  private def checkBanned(address: InetAddress, bannedTil: Long): Boolean = {
+    val stillBanned = timeProvider.time() < bannedTil
+    if (!stillBanned) removeFromBlacklist(address)
+    stillBanned
+  }
 
 }
