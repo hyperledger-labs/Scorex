@@ -48,6 +48,9 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
   override def isBlacklisted(address: InetAddress): Boolean =
     blacklist.get(address).exists(checkBanned(address, _))
 
+  def isBlacklisted(address: InetSocketAddress): Boolean =
+    Option(address.getAddress).exists(isBlacklisted)
+
   override def knownPeers: Map[InetSocketAddress, PeerInfo] = peers
 
   override def blacklistedPeers: Seq[InetAddress] = blacklist

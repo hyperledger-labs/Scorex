@@ -30,14 +30,17 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     }
   }
 
-  override def receive: Receive = peerOperations orElse apiInterface
+  override def receive: Receive = peersManagement orElse apiInterface
 
-  private def peerOperations: Receive = {
+  private def peersManagement: Receive = {
+
+    case ConfirmConnection(connectionId, handlerRef) =>
+      if (peerDatabase.isBlacklisted(connectionId.address)) sender() ! ConnectionDenied(connectionId, handlerRef)
+      else sender() ! ConnectionConfirmed(connectionId, handlerRef)
+
     case AddOrUpdatePeer(peerInfo) =>
       // We have connected to a peer and got his peerInfo from him
-      if (!isSelf(peerInfo.peerSpec)) {
-        peerDatabase.addOrUpdateKnownPeer(peerInfo)
-      }
+      if (!isSelf(peerInfo.peerSpec)) peerDatabase.addOrUpdateKnownPeer(peerInfo)
 
     case AddToBlacklist(peer, penaltyType) =>
       log.info(s"$peer blacklisted, penalty: $penaltyType")
@@ -90,6 +93,12 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 object PeerManager {
 
   object ReceivableMessages {
+
+    case class ConfirmConnection(connectionId: ConnectionId, handlerRef: ActorRef)
+
+    case class ConnectionConfirmed(connectionId: ConnectionId, handlerRef: ActorRef)
+
+    case class ConnectionDenied(connectionId: ConnectionId, handlerRef: ActorRef)
 
     case class AddToBlacklist(remote: InetSocketAddress, penaltyType: PenaltyType)
 

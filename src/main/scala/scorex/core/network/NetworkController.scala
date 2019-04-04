@@ -12,7 +12,7 @@ import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
-import scorex.core.network.peer.PeerManager.ReceivableMessages.{AddOrUpdatePeer, RandomPeerExcluding, RemovePeer}
+import scorex.core.network.peer.PeerManager.ReceivableMessages._
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
@@ -121,14 +121,22 @@ class NetworkController(settings: NetworkSettings,
     case BlacklistPeer(peerAddress, penaltyType) =>
       blacklist(peerAddress, penaltyType)
 
-    case Connected(remote, local) =>
-      val connection = sender()
-      if (connectionForPeerAddress(remote).isEmpty) {
-        createPeerConnectionHandler(remote, local, connection)
-      } else {
-        log.warn(s"Connection to peer $remote is already established")
-        connection ! Close
-      }
+    case Connected(remoteAddress, localAddress) if connectionForPeerAddress(remoteAddress).isEmpty =>
+      val connectionDirection = if (unconfirmedConnections.contains(remoteAddress)) Outgoing else Incoming
+      val connectionId = ConnectionId(remoteAddress, localAddress, connectionDirection)
+      if (connectionDirection.isOutgoing) createPeerConnectionHandler(connectionId, sender())
+      else peerManagerRef ! ConfirmConnection(connectionId, sender())
+
+    case Connected(remoteAddress, _) =>
+      log.warn(s"Connection to peer $remoteAddress is already established")
+      sender() ! Close
+
+    case ConnectionConfirmed(connectionId, handlerRef) =>
+      createPeerConnectionHandler(connectionId, handlerRef)
+
+    case ConnectionDenied(connectionId, handlerRef) =>
+      log.info(s"Incoming connection from ${connectionId.address} denied")
+      handlerRef ! Close
 
     case Handshaked(connectedPeer) =>
       handleHandshake(connectedPeer, sender())
@@ -223,33 +231,34 @@ class NetworkController(settings: NetworkSettings,
     * @param local      - local address of socket to peer
     * @param connection - connection ActorRef
     */
-  private def createPeerConnectionHandler(remote: InetSocketAddress,
-                                          local: InetSocketAddress,
+  private def createPeerConnectionHandler(connectionId: ConnectionId,
                                           connection: ActorRef): Unit = {
-    val direction: ConnectionType = if (unconfirmedConnections.contains(remote)) Outgoing else Incoming
-    val logMsg = direction match { //todo: seems that we need to work with local address (/206.189.130.185:9020) rather than with remote (/95.216.75.95:56298)
-      case Incoming => s"New incoming connection from $remote established (bound to local $local)"
-      case Outgoing => s"New outgoing connection to $remote established (bound to local $local)"
+    val logMsg = connectionId.direction match {
+      case Incoming =>
+        s"New incoming connection from ${connectionId.localAddress} established (bound to local ${connectionId.remoteAddress})"
+      case Outgoing =>
+        s"New outgoing connection to ${connectionId.remoteAddress} established (bound to local ${connectionId.localAddress})"
     }
     log.info(logMsg)
 
-    val peerFeatures = if (remote.getAddress.isSiteLocalAddress || remote.getAddress.isLoopbackAddress) {
-      scorexContext.features :+ LocalAddressPeerFeature(new InetSocketAddress(local.getAddress, settings.bindAddress.getPort))
-    } else {
-      scorexContext.features
-    }
+    val isLocal = connectionId.remoteAddress.getAddress.isSiteLocalAddress ||
+      connectionId.remoteAddress.getAddress.isLoopbackAddress
+    val peerFeatures =
+      if (isLocal) scorexContext.features :+ LocalAddressPeerFeature(
+        new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort))
+      else scorexContext.features
 
-    val connectionDescription = ConnectionDescription(
-      connection, direction, getNodeAddressForPeer(local), remote, peerFeatures)
+    val connectionDescription = ConnectionDescription(connection, connectionId.direction,
+      getNodeAddressForPeer(connectionId.localAddress), connectionId.remoteAddress, peerFeatures)
 
     val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
       scorexContext, connectionDescription)
 
     val handler = context.actorOf(handlerProps) // launch connection handler
     context.watch(handler)
-    val connectedPeer = ConnectedPeer(remote, handler, None)
-    connections += remote -> connectedPeer
-    unconfirmedConnections -= remote
+    val connectedPeer = ConnectedPeer(connectionId.remoteAddress, handler, None)
+    connections += connectionId.remoteAddress -> connectedPeer
+    unconfirmedConnections -= connectionId.remoteAddress
   }
 
   /**
