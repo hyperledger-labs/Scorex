@@ -23,41 +23,10 @@ import scala.util.Try
   * The second distinction from cats `Validated` is that we do support both fail-fast and error-accumulating validation
   * while cats `Validated` supports only accumulative approach.
   */
-trait ModifierValidator {
-
-  /** Encoder from bytes to string and back for logging */
-  implicit val encoder: ScorexEncoder
-
-  /** Start validation in Fail-Fast mode */
-  def failFast: ValidationState[Unit] = ModifierValidator.failFast
-
-  /** Start validation accumulating all the errors */
-  def accumulateErrors: ValidationState[Unit] = ModifierValidator.accumulateErrors
-
-  /** report recoverable modifier error that could be fixed by later retries */
-  def error(errorMessage: String): Invalid = ModifierValidator.error(errorMessage)
-
-  /** report non-recoverable modifier error that could be fixed by retries and requires modifier change */
-  def fatal(errorMessage: String): Invalid = ModifierValidator.fatal(errorMessage)
-
-  /** unsuccessful validation with a given error*/
-  def invalid(error: ModifierError): Invalid = ModifierValidator.invalid(error)
-
-  /** successful validation */
-  def success: Valid[Unit] = ModifierValidator.success
-
-}
-
 object ModifierValidator {
 
-  /** Start validation in Fail-Fast mode */
-  def failFast(implicit e: ScorexEncoder): ValidationState[Unit] = {
-    ValidationState(ModifierValidator.success, ValidationStrategy.FailFast)(e)
-  }
-
-  /** Start validation accumulating all the errors */
-  def accumulateErrors(implicit e: ScorexEncoder): ValidationState[Unit] = {
-    ValidationState(ModifierValidator.success, ValidationStrategy.AccumulateErrors)(e)
+  def apply(settings: ValidationSettings)(implicit e: ScorexEncoder): ValidationState[Unit] = {
+    ValidationState(ModifierValidator.success, settings)(e)
   }
 
   /** report recoverable modifier error that could be fixed by later retries */
@@ -92,11 +61,12 @@ object ModifierValidator {
   val success: Valid[Unit] = Valid(())
 
   private def msg(descr: String, e: Throwable): String = msg(descr, Option(e.getMessage).getOrElse(e.toString))
+
   private def msg(description: String, detail: String): String = s"$description: $detail"
 }
 
 /** This is the place where all the validation DSL lives */
-case class ValidationState[T](result: ValidationResult[T], strategy: ValidationStrategy)(implicit e: ScorexEncoder) {
+case class ValidationState[T](result: ValidationResult[T], settings: ValidationSettings)(implicit e: ScorexEncoder) {
 
   /** Reverse condition: Validate the condition is `false` or else return the `error` given */
   def validateNot(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
@@ -136,7 +106,11 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     pass(if (condition) result else error)
   }
 
-  /** Replace payload with the new one, discarding current payload value. This method catches throwables
+  def validate(condition: => Boolean, id: Short): ValidationState[T] = {
+    pass(if (!settings.isActive(id) || condition) result else settings.getMessage(id))
+  }
+
+    /** Replace payload with the new one, discarding current payload value. This method catches throwables
     */
   def payload[R](payload: => R): ValidationState[R] = {
     pass(result(payload))
@@ -199,8 +173,8 @@ case class ValidationState[T](result: ValidationResult[T], strategy: ValidationS
     result match {
       case Valid(_) if result == newRes => asInstanceOf[ValidationState[R]]
       case Valid(_) => copy(result = newRes)
-      case Invalid(_) if strategy.isFailFast => asInstanceOf[ValidationState[R]]
-      case invalid @ Invalid(_) => copy(result = invalid.accumulateErrors(operation))
+      case Invalid(_) if settings.isFailFast => asInstanceOf[ValidationState[R]]
+      case invalid@Invalid(_) => copy(result = invalid.accumulateErrors(operation))
     }
   }
 

@@ -8,9 +8,84 @@ import scorex.core.validation.ValidationResult._
 
 import scala.util.{Failure, Try}
 
-class ValidationSpec extends FlatSpec with Matchers with ModifierValidator with ScorexEncoding {
+class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
 
-  "ModifierValidation" should "be able to succeed when failing fast" in {
+  val ffSettings: ValidationSettings = new ValidationSettings {
+    override val isFailFast: Boolean = true
+
+    override def getMessage(id: Short): Invalid = ???
+
+    override def isActive(id: Short): Boolean = true
+  }
+
+  val aeSettings: ValidationSettings = new ValidationSettings {
+    override val isFailFast: Boolean = false
+
+    override def getMessage(id: Short): Invalid = ???
+
+    override def isActive(id: Short): Boolean = true
+  }
+
+  val map: Map[Short, (Invalid, Boolean)] = Map(
+    1.toShort -> (fatal("Error message 1"), true),
+    3.toShort -> (fatal("Error message 3"), false),
+    4.toShort -> (fatal("Error message 4"), true),
+    5.toShort -> (error("Error message 5"), true)
+  )
+
+  val customSettings: ValidationSettings = new MapValidationSettings(true, map)
+
+  /** Start validation in Fail-Fast mode */
+  def failFast: ValidationState[Unit] = ModifierValidator.apply(ffSettings)
+
+  /** Start validation accumulating all the errors */
+  def accumulateErrors: ValidationState[Unit] = ModifierValidator.apply(aeSettings)
+
+  /** Start validation accumulating all the errors */
+  def custom: ValidationState[Unit] = ModifierValidator.apply(customSettings)
+
+  /** report recoverable modifier error that could be fixed by later retries */
+  def error(errorMessage: String): Invalid = ModifierValidator.error(errorMessage)
+
+  /** report non-recoverable modifier error that could be fixed by retries and requires modifier change */
+  def fatal(errorMessage: String): Invalid = ModifierValidator.fatal(errorMessage)
+
+  /** unsuccessful validation with a given error */
+  def invalid(error: ModifierError): Invalid = ModifierValidator.invalid(error)
+
+  /** successful validation */
+  def success: Valid[Unit] = ModifierValidator.success
+
+  "ModifierValidation" should "be able to succeed when validate via config" in {
+    val result = custom
+      .validate(condition = true, 1)
+      .result
+    result.isValid shouldBe true
+    result shouldBe a[Valid[_]]
+  }
+
+  it should "skip deactivated checks" in {
+    val result = custom
+      .validate(condition = false, 3)
+      .result
+    result.isValid shouldBe true
+    result shouldBe a[Valid[_]]
+  }
+
+  it should "return correct error type for recoverable errors" in {
+    val result = custom
+      .validate(condition = false, 5)
+      .result
+
+    result shouldBe an[Invalid]
+    result.errors should have size 1
+    all(result.errors) shouldBe a[RecoverableModifierError]
+    result.asInstanceOf[Invalid].isFatal shouldBe false
+
+  }
+
+
+  it should "be able to succeed when failing fast" in {
     val result = failFast
       .validate(condition = true) {
         fatal("Should never happen")
@@ -332,7 +407,7 @@ class ValidationSpec extends FlatSpec with Matchers with ModifierValidator with 
     val errMsg = "Should not take payload from failure"
     val result = accumulateErrors
       .payload(1)
-      .validateTry(Failure(new Error("Failed")): Try[Int], _ => fatal(errMsg)){
+      .validateTry(Failure(new Error("Failed")): Try[Int], _ => fatal(errMsg)) {
         case (validation, data) => validation.map(_ / data)
       }
       .result
