@@ -122,7 +122,8 @@ class NetworkController(settings: NetworkSettings,
       blacklist(peerAddress, penaltyType)
 
     case Connected(remoteAddress, localAddress) if connectionForPeerAddress(remoteAddress).isEmpty =>
-      val connectionDirection = if (unconfirmedConnections.contains(remoteAddress)) Outgoing else Incoming
+      val connectionDirection: ConnectionDirection =
+        if (unconfirmedConnections.contains(remoteAddress)) Outgoing else Incoming
       val connectionId = ConnectionId(remoteAddress, localAddress, connectionDirection)
       if (connectionDirection.isOutgoing) createPeerConnectionHandler(connectionId, sender())
       else peerManagerRef ! ConfirmConnection(connectionId, sender())
