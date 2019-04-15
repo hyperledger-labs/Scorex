@@ -11,18 +11,23 @@ import scorex.core.validation.ValidationResult.Invalid
 abstract class ValidationSettings {
   val isFailFast: Boolean
 
-  def getMessage(id: Short): Invalid
+  def getError(id: Short, e: Throwable): Invalid = getError(id, e.getMessage)
+
+  def getError(id: Short, details: String): Invalid
+
+  def getError(id: Short): Invalid = getError(id, "")
 
   def isActive(id: Short): Boolean
 }
 
 class MapValidationSettings(override val isFailFast: Boolean,
-                                map: Map[Short, (Invalid, Boolean)]) extends ValidationSettings {
+                            map: Map[Short, (String => Invalid, Boolean)]) extends ValidationSettings {
 
-  override def getMessage(id: Short): Invalid = {
-    map.get(id).map(_._1).getOrElse(ModifierValidator.fatal("Unknown message"))
+
+  override def getError(id: Short, details: String): Invalid = {
+    map.get(id).map(_._1(details)).getOrElse(ModifierValidator.fatal("Unknown message"))
   }
 
-  override def isActive(id: Short): Boolean = map.get(id).exists(_._2)
+  override def isActive(id: Short): Boolean = map.get(id).forall(_._2)
 
 }

@@ -6,7 +6,7 @@ import scorex.core.utils.ScorexEncoder
 import scorex.core.validation.ValidationResult._
 import scorex.util.ModifierId
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /** Base trait for the modifier validation process.
   *
@@ -68,104 +68,6 @@ object ModifierValidator {
 /** This is the place where all the validation DSL lives */
 case class ValidationState[T](result: ValidationResult[T], settings: ValidationSettings)(implicit e: ScorexEncoder) {
 
-  /** Reverse condition: Validate the condition is `false` or else return the `error` given */
-  def validateNot(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
-    validate(!condition)(error)
-  }
-
-  /** Validate the first argument equals the second. This should not be used with `ModifierId` of type `Array[Byte]`.
-    * The `error` callback will be provided with detail on argument values for better reporting
-    */
-  def validateEquals[A](given: => A)(expected: => A)(error: String => Invalid): ValidationState[T] = {
-    pass((given, expected) match {
-      case (a: Array[_], b: Array[_]) if a sameElements b => result
-      case (_: Array[_], _) => error(s"Given: $given, expected: $expected. Use validateEqualIds when comparing Arrays")
-      case _ if given == expected => result
-      case _ => error(s"Given: $given, expected $expected")
-    })
-  }
-
-  /** Validate the `id`s are equal. The `error` callback will be provided with detail on argument values
-    */
-  def validateEqualIds(given: => ModifierId, expected: => ModifierId)
-                      (error: String => Invalid): ValidationState[T] = {
-    validate(given == expected) {
-      error(s"Given: ${e.encodeId(given)}, expected ${e.encodeId(expected)}")
-    }
-  }
-
-  /** Wrap semantic validity to the validation state: if semantic validity was not Valid, then return the `error` given
-    */
-  def validateSemantics(validity: => ModifierSemanticValidity)(error: => Invalid): ValidationState[T] = {
-    validateNot(validity == ModifierSemanticValidity.Invalid)(error)
-  }
-
-  /** Validate the condition is `true` or else return the `error` given
-    */
-  def validate(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
-    pass(if (condition) result else error)
-  }
-
-  def validate(condition: => Boolean, id: Short): ValidationState[T] = {
-    pass(if (!settings.isActive(id) || condition) result else settings.getMessage(id))
-  }
-
-    /** Replace payload with the new one, discarding current payload value. This method catches throwables
-    */
-  def payload[R](payload: => R): ValidationState[R] = {
-    pass(result(payload))
-  }
-
-  /** Map payload if validation is successful
-    */
-  def payloadMap[R](f: T => R): ValidationState[R] = {
-    copy(result = result.map(f))
-  }
-
-  /** Validate the `condition` is `Success`. Otherwise the `error` callback will be provided with detail
-    * on a failure exception
-    */
-  def validateNoFailure(condition: => Try[_])(error: Throwable => Invalid): ValidationState[T] = {
-    pass(condition.fold(error, _ => result))
-  }
-
-  /** Validate the `block` doesn't throw an Exception. Otherwise the `error` callback will be provided with detail
-    * on the exception
-    */
-  def validateNoThrow(block: => Any)(error: Throwable => Invalid): ValidationState[T] = {
-    validateNoFailure(Try(block))(error)
-  }
-
-  /** Validate `condition` against payload is `true` or else return the `error`
-    */
-  def validateTry[A](tryValue: => Try[A], error: Throwable => Invalid)
-                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
-    pass(tryValue.fold(error, v => operation(this, v)))
-  }
-
-  /** Validate condition against option value if it's not `None`.
-    * If given option is `None` then pass the previous result as success.
-    * Return `error` if option is `Some` amd condition is `false`
-    */
-  def validateOrSkip[A](option: => Option[A])
-                       (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
-    option
-      .map(value => pass(operation(this, value)))
-      .getOrElse(this)
-  }
-
-  /** This could add some sugar when validating elements of a given collection
-    */
-  def validateSeq[A](seq: Iterable[A])
-                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
-    seq.foldLeft(this) { (state, elem) =>
-      state.pass(operation(state, elem))
-    }
-  }
-
-  /** This is for nested validations that allow mixing fail-fast and accumulate-errors validation strategies
-    */
-  def validate(operation: => ValidationResult[T]): ValidationState[T] = pass(operation)
 
   /** Create the next validation state as the result of given `operation` */
   def pass[R](operation: => ValidationResult[R]): ValidationState[R] = {
@@ -178,6 +80,172 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
     }
   }
 
+
+  /** Replace payload with the new one, discarding current payload value. This method catches throwables
+    */
+  def payload[R](payload: => R): ValidationState[R] = {
+    pass(result(payload))
+  }
+
+  /** Map payload if validation is successful
+    */
+  def payloadMap[R](f: T => R): ValidationState[R] = {
+    copy(result = result.map(f))
+  }
+
+  /** Validate the condition is `true` or else return the `error` given
+    */
+  def validate(id: Short, condition: => Boolean): ValidationState[T] = {
+    pass(if (!settings.isActive(id) || condition) result else settings.getError(id))
+  }
+
+  /** Reverse condition: Validate the condition is `false` or else return the `error` given */
+  def validateNot(id: Short, condition: => Boolean): ValidationState[T] = {
+    validate(id, !condition)
+  }
+
+  /** Validate the first argument equals the second. This should not be used with `ModifierId` of type `Array[Byte]`.
+    * The `error` callback will be provided with detail on argument values for better reporting
+    */
+  def validateEquals[A](id: Short, given: => A, expected: => A): ValidationState[T] = {
+    pass((given, expected) match {
+      case _ if !settings.isActive(id) => result
+      case (a: Array[_], b: Array[_]) if a sameElements b => result
+      case (_: Array[_], _) => settings.getError(id, s"Given: $given, expected: $expected. Use validateEqualIds when comparing Arrays")
+      case _ if given == expected => result
+      case _ => settings.getError(id, s"Given: $given, expected $expected")
+    })
+  }
+
+  /** Validate the `id`s are equal. The `error` callback will be provided with detail on argument values
+    */
+  def validateEqualIds(id: Short, given: => ModifierId, expected: => ModifierId): ValidationState[T] = {
+    pass{
+      if (!settings.isActive(id) || given == expected) result
+      else settings.getError(id, s"Given: ${e.encodeId(given)}, expected ${e.encodeId(expected)}")
+    }
+  }
+
+  /** Wrap semantic validity to the validation state: if semantic validity was not Valid, then return the `error` given
+    */
+  def validateSemantics(id: Short, validity: => ModifierSemanticValidity): ValidationState[T] = {
+    validateNot(id, validity == ModifierSemanticValidity.Invalid)
+  }
+
+  /** Validate the `condition` is `Success`. Otherwise the `error` callback will be provided with detail
+    * on a failure exception
+    */
+  def validateNoFailure(id: Short, condition: => Try[_]): ValidationState[T] = {
+    pass(if (!settings.isActive(id)) result else condition.fold(e => settings.getError(id, e), _ => result))
+  }
+
+  /** Validate the `block` doesn't throw an Exception. Otherwise the `error` callback will be provided with detail
+    * on the exception
+    */
+  def validateNoThrow(id: Short, block: => Any): ValidationState[T] = {
+    validateNoFailure(id, Try(block))
+  }
+
+  /** Validate `condition` against payload is `true` or else return the `error`
+    */
+  def validateTry[A](id: Short, tryValue: => Try[A], condition: A => Boolean): ValidationState[T] = {
+    pass(tryValue match {
+      case Failure(e) => settings.getError(id, e)
+      case Success(v) if settings.isActive(id) && !condition(v) => settings.getError(id)
+      case _ => result
+    })
+  }
+
+  /** Validate condition against option value if it's not `None`.
+    * If given option is `None` then pass the previous result as success.
+    * Return `error` if option is `Some` amd condition is `false`
+    */
+  def validateOrSkip[A](id: Short, option: => Option[A], condition: A => Boolean): ValidationState[T] = {
+    pass(option match {
+      case Some(v) if settings.isActive(id) && !condition(v) => settings.getError(id)
+      case _ => result
+    })
+  }
+
+  /** This could add some sugar when validating elements of a given collection
+    */
+  def validateSeq[A](id: Short, seq: Iterable[A], condition: A => Boolean): ValidationState[T] = {
+    if (settings.isActive(id)) {
+      seq.foldLeft(this) { (state, elem) =>
+        state.pass(if (condition(elem)) result else settings.getError(id))
+      }
+    } else {
+      pass(result)
+    }
+  }
+
+  /** This is for nested validations that allow mixing fail-fast and accumulate-errors validation strategies
+    */
+  def validate(operation: => ValidationResult[T]): ValidationState[T] = pass(operation)
+
+  /**
+    * ============================
+    * Methods below are deprecated
+    * ============================
+    */
+
+
+  def validateNot(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
+    validate(!condition)(error)
+  }
+
+  def validateEquals[A](given: => A)(expected: => A)(error: String => Invalid): ValidationState[T] = {
+    pass((given, expected) match {
+      case (a: Array[_], b: Array[_]) if a sameElements b => result
+      case (_: Array[_], _) => error(s"Given: $given, expected: $expected. Use validateEqualIds when comparing Arrays")
+      case _ if given == expected => result
+      case _ => error(s"Given: $given, expected $expected")
+    })
+  }
+
+  def validateEqualIds(given: => ModifierId, expected: => ModifierId)
+                      (error: String => Invalid): ValidationState[T] = {
+    validate(given == expected) {
+      error(s"Given: ${e.encodeId(given)}, expected ${e.encodeId(expected)}")
+    }
+  }
+
+  def validateSemantics(validity: => ModifierSemanticValidity)(error: => Invalid): ValidationState[T] = {
+    validateNot(validity == ModifierSemanticValidity.Invalid)(error)
+  }
+
+  def validate(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
+    pass(if (condition) result else error)
+  }
+
+  def validateNoFailure(condition: => Try[_])(error: Throwable => Invalid): ValidationState[T] = {
+    pass(condition.fold(error, _ => result))
+  }
+
+  def validateNoThrow(block: => Any)(error: Throwable => Invalid): ValidationState[T] = {
+    validateNoFailure(Try(block))(error)
+  }
+
+/*
+  def validateTry[A](tryValue: => Try[A], error: Throwable => Invalid)
+                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
+    pass(tryValue.fold(error, v => operation(this, v)))
+  }
+*/
+
+  def validateOrSkip[A](option: => Option[A])
+                       (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
+    option
+      .map(value => pass(operation(this, value)))
+      .getOrElse(this)
+  }
+
+  def validateSeq[A](seq: Iterable[A])
+                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
+    seq.foldLeft(this) { (state, elem) =>
+      state.pass(operation(state, elem))
+    }
+  }
 
   /** Shortcut `require`-like method for the simple validation with fatal error.
     * If you need more convenient checks, use `validate` methods.
@@ -213,10 +281,12 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
     validateNoThrow(block)(e => ModifierValidator.fatal(fatalError, e))
   }
 
+/*
   def demandTry[A](tryValue: => Try[A], fatalError: => String)
                   (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
     validateTry(tryValue, e => ModifierValidator.fatal(fatalError, e))(operation)
   }
+*/
 
   /** Shortcut `require`-like method for the simple validation with recoverable error.
     * If you need more convenient checks, use `validate` methods.
