@@ -33,12 +33,10 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   private val connectionId = connectionDescription.connectionId
   private val direction = connectionDescription.connectionId.direction
   private val ownSocketAddress = connectionDescription.ownSocketAddress
-  private val remote = connectionDescription.connectionId.remoteAddress
   private val localFeatures = connectionDescription.localFeatures
 
-  private val featureSerializers: Serializers = {
+  private val featureSerializers: Serializers =
     localFeatures.map(f => f.featureId -> (f.serializer: ScorexSerializer[_ <: PeerFeature])).toMap
-  }
 
   private val handshakeSerializer = new HandshakeSpec(featureSerializers, settings.maxHandshakeSize)
   private val messageSerializer = new MessageSerializer(scorexContext.messageSpecs, settings.magicBytes)

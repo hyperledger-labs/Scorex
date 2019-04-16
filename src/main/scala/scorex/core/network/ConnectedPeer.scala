@@ -6,9 +6,9 @@ import scorex.core.network.peer.PeerInfo
 /**
   * Peer connected to our node
   *
-  * @param connectionId     - connection address
-  * @param handlerRef - reference to PeerConnectionHandler that is responsible for communication with this peer
-  * @param peerInfo   - information about this peer. May be None if peer is connected, but is not handshaked yet
+  * @param connectionId - connection address
+  * @param handlerRef   - reference to PeerConnectionHandler that is responsible for communication with this peer
+  * @param peerInfo     - information about this peer. May be None if peer is connected, but is not handshaked yet
   */
 case class ConnectedPeer(connectionId: ConnectionId,
                          handlerRef: ActorRef,
@@ -17,7 +17,7 @@ case class ConnectedPeer(connectionId: ConnectionId,
   override def hashCode(): Int = connectionId.hashCode()
 
   override def equals(obj: Any): Boolean = obj match {
-    case p: ConnectedPeer => p.connectionId == this.connectionId && peerInfo == this.peerInfo
+    case that: ConnectedPeer => this.connectionId.address == that.connectionId.address
     case _ => false
   }
 

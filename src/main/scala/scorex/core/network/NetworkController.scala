@@ -133,6 +133,7 @@ class NetworkController(settings: NetworkSettings,
       sender() ! Close
 
     case ConnectionConfirmed(connectionId, handlerRef) =>
+      log.info(s"Connection confirmed to $connectionId")
       createPeerConnectionHandler(connectionId, handlerRef)
 
     case ConnectionDenied(connectionId, handlerRef) =>
@@ -145,10 +146,8 @@ class NetworkController(settings: NetworkSettings,
     case f@CommandFailed(c: Connect) =>
       unconfirmedConnections -= c.remoteAddress
       f.cause match {
-        case Some(t) =>
-          log.info("Failed to connect to : " + c.remoteAddress, t)
-        case None =>
-          log.info("Failed to connect to : " + c.remoteAddress)
+        case Some(t) => log.info("Failed to connect to : " + c.remoteAddress, t)
+        case None => log.info("Failed to connect to : " + c.remoteAddress)
       }
       // remove not responding peer from database
       peerManagerRef ! RemovePeer(c.remoteAddress)
@@ -268,7 +267,6 @@ class NetworkController(settings: NetworkSettings,
       connections -= connectedPeer.connectionId.remoteAddress
     }
     connectionForHandler(peerHandler).foreach { connectedPeer =>
-      log.trace(s"Got handshake from $peerInfo")
       val remoteAddress = connectedPeer.connectionId.remoteAddress
       val peerAddress = peerInfo.peerSpec.address.getOrElse(remoteAddress)
 
