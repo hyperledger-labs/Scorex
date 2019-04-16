@@ -115,7 +115,7 @@ class NetworkController(settings: NetworkSettings,
       connectTo(peer)
 
     case DisconnectFrom(peer) =>
-      log.info(s"Disconnected from ${peer.remoteAddress}")
+      log.info(s"Disconnected from ${peer.connectionId}")
       peer.handlerRef ! CloseConnection
 
     case BlacklistPeer(peerAddress, penaltyType) =>
@@ -155,10 +155,10 @@ class NetworkController(settings: NetworkSettings,
 
     case Terminated(ref) =>
       connectionForHandler(ref).foreach { connectedPeer =>
-        val address = connectedPeer.remoteAddress
-        connections -= address
-        unconfirmedConnections -= address
-        context.system.eventStream.publish(DisconnectedPeer(address))
+        val remoteAddress = connectedPeer.connectionId.remoteAddress
+        connections -= remoteAddress
+        unconfirmedConnections -= remoteAddress
+        context.system.eventStream.publish(DisconnectedPeer(remoteAddress))
       }
   }
 
@@ -228,8 +228,7 @@ class NetworkController(settings: NetworkSettings,
   /**
     * Creates a PeerConnectionHandler for the established connection
     *
-    * @param remote     - remote address of socket to peer
-    * @param local      - local address of socket to peer
+    * @param connectionId - connection detailed info
     * @param connection - connection ActorRef
     */
   private def createPeerConnectionHandler(connectionId: ConnectionId,
@@ -249,44 +248,41 @@ class NetworkController(settings: NetworkSettings,
         new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort))
       else scorexContext.features
 
-    val connectionDescription = ConnectionDescription(connection, connectionId.direction,
-      getNodeAddressForPeer(connectionId.localAddress), connectionId.remoteAddress, peerFeatures)
+    val connectionDescription = ConnectionDescription(
+      connection, connectionId, getNodeAddressForPeer(connectionId.localAddress), peerFeatures)
 
     val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
       scorexContext, connectionDescription)
 
     val handler = context.actorOf(handlerProps) // launch connection handler
     context.watch(handler)
-    val connectedPeer = ConnectedPeer(connectionId.remoteAddress, handler, None)
+    val connectedPeer = ConnectedPeer(connectionId, handler, None)
     connections += connectionId.remoteAddress -> connectedPeer
     unconfirmedConnections -= connectionId.remoteAddress
   }
 
-  /**
-    * The logic of handling the handshake
-    *
-    * @param peerInfo
-    * @param peerHandler
-    */
   private def handleHandshake(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
     def dropConnection(connectedPeer: ConnectedPeer, peerAddress: InetSocketAddress): Unit = {
       connectedPeer.handlerRef ! CloseConnection
       peerManagerRef ! RemovePeer(peerAddress)
-      connections -= connectedPeer.remoteAddress
+      connections -= connectedPeer.connectionId.remoteAddress
     }
     connectionForHandler(peerHandler).foreach { connectedPeer =>
       log.trace(s"Got handshake from $peerInfo")
-      val peerAddress = peerInfo.peerSpec.address.getOrElse(connectedPeer.remoteAddress)
+      val remoteAddress = connectedPeer.connectionId.remoteAddress
+      val peerAddress = peerInfo.peerSpec.address.getOrElse(remoteAddress)
 
       //drop connection to self if occurred or peer already connected
-      if (isSelf(connectedPeer.remoteAddress) || connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)) {
+      val shouldDrop = isSelf(remoteAddress) ||
+        connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)
+      if (shouldDrop) {
         dropConnection(connectedPeer, peerAddress)
       } else {
         if (peerInfo.peerSpec.reachablePeer) peerManagerRef ! AddOrUpdatePeer(peerInfo)
         else dropConnection(connectedPeer, peerAddress)
 
         val updatedConnectedPeer = connectedPeer.copy(peerInfo = Some(peerInfo))
-        connections += connectedPeer.remoteAddress -> updatedConnectedPeer
+        connections += remoteAddress -> updatedConnectedPeer
         context.system.eventStream.publish(HandshakedPeer(updatedConnectedPeer))
       }
     }
@@ -324,16 +320,13 @@ class NetworkController(settings: NetworkSettings,
     */
   private def connectionForPeerAddress(peerAddress: InetSocketAddress) = {
     connections.values.find { connectedPeer =>
-      connectedPeer.remoteAddress == peerAddress ||
+      connectedPeer.connectionId.remoteAddress == peerAddress ||
         connectedPeer.peerInfo.exists(peerInfo => getPeerAddress(peerInfo).contains(peerAddress))
     }
   }
 
   /**
     * Checks the node owns the address
-    *
-    * @param peerAddress
-    * @return returns `true` if the peer is the same is this node.
     */
   private def isSelf(peerAddress: InetSocketAddress): Boolean = {
     NetworkUtils.isSelf(peerAddress, bindAddress, scorexContext.externalNodeAddress)
@@ -415,10 +408,10 @@ class NetworkController(settings: NetworkSettings,
     * Close connection and temporarily ban peer.
     */
   private def blacklist(peer: ConnectedPeer, penalty: PenaltyType): Unit = {
-    connections = connections.filterNot { x => // clear all connection related to banned peer ip
-      Option(peer.remoteAddress.getAddress).exists(Option(x._1.getAddress).contains(_))
+    connections = connections.filterNot { x => // clear all connections related to banned peer ip
+      Option(peer.connectionId.address.getAddress).exists(Option(x._1.getAddress).contains(_))
     }
-    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.remoteAddress, penalty)
+    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.connectionId.address, penalty)
     peer.handlerRef ! CloseConnection
   }
 

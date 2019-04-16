@@ -7,7 +7,7 @@ import akka.util.ByteString
 import org.scalacheck.{Arbitrary, Gen}
 import scorex.core.app.Version
 import scorex.core.network.message.{InvData, ModifiersData}
-import scorex.core.network.{ConnectedPeer, PeerFeature}
+import scorex.core.network._
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
@@ -93,16 +93,19 @@ trait ObjectGenerators {
     port <- Gen.choose(0, MaxPort)
   } yield new InetSocketAddress(InetAddress.getByName(s"$ip1.$ip2.$ip3.$ip4"), port)
 
+  lazy val connectionIdGen: Gen[ConnectionId] = for {
+    ip1 <- inetSocketAddressGen
+    ip2 <- inetSocketAddressGen
+    direction <- Gen.oneOf[ConnectionDirection](Seq[ConnectionDirection](Incoming, Outgoing))
+  } yield ConnectionId(ip1, ip2, direction)
+
   lazy val key25519Gen: Gen[(PrivateKey25519, PublicKey25519Proposition)] = genBytes(Curve25519.KeyLength)
     .map(s => PrivateKey25519Companion.generateKeys(s))
 
   lazy val propositionGen: Gen[PublicKey25519Proposition] = key25519Gen.map(_._2)
 
   def connectedPeerGen(peerRef: ActorRef): Gen[ConnectedPeer] = for {
-    address <- inetSocketAddressGen
-  } yield ConnectedPeer(
-    address,
-    peerRef,
-    None
-  )
+    connectionId <- connectionIdGen
+  } yield ConnectedPeer(connectionId, peerRef, None)
+
 }

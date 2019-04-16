@@ -261,7 +261,7 @@ MP <: MemoryPool[TX, MP]
       node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
       system.scheduler.scheduleOnce(1 second, node, DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer))
       val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
-      assert(!messages.contains(BlacklistPeer(peer.remoteAddress, PenaltyType.MisbehaviorPenalty)))
+      assert(!messages.contains(BlacklistPeer(peer.connectionId.address, PenaltyType.MisbehaviorPenalty)))
     }
   }
 

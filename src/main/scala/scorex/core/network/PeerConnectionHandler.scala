@@ -5,12 +5,11 @@ import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
 import scorex.core.app.{ScorexContext, Version}
-import scorex.core.network.NetworkController.ReceivableMessages.Handshaked
+import scorex.core.network.NetworkController.ReceivableMessages.{BlacklistPeer, Handshaked}
 import scorex.core.network.PeerConnectionHandler.ReceivableMessages
 import scorex.core.network.PeerFeature.Serializers
 import scorex.core.network.message.{HandshakeSpec, MessageSerializer}
 import scorex.core.network.peer.PeerInfo
-import scorex.core.network.peer.PeerManager.ReceivableMessages.RemovePeer
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
@@ -31,9 +30,10 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   import PeerConnectionHandler.ReceivableMessages._
 
   private val connection = connectionDescription.connection
-  private val direction = connectionDescription.direction
+  private val connectionId = connectionDescription.connectionId
+  private val direction = connectionDescription.connectionId.direction
   private val ownSocketAddress = connectionDescription.ownSocketAddress
-  private val remote = connectionDescription.remote
+  private val remote = connectionDescription.connectionId.remoteAddress
   private val localFeatures = connectionDescription.localFeatures
 
   private val featureSerializers: Serializers = {
@@ -66,24 +66,24 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   override def receive: Receive = reportStrangeInput
 
-  override def postStop(): Unit = log.info(s"Peer handler to $remote destroyed")
+  override def postStop(): Unit = log.info(s"Peer handler to $connectionId destroyed")
 
   private def handshaking: Receive = {
     handshakeTimeoutCancellableOpt = Some(context.system.scheduler.scheduleOnce(settings.handshakeTimeout)
     (self ! HandshakeTimeout))
     val hb = handshakeSerializer.toBytes(createHandshakeMessage())
     connection ! Tcp.Write(ByteString(hb))
-    log.info(s"Handshake sent to $remote")
+    log.info(s"Handshake sent to $connectionId")
 
     receiveAndHandleHandshake { receivedHandshake =>
-      log.info(s"Got a Handshake from $remote")
+      log.info(s"Got a Handshake from $connectionId")
 
       val peerInfo = PeerInfo(
         receivedHandshake.peerSpec,
         scorexContext.timeProvider.time(),
         Some(direction)
       )
-      val peer = ConnectedPeer(remote, self, Some(peerInfo))
+      val peer = ConnectedPeer(connectionDescription.connectionId, self, Some(peerInfo))
       selfPeer = Some(peer)
 
       networkControllerRef ! Handshaked(peerInfo)
@@ -101,15 +101,14 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
-          //todo: blacklist?
-          selfPeer.foreach(c => peerManagerRef ! RemovePeer(c.remoteAddress))
+          selfPeer.foreach(c => peerManagerRef ! BlacklistPeer(c.connectionId.address, PenaltyType.PermanentPenalty))
           self ! CloseConnection
       }
   }
 
   private def handshakeTimeout: Receive = {
     case HandshakeTimeout =>
-      log.info(s"Handshake timeout with $remote, going to drop the connection")
+      log.info(s"Handshake timeout with $connectionId, going to drop the connection")
       self ! CloseConnection
   }
 
@@ -127,24 +126,24 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private def fatalCommands: Receive = {
     case _: ConnectionClosed =>
-      log.info(s"Connection closed to $remote")
+      log.info(s"Connection closed to $connectionId")
       context stop self
   }
 
   def localInterfaceWriting: Receive = {
     case msg: message.Message[_] =>
-      log.info("Send message " + msg.spec + " to " + remote)
+      log.info("Send message " + msg.spec + " to " + connectionId)
       outMessagesCounter += 1
       connection ! Write(messageSerializer.serialize(msg), ReceivableMessages.Ack(outMessagesCounter))
 
     case CommandFailed(Write(msg, ReceivableMessages.Ack(id))) =>
-      log.warn(s"Failed to write ${msg.length} bytes to $remote, switching to buffering mode")
+      log.warn(s"Failed to write ${msg.length} bytes to $connectionId, switching to buffering mode")
       connection ! ResumeWriting
       buffer(id, msg)
       context become workingCycleBuffering
 
     case CloseConnection =>
-      log.info(s"Enforced to abort communication with: " + remote + ", switching to closing mode")
+      log.info(s"Enforced to abort communication with: " + connectionId + ", switching to closing mode")
       if (outMessagesBuffer.isEmpty) connection ! Close else context become closingWithNonEmptyBuffer
 
     case ReceivableMessages.Ack(_) => // ignore ACKs in stable mode
@@ -176,7 +175,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       }
 
     case CloseConnection =>
-      log.info(s"Enforced to abort communication with: " + remote + s", switching to closing mode")
+      log.info(s"Enforced to abort communication with: " + connectionId + s", switching to closing mode")
       writeAll()
       context become closingWithNonEmptyBuffer
   }
@@ -190,12 +189,12 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       def process(): Unit = {
         messageSerializer.deserialize(chunksBuffer, selfPeer) match {
           case Success(Some(message)) =>
-            log.info("Received message " + message.spec + " from " + remote)
+            log.info("Received message " + message.spec + " from " + connectionId)
             networkControllerRef ! message
             chunksBuffer = chunksBuffer.drop(message.messageLength)
             process()
           case Success(None) =>
-          case Failure(e) => log.info(s"Corrupted data from ${remote.toString}: ${e.getMessage}")
+          case Failure(e) => log.info(s"Corrupted data from ${connectionId.toString}: ${e.getMessage}")
         }
       }
 
