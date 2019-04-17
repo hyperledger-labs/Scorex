@@ -73,9 +73,8 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
   def pass[R](operation: => ValidationResult[R]): ValidationState[R] = {
     lazy val newRes = operation
     result match {
-      case Valid(_) if result == newRes => asInstanceOf[ValidationState[R]]
       case Valid(_) => copy(result = newRes)
-      case Invalid(_) if settings.isFailFast => asInstanceOf[ValidationState[R]]
+      case Invalid(_) if settings.isFailFast || result == newRes => asInstanceOf[ValidationState[R]]
       case invalid@Invalid(_) => copy(result = invalid.accumulateErrors(operation))
     }
   }
@@ -120,7 +119,7 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
   /** Validate the `id`s are equal. The `error` callback will be provided with detail on argument values
     */
   def validateEqualIds(id: Short, given: => ModifierId, expected: => ModifierId): ValidationState[T] = {
-    pass{
+    pass {
       if (!settings.isActive(id) || given == expected) result
       else settings.getError(id, s"Given: ${e.encodeId(given)}, expected ${e.encodeId(expected)}")
     }
@@ -148,11 +147,11 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
 
   /** Validate `condition` against payload is `true` or else return the `error`
     */
-  def validateTry[A](id: Short, tryValue: => Try[A], condition: A => Boolean): ValidationState[T] = {
-    pass(tryValue match {
-      case Failure(e) => settings.getError(id, e)
+  def validateTry(id: Short, operation: T => Try[T], condition: T => Boolean): ValidationState[T] = {
+    pass(result.toTry.flatMap(r => operation(r)) match {
+      case Failure(ex) => settings.getError(id, ex)
       case Success(v) if settings.isActive(id) && !condition(v) => settings.getError(id)
-      case _ => result
+      case Success(v) => result(v)
     })
   }
 
@@ -182,125 +181,6 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
   /** This is for nested validations that allow mixing fail-fast and accumulate-errors validation strategies
     */
   def validate(operation: => ValidationResult[T]): ValidationState[T] = pass(operation)
-
-  /**
-    * ============================
-    * Methods below are deprecated
-    * ============================
-    */
-
-
-  def validateNot(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
-    validate(!condition)(error)
-  }
-
-  def validateEquals[A](given: => A)(expected: => A)(error: String => Invalid): ValidationState[T] = {
-    pass((given, expected) match {
-      case (a: Array[_], b: Array[_]) if a sameElements b => result
-      case (_: Array[_], _) => error(s"Given: $given, expected: $expected. Use validateEqualIds when comparing Arrays")
-      case _ if given == expected => result
-      case _ => error(s"Given: $given, expected $expected")
-    })
-  }
-
-  def validateEqualIds(given: => ModifierId, expected: => ModifierId)
-                      (error: String => Invalid): ValidationState[T] = {
-    validate(given == expected) {
-      error(s"Given: ${e.encodeId(given)}, expected ${e.encodeId(expected)}")
-    }
-  }
-
-  def validateSemantics(validity: => ModifierSemanticValidity)(error: => Invalid): ValidationState[T] = {
-    validateNot(validity == ModifierSemanticValidity.Invalid)(error)
-  }
-
-  def validate(condition: => Boolean)(error: => Invalid): ValidationState[T] = {
-    pass(if (condition) result else error)
-  }
-
-  def validateNoFailure(condition: => Try[_])(error: Throwable => Invalid): ValidationState[T] = {
-    pass(condition.fold(error, _ => result))
-  }
-
-  def validateNoThrow(block: => Any)(error: Throwable => Invalid): ValidationState[T] = {
-    validateNoFailure(Try(block))(error)
-  }
-
-/*
-  def validateTry[A](tryValue: => Try[A], error: Throwable => Invalid)
-                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
-    pass(tryValue.fold(error, v => operation(this, v)))
-  }
-*/
-
-  def validateOrSkip[A](option: => Option[A])
-                       (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
-    option
-      .map(value => pass(operation(this, value)))
-      .getOrElse(this)
-  }
-
-  def validateSeq[A](seq: Iterable[A])
-                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
-    seq.foldLeft(this) { (state, elem) =>
-      state.pass(operation(state, elem))
-    }
-  }
-
-  /** Shortcut `require`-like method for the simple validation with fatal error.
-    * If you need more convenient checks, use `validate` methods.
-    */
-  def demand(condition: => Boolean, fatalError: => String): ValidationState[T] = {
-    validate(condition)(ModifierValidator.fatal(fatalError))
-  }
-
-  /** Shortcut `require`-like method to validate the `id`s are equal. Otherwise returns fatal error
-    */
-  def demandEqualIds(given: => ModifierId, expected: => ModifierId, fatalError: String): ValidationState[T] = {
-    validateEqualIds(given, expected)(d => ModifierValidator.fatal(fatalError, d))
-  }
-
-  /** Shortcut `require`-like method to validate the arrays are equal. Otherwise returns fatal error
-    */
-  def demandEqualArrays(given: => Array[Byte], expected: => Array[Byte], fatalError: String): ValidationState[T] = {
-    validate(java.util.Arrays.equals(given, expected)) {
-      ModifierValidator.fatal(s"$fatalError. Given ${e.encode(given)} while expected ${e.encode(expected)}")
-    }
-  }
-
-  /** Shortcut `require`-like method for the `Try` validation with fatal error
-    */
-  def demandSuccess(condition: => Try[_], fatalError: => String): ValidationState[T] = {
-    validateNoFailure(condition)(e => ModifierValidator.fatal(fatalError, e))
-  }
-
-  /** Shortcut `require`-like method to validate that `block` doesn't throw an Exception.
-    * Otherwise returns fatal error
-    */
-  def demandNoThrow(block: => Any, fatalError: => String): ValidationState[T] = {
-    validateNoThrow(block)(e => ModifierValidator.fatal(fatalError, e))
-  }
-
-/*
-  def demandTry[A](tryValue: => Try[A], fatalError: => String)
-                  (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
-    validateTry(tryValue, e => ModifierValidator.fatal(fatalError, e))(operation)
-  }
-*/
-
-  /** Shortcut `require`-like method for the simple validation with recoverable error.
-    * If you need more convenient checks, use `validate` methods.
-    */
-  def recoverable(condition: => Boolean, recoverableError: => String): ValidationState[T] = {
-    validate(condition)(ModifierValidator.error(recoverableError))
-  }
-
-  /** Shortcut `require`-like method to validate the `id`s are equal. Otherwise returns recoverable error
-    */
-  def recoverableEqualIds(given: => ModifierId, expected: => ModifierId,
-                          recoverableError: String): ValidationState[T] = {
-    validateEqualIds(given, expected)(d => ModifierValidator.error(recoverableError, d))
-  }
 
 }
 

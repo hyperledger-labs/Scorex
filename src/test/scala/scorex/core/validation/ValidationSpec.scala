@@ -10,14 +10,14 @@ import scala.util.{Failure, Try}
 
 class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
 
-  val errMsg1 = "Error message 1"
-  val errMsg3 = "Error message 3"
+  val errMsg1 = "Error message 1: "
+  val errMsg3 = "Error message 3: "
 
   val map: Map[Short, (String => Invalid, Boolean)] = Map(
-    1.toShort -> (s => fatal(errMsg1), true),
-    3.toShort -> (_ => fatal(errMsg3), true),
-    4.toShort -> (_ => fatal("Error message 4"), true),
-    5.toShort -> (_ => error("Error message 5"), true),
+    1.toShort -> (s => fatal(errMsg1 + s), true),
+    3.toShort -> (s => fatal(errMsg3 + s), true),
+    4.toShort -> (s => fatal(s"Error message 4: $s"), true),
+    5.toShort -> (s => error(s"Error message 5: $s"), true),
     10.toShort -> (_ => error("Deactivated check"), false)
   )
 
@@ -43,6 +43,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
   def success: Valid[Unit] = ModifierValidator.success
 
   val trueCondition: String => Boolean = _ => true
+  val falseCondition: String => Boolean = _ => false
 
   "ModifierValidation" should "be able to succeed when failing fast" in {
     val result = failFast
@@ -196,7 +197,8 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
     result.isValid shouldBe false
     result shouldBe an[Invalid]
     result.errors should have size 2
-    result.errors.map(_.message) should contain only(errMsg1, errMsg3)
+    result.errors.exists(_.message.startsWith(errMsg1)) shouldBe true
+    result.errors.exists(_.message.startsWith(errMsg3)) shouldBe true
   }
 
   it should "correctly check equality" in {
@@ -208,21 +210,21 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
     result.isValid shouldBe false
     result shouldBe an[Invalid]
     result.errors should have size 1
-    result.errors.map(_.message) should contain only errMsg3
+    result.errors.exists(_.message.startsWith(errMsg3)) shouldBe true
   }
 
   it should "correctly check semantic validity" in {
     val result = accumulateErrors
-      .validateSemantics(1, ModifierSemanticValidity.Valid)
+      .validateSemantics(1, ModifierSemanticValidity.Invalid)
       .validateSemantics(2, ModifierSemanticValidity.Absent)
       .validateSemantics(3, ModifierSemanticValidity.Unknown)
-      .validateSemantics(4, ModifierSemanticValidity.Invalid)
+      .validateSemantics(4, ModifierSemanticValidity.Valid)
       .result
 
     result.isValid shouldBe false
     result shouldBe an[Invalid]
     result.errors should have size 1
-    result.errors.map(_.message) should contain only ModifierSemanticValidity.Invalid.toString
+    result.errors.map(_.message) should contain only errMsg1
   }
 
   it should "support `not` condition" in {
@@ -265,8 +267,8 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
   it should "fill payload from try" in {
     val data = "Hi there"
     val result = accumulateErrors
-      .payload("Random string")
-      .validateTry[String](1, Try(data), trueCondition)
+      .payload[String]("Random string")
+      .validateTry(1, _ =>  Try(data), trueCondition)
       .result
 
     result.isValid shouldBe true
@@ -275,15 +277,14 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
   }
 
   it should "return error when filling payload from failure" in {
-    val errMsg = "Should not take payload from failure"
     val result = accumulateErrors
       .payload("Random string")
-      .validateTry(1, Failure(new Error("Failed")), trueCondition)
+      .validateTry(1,_ =>  Failure(new Error("Failed")), trueCondition)
       .result
 
     result.isValid shouldBe false
     result shouldBe an[Invalid]
-    result.errors.map(_.message) should contain(errMsg)
+    result.errors.exists(_.message.startsWith(errMsg1)) shouldBe true
   }
 
   it should "aggregate payload from try" in {
@@ -292,7 +293,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
     val expected = data1 / data2
     val result = accumulateErrors
       .payload[Long](data1)
-      .validateTry[Long](1, Try(data2), _ => true)
+      .validateTry(1, v => Try(v / data2), _ => true)
       .result
 
     result.isValid shouldBe true
@@ -301,15 +302,14 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
   }
 
   it should "return error when aggregating payload from failure" in {
-    val errMsg = "Should not take payload from failure"
     val result = accumulateErrors
       .payload(1)
-      .validateTry[Int](1, Failure(new Error("Failed")): Try[Int], _ => true)
+      .validateTry(1, _ => Failure(new Error("Failed")): Try[Int], _ => true)
       .result
 
     result.isValid shouldBe false
     result shouldBe an[Invalid]
-    result.errors.map(_.message) should contain(errMsg)
+    result.errors.exists(_.message.startsWith(errMsg1)) shouldBe true
   }
 
   it should "switch failure payload type" in {
@@ -332,22 +332,17 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
 
   it should "validate optional for some" in {
     val expression = "123"
-    val cnt = expression.length
     val result = accumulateErrors
-      .validateOrSkip(Some(expression)) { (validation, expr) =>
-        validation.validate(expr.length == cnt)(fatal("Should never happen"))
-      }
+      .validateOrSkip[String](1, Some(expression), falseCondition)
       .result
 
-    result.isValid shouldBe true
-    result shouldBe a[Valid[_]]
+    result.isValid shouldBe false
+    result.errors.map(_.message) should contain only errMsg1
   }
 
   it should "skip optional validation for none" in {
     val result = accumulateErrors
-      .validateOrSkip(None) { (validation, _) =>
-        validation.validate(condition = false)(fatal("Should never happen"))
-      }
+      .validateOrSkip[String](1, None, falseCondition)
       .result
 
     result.isValid shouldBe true
