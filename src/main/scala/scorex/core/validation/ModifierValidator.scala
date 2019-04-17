@@ -70,10 +70,9 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
 
   /** Create the next validation state as the result of given `operation` */
   def pass[R](operation: => ValidationResult[R]): ValidationState[R] = {
-    lazy val newRes = operation
     result match {
-      case Valid(_) => copy(result = newRes)
-      case Invalid(_) if settings.isFailFast || result == newRes => asInstanceOf[ValidationState[R]]
+      case Valid(_) => copy(result = operation)
+      case Invalid(_) if settings.isFailFast || result == operation => asInstanceOf[ValidationState[R]]
       case invalid@Invalid(_) => copy(result = invalid.accumulateErrors(operation))
     }
   }
