@@ -268,7 +268,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
     val data = "Hi there"
     val result = accumulateErrors
       .payload[String]("Random string")
-      .validateTry(1, _ =>  Try(data), trueCondition)
+      .validateTry(1, _ => Try(data), trueCondition)
       .result
 
     result.isValid shouldBe true
@@ -279,7 +279,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
   it should "return error when filling payload from failure" in {
     val result = accumulateErrors
       .payload("Random string")
-      .validateTry(1,_ =>  Failure(new Error("Failed")), trueCondition)
+      .validateTry(1, _ => Failure(new Error("Failed")), trueCondition)
       .result
 
     result.isValid shouldBe false

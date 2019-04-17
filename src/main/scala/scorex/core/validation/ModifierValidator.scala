@@ -68,7 +68,6 @@ object ModifierValidator {
 /** This is the place where all the validation DSL lives */
 case class ValidationState[T](result: ValidationResult[T], settings: ValidationSettings)(implicit e: ScorexEncoder) {
 
-
   /** Create the next validation state as the result of given `operation` */
   def pass[R](operation: => ValidationResult[R]): ValidationState[R] = {
     lazy val newRes = operation
@@ -78,7 +77,6 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
       case invalid@Invalid(_) => copy(result = invalid.accumulateErrors(operation))
     }
   }
-
 
   /** Replace payload with the new one, discarding current payload value. This method catches throwables
     */
@@ -183,6 +181,3 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
   def validate(operation: => ValidationResult[T]): ValidationState[T] = pass(operation)
 
 }
-
-
-
