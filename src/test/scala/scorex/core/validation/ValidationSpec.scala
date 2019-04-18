@@ -268,7 +268,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
     val data = "Hi there"
     val result = accumulateErrors
       .payload[String]("Random string")
-      .validateTry(1, _ => Try(data), trueCondition)
+      .validateTryFlatten(1, _ => Try(data), trueCondition)
       .result
 
     result.isValid shouldBe true
@@ -279,7 +279,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
   it should "return error when filling payload from failure" in {
     val result = accumulateErrors
       .payload("Random string")
-      .validateTry(1, _ => Failure(new Error("Failed")), trueCondition)
+      .validateTryFlatten(1, _ => Failure(new Error("Failed")), trueCondition)
       .result
 
     result.isValid shouldBe false
@@ -293,7 +293,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
     val expected = data1 / data2
     val result = accumulateErrors
       .payload[Long](data1)
-      .validateTry(1, v => Try(v / data2), _ => true)
+      .validateTryFlatten(1, v => Try(v / data2), _ => true)
       .result
 
     result.isValid shouldBe true
@@ -304,7 +304,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
   it should "return error when aggregating payload from failure" in {
     val result = accumulateErrors
       .payload(1)
-      .validateTry(1, _ => Failure(new Error("Failed")): Try[Int], _ => true)
+      .validateTryFlatten(1, _ => Failure(new Error("Failed")): Try[Int], _ => true)
       .result
 
     result.isValid shouldBe false
@@ -333,7 +333,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
   it should "validate optional for some" in {
     val expression = "123"
     val result = accumulateErrors
-      .validateOrSkip[String](1, Some(expression), falseCondition)
+      .validateOrSkipFlatten[String](1, Some(expression), falseCondition)
       .result
 
     result.isValid shouldBe false
@@ -342,7 +342,7 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
 
   it should "skip optional validation for none" in {
     val result = accumulateErrors
-      .validateOrSkip[String](1, None, falseCondition)
+      .validateOrSkipFlatten[String](1, None, falseCondition)
       .result
 
     result.isValid shouldBe true

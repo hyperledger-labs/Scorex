@@ -144,7 +144,12 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
 
   /** Validate `condition` against payload is `true` or else return the `error`
     */
-  def validateTry(id: Short, operation: T => Try[T], condition: T => Boolean): ValidationState[T] = {
+  def validateTry[A](tryValue: => Try[A], error: Throwable => Invalid)
+                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
+    pass(tryValue.fold(error, v => operation(this, v)))
+  }
+
+  def validateTryFlatten(id: Short, operation: T => Try[T], condition: T => Boolean): ValidationState[T] = {
     pass(result.toTry.flatMap(r => operation(r)) match {
       case Failure(ex) => settings.getError(id, ex)
       case Success(v) if settings.isActive(id) && !condition(v) => settings.getError(id)
@@ -152,11 +157,19 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
     })
   }
 
+
   /** Validate condition against option value if it's not `None`.
     * If given option is `None` then pass the previous result as success.
     * Return `error` if option is `Some` amd condition is `false`
     */
-  def validateOrSkip[A](id: Short, option: => Option[A], condition: A => Boolean): ValidationState[T] = {
+  def validateOrSkip[A](option: => Option[A])
+                       (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
+    option
+      .map(value => pass(operation(this, value)))
+      .getOrElse(this)
+  }
+
+  def validateOrSkipFlatten[A](id: Short, option: => Option[A], condition: A => Boolean): ValidationState[T] = {
     pass(option match {
       case Some(v) if settings.isActive(id) && !condition(v) => settings.getError(id)
       case _ => result
