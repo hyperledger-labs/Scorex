@@ -91,13 +91,13 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
 
   /** Validate the condition is `true` or else return the `error` given
     */
-  def validate(id: Short, condition: => Boolean): ValidationState[T] = {
-    pass(if (!settings.isActive(id) || condition) result else settings.getError(id))
+  def validate(id: Short, condition: => Boolean, details: String = ""): ValidationState[T] = {
+    pass(if (!settings.isActive(id) || condition) result else settings.getError(id, details))
   }
 
   /** Reverse condition: Validate the condition is `false` or else return the `error` given */
-  def validateNot(id: Short, condition: => Boolean): ValidationState[T] = {
-    validate(id, !condition)
+  def validateNot(id: Short, condition: => Boolean, details: String = ""): ValidationState[T] = {
+    validate(id, !condition, details)
   }
 
   /** Validate the first argument equals the second. This should not be used with `ModifierId` of type `Array[Byte]`.
@@ -124,8 +124,8 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
 
   /** Wrap semantic validity to the validation state: if semantic validity was not Valid, then return the `error` given
     */
-  def validateSemantics(id: Short, validity: => ModifierSemanticValidity): ValidationState[T] = {
-    validateNot(id, validity == ModifierSemanticValidity.Invalid)
+  def validateSemantics(id: Short, validity: => ModifierSemanticValidity, details: String = ""): ValidationState[T] = {
+    validateNot(id, validity == ModifierSemanticValidity.Invalid, details)
   }
 
   /** Validate the `condition` is `Success`. Otherwise the `error` callback will be provided with detail
