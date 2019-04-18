@@ -165,13 +165,10 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
 
   /** This could add some sugar when validating elements of a given collection
     */
-  def validateSeq[A](id: Short, seq: Iterable[A], condition: A => Boolean): ValidationState[T] = {
-    if (settings.isActive(id)) {
-      seq.foldLeft(this) { (state, elem) =>
-        state.pass(if (condition(elem)) result else settings.getError(id))
-      }
-    } else {
-      pass(result)
+  def validateSeq[A](seq: Iterable[A])
+                    (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
+    seq.foldLeft(this) { (state, elem) =>
+      state.pass(operation(state, elem))
     }
   }
 
