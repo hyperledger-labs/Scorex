@@ -7,6 +7,10 @@ import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directive.addByNameNullaryApply
 import akka.http.scaladsl.server.{Directive0, Directives, Route}
 
+/**
+  * Provides tools for handling a Cross-Origin Resource Sharing spec workflow
+  * (including `OPTIONS` pre-flight requests).
+  */
 trait CorsHandler extends Directives {
 
   private val corsResponseHeaders: List[ModeledHeader] = List[ModeledHeader](
@@ -19,18 +23,17 @@ trait CorsHandler extends Directives {
     preflightRequestHandler ~ r
   }
 
-  def addCORSHeaders(response: HttpResponse):HttpResponse =
+  def addCorsHeaders(response: HttpResponse): HttpResponse =
     response.withHeaders(corsResponseHeaders)
 
-  private def addAccessControlHeaders: Directive0 = {
+  private def addAccessControlHeaders: Directive0 =
     respondWithHeaders(corsResponseHeaders)
-  }
 
   private def preflightRequestHandler: Route = options {
-    complete(
+    complete {
       HttpResponse(StatusCodes.OK)
         .withHeaders(`Access-Control-Allow-Methods`(OPTIONS, POST, PUT, GET, DELETE))
-    )
+    }
   }
 
 }
