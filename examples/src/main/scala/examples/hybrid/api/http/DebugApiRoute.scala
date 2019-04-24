@@ -21,8 +21,10 @@ case class DebugApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool] 
     with ScorexEncoding {
 
-  override val route: Route = (pathPrefix("debug") & withCors) {
-    infoRoute ~ chain ~ delay ~ myblocks ~ generators
+  override val route: Route = (pathPrefix("debug")) {
+    corsHandler(
+      infoRoute ~ chain ~ delay ~ myblocks ~ generators
+    )
   }
 
   def delay: Route = {

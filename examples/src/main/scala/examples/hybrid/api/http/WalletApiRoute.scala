@@ -27,8 +27,10 @@ case class WalletApiRoute(override val settings: RESTApiSettings, nodeViewHolder
   //TODO move to settings?
   val DefaultFee: Int = 100
 
-  override val route: Route = (pathPrefix("wallet") & withCors) {
-    balances ~ transfer
+  override val route: Route = (pathPrefix("wallet")) {
+    corsHandler(
+      balances ~ transfer
+    )
   }
 
   def transfer: Route = (get & path("transfer")) {
