@@ -27,8 +27,10 @@ case class NodeViewApiRoute[TX <: Transaction]
 
   import scorex.core.NodeViewHolder.ReceivableMessages.GetDataFromCurrentView
 
-  override val route: Route = (pathPrefix("nodeView") & withCors) {
-    openSurface ~ persistentModifierById ~ pool
+  override val route: Route = pathPrefix("nodeView") {
+    corsHandler(
+      openSurface ~ persistentModifierById ~ pool
+    )
   }
 
   type PM <: PersistentNodeViewModifier
