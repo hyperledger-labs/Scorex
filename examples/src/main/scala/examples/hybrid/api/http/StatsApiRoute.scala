@@ -19,8 +19,10 @@ case class StatsApiRoute(override val settings: RESTApiSettings, nodeViewHolderR
   extends ApiRouteWithFullView[HybridHistory, HBoxStoredState, HBoxWallet, SimpleBoxTransactionMemPool]
     with ScorexEncoding {
 
-  override val route: Route = (pathPrefix("stats") & withCors) {
-    tail ~ meanDifficulty
+  override val route: Route = (pathPrefix("stats")) {
+    corsHandler(
+      tail ~ meanDifficulty
+    )
   }
 
   def tail: Route = (get & path("tail" / IntNumber)) { count =>

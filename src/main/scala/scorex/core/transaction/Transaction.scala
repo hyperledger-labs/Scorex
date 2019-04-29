@@ -8,8 +8,7 @@ import scorex.util.{ModifierId, bytesToId}
 /**
   * A transaction is an atomic state modifier
   */
-
-abstract class Transaction extends EphemerealNodeViewModifier {
+trait Transaction extends EphemerealNodeViewModifier {
   override val modifierTypeId: ModifierTypeId = Transaction.ModifierTypeId
 
   val messageToSign: Array[Byte]
