@@ -66,8 +66,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   import PeerConnectionHandler.ReceivableMessages._
 
-  val daRef: ActorRef = ???
-
   private val connection = connectionDescription.connection
   private val direction = connectionDescription.direction
   private val ownSocketAddress = connectionDescription.ownSocketAddress
