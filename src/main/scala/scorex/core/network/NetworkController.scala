@@ -261,8 +261,7 @@ class NetworkController(settings: NetworkSettings,
     val connectionDescription = ConnectionDescription(
       connection, direction, getNodeAddressForPeer(local), remote, peerFeatures)
 
-    val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef, daRef,
-      scorexContext, connectionDescription)
+    val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef, scorexContext, connectionDescription)
 
     val handler = context.actorOf(handlerProps) // launch connection handler
     context.watch(handler)
