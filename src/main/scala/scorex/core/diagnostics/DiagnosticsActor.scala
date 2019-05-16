@@ -22,7 +22,7 @@ class DiagnosticsActor extends Actor with ScorexLogging {
 
   override def preStart(): Unit = {
     Seq(outWriter, inWriter, smJournalWriter, mProfilesWriter, cacheJournalWriter, internalMsgsWriter).foreach(_.write("["))
-    log.info("Starting diagnostics actor...")
+    log.info("Starting diagnostics actor ..")
     context.system.eventStream.subscribe(self, classOf[SyntacticallySuccessfulModifier[_]])
   }
 
