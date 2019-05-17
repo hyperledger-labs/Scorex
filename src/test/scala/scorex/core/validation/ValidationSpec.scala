@@ -21,8 +21,8 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
     10.toShort -> (_ => error("Deactivated check"), false)
   )
 
-  val ffSettings: ValidationSettings = new MapValidationSettings(true, map)
-  val aeSettings: ValidationSettings = new MapValidationSettings(false, map)
+  val ffSettings: ValidationSettings = constructValidationSettings(true, map)
+  val aeSettings: ValidationSettings = constructValidationSettings(false, map)
 
   /** Start validation in Fail-Fast mode */
   def failFast: ValidationState[Unit] = ModifierValidator.apply(ffSettings)
@@ -349,4 +349,21 @@ class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
     result shouldBe a[Valid[_]]
   }
 
+
+
+  def constructValidationSettings(failFast: Boolean, map: Map[Short, (String => Invalid, Boolean)]): ValidationSettings = {
+
+    new ValidationSettings {
+
+      override val isFailFast: Boolean = failFast
+
+      override def getError(id: Short, details: String): Invalid = {
+        map.get(id).map(_._1(details)).getOrElse(ModifierValidator.fatal("Unknown message"))
+      }
+
+      override def isActive(id: Short): Boolean = map.get(id).forall(_._2)
+
+    }
+
+  }
 }

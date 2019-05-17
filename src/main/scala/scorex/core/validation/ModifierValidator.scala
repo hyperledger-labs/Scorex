@@ -8,15 +8,13 @@ import scorex.util.ModifierId
 
 import scala.util.{Failure, Success, Try}
 
-/** Base trait for the modifier validation process.
+/**
+  * Object with helpers for the modifier validation process.
   *
-  * This code was pretty much inspired by cats `Validated` facility. There is a reason for the original cats facility
-  * not to suite well for our code. It doesn't suit well for modifier validation in Ergo as being supposed mostly
-  * for the web from validation. It's really good in accumulating all the validated fields and constructing
-  * a composite object from all these fields.
+  * Allows to initialize ValidationState from current ValidationSettings,
   *
-  * We have a pretty different case, because we need to perform multiple checks for the same object without
-  * any transformation. This looks too messy when we try to achieve this via cats `Validated`. See the example of that
+  * It is designed to perform multiple checks for the same object without any transformation.
+  * See the example of that
   * kind of validation in Ergo `org.ergoplatform.nodeView.history.storage.modifierprocessors.HeadersProcessor.HeaderValidator`.
   * Some other examples could also be found in `scorex.core.validation.ValidationSpec`.
   *
@@ -142,13 +140,15 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
     validateNoFailure(id, Try(block))
   }
 
-  /** Validate `condition` against payload is `true` or else return the `error`
+  /** Validate `operation` against payload is `Valid` or else return the `error`
     */
   def validateTry[A](tryValue: => Try[A], error: Throwable => Invalid)
                     (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
     pass(tryValue.fold(error, v => operation(this, v)))
   }
 
+  /** Validate `condition` against payload is `true` or else return the `error`
+    */
   def validateTryFlatten(id: Short, operation: T => Try[T], condition: T => Boolean): ValidationState[T] = {
     pass(result.toTry.flatMap(r => operation(r)) match {
       case Failure(ex) => settings.getError(id, ex)
@@ -158,9 +158,9 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
   }
 
 
-  /** Validate condition against option value if it's not `None`.
+  /** Validate `operation` against option value if it's not `None`.
     * If given option is `None` then pass the previous result as success.
-    * Return `error` if option is `Some` amd condition is `false`
+    * Return `error` if option is `Some` amd condition is `Invalid`
     */
   def validateOrSkip[A](option: => Option[A])
                        (operation: (ValidationState[T], A) => ValidationResult[T]): ValidationState[T] = {
@@ -169,6 +169,10 @@ case class ValidationState[T](result: ValidationResult[T], settings: ValidationS
       .getOrElse(this)
   }
 
+  /** Validate condition against option value if it's not `None`.
+    * If given option is `None` then pass the previous result as success.
+    * Return `error` if option is `Some` amd condition is `false`
+    */
   def validateOrSkipFlatten[A](id: Short, option: => Option[A], condition: A => Boolean): ValidationState[T] = {
     pass(option match {
       case Some(v) if settings.isActive(id) && !condition(v) => settings.getError(id)
