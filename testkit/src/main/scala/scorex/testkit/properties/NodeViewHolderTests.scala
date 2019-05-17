@@ -262,7 +262,7 @@ MPool <: MemoryPool[TX, MPool]]
     * notion of switching, so what we check finally is that last block from the second chain is in "open surface"
     * (list of open blocks which do not have successors yet, size of the list is 1 in case of blockchain)
     */
-  property("NodeViewHolder: forking - switching") {
+  ignore("NodeViewHolder: forking - switching") {
     withFixture { ctx =>
       import ctx._
       val p = TestProbe()
@@ -302,7 +302,7 @@ MPool <: MemoryPool[TX, MPool]]
     }
   }
 
-  property("NodeViewHolder: forking - switching with an invalid block") {
+  ignore("NodeViewHolder: forking - switching with an invalid block") {
     withFixture { ctx =>
       import ctx._
 
