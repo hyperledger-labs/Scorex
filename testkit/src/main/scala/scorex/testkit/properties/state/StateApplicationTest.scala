@@ -71,7 +71,7 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
         val modifier = semanticallyValidModifier(state)
         buf += modifier
         val sTry = state.applyModifier(modifier)
-        sTry.toOption shouldBe defined
+        sTry shouldBe 'success
         sTry.get
       }
 
@@ -83,7 +83,7 @@ trait StateApplicationTest[PM <: PersistentNodeViewModifier, ST <: MinimalState[
 
       val s4 = buf.foldLeft(s3) { case (state, m) =>
         val sTry = state.applyModifier(m)
-        sTry.toOption shouldBe defined
+        sTry shouldBe 'success
         sTry.get
       }
 
