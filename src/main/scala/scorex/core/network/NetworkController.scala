@@ -125,6 +125,7 @@ class NetworkController(settings: NetworkSettings,
       val connectionDirection: ConnectionDirection =
         if (unconfirmedConnections.contains(remoteAddress)) Outgoing else Incoming
       val connectionId = ConnectionId(remoteAddress, localAddress, connectionDirection)
+      log.info(s"Unconfirmed connection: ($remoteAddress, $localAddress) => $connectionId")
       if (connectionDirection.isOutgoing) createPeerConnectionHandler(connectionId, sender())
       else peerManagerRef ! ConfirmConnection(connectionId, sender())
 
