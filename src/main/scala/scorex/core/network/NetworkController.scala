@@ -279,6 +279,7 @@ class NetworkController(settings: NetworkSettings,
       val shouldDrop = isSelf(remoteAddress) ||
         connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)
       if (shouldDrop) {
+        log.info(s"Reason to drop $remoteAddress: isSelf=${isSelf(remoteAddress)} || exists=${connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)}")
         dropConnection(connectedPeer, peerAddress)
       } else {
         if (peerInfo.peerSpec.reachablePeer) peerManagerRef ! AddOrUpdatePeer(peerInfo)

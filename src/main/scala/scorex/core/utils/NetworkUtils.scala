@@ -20,6 +20,10 @@ object NetworkUtils {
   def isSelf(peerAddress: InetSocketAddress,
              bindAddress: InetSocketAddress,
              externalNodeAddress: Option[InetSocketAddress]): Boolean = {
+    println(s"peerAddress: InetSocketAddress = $peerAddress")
+    println(s"bindAddress: InetSocketAddress = $bindAddress")
+    println(s"externalNodeAddress: Option[InetSocketAddress] = $externalNodeAddress")
+    println(s">> listenedAddresses = ${NetworkUtils.getListenAddresses(bindAddress)}")
     NetworkUtils.getListenAddresses(bindAddress).contains(peerAddress) ||
       externalNodeAddress.contains(peerAddress)
   }
