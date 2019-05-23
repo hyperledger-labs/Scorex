@@ -253,6 +253,8 @@ class NetworkController(settings: NetworkSettings,
     val connectionDescription = ConnectionDescription(
       connection, connectionId, getNodeAddressForPeer(connectionId.localAddress), peerFeatures)
 
+    log.info(s"getNodeAddressForPeer(${connectionId.localAddress}) = ${getNodeAddressForPeer(connectionId.localAddress)}")
+
     val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
       scorexContext, connectionDescription)
 
@@ -271,7 +273,6 @@ class NetworkController(settings: NetworkSettings,
       connections -= connectedPeer.connectionId.remoteAddress
     }
     connectionForHandler(peerHandler).foreach { connectedPeer =>
-      log.info(s"Checking connected peer: ${connectedPeer.connectionId}")
       val remoteAddress = connectedPeer.connectionId.remoteAddress
       val peerAddress = peerInfo.peerSpec.address.getOrElse(remoteAddress)
 
@@ -279,7 +280,6 @@ class NetworkController(settings: NetworkSettings,
       val shouldDrop = isSelf(remoteAddress) ||
         connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)
       if (shouldDrop) {
-        log.info(s"Reason to drop $remoteAddress: isSelf=${isSelf(remoteAddress)} || exists=${connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)}")
         dropConnection(connectedPeer, peerAddress)
       } else {
         if (peerInfo.peerSpec.reachablePeer) peerManagerRef ! AddOrUpdatePeer(peerInfo)

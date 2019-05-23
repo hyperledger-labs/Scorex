@@ -241,11 +241,14 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   }
 
   private def createHandshakeMessage() = {
-    Handshake(PeerSpec(settings.agentName,
-      Version(settings.appVersion),
-      settings.nodeName,
-      ownSocketAddress,
-      localFeatures),
+    Handshake(
+      PeerSpec(
+        settings.agentName,
+        Version(settings.appVersion),
+        settings.nodeName,
+        ownSocketAddress,
+        localFeatures
+      ),
       scorexContext.timeProvider.time()
     )
   }
