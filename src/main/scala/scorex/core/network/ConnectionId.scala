@@ -9,5 +9,6 @@ final case class ConnectionId(remoteAddress: InetSocketAddress,
                               localAddress: InetSocketAddress,
                               direction: ConnectionDirection) {
 
-  override def toString: String = s"ConnectionId(${remoteAddress.toString}, direction=$direction)"
+  override def toString: String =
+    s"ConnectionId(remote=${remoteAddress.toString}, local=${localAddress.toString}, direction=$direction)"
 }

@@ -265,11 +265,13 @@ class NetworkController(settings: NetworkSettings,
 
   private def handleHandshake(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
     def dropConnection(connectedPeer: ConnectedPeer, peerAddress: InetSocketAddress): Unit = {
+      log.info(s"Dropping connection to ${connectedPeer.connectionId}")
       connectedPeer.handlerRef ! CloseConnection
       peerManagerRef ! RemovePeer(peerAddress)
       connections -= connectedPeer.connectionId.remoteAddress
     }
     connectionForHandler(peerHandler).foreach { connectedPeer =>
+      log.info(s"Checking connected peer: ${connectedPeer.connectionId}")
       val remoteAddress = connectedPeer.connectionId.remoteAddress
       val peerAddress = peerInfo.peerSpec.address.getOrElse(remoteAddress)
 
