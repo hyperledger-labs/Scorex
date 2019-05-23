@@ -9,8 +9,5 @@ final case class ConnectionId(remoteAddress: InetSocketAddress,
                               localAddress: InetSocketAddress,
                               direction: ConnectionDirection) {
 
-  // Real endpoint address we expect to work with
-  val address: InetSocketAddress = if (direction.isIncoming) localAddress else remoteAddress
-
-  override def toString: String = s"ConnectionId(${address.toString}, direction=$direction)"
+  override def toString: String = s"ConnectionId(${remoteAddress.toString}, direction=$direction)"
 }

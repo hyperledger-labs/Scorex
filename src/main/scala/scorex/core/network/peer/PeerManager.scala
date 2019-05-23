@@ -36,7 +36,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 
     case ConfirmConnection(connectionId, handlerRef) =>
       log.info(s"Connection confirmation request: $connectionId")
-      if (peerDatabase.isBlacklisted(connectionId.address)) sender() ! ConnectionDenied(connectionId, handlerRef)
+      if (peerDatabase.isBlacklisted(connectionId.remoteAddress)) sender() ! ConnectionDenied(connectionId, handlerRef)
       else sender() ! ConnectionConfirmed(connectionId, handlerRef)
 
     case AddOrUpdatePeer(peerInfo) =>

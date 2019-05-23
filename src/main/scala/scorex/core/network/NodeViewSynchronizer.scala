@@ -392,11 +392,11 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   protected def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
-    networkControllerRef ! BlacklistPeer(peer.connectionId.address, PenaltyType.SpamPenalty)
+    networkControllerRef ! BlacklistPeer(peer.connectionId.remoteAddress, PenaltyType.SpamPenalty)
   }
 
   protected def penalizeMisbehavingPeer(peer: ConnectedPeer): Unit = {
-    networkControllerRef ! BlacklistPeer(peer.connectionId.address, PenaltyType.MisbehaviorPenalty)
+    networkControllerRef ! BlacklistPeer(peer.connectionId.remoteAddress, PenaltyType.MisbehaviorPenalty)
   }
 
   /**

@@ -138,7 +138,7 @@ class NetworkController(settings: NetworkSettings,
       createPeerConnectionHandler(connectionId, handlerRef)
 
     case ConnectionDenied(connectionId, handlerRef) =>
-      log.info(s"Incoming connection from ${connectionId.address} denied")
+      log.info(s"Incoming connection from ${connectionId.remoteAddress} denied")
       handlerRef ! Close
 
     case Handshaked(connectedPeer) =>
@@ -213,10 +213,12 @@ class NetworkController(settings: NetworkSettings,
       case Some(remote) =>
         if (connectionForPeerAddress(remote).isEmpty && !unconfirmedConnections.contains(remote)) {
           unconfirmedConnections += remote
-          tcpManager ! Connect(remote,
+          tcpManager ! Connect(
+            remoteAddress = remote,
             options = KeepAlive(true) :: Nil,
             timeout = Some(settings.connectionTimeout),
-            pullMode = true)
+            pullMode = true
+          )
         } else {
           log.warn(s"Connection to peer $remote is already established")
         }
@@ -408,9 +410,9 @@ class NetworkController(settings: NetworkSettings,
     */
   private def blacklist(peer: ConnectedPeer, penalty: PenaltyType): Unit = {
     connections = connections.filterNot { x => // clear all connections related to banned peer ip
-      Option(peer.connectionId.address.getAddress).exists(Option(x._1.getAddress).contains(_))
+      Option(peer.connectionId.remoteAddress.getAddress).exists(Option(x._1.getAddress).contains(_))
     }
-    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.connectionId.address, penalty)
+    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.connectionId.remoteAddress, penalty)
     peer.handlerRef ! CloseConnection
   }
 

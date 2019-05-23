@@ -99,7 +99,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
-          selfPeer.foreach(c => peerManagerRef ! BlacklistPeer(c.connectionId.address, PenaltyType.PermanentPenalty))
+          selfPeer.foreach(c => peerManagerRef ! BlacklistPeer(c.connectionId.remoteAddress, PenaltyType.PermanentPenalty))
           self ! CloseConnection
       }
   }
