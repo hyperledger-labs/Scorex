@@ -250,10 +250,9 @@ class NetworkController(settings: NetworkSettings,
         new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort))
       else scorexContext.features
 
+    // todo: getNodeAddressForPeer(connectionId.localAddress) doesn't work here.
     val connectionDescription = ConnectionDescription(
       connection, connectionId, getNodeAddressForPeer(connectionId.localAddress), peerFeatures)
-
-    log.info(s"getNodeAddressForPeer(${connectionId.localAddress}) = ${getNodeAddressForPeer(connectionId.localAddress)}")
 
     val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
       scorexContext, connectionDescription)
@@ -267,7 +266,6 @@ class NetworkController(settings: NetworkSettings,
 
   private def handleHandshake(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
     def dropConnection(connectedPeer: ConnectedPeer, peerAddress: InetSocketAddress): Unit = {
-      log.info(s"Dropping connection to ${connectedPeer.connectionId}")
       connectedPeer.handlerRef ! CloseConnection
       peerManagerRef ! RemovePeer(peerAddress)
       connections -= connectedPeer.connectionId.remoteAddress
@@ -283,7 +281,7 @@ class NetworkController(settings: NetworkSettings,
         dropConnection(connectedPeer, peerAddress)
       } else {
         if (peerInfo.peerSpec.reachablePeer) peerManagerRef ! AddOrUpdatePeer(peerInfo)
-        else dropConnection(connectedPeer, peerAddress)
+        else dropConnection(connectedPeer, peerAddress) // todo: should we drop conn here (peer responded)?
 
         val updatedConnectedPeer = connectedPeer.copy(peerInfo = Some(peerInfo))
         connections += remoteAddress -> updatedConnectedPeer
