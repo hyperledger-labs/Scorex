@@ -20,7 +20,7 @@ object PenaltyType {
   }
 
   case object PermanentPenalty extends PenaltyType {
-    override val penaltyScore: Int = Int.MaxValue
+    override val penaltyScore: Int = 1000000000
     override val isPermanent: Boolean = true
   }
 

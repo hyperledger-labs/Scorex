@@ -6,6 +6,8 @@ import scorex.core.settings.ScorexSettings
 import scorex.core.utils.TimeProvider
 import scorex.util.ScorexLogging
 
+import scala.concurrent.duration._
+
 /**
   * In-memory peer database implementation supporting temporal blacklisting.
   */
@@ -114,7 +116,7 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
       case PenaltyType.NonDeliveryPenalty | PenaltyType.MisbehaviorPenalty | PenaltyType.SpamPenalty =>
         settings.network.temporalBanDuration.toMillis
       case PenaltyType.PermanentPenalty =>
-        Long.MaxValue
+        (360 * 10).days.toMillis
     }
 
 }
