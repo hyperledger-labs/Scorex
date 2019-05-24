@@ -274,6 +274,8 @@ class NetworkController(settings: NetworkSettings,
       val remoteAddress = connectedPeer.connectionId.remoteAddress
       val peerAddress = peerInfo.peerSpec.address.getOrElse(remoteAddress)
 
+      log.info(s"Handling handshake: declaredAddress = " + peerInfo.peerSpec.declaredAddress)
+
       //drop connection to self if occurred or peer already connected
       val shouldDrop = isSelf(remoteAddress) ||
         connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)
