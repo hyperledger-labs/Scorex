@@ -75,6 +75,14 @@ class NetworkController(settings: NetworkSettings,
   //bind to listen incoming connections
   tcpManager ! Bind(self, bindAddress, options = KeepAlive(true) :: Nil, pullMode = false)
 
+  override def receive: Receive =
+    bindingLogic orElse
+      businessLogic orElse
+      peerCommands orElse
+      connectionEvents orElse
+      interfaceCalls orElse
+      nonsense
+
   private def bindingLogic: Receive = {
     case Bound(_) =>
       log.info("Successfully bound to the port " + settings.bindAddress.getPort)
@@ -85,7 +93,7 @@ class NetworkController(settings: NetworkSettings,
       context stop self
   }
 
-  def businessLogic: Receive = {
+  private def businessLogic: Receive = {
     //a message coming in from another peer
     case Message(spec, Left(msgBytes), Some(remote)) =>
       val msgId = spec.messageCode
@@ -108,9 +116,13 @@ class NetworkController(settings: NetworkSettings,
       filterConnections(sendingStrategy, message.spec.protocolVersion).foreach { connectedPeer =>
         connectedPeer.handlerRef ! message
       }
+
+    case RegisterMessageSpecs(specs, handler) =>
+      log.info(s"Registering handlers for ${specs.map(s => s.messageCode -> s.messageName)}")
+      messageHandlers ++= specs.map(_.messageCode -> handler)
   }
 
-  def peerLogic: Receive = {
+  private def peerCommands: Receive = {
     case ConnectTo(peer) =>
       connectTo(peer)
 
@@ -120,7 +132,9 @@ class NetworkController(settings: NetworkSettings,
 
     case BlacklistPeer(peerAddress, penaltyType) =>
       blacklist(peerAddress, penaltyType)
+  }
 
+  private def connectionEvents: Receive = {
     case Connected(remoteAddress, localAddress) if connectionForPeerAddress(remoteAddress).isEmpty =>
       val connectionDirection: ConnectionDirection =
         if (unconfirmedConnections.contains(remoteAddress)) Outgoing else Incoming
@@ -160,10 +174,13 @@ class NetworkController(settings: NetworkSettings,
         unconfirmedConnections -= remoteAddress
         context.system.eventStream.publish(DisconnectedPeer(remoteAddress))
       }
+
+    case _: ConnectionClosed =>
+      log.info("Denied connection has been closed")
   }
 
   //calls from API / application
-  def interfaceCalls: Receive = {
+  private def interfaceCalls: Receive = {
     case GetConnectedPeers =>
       sender() ! connections.values.flatMap(_.peerInfo).toSeq
 
@@ -176,11 +193,7 @@ class NetworkController(settings: NetworkSettings,
       context stop self
   }
 
-  override def receive: Receive = bindingLogic orElse businessLogic orElse peerLogic orElse interfaceCalls orElse {
-    case RegisterMessageSpecs(specs, handler) =>
-      log.info(s"Registering handlers for ${specs.map(s => s.messageCode -> s.messageName)}")
-      messageHandlers ++= specs.map(_.messageCode -> handler)
-
+  private def nonsense: Receive = {
     case CommandFailed(cmd: Command) =>
       log.info("Failed to execute command : " + cmd)
 
@@ -250,9 +263,12 @@ class NetworkController(settings: NetworkSettings,
         new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort))
       else scorexContext.features
 
-    // todo: getNodeAddressForPeer(connectionId.localAddress) doesn't work here.
-    val connectionDescription = ConnectionDescription(
-      connection, connectionId, getNodeAddressForPeer(connectionId.localAddress), peerFeatures)
+    val selfAddressOpt = getNodeAddressForPeer(connectionId.localAddress)
+
+    if (selfAddressOpt.isEmpty)
+      log.warn("Unable to define external address. Specify it manually in `scorex.network.declaredAddress`.")
+
+    val connectionDescription = ConnectionDescription(connection, connectionId, selfAddressOpt, peerFeatures)
 
     val handlerProps: Props = PeerConnectionHandlerRef.props(settings, self, peerManagerRef,
       scorexContext, connectionDescription)
@@ -264,26 +280,20 @@ class NetworkController(settings: NetworkSettings,
     unconfirmedConnections -= connectionId.remoteAddress
   }
 
-  private def handleHandshake(peerInfo: PeerInfo, peerHandler: ActorRef): Unit = {
-    def dropConnection(connectedPeer: ConnectedPeer, peerAddress: InetSocketAddress): Unit = {
-      connectedPeer.handlerRef ! CloseConnection
-      peerManagerRef ! RemovePeer(peerAddress)
-      connections -= connectedPeer.connectionId.remoteAddress
-    }
-    connectionForHandler(peerHandler).foreach { connectedPeer =>
+  private def handleHandshake(peerInfo: PeerInfo, peerHandlerRef: ActorRef): Unit = {
+    connectionForHandler(peerHandlerRef).foreach { connectedPeer =>
       val remoteAddress = connectedPeer.connectionId.remoteAddress
       val peerAddress = peerInfo.peerSpec.address.getOrElse(remoteAddress)
 
-      log.info(s"Handling handshake: declaredAddress = " + peerInfo.peerSpec.declaredAddress)
-
       //drop connection to self if occurred or peer already connected
       val shouldDrop = isSelf(remoteAddress) ||
-        connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandler)
+        connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandlerRef)
       if (shouldDrop) {
-        dropConnection(connectedPeer, peerAddress)
+        connectedPeer.handlerRef ! CloseConnection
+        peerManagerRef ! RemovePeer(peerAddress)
+        connections -= connectedPeer.connectionId.remoteAddress
       } else {
-        if (peerInfo.peerSpec.reachablePeer) peerManagerRef ! AddOrUpdatePeer(peerInfo)
-        else dropConnection(connectedPeer, peerAddress) // todo: should we drop conn here (peer responded)?
+        peerManagerRef ! AddOrUpdatePeer(peerInfo)
 
         val updatedConnectedPeer = connectedPeer.copy(peerInfo = Some(peerInfo))
         connections += remoteAddress -> updatedConnectedPeer

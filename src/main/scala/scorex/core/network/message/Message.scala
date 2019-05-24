@@ -2,6 +2,7 @@ package scorex.core.network.message
 
 import java.nio.ByteOrder
 
+import akka.actor.DeadLetterSuppression
 import akka.util.ByteString
 import scorex.core.network.ConnectedPeer
 import scorex.crypto.hash.Blake2b256
@@ -10,7 +11,8 @@ import scala.util.{Success, Try}
 
 case class Message[Content](spec: MessageSpec[Content],
                             input: Either[Array[Byte], Content],
-                            source: Option[ConnectedPeer]) {
+                            source: Option[ConnectedPeer])
+  extends DeadLetterSuppression {
 
   import Message._
 
