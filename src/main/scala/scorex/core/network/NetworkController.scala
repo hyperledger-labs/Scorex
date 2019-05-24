@@ -13,7 +13,7 @@ import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{Disconnected
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages._
-import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager}
+import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager, PenaltyType}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.NetworkUtils
 import scorex.util.ScorexLogging
@@ -109,7 +109,7 @@ class NetworkController(settings: NetworkSettings,
           }
         case Failure(e) =>
           log.error(s"Failed to deserialize data from $remote: ", e)
-          blacklist(remote, PenaltyType.PermanentPenalty)
+          penalize(remote.connectionId.remoteAddress, PenaltyType.PermanentPenalty)
       }
 
     case SendToNetwork(message, sendingStrategy) =>
@@ -130,8 +130,11 @@ class NetworkController(settings: NetworkSettings,
       log.info(s"Disconnected from ${peer.connectionId}")
       peer.handlerRef ! CloseConnection
 
-    case BlacklistPeer(peerAddress, penaltyType) =>
-      blacklist(peerAddress, penaltyType)
+    case PenalizePeer(peerAddress, penaltyType) =>
+      penalize(peerAddress, penaltyType)
+
+    case Blacklisted(peerAddress) =>
+      blacklist(peerAddress)
   }
 
   private def connectionEvents: Receive = {
@@ -420,19 +423,21 @@ class NetworkController(settings: NetworkSettings,
   }
 
   /**
-    * Close connection and temporarily ban peer.
+    * Close connection and ban peer.
     */
-  private def blacklist(peer: ConnectedPeer, penalty: PenaltyType): Unit = {
-    connections = connections.filterNot { x => // clear all connections related to banned peer ip
-      Option(peer.connectionId.remoteAddress.getAddress).exists(Option(x._1.getAddress).contains(_))
+  private def blacklist(peerAddress: InetSocketAddress): Unit =
+    connections.get(peerAddress).foreach { peer =>
+      connections = connections.filterNot { case (address, _) => // clear all connections related to banned peer ip
+        Option(peer.connectionId.remoteAddress.getAddress).exists(Option(address.getAddress).contains(_))
+      }
+      peer.handlerRef ! CloseConnection
     }
-    peerManagerRef ! PeerManager.ReceivableMessages.AddToBlacklist(peer.connectionId.remoteAddress, penalty)
-    peer.handlerRef ! CloseConnection
-  }
 
-  private def blacklist(peerAddress: InetSocketAddress, penalty: PenaltyType): Unit = {
-    connections.get(peerAddress).foreach(blacklist(_, penalty))
-  }
+  /**
+    * Register a new penalty for given peer address.
+    */
+  private def penalize(peerAddress: InetSocketAddress, penaltyType: PenaltyType): Unit =
+    peerManagerRef ! PeerManager.ReceivableMessages.Penalize(peerAddress, penaltyType)
 
 }
 
@@ -454,7 +459,7 @@ object NetworkController {
 
     case class DisconnectFrom(peer: ConnectedPeer)
 
-    case class BlacklistPeer(address: InetSocketAddress, penaltyType: PenaltyType)
+    case class PenalizePeer(address: InetSocketAddress, penaltyType: PenaltyType)
 
     case object GetConnectedPeers
 

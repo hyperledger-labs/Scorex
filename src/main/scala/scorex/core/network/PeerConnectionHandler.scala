@@ -5,11 +5,11 @@ import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.{ByteString, CompactByteString}
 import scorex.core.app.{ScorexContext, Version}
-import scorex.core.network.NetworkController.ReceivableMessages.{BlacklistPeer, Handshaked}
+import scorex.core.network.NetworkController.ReceivableMessages.{Handshaked, PenalizePeer}
 import scorex.core.network.PeerConnectionHandler.ReceivableMessages
 import scorex.core.network.PeerFeature.Serializers
 import scorex.core.network.message.{HandshakeSpec, MessageSerializer}
-import scorex.core.network.peer.PeerInfo
+import scorex.core.network.peer.{PeerInfo, PenaltyType}
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.settings.NetworkSettings
 import scorex.util.ScorexLogging
@@ -99,7 +99,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
-          selfPeer.foreach(c => peerManagerRef ! BlacklistPeer(c.connectionId.remoteAddress, PenaltyType.PermanentPenalty))
+          selfPeer.foreach(c => peerManagerRef ! PenalizePeer(c.connectionId.remoteAddress, PenaltyType.PermanentPenalty))
           self ! CloseConnection
       }
   }

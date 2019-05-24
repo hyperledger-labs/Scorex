@@ -51,7 +51,7 @@ class InMemoryPeerDatabaseSpec extends NetworkTests {
     val db = newDb
     db.addOrUpdateKnownPeer(getPeerInfo(peerAddress1))
     db.addOrUpdateKnownPeer(getPeerInfo(peerAddress2))
-    db.addToBlacklist(peerAddress1)
+    db.addToBlacklist(peerAddress1, PenaltyType.PermanentPenalty)
 
     db.isBlacklisted(peerAddress1.getAddress) shouldBe true
     db.isBlacklisted(peerAddress2.getAddress) shouldBe false
@@ -63,7 +63,7 @@ class InMemoryPeerDatabaseSpec extends NetworkTests {
     val peerInfo1 = getPeerInfo(peerAddress1)
     db.addOrUpdateKnownPeer(peerInfo1)
     db.addOrUpdateKnownPeer(getPeerInfo(peerAddress2))
-    db.addToBlacklist(peerAddress2)
+    db.addToBlacklist(peerAddress2, PenaltyType.PermanentPenalty)
 
     db.knownPeers shouldBe Map(peerAddress1 -> peerInfo1)
   }

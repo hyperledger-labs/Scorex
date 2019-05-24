@@ -47,15 +47,15 @@ case class NetworkSettings(nodeName: String,
                            magicBytes: Array[Byte],
                            getPeersInterval: FiniteDuration,
                            maxPeerSpecObjects: Int,
-                           misbehaviorBanDuration: FiniteDuration,
-                           spamBanDuration: FiniteDuration)
+                           temporalBanDuration: FiniteDuration,
+                           penaltySafeInterval: FiniteDuration,
+                           penaltyScoreThreshold: Int)
 
 case class ScorexSettings(dataDir: File,
                           logDir: File,
                           network: NetworkSettings,
                           restApi: RESTApiSettings,
-                          ntp: NetworkTimeProviderSettings
-                         )
+                          ntp: NetworkTimeProviderSettings)
 
 
 object ScorexSettings extends ScorexLogging with SettingsReaders {

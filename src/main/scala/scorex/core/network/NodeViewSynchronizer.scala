@@ -9,10 +9,11 @@ import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, Modifi
 import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ModifiersStatus.Requested
-import scorex.core.network.NetworkController.ReceivableMessages.{BlacklistPeer, RegisterMessageSpecs, SendToNetwork}
+import scorex.core.network.NetworkController.ReceivableMessages.{PenalizePeer, RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
+import scorex.core.network.peer.PenaltyType
 import scorex.core.serialization.ScorexSerializer
 import scorex.core.settings.NetworkSettings
 import scorex.core.transaction.state.StateReader
@@ -384,19 +385,15 @@ MR <: MempoolReader[TX] : ClassTag]
   }
 
   protected def penalizeNonDeliveringPeer(peer: ConnectedPeer): Unit = {
-    //todo: do something less harsh than blacklisting?
-    //todo: proposal: add a new field to PeerInfo to count how many times
-    //todo: the peer has been penalized for not delivering. In PeerManager,
-    //todo: add something similar to FilterPeers to return only peers that
-    //todo: have not been penalized too many times.
+    networkControllerRef ! PenalizePeer(peer.connectionId.remoteAddress, PenaltyType.NonDeliveryPenalty)
   }
 
   protected def penalizeSpammingPeer(peer: ConnectedPeer): Unit = {
-    networkControllerRef ! BlacklistPeer(peer.connectionId.remoteAddress, PenaltyType.SpamPenalty)
+    networkControllerRef ! PenalizePeer(peer.connectionId.remoteAddress, PenaltyType.SpamPenalty)
   }
 
   protected def penalizeMisbehavingPeer(peer: ConnectedPeer): Unit = {
-    networkControllerRef ! BlacklistPeer(peer.connectionId.remoteAddress, PenaltyType.MisbehaviorPenalty)
+    networkControllerRef ! PenalizePeer(peer.connectionId.remoteAddress, PenaltyType.MisbehaviorPenalty)
   }
 
   /**
