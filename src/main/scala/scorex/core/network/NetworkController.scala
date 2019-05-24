@@ -248,13 +248,14 @@ class NetworkController(settings: NetworkSettings,
     */
   private def createPeerConnectionHandler(connectionId: ConnectionId,
                                           connection: ActorRef): Unit = {
-    val logMsg = connectionId.direction match {
-      case Incoming =>
-        s"New incoming connection from ${connectionId.localAddress} established (bound to local ${connectionId.remoteAddress})"
-      case Outgoing =>
-        s"New outgoing connection to ${connectionId.remoteAddress} established (bound to local ${connectionId.localAddress})"
+    log.info {
+      connectionId.direction match {
+        case Incoming =>
+          s"New incoming connection from ${connectionId.remoteAddress} established (bound to local ${connectionId.localAddress})"
+        case Outgoing =>
+          s"New outgoing connection to ${connectionId.remoteAddress} established (bound to local ${connectionId.localAddress})"
+      }
     }
-    log.info(logMsg)
 
     val isLocal = connectionId.remoteAddress.getAddress.isSiteLocalAddress ||
       connectionId.remoteAddress.getAddress.isLoopbackAddress
