@@ -93,6 +93,15 @@ final class InMemoryPeerDatabase(settings: ScorexSettings, timeProvider: TimePro
       }
     }
 
+  /**
+    * Currently accumulated penalty score for given address.
+    */
+  def penaltyScore(address: InetAddress): Int =
+    penaltyBook.getOrElse(address, (0, 0L))._1
+
+  def penaltyScore(socketAddress: InetSocketAddress): Int =
+    Option(socketAddress.getAddress).map(penaltyScore).getOrElse(0)
+
   private def checkBanned(address: InetAddress, bannedTil: Long): Boolean = {
     val stillBanned = timeProvider.time() < bannedTil
     if (!stillBanned) removeFromBlacklist(address)
