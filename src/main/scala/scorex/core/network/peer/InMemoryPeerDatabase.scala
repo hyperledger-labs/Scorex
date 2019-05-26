@@ -74,7 +74,7 @@ final class InMemoryPeerDatabase(settings: NetworkSettings, timeProvider: TimePr
     Option(address.getAddress).exists(isBlacklisted)
 
   /**
-    * Registers new penalty in penalty book.
+    * Registers a new penalty in the penalty book.
     * @return - `true` if penalty threshold is reached, `false` otherwise.
     */
   def penalize(socketAddress: InetSocketAddress, penaltyType: PenaltyType): Boolean =
@@ -94,7 +94,7 @@ final class InMemoryPeerDatabase(settings: NetworkSettings, timeProvider: TimePr
     }
 
   /**
-    * Currently accumulated penalty score for given address.
+    * Currently accumulated penalty score for a given address.
     */
   def penaltyScore(address: InetAddress): Int =
     penaltyBook.getOrElse(address, (0, 0L))._1
