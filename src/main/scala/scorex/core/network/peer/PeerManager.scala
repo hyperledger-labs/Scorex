@@ -19,7 +19,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 
   import PeerManager.ReceivableMessages._
 
-  private val peerDatabase = new InMemoryPeerDatabase(settings, scorexContext.timeProvider)
+  private val peerDatabase = new InMemoryPeerDatabase(settings.network, scorexContext.timeProvider)
 
   if (peerDatabase.isEmpty) {
     // fill database with peers from config file if empty

@@ -11,7 +11,7 @@ class InMemoryPeerDatabaseSpec extends NetworkTests {
   private val peerAddress2 = new InetSocketAddress("2.2.2.2", 27017)
 
   private def withDb(test: InMemoryPeerDatabase => Assertion): Assertion =
-    test(new InMemoryPeerDatabase(settings, timeProvider))
+    test(new InMemoryPeerDatabase(settings.network, timeProvider))
 
   "new DB" should "be empty" in {
     withDb { db =>
