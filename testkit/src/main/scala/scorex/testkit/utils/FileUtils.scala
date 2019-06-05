@@ -36,7 +36,7 @@ trait FileUtils {
   }
 
   /**
-    * Recurcively remove all files and directories in `root`
+    * Recursively remove all files and directories in `root`
     */
   def remove(root: Path): Unit = {
     Files.walkFileTree(root, new SimpleFileVisitor[Path] {
