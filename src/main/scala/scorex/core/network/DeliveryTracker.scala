@@ -82,7 +82,7 @@ class DeliveryTracker(system: ActorSystem,
     */
   def onStillWaiting(cp: ConnectedPeer,
                      mtid: ModifierTypeId,
-                     mid: ModifierId)(implicit ec: ExecutionContext): Try[Unit] = tryWithLogging {
+                     mid: ModifierId)(implicit ec: ExecutionContext): Try[Unit] = Try {
     val checks = requested(mid).checks + 1
     setUnknown(mid)
     if (checks < maxDeliveryChecks) {
@@ -99,7 +99,7 @@ class DeliveryTracker(system: ActorSystem,
                    typeId: ModifierTypeId,
                    supplierOpt: Option[ConnectedPeer],
                    checksDone: Int = 0)
-                  (implicit ec: ExecutionContext): Unit = tryWithLogging {
+                  (implicit ec: ExecutionContext): Unit = {
     require(isCorrectTransition(status(id), Requested), s"Illegal status transition: ${status(id)} -> Requested")
     val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(supplierOpt, typeId, id))
     requested.put(id, RequestedInfo(supplierOpt, cancellable, checksDone))
@@ -181,17 +181,6 @@ class DeliveryTracker(system: ActorSystem,
       case Requested => newStatus == Unknown || newStatus == Received
       case Received => newStatus == Unknown
       case _ => false
-    }
-  }
-
-  private def tryWithLogging[T](fn: => T): Try[T] = {
-    Try(fn).recoverWith {
-      case e: StopExpectingError =>
-        log.warn(e.getMessage)
-        Failure(e)
-      case e =>
-        log.warn("Unexpected error", e)
-        Failure(e)
     }
   }
 

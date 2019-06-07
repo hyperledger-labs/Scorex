@@ -271,32 +271,6 @@ class NetworkControllerSpec extends NetworkTests {
     system.terminate()
   }
 
-  it should "remove non reachable peers from peers database" ignore {
-
-    implicit val system = ActorSystem()
-
-    val tcpManagerProbe = TestProbe()
-
-    val nodeAddr = new InetSocketAddress("127.0.0.1", settings.network.bindAddress.getPort)
-
-    val networkControllerRef: ActorRef = createNetworkController(settings, tcpManagerProbe, None)
-
-    val testPeer1DecalredAddress = new InetSocketAddress("55.66.77.88", 5566)
-    val testPeer1 = new TestPeer(settings, networkControllerRef, tcpManagerProbe)
-    testPeer1.connect(new InetSocketAddress("127.0.0.1", 2322), nodeAddr)
-    testPeer1.receiveHandshake
-    testPeer1.sendHandshake(Some(testPeer1DecalredAddress), None)
-
-    val testPeer2 = new TestPeer(settings, networkControllerRef, tcpManagerProbe)
-    testPeer2.connect(new InetSocketAddress("127.0.0.1", 2323), nodeAddr)
-    testPeer2.receiveHandshake
-    testPeer2.sendHandshake(None, None)
-
-    testPeer2.sendGetPeers()
-    testPeer2.receivePeers.flatMap(_.declaredAddress) should contain theSameElementsAs Seq(testPeer1DecalredAddress)
-    system.terminate()
-  }
-
   private def extractLocalAddrFeat(handshakeFromNode: Handshake): Option[InetSocketAddress] = {
     handshakeFromNode.peerSpec.localAddressOpt
   }
