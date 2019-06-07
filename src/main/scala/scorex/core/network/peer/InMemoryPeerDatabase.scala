@@ -59,8 +59,8 @@ final class InMemoryPeerDatabase(settings: NetworkSettings, timeProvider: TimePr
   override def knownPeers: Map[InetSocketAddress, PeerInfo] = peers
 
   override def blacklistedPeers: Seq[InetAddress] = blacklist
-    .map { case (address, bannedTil) =>
-      checkBanned(address, bannedTil)
+    .map { case (address, bannedTill) =>
+      checkBanned(address, bannedTill)
       address
     }
     .toSeq
@@ -102,8 +102,8 @@ final class InMemoryPeerDatabase(settings: NetworkSettings, timeProvider: TimePr
   def penaltyScore(socketAddress: InetSocketAddress): Int =
     Option(socketAddress.getAddress).map(penaltyScore).getOrElse(0)
 
-  private def checkBanned(address: InetAddress, bannedTil: Long): Boolean = {
-    val stillBanned = timeProvider.time() < bannedTil
+  private def checkBanned(address: InetAddress, bannedTill: Long): Boolean = {
+    val stillBanned = timeProvider.time() < bannedTill
     if (!stillBanned) removeFromBlacklist(address)
     stillBanned
   }

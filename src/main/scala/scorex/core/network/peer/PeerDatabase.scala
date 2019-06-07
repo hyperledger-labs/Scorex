@@ -6,7 +6,7 @@ trait PeerDatabase {
 
   def get(peer: InetSocketAddress): Option[PeerInfo]
 
-  def isEmpty:Boolean
+  def isEmpty: Boolean
 
   def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit
 
