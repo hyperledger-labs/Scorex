@@ -2,7 +2,7 @@ package scorex.core.network
 
 sealed trait ConnectionDirection {
   val isIncoming: Boolean
-  val isOutgoing: Boolean
+  val isOutgoing: Boolean = !isIncoming
 }
 
 case object Incoming extends ConnectionDirection {
