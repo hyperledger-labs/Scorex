@@ -134,7 +134,7 @@ class NetworkController(settings: NetworkSettings,
       penalize(peerAddress, penaltyType)
 
     case Blacklisted(peerAddress) =>
-      blacklist(peerAddress)
+      closeConnection(peerAddress)
   }
 
   private def connectionEvents: Receive = {
@@ -422,10 +422,7 @@ class NetworkController(settings: NetworkSettings,
     }
   }
 
-  /**
-    * Close connection and ban peer.
-    */
-  private def blacklist(peerAddress: InetSocketAddress): Unit =
+  private def closeConnection(peerAddress: InetSocketAddress): Unit =
     connections.get(peerAddress).foreach { peer =>
       connections = connections.filterNot { case (address, _) => // clear all connections related to banned peer ip
         Option(peer.connectionId.remoteAddress.getAddress).exists(Option(address.getAddress).contains(_))

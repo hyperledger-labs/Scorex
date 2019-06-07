@@ -1,5 +1,10 @@
 package scorex.core.network.peer
 
+/**
+  * A trait describing all possible types of the network participant misbehavior.
+  * `penaltyScore` - a number defining how bad concrete kind of misbehavior is,
+  * `isPermanent`  - a flag defining whether a penalty is permanent.
+  */
 sealed trait PenaltyType {
   val penaltyScore: Int
   val isPermanent: Boolean = false

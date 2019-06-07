@@ -527,9 +527,12 @@ object NodeViewSynchronizer {
       */
     case class ModifiersProcessingResult[PMOD <: PersistentNodeViewModifier](applied: Seq[PMOD], cleared: Seq[PMOD])
 
-    //hierarchy of events regarding modifiers application outcome
+    // hierarchy of events regarding modifiers application outcome
     trait ModificationOutcome extends NodeViewHolderEvent
 
+    /**
+      * @param immediateFailure - a flag indicating whether a transaction was invalid by the moment it was received.
+      */
     case class FailedTransaction(transactionId: ModifierId, error: Throwable, immediateFailure: Boolean) extends ModificationOutcome
 
     case class SuccessfulTransaction[TX <: Transaction](transaction: TX) extends ModificationOutcome

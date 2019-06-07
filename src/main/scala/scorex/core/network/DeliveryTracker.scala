@@ -100,7 +100,7 @@ class DeliveryTracker(system: ActorSystem,
                    supplierOpt: Option[ConnectedPeer],
                    checksDone: Int = 0)
                   (implicit ec: ExecutionContext): Unit = tryWithLogging {
-    assert(isCorrectTransition(status(id), Requested), s"Illegal status transition: ${status(id)} -> Requested")
+    require(isCorrectTransition(status(id), Requested), s"Illegal status transition: ${status(id)} -> Requested")
     val cancellable = system.scheduler.scheduleOnce(deliveryTimeout, nvsRef, CheckDelivery(supplierOpt, typeId, id))
     requested.put(id, RequestedInfo(supplierOpt, cancellable, checksDone))
   }
@@ -114,7 +114,7 @@ class DeliveryTracker(system: ActorSystem,
     */
   def setInvalid(id: ModifierId): Option[ConnectedPeer] = {
     val oldStatus: ModifiersStatus = status(id)
-    assert(isCorrectTransition(oldStatus, Invalid), s"Illegal status transition: $oldStatus -> Invalid")
+    require(isCorrectTransition(oldStatus, Invalid), s"Illegal status transition: $oldStatus -> Invalid")
     val senderOpt = oldStatus match {
       case Requested =>
         requested(id).cancellable.cancel()
@@ -133,7 +133,7 @@ class DeliveryTracker(system: ActorSystem,
     */
   def setHeld(id: ModifierId): Unit = {
     val oldStatus: ModifiersStatus = status(id)
-    assert(isCorrectTransition(oldStatus, Held), s"Illegal status transition: $oldStatus -> Held")
+    require(isCorrectTransition(oldStatus, Held), s"Illegal status transition: $oldStatus -> Held")
     clearStatusForModifier(id, oldStatus) // we need only to clear old status in this case
   }
 
@@ -147,7 +147,7 @@ class DeliveryTracker(system: ActorSystem,
     */
   def setUnknown(id: ModifierId): Unit = {
     val oldStatus: ModifiersStatus = status(id)
-    assert(isCorrectTransition(oldStatus, Unknown), s"Illegal status transition: $oldStatus -> Unknown")
+    require(isCorrectTransition(oldStatus, Unknown), s"Illegal status transition: $oldStatus -> Unknown")
     clearStatusForModifier(id, oldStatus) // we need only to clear old status in this case
   }
 
@@ -156,7 +156,7 @@ class DeliveryTracker(system: ActorSystem,
     */
   def setReceived(id: ModifierId, sender: ConnectedPeer): Unit = {
     val oldStatus: ModifiersStatus = status(id)
-    assert(isCorrectTransition(oldStatus, Invalid), s"Illegal status transition: $oldStatus -> Received")
+    require(isCorrectTransition(oldStatus, Invalid), s"Illegal status transition: $oldStatus -> Received")
     if (oldStatus != Received) {
       requested(id).cancellable.cancel()
       requested.remove(id)
