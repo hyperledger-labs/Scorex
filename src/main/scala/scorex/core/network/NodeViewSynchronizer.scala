@@ -8,6 +8,7 @@ import scorex.core.NodeViewHolder.DownloadRequest
 import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, ModifiersFromRemote, TransactionsFromRemote}
 import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
+import scorex.core.diagnostics.DiagnosticsActor.ReceivableMessages.InternalMessageTrip
 import scorex.core.network.ModifiersStatus.Requested
 import scorex.core.network.NetworkController.ReceivableMessages.{RegisterMessageSpecs, SendToNetwork}
 import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
@@ -21,6 +22,8 @@ import scorex.core.transaction.{MempoolReader, Transaction}
 import scorex.core.utils.{NetworkTimeProvider, ScorexEncoding}
 import scorex.core.validation.MalformedModifierError
 import scorex.core.{ModifierTypeId, NodeViewModifier, PersistentNodeViewModifier, idsToString}
+import scorex.crypto.hash.Blake2b256
+import scorex.util.encode.Base16
 import scorex.util.{ModifierId, ScorexLogging}
 
 import scala.annotation.tailrec
@@ -101,7 +104,7 @@ MR <: MempoolReader[TX] : ClassTag]
       deliveryTracker.onInvalid(tx.id)
     //todo: penalize source peer?
 
-    case SyntacticallySuccessfulModifier(mod) =>
+    case SyntacticallySuccessfulModifier(mod, _) =>
       deliveryTracker.onApply(mod.id)
 
     case SyntacticallyFailedModification(mod, _) =>
@@ -157,7 +160,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
   //sync info is coming from another node
   protected def processSync: Receive = {
-    case DataFromPeer(spec, syncInfo: SI@unchecked, remote)
+    case DataFromPeer(spec, syncInfo: SI@unchecked, remote, _)
       if spec.messageCode == syncInfoSpec.messageCode =>
 
       historyReaderOpt match {
@@ -215,7 +218,7 @@ MR <: MempoolReader[TX] : ClassTag]
     * request unknown ids from peer and set this ids to requested state.
     */
   protected def processInv: Receive = {
-    case DataFromPeer(spec, invData: InvData@unchecked, peer)
+    case DataFromPeer(spec, invData: InvData@unchecked, peer, _)
       if spec.messageCode == InvSpec.MessageCode =>
 
       (mempoolReaderOpt, historyReaderOpt) match {
@@ -241,7 +244,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
   //other node asking for objects by their ids
   protected def modifiersReq: Receive = {
-    case DataFromPeer(spec, invData: InvData@unchecked, remote)
+    case DataFromPeer(spec, invData: InvData@unchecked, remote, _)
       if spec.messageCode == RequestModifierSpec.MessageCode =>
 
       readersOpt.foreach { readers =>
@@ -264,7 +267,7 @@ MR <: MempoolReader[TX] : ClassTag]
     * parse modifiers and send valid modifiers to NodeViewHolder
     */
   protected def modifiersFromRemote: Receive = {
-    case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
+    case DataFromPeer(spec, data: ModifiersData@unchecked, remote, id)
       if spec.messageCode == ModifiersSpec.MessageCode =>
 
       val typeId = data.typeId
@@ -282,10 +285,12 @@ MR <: MempoolReader[TX] : ClassTag]
           viewHolderRef ! TransactionsFromRemote(parsed)
 
         case Some(serializer: ScorexSerializer[PMOD]@unchecked) =>
+          context.actorSelection("../DiagnosticsActor") !
+            InternalMessageTrip("nvs-received", id.toString, System.currentTimeMillis())
           // parse all modifiers and put them to modifiers cache
           val parsed: Iterable[PMOD] = parseModifiers(requestedModifiers, serializer, remote)
           val valid: Iterable[PMOD] = parsed.filter(pmod => validateAndSetStatus(remote, pmod))
-          if (valid.nonEmpty) viewHolderRef ! ModifiersFromRemote[PMOD](valid)
+          if (valid.nonEmpty) viewHolderRef ! ModifiersFromRemote[PMOD](valid, id)
 
         case _ =>
           log.error(s"Undefined serializer for modifier of type ${typeId}")
@@ -420,6 +425,7 @@ MR <: MempoolReader[TX] : ClassTag]
             size < networkSettings.maxPacketSize
           }
           peer.handlerRef ! Message(modifiersSpec, Right(ModifiersData(modType, batch.toMap)), None)
+          // todo: forward messages to diagnostics actor.
           val remaining = mods.drop(batch.length)
           if (remaining.nonEmpty) {
             sendByParts(remaining)
@@ -547,7 +553,7 @@ object NodeViewSynchronizer {
 
     case class SemanticallyFailedModification[PMOD <: PersistentNodeViewModifier](modifier: PMOD, error: Throwable) extends ModificationOutcome
 
-    case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
+    case class SyntacticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD, ts: Long = 0) extends ModificationOutcome
 
     case class SemanticallySuccessfulModifier[PMOD <: PersistentNodeViewModifier](modifier: PMOD) extends ModificationOutcome
 

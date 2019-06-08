@@ -7,6 +7,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
 import akka.stream.ActorMaterializer
 import scorex.core.api.http.{ApiErrorHandler, ApiRejectionHandler, ApiRoute, CompositeHttpService}
+import scorex.core.diagnostics.DiagnosticsActorRef
 import scorex.core.network._
 import scorex.core.network.message._
 import scorex.core.network.peer.PeerManagerRef
@@ -60,6 +61,8 @@ trait Application extends ScorexLogging {
     )
   }
 
+  val diagnosticsActorRef = DiagnosticsActorRef("DiagnosticsActor")
+
   val nodeViewHolderRef: ActorRef
   val nodeViewSynchronizer: ActorRef
 
@@ -87,7 +90,7 @@ trait Application extends ScorexLogging {
   val peerManagerRef = PeerManagerRef(settings, scorexContext)
 
   val networkControllerRef: ActorRef = NetworkControllerRef(
-    "networkController", settings.network, peerManagerRef, scorexContext)
+    "networkController", settings.network, peerManagerRef, diagnosticsActorRef, scorexContext)
 
   lazy val combinedRoute: Route = CompositeHttpService(actorSystem, apiRoutes, settings.restApi, swaggerConfig).compositeRoute
 

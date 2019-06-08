@@ -3,6 +3,8 @@ package scorex.core
 import akka.actor.Actor
 import scorex.core.consensus.History.ProgressInfo
 import scorex.core.consensus.{History, SyncInfo}
+import scorex.core.diagnostics.DiagnosticsActor
+import scorex.core.diagnostics.DiagnosticsActor.ReceivableMessages.InternalMessageTrip
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.NodeViewHolderEvent
 import scorex.core.settings.ScorexSettings
 import scorex.core.transaction._
@@ -10,6 +12,7 @@ import scorex.core.transaction.state.{MinimalState, TransactionValidation}
 import scorex.core.transaction.wallet.Vault
 import scorex.core.utils.ScorexEncoding
 import scorex.util.ScorexLogging
+
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
 
@@ -263,52 +266,63 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
   //todo: update state in async way?
   protected def pmodModify(pmod: PMOD): Unit =
-    if (!history().contains(pmod.id)) {
-      context.system.eventStream.publish(StartingPersistentModifierApplication(pmod))
+    time("pmodModify") {
+      if (!history().contains(pmod.id)) {
+        context.system.eventStream.publish(StartingPersistentModifierApplication(pmod))
 
-      log.info(s"Apply modifier ${pmod.encodedId} of type ${pmod.modifierTypeId} to nodeViewHolder")
+        log.info(s"Apply modifier ${pmod.encodedId} of type ${pmod.modifierTypeId} to nodeViewHolder")
 
-      history().append(pmod) match {
-        case Success((historyBeforeStUpdate, progressInfo)) =>
-          log.debug(s"Going to apply modifications to the state: $progressInfo")
-          context.system.eventStream.publish(SyntacticallySuccessfulModifier(pmod))
-          context.system.eventStream.publish(NewOpenSurface(historyBeforeStUpdate.openSurfaceIds()))
+        time("historyAppend")(history().append(pmod)) match {
+          case Success((historyBeforeStUpdate, progressInfo)) =>
+            log.debug(s"Going to apply modifications to the state: $progressInfo")
+            context.system.eventStream.publish(SyntacticallySuccessfulModifier(pmod, System.currentTimeMillis()))
+            context.system.eventStream.publish(NewOpenSurface(historyBeforeStUpdate.openSurfaceIds()))
 
-          if (progressInfo.toApply.nonEmpty) {
-            val (newHistory, newStateTry, blocksApplied) =
-              updateState(historyBeforeStUpdate, minimalState(), progressInfo, IndexedSeq())
+            if (progressInfo.toApply.nonEmpty) {
+              val (newHistory, newStateTry, blocksApplied) =
+                time("updateState")(updateState(historyBeforeStUpdate, minimalState(), progressInfo, IndexedSeq()))
 
-            newStateTry match {
-              case Success(newMinState) =>
-                val newMemPool = updateMemPool(progressInfo.toRemove, blocksApplied, memoryPool(), newMinState)
+              newStateTry match {
+                case Success(newMinState) =>
+                  val newMemPool = updateMemPool(progressInfo.toRemove, blocksApplied, memoryPool(), newMinState)
 
-                //we consider that vault always able to perform a rollback needed
-                @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-                val newVault = if (progressInfo.chainSwitchingNeeded) {
-                  vault().rollback(idToVersion(progressInfo.branchPoint.get)).get
-                } else vault()
-                blocksApplied.foreach(newVault.scanPersistent)
+                  //we consider that vault always able to perform a rollback needed
+                  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
+                  val newVault = if (progressInfo.chainSwitchingNeeded) {
+                    vault().rollback(idToVersion(progressInfo.branchPoint.get)).get
+                  } else vault()
+                  blocksApplied.foreach(newVault.scanPersistent)
 
-                log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
-                updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool))
+                  log.info(s"Persistent modifier ${pmod.encodedId} applied successfully")
+                  updateNodeView(Some(newHistory), Some(newMinState), Some(newVault), Some(newMemPool))
 
 
-              case Failure(e) =>
-                log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to minimal state", e)
-                updateNodeView(updatedHistory = Some(newHistory))
-                context.system.eventStream.publish(SemanticallyFailedModification(pmod, e))
+                case Failure(e) =>
+                  log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to minimal state", e)
+                  updateNodeView(updatedHistory = Some(newHistory))
+                  context.system.eventStream.publish(SemanticallyFailedModification(pmod, e))
+              }
+            } else {
+              requestDownloads(progressInfo)
+              updateNodeView(updatedHistory = Some(historyBeforeStUpdate))
             }
-          } else {
-            requestDownloads(progressInfo)
-            updateNodeView(updatedHistory = Some(historyBeforeStUpdate))
-          }
-        case Failure(e) =>
-          log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to history", e)
-          context.system.eventStream.publish(SyntacticallyFailedModification(pmod, e))
+          case Failure(e) =>
+            log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to history", e)
+            context.system.eventStream.publish(SyntacticallyFailedModification(pmod, e))
+        }
+      } else {
+        log.warn(s"Trying to apply modifier ${pmod.encodedId} that's already in history")
       }
-    } else {
-      log.warn(s"Trying to apply modifier ${pmod.encodedId} that's already in history")
     }
+
+  private def time[R](tag: String)(block: => R): R = {
+    val t0 = System.nanoTime()
+    val result = block    // call-by-name
+    val t1 = System.nanoTime()
+    val et = (t1.toDouble - t0) / 1000000
+    context.actorSelection("../DiagnosticsActor") ! DiagnosticsActor.ReceivableMessages.MethodProfile(tag, et, System.currentTimeMillis())
+    result
+  }
 
   /**
     * Process new modifiers from remote.
@@ -317,27 +331,37 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     * Publish `ModifiersProcessingResult` message with all just applied and removed from cache modifiers.
     */
   protected def processRemoteModifiers: Receive = {
-    case ModifiersFromRemote(mods: Seq[PMOD]) =>
-      mods.foreach(m => modifiersCache.put(m.id, m))
+    case ModifiersFromRemote(mods: Seq[PMOD], id) =>
+      context.actorSelection("../DiagnosticsActor") !
+        InternalMessageTrip("nvh-received", id.toString, System.currentTimeMillis())
+      time("cacheApply") {
+        mods.foreach(m => modifiersCache.put(m.id, m))
 
-      log.debug(s"Cache size before: ${modifiersCache.size}")
+        val sizeBefore = modifiersCache.size
+        log.debug(s"Cache size before: ${modifiersCache.size}")
 
-      @tailrec
-      def applyLoop(applied: Seq[PMOD]): Seq[PMOD] = {
-        modifiersCache.popCandidate(history()) match {
-          case Some(mod) =>
-            pmodModify(mod)
-            applyLoop(mod +: applied)
-          case None =>
-            applied
+        @tailrec
+        def applyLoop(applied: Seq[PMOD]): Seq[PMOD] = {
+          modifiersCache.popCandidate(history()) match {
+            case Some(mod) =>
+              pmodModify(mod)
+              applyLoop(mod +: applied)
+            case None =>
+              applied
+          }
         }
+
+        val applied = applyLoop(Seq())
+        val cleared = modifiersCache.cleanOverfull()
+
+        context.system.eventStream.publish(ModifiersProcessingResult(applied, cleared))
+        log.debug(s"Cache size after: ${modifiersCache.size}")
+
+        val sizeAfter = modifiersCache.size
+
+        context.actorSelection("../DiagnosticsActor") !
+          DiagnosticsActor.ReceivableMessages.CacheState(sizeBefore, sizeAfter, cleared.map(_.id), System.currentTimeMillis())
       }
-
-      val applied = applyLoop(Seq())
-      val cleared = modifiersCache.cleanOverfull()
-
-      context.system.eventStream.publish(ModifiersProcessingResult(applied, cleared))
-      log.debug(s"Cache size after: ${modifiersCache.size}")
   }
 
   protected def transactionsProcessing: Receive = {
@@ -388,7 +412,7 @@ object NodeViewHolder {
     case class GetDataFromCurrentView[HIS, MS, VL, MP, A](f: CurrentView[HIS, MS, VL, MP] => A)
 
     // Modifiers received from the remote peer with new elements in it
-    case class ModifiersFromRemote[PM <: PersistentNodeViewModifier](modifiers: Iterable[PM])
+    case class ModifiersFromRemote[PM <: PersistentNodeViewModifier](modifiers: Iterable[PM], id: Long = 0)
 
     sealed trait NewTransactions[TX <: Transaction]{
       val txs: Iterable[TX]

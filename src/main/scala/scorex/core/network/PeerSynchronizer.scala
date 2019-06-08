@@ -37,12 +37,12 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
   }
 
   override def receive: Receive = {
-    case DataFromPeer(spec, peers: Seq[PeerSpec]@unchecked, remote)
+    case DataFromPeer(spec, peers: Seq[PeerSpec]@unchecked, remote, _)
       if spec.messageCode == PeersSpec.messageCode && peers.cast[Seq[PeerSpec]].isDefined =>
 
       peers.foreach(peerSpec => peerManager ! AddPeerIfEmpty(peerSpec))
 
-    case DataFromPeer(spec, _, peer) if spec.messageCode == GetPeersSpec.messageCode =>
+    case DataFromPeer(spec, _, peer, _) if spec.messageCode == GetPeersSpec.messageCode =>
 
       (peerManager ? RecentlySeenPeers(settings.maxPeerSpecObjects))
         .mapTo[Seq[PeerInfo]]
