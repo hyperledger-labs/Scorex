@@ -9,7 +9,6 @@ import scala.util.Try
   */
 trait MemoryPool[TX <: Transaction, M <: MemoryPool[TX, M]] extends MempoolReader[TX] {
 
-
   /**
     * Method to put a transaction into the memory pool. Validation of tha transactions against
     * the state is done in NodeVieHolder. This put() method can check whether a transaction is valid

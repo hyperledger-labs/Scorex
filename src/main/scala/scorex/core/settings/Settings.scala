@@ -46,14 +46,16 @@ case class NetworkSettings(nodeName: String,
                            maxModifiersCacheSize: Int,
                            magicBytes: Array[Byte],
                            getPeersInterval: FiniteDuration,
-                           maxPeerSpecObjects: Int)
+                           maxPeerSpecObjects: Int,
+                           temporalBanDuration: FiniteDuration,
+                           penaltySafeInterval: FiniteDuration,
+                           penaltyScoreThreshold: Int)
 
 case class ScorexSettings(dataDir: File,
                           logDir: File,
                           network: NetworkSettings,
                           restApi: RESTApiSettings,
-                          ntp: NetworkTimeProviderSettings
-                         )
+                          ntp: NetworkTimeProviderSettings)
 
 
 object ScorexSettings extends ScorexLogging with SettingsReaders {

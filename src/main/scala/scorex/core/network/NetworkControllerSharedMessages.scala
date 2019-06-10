@@ -2,11 +2,11 @@ package scorex.core.network
 
 import scorex.core.network.message.MessageSpec
 
-import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.ClassTag
 
 // Messages shared by NetworkController, PeerSynchronizer and NodeViewSynchronizer
 object NetworkControllerSharedMessages {
   object ReceivableMessages {
-    case class DataFromPeer[DT: TypeTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
+    case class DataFromPeer[DT: ClassTag](spec: MessageSpec[DT], data: DT, source: ConnectedPeer)
   }
 }

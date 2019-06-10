@@ -23,4 +23,5 @@ object NetworkUtils {
     NetworkUtils.getListenAddresses(bindAddress).contains(peerAddress) ||
       externalNodeAddress.contains(peerAddress)
   }
+
 }

@@ -39,4 +39,5 @@ trait ScorexSerializer[T] extends Serializer[T, T, Reader, Writer] {
   def parseBytesTry(bytes: Array[Byte]): Try[T] = {
     Try(parseBytes(bytes))
   }
+
 }

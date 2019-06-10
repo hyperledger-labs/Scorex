@@ -3,7 +3,7 @@ package scorex.core.network.peer
 import java.net.InetSocketAddress
 
 import scorex.core.app.Version
-import scorex.core.network.{ConnectionType, PeerSpec}
+import scorex.core.network.{ConnectionDirection, PeerSpec}
 
 /**
   * Information about peer to be stored in PeerDatabase
@@ -14,7 +14,7 @@ import scorex.core.network.{ConnectionType, PeerSpec}
   */
 case class PeerInfo(peerSpec: PeerSpec,
                     lastSeen: Long,
-                    connectionType: Option[ConnectionType] = None)
+                    connectionType: Option[ConnectionDirection] = None)
 
 object PeerInfo {
 

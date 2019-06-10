@@ -1,6 +1,6 @@
 package scorex.core.api.http
 
-import java.net.InetSocketAddress
+import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.app.Version
@@ -17,21 +17,21 @@ trait Stubs {
   private val ts2 = System.currentTimeMillis() + 100
   private val version: Version = Version.initial
 
-  val peerFeatures: Seq[PeerFeature] = Seq()
+  private val peerFeatures = Seq()
 
-  val peers = Map(
+  val peers: Map[InetSocketAddress, PeerInfo] = Map(
     inetAddr1 -> PeerInfo(PeerSpec("app", version, "first", Some(inetAddr1), peerFeatures), ts1, Some(Incoming)),
     inetAddr2 -> PeerInfo(PeerSpec("app", version, "second", Some(inetAddr2), peerFeatures), ts1, Some(Outgoing))
   )
 
-  val protocolVersion = Version("1.1.1")
+   val protocolVersion: Version = Version("1.1.1")
 
-  val connectedPeers = Seq(
+  val connectedPeers: Seq[Handshake] = Seq(
     Handshake(PeerSpec("node_pop", protocolVersion, "first", Some(inetAddr1), peerFeatures), ts1),
     Handshake(PeerSpec("node_pop", protocolVersion, "second", Some(inetAddr2), peerFeatures), ts2)
   )
 
-  val blacklistedPeers = Seq("4.4.4.4:1111", "8.8.8.8:2222")
+  val blacklistedPeers: Seq[InetAddress] = Seq(InetAddress.getByName("4.4.4.4"), InetAddress.getByName("8.8.8.8"))
 
   class PeersManagerStub extends Actor {
 

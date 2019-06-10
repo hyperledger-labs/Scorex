@@ -1,6 +1,6 @@
 package scorex.core.network.peer
 
-import java.net.InetSocketAddress
+import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import scorex.core.app.ScorexContext
@@ -19,9 +19,9 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
 
   import PeerManager.ReceivableMessages._
 
-  private lazy val peerDatabase = new PeerDatabaseImpl(Some(settings.dataDir + "/peers.dat"))
+  private val peerDatabase = new InMemoryPeerDatabase(settings.network, scorexContext.timeProvider)
 
-  if (peerDatabase.isEmpty()) {
+  if (peerDatabase.isEmpty) {
     // fill database with peers from config file if empty
     settings.network.knownPeers.foreach { address =>
       if (!isSelf(address)) {
@@ -30,19 +30,25 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     }
   }
 
-  override def receive: Receive = ({
+  override def receive: Receive = peersManagement orElse apiInterface
 
-    case AddToBlacklist(peer) =>
-      log.info(s"Blacklist peer $peer")
-      peerDatabase.blacklistPeer(peer, scorexContext.timeProvider.time())
-    // todo: shouldn't peer be removed from `connectedPeers` when it is blacklisted?
-  }: Receive) orElse peerListOperations orElse apiInterface
+  private def peersManagement: Receive = {
 
-  private def peerListOperations: Receive = {
+    case ConfirmConnection(connectionId, handlerRef) =>
+      log.info(s"Connection confirmation request: $connectionId")
+      if (peerDatabase.isBlacklisted(connectionId.remoteAddress)) sender() ! ConnectionDenied(connectionId, handlerRef)
+      else sender() ! ConnectionConfirmed(connectionId, handlerRef)
+
     case AddOrUpdatePeer(peerInfo) =>
       // We have connected to a peer and got his peerInfo from him
-      if (!isSelf(peerInfo.peerSpec)) {
-        peerDatabase.addOrUpdateKnownPeer(peerInfo)
+      if (!isSelf(peerInfo.peerSpec)) peerDatabase.addOrUpdateKnownPeer(peerInfo)
+
+    case Penalize(peer, penaltyType) =>
+      log.info(s"$peer penalized, penalty: $penaltyType")
+      if (peerDatabase.penalize(peer, penaltyType)) {
+        log.info(s"$peer blacklisted")
+        peerDatabase.addToBlacklist(peer, penaltyType)
+        sender() ! Blacklisted(peer)
       }
 
     case AddPeerIfEmpty(peerSpec) =>
@@ -53,22 +59,21 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
       }
 
     case RemovePeer(address) =>
+      log.info(s"$address removed")
       peerDatabase.remove(address)
 
     case get: GetPeers[_] =>
-      sender() ! get.choose(peerDatabase.knownPeers(), scorexContext)
-
+      sender() ! get.choose(peerDatabase.knownPeers, peerDatabase.blacklistedPeers, scorexContext)
   }
 
   private def apiInterface: Receive = {
 
     case GetAllPeers =>
-      log.trace(s"Get all peers: ${peerDatabase.knownPeers()}")
-      sender() ! peerDatabase.knownPeers()
+      log.trace(s"Get all peers: ${peerDatabase.knownPeers}")
+      sender() ! peerDatabase.knownPeers
 
     case GetBlacklistedPeers =>
-      sender() ! peerDatabase.blacklistedPeers()
-
+      sender() ! peerDatabase.blacklistedPeers
   }
 
   /**
@@ -88,7 +93,15 @@ object PeerManager {
 
   object ReceivableMessages {
 
-    case class AddToBlacklist(remote: InetSocketAddress)
+    case class ConfirmConnection(connectionId: ConnectionId, handlerRef: ActorRef)
+
+    case class ConnectionConfirmed(connectionId: ConnectionId, handlerRef: ActorRef)
+
+    case class ConnectionDenied(connectionId: ConnectionId, handlerRef: ActorRef)
+
+    case class Penalize(remote: InetSocketAddress, penaltyType: PenaltyType)
+
+    case class Blacklisted(remote: InetSocketAddress)
 
     // peerListOperations messages
     case class AddOrUpdatePeer(data: PeerInfo)
@@ -101,30 +114,43 @@ object PeerManager {
       * Message to get peers from known peers map filtered by `choose` function
       */
     trait GetPeers[T] {
-      def choose(knownPeers: Map[InetSocketAddress, PeerInfo], scorexContext: ScorexContext): T
+      def choose(knownPeers: Map[InetSocketAddress, PeerInfo],
+                 blacklistedPeers: Seq[InetAddress],
+                 scorexContext: ScorexContext): T
     }
 
     /**
-      * Choose at most `howMany` random peers, that is connected to our peer or was connected in at most 1 hour ago
+      * Choose at most `howMany` random peers, which are connected to our peer or
+      * were connected in at most 1 hour ago and weren't blacklisted.
       */
     case class RecentlySeenPeers(howMany: Int) extends GetPeers[Seq[PeerInfo]] {
       private val TimeDiff: Long = 60 * 60 * 1000
 
-      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo], sc: ScorexContext): Seq[PeerInfo] = {
+      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo],
+                          blacklistedPeers: Seq[InetAddress],
+                          sc: ScorexContext): Seq[PeerInfo] = {
         val currentTime = sc.timeProvider.time()
-        val recentlySeen = knownPeers.values.toSeq
-          .filter(p => p.connectionType.isDefined || currentTime - p.lastSeen > TimeDiff)
-        Random.shuffle(recentlySeen).take(howMany)
+        val recentlySeenNonBlacklisted = knownPeers.values.toSeq
+          .filter { p =>
+            (p.connectionType.isDefined || currentTime - p.lastSeen > TimeDiff) &&
+              !blacklistedPeers.exists(ip => p.peerSpec.declaredAddress.exists(_.getAddress == ip))
+          }
+        Random.shuffle(recentlySeenNonBlacklisted).take(howMany)
       }
     }
 
     case object GetAllPeers extends GetPeers[Map[InetSocketAddress, PeerInfo]] {
-      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo], sc: ScorexContext): Map[InetSocketAddress, PeerInfo] = knownPeers
+
+      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo],
+                          blacklistedPeers: Seq[InetAddress],
+                          sc: ScorexContext): Map[InetSocketAddress, PeerInfo] = knownPeers
     }
 
     case class RandomPeerExcluding(excludedPeers: Seq[PeerInfo]) extends GetPeers[Option[PeerInfo]] {
 
-      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo], sc: ScorexContext): Option[PeerInfo] = {
+      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo],
+                          blacklistedPeers: Seq[InetAddress],
+                          sc: ScorexContext): Option[PeerInfo] = {
         val candidates = knownPeers.values.filterNot { p =>
           excludedPeers.exists(_.peerSpec.address == p.peerSpec.address)
         }.toSeq
@@ -133,14 +159,19 @@ object PeerManager {
       }
     }
 
-    // todo extend GetPeers after during blacklist implementation
-    case object GetBlacklistedPeers
+    case object GetBlacklistedPeers extends GetPeers[Seq[InetAddress]] {
+
+      override def choose(knownPeers: Map[InetSocketAddress, PeerInfo],
+                          blacklistedPeers: Seq[InetAddress],
+                          scorexContext: ScorexContext): Seq[InetAddress] = blacklistedPeers
+    }
 
   }
 
 }
 
 object PeerManagerRef {
+
   def props(settings: ScorexSettings, scorexContext: ScorexContext): Props = {
     Props(new PeerManager(settings, scorexContext))
   }
@@ -154,4 +185,5 @@ object PeerManagerRef {
            (implicit system: ActorSystem): ActorRef = {
     system.actorOf(props(settings, scorexContext), name)
   }
+
 }

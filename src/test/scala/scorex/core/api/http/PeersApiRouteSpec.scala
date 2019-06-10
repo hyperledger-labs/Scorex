@@ -66,7 +66,7 @@ class PeersApiRouteSpec extends FlatSpec
   it should "get blacklisted peers" in {
     Get(prefix + "/blacklisted") ~> routes ~> check {
       status shouldBe StatusCodes.OK
-      Map("addresses" -> blacklistedPeers).asJson.toString shouldBe responseAs[String]
+      Map("addresses" -> blacklistedPeers.map(_.toString)).asJson.toString shouldBe responseAs[String]
     }
   }
 
