@@ -168,11 +168,10 @@ MR <: MempoolReader[TX] : ClassTag]
           val comparison = historyReader.compare(syncInfo)
           log.debug(s"Comparison with $remote having starting points ${idsToString(syncInfo.startingPoints)}. " +
             s"Comparison result is $comparison. Sending extension of length ${ext.length}")
-          log.trace(s"Extension ids: ${idsToString(ext)}")
+          log.debug(s"Extension ids: ${idsToString(ext)}")
 
-          if (!(extensionOpt.nonEmpty || comparison != Younger)) {
+          if (!(extensionOpt.nonEmpty || comparison != Younger))
             log.warn("Extension is empty while comparison is younger")
-          }
 
           self ! OtherNodeSyncingStatus(remote, comparison, extensionOpt)
         case _ =>
@@ -202,7 +201,7 @@ MR <: MempoolReader[TX] : ClassTag]
           log.warn("Peer status is still unknown")
         case Nonsense =>
           log.warn("Got nonsense")
-        case Younger =>
+        case Younger | UnknownFork =>
           sendExtension(remote, status, extOpt)
         case _ => // does nothing for `Equal` and `Older`
       }

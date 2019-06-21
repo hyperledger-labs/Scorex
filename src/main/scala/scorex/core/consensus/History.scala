@@ -64,6 +64,8 @@ object History {
 
   case object Older extends HistoryComparisonResult
 
+  case object UnknownFork extends HistoryComparisonResult
+
   case object Nonsense extends HistoryComparisonResult
 
   case object Unknown extends HistoryComparisonResult
