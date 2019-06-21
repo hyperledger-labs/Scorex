@@ -54,9 +54,7 @@ class SyncTracker(nvsRef: ActorRef,
     statuses += peer -> status
     val seniorsAfter = numOfSeniors()
 
-    /**
-      * Todo: we should also send NoBetterNeighbour signal when all the peers around are not seniors initially
-      */
+    // todo: we should also send NoBetterNeighbour signal when all the peers around are not seniors initially
     if (seniorsBefore > 0 && seniorsAfter == 0) {
       log.info("Syncing is done, switching to stable regime")
       stableSyncRegime = true
@@ -102,15 +100,19 @@ class SyncTracker(nvsRef: ActorRef,
     */
   def peersToSyncWith(): Seq[ConnectedPeer] = {
     val outdated = outdatedPeers()
-
-    lazy val unknowns = statuses.filter(_._2 == Unknown).keys.toIndexedSeq
-    lazy val olders = statuses.filter(_._2 == Older).keys.toIndexedSeq
-    lazy val nonOutdated = if (olders.nonEmpty) olders(scala.util.Random.nextInt(olders.size)) +: unknowns else unknowns
-
-    val peers = if (outdated.nonEmpty) outdated
-    else nonOutdated.filter(p => (timeProvider.time() - lastSyncSentTime.getOrElse(p, 0L)).millis >= minInterval)
+    val peers =
+      if (outdated.nonEmpty) outdated
+      else {
+        val unknowns = statuses.filter(_._2 == Unknown).keys.toIndexedSeq
+        val forks = statuses.filter(_._2 == Fork).keys.toIndexedSeq
+        val elders = statuses.filter(_._2 == Older).keys.toIndexedSeq
+        val nonOutdated =
+          (if (elders.nonEmpty) elders(scala.util.Random.nextInt(elders.size)) +: unknowns else unknowns) ++ forks
+        nonOutdated.filter(p => (timeProvider.time() - lastSyncSentTime.getOrElse(p, 0L)).millis >= minInterval)
+      }
 
     peers.foreach(updateLastSyncSentTime)
     peers
   }
+
 }

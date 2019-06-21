@@ -146,7 +146,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      historyReaderOpt.foreach(r => sendSync(statusTracker, r))
+      historyReaderOpt.foreach(sendSync(statusTracker, _))
   }
 
   protected def sendSync(syncTracker: SyncTracker, history: HR): Unit = {
