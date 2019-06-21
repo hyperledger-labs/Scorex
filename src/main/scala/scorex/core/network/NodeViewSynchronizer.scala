@@ -197,7 +197,7 @@ MR <: MempoolReader[TX] : ClassTag]
           log.warn("Peer status is still unknown")
         case Nonsense =>
           log.warn("Got nonsense")
-        case Younger =>
+        case Younger | Fork =>
           sendExtension(remote, status, ext)
         case _ => // does nothing for `Equal` and `Older`
       }
