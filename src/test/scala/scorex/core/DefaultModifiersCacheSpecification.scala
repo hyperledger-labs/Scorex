@@ -34,7 +34,7 @@ class DefaultModifiersCacheSpecification extends PropSpec
     override def modifierById(modifierId: scorex.util.ModifierId): Option[FakeModifier] = ???
     override def isSemanticallyValid(modifierId: scorex.util.ModifierId): ModifierSemanticValidity = ???
     override def openSurfaceIds(): Seq[scorex.util.ModifierId] = ???
-    override def continuationIds(info: FakeSyncInfo, size: Int): Option[ModifierIds] = ???
+    override def continuationIds(info: FakeSyncInfo, size: Int): ModifierIds = ???
     override def syncInfo: FakeSyncInfo = ???
     override def compare(other: FakeSyncInfo): History.HistoryComparisonResult = ???
     override type NVCT = this.type

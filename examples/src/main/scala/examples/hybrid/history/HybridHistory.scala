@@ -291,9 +291,8 @@ class HybridHistory(val storage: HistoryStorage,
   }
 
   override def continuationIds(info: HybridSyncInfo,
-                               size: Int): Option[Seq[(ModifierTypeId, ModifierId)]] = {
-    continuationIds(info.startingPoints, size)
-  }
+                               size: Int): Seq[(ModifierTypeId, ModifierId)] =
+    continuationIds(info.startingPoints, size).toSeq.flatten
 
   override def syncInfo: HybridSyncInfo =
     HybridSyncInfo(

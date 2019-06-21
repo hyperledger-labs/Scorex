@@ -38,7 +38,7 @@ trait HistoryReader[PM <: PersistentNodeViewModifier, SI <: SyncInfo] extends No
   /**
     * Ids of modifiers, that node with info should download and apply to synchronize
     */
-  def continuationIds(info: SI, size: Int): Option[ModifierIds]
+  def continuationIds(info: SI, size: Int): ModifierIds
 
   /**
     * Information about our node synchronization status. Other node should be able to compare it's view with ours by
