@@ -144,7 +144,7 @@ MP <: MemoryPool[TX, MP]
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Nonsense") {
     withFixture { ctx =>
       import ctx._
-      node ! OtherNodeSyncingStatus(peer, Nonsense, None)
+      node ! OtherNodeSyncingStatus(peer, Nonsense, Seq.empty)
       // NVS does nothing in this case
     }
   }
@@ -153,7 +153,7 @@ MP <: MemoryPool[TX, MP]
     withFixture { ctx =>
       import ctx._
       system.eventStream.subscribe(eventListener.ref, classOf[NodeViewSynchronizerEvent])
-      node ! OtherNodeSyncingStatus(peer, Older, None)
+      node ! OtherNodeSyncingStatus(peer, Older, Seq.empty)
       eventListener.fishForMessage(3 seconds) { case m => m == BetterNeighbourAppeared }
     }
   }
@@ -162,8 +162,8 @@ MP <: MemoryPool[TX, MP]
     withFixture { ctx =>
       import ctx._
       system.eventStream.subscribe(eventListener.ref, classOf[NodeViewSynchronizerEvent])
-      node ! OtherNodeSyncingStatus(peer, Older, None)
-      node ! OtherNodeSyncingStatus(peer, Younger, None)
+      node ! OtherNodeSyncingStatus(peer, Older, Seq.empty)
+      node ! OtherNodeSyncingStatus(peer, Younger, Seq.empty)
       eventListener.fishForMessage(3 seconds) { case m => m == NoBetterNeighbour }
     }
   }
@@ -171,7 +171,7 @@ MP <: MemoryPool[TX, MP]
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Younger with Non-Empty Extension") {
     withFixture { ctx =>
       import ctx._
-      node ! OtherNodeSyncingStatus(peer, Younger, Some(Seq((mod.modifierTypeId, mod.id))))
+      node ! OtherNodeSyncingStatus(peer, Younger, Seq((mod.modifierTypeId, mod.id)))
       ncProbe.fishForMessage(3 seconds) { case m =>
         m match {
           case SendToNetwork(Message(_, Right(InvData(tid, ids)), None), SendToPeer(p))
@@ -185,7 +185,7 @@ MP <: MemoryPool[TX, MP]
   property("NodeViewSynchronizer: OtherNodeSyncingStatus: Equal") {
     withFixture { ctx =>
       import ctx._
-      node ! OtherNodeSyncingStatus(peer, Equal, None)
+      node ! OtherNodeSyncingStatus(peer, Equal, Seq((mod.modifierTypeId, mod.id)))
       // NVS does nothing significant in this case
     }
   }

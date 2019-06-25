@@ -146,7 +146,7 @@ MR <: MempoolReader[TX] : ClassTag]
 
   protected def getLocalSyncInfo: Receive = {
     case SendLocalSyncInfo =>
-      historyReaderOpt.foreach(r => sendSync(statusTracker, r))
+      historyReaderOpt.foreach(sendSync(statusTracker, _))
   }
 
   protected def sendSync(syncTracker: SyncTracker, history: HR): Unit = {
@@ -163,18 +163,16 @@ MR <: MempoolReader[TX] : ClassTag]
 
       historyReaderOpt match {
         case Some(historyReader) =>
-          val extensionOpt = historyReader.continuationIds(syncInfo, networkSettings.desiredInvObjects)
-          val ext = extensionOpt.getOrElse(Seq())
+          val ext = historyReader.continuationIds(syncInfo, networkSettings.desiredInvObjects)
           val comparison = historyReader.compare(syncInfo)
           log.debug(s"Comparison with $remote having starting points ${idsToString(syncInfo.startingPoints)}. " +
             s"Comparison result is $comparison. Sending extension of length ${ext.length}")
-          log.trace(s"Extension ids: ${idsToString(ext)}")
+          log.debug(s"Extension ids: ${idsToString(ext)}")
 
-          if (!(extensionOpt.nonEmpty || comparison != Younger)) {
+          if (!(ext.nonEmpty || comparison != Younger))
             log.warn("Extension is empty while comparison is younger")
-          }
 
-          self ! OtherNodeSyncingStatus(remote, comparison, extensionOpt)
+          self ! OtherNodeSyncingStatus(remote, comparison, ext)
         case _ =>
       }
   }
@@ -182,18 +180,15 @@ MR <: MempoolReader[TX] : ClassTag]
   // Send history extension to the (less developed) peer 'remote' which does not have it.
   def sendExtension(remote: ConnectedPeer,
                     status: HistoryComparisonResult,
-                    extOpt: Option[Seq[(ModifierTypeId, ModifierId)]]): Unit = extOpt match {
-    case None => log.warn(s"extOpt is empty for: $remote. Its status is: $status.")
-    case Some(ext) =>
-      ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
-        case (mid, mods) =>
-          networkControllerRef ! SendToNetwork(Message(invSpec, Right(InvData(mid, mods)), None), SendToPeer(remote))
-      }
-  }
+                    ext: Seq[(ModifierTypeId, ModifierId)]): Unit =
+    ext.groupBy(_._1).mapValues(_.map(_._2)).foreach {
+      case (mid, mods) =>
+        networkControllerRef ! SendToNetwork(Message(invSpec, Right(InvData(mid, mods)), None), SendToPeer(remote))
+    }
 
   //view holder is telling other node status
   protected def processSyncStatus: Receive = {
-    case OtherNodeSyncingStatus(remote, status, extOpt) =>
+    case OtherNodeSyncingStatus(remote, status, ext) =>
       statusTracker.updateStatus(remote, status)
 
       status match {
@@ -202,8 +197,8 @@ MR <: MempoolReader[TX] : ClassTag]
           log.warn("Peer status is still unknown")
         case Nonsense =>
           log.warn("Got nonsense")
-        case Younger =>
-          sendExtension(remote, status, extOpt)
+        case Younger | Fork =>
+          sendExtension(remote, status, ext)
         case _ => // does nothing for `Equal` and `Older`
       }
   }
@@ -493,7 +488,7 @@ object NodeViewSynchronizer {
 
     case class OtherNodeSyncingStatus[SI <: SyncInfo](remote: ConnectedPeer,
                                                       status: History.HistoryComparisonResult,
-                                                      extension: Option[Seq[(ModifierTypeId, ModifierId)]])
+                                                      extension: Seq[(ModifierTypeId, ModifierId)])
 
     trait PeerManagerEvent
 

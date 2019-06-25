@@ -1,7 +1,7 @@
 sudo: true
 language: scala
 jdk:
-  - oraclejdk11
+  - openjdk11
 scala:
   - 2.12.7
 branches:
