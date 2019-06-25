@@ -85,8 +85,8 @@ object History {
                                                             toDownload: Seq[(ModifierTypeId, ModifierId)])
                                                            (implicit encoder: ScorexEncoder) {
 
-    require(branchPoint.isDefined == toRemove.nonEmpty, s"Branch point should be defined for non-empty toRemove," +
-      s" ${branchPoint.isDefined} == ${toRemove.nonEmpty} given")
+    if (toRemove.nonEmpty)
+      require(branchPoint.isDefined, s"Branch point should be defined for non-empty `toRemove`")
 
     lazy val chainSwitchingNeeded: Boolean = toRemove.nonEmpty
 
