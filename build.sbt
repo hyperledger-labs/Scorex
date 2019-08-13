@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
   organization := "org.scorexfoundation",
   licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
   homepage := Some(url("https://github.com/ScorexFoundation/Scorex")),
-  pomExtra := (
+  pomExtra :=
     <scm>
       <url>git@github.com:ScorexFoundation/Scorex.git</url>
       <connection>scm:git:git@github.com:ScorexFoundation/Scorex.git</connection>
@@ -30,7 +30,7 @@ lazy val commonSettings = Seq(
           <name>Alexander Chepurnoy</name>
           <url>http://chepurnoy.org/</url>
         </developer>
-      </developers>)
+      </developers>
 )
 
 enablePlugins(GitVersioning)
@@ -55,8 +55,12 @@ organization := "org.scorexfoundation"
 val circeVersion = "0.8.0"
 
 val networkDependencies = Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.5.+",
-  "com.typesafe.akka" %% "akka-stream" % "2.5.+",
+  "com.typesafe.akka" % "akka-actor_2.12" % "2.5.24",
+  "com.typesafe.akka" % "akka-http-core_2.12" % "10.1.9",
+  "com.typesafe.akka" % "akka-http_2.12" % "10.1.9",
+  "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.9",
+  "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.24",
+  "com.typesafe.akka" % "akka-stream_2.12" % "2.5.24",
   "org.bitlet" % "weupnp" % "0.1.+",
   "commons-net" % "commons-net" % "3.+"
 )
