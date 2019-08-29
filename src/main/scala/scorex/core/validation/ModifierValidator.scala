@@ -27,7 +27,7 @@ object ModifierValidator {
     ValidationState(ModifierValidator.success, ValidationStrategy.AccumulateErrors)(e)
 
   /** Start tagged validation in Fail-Fast mode */
-  def failFastTagged[T](settings: TaggedValidationRules)(implicit e: ScorexEncoder): TaggedValidationState[Unit] =
+  def failFastTagged(settings: TaggedValidationRules)(implicit e: ScorexEncoder): TaggedValidationState[Unit] =
     TaggedValidationState(ModifierValidator.success, ValidationStrategy.FailFast, settings)(e)
 
   /** Start tagged validation accumulating all the errors */
