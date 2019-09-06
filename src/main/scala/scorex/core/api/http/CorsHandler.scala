@@ -16,7 +16,7 @@ trait CorsHandler extends Directives {
   private val corsResponseHeaders: List[ModeledHeader] = List[ModeledHeader](
     `Access-Control-Allow-Origin`.*,
     `Access-Control-Allow-Credentials`(true),
-    `Access-Control-Allow-Headers`("Authorization", "Content-Type", "X-Requested-With")
+    `Access-Control-Allow-Headers`("Authorization", "Content-Type", "X-Requested-With", "api_key")
   )
 
   def corsHandler(r: Route): Route = addAccessControlHeaders {
