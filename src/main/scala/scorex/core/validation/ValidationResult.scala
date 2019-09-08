@@ -100,7 +100,7 @@ object ValidationResult {
   }
 
   /** Shorthand to get the result of validation */
-  implicit def fromValidationState[R](state: ValidationState[R]): ValidationResult[R] = state.result
+  implicit def fromValidationState[R](state: TaggedValidationState[R]): ValidationResult[R] = state.result
 
 }
 

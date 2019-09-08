@@ -15,7 +15,7 @@ lazy val commonSettings = Seq(
     Wart.JavaSerializable,
     Wart.Serializable,
     Wart.OptionPartial),
-  scalaVersion := "2.12.7",
+  scalaVersion := "2.12.9",
   organization := "org.scorexfoundation",
   licenses := Seq("CC0" -> url("https://creativecommons.org/publicdomain/zero/1.0/legalcode")),
   homepage := Some(url("https://github.com/ScorexFoundation/Scorex")),

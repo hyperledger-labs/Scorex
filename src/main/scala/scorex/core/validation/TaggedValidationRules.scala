@@ -3,11 +3,9 @@ package scorex.core.validation
 import scorex.core.validation.ValidationResult.Invalid
 
 /**
-  * Specifies the strategy to by used (fail-fast or error-accumulative), a set of
-  * activated validation rules with corresponding error messages
+  * Validation rules defining how to treat particular tagged rule.
   */
-abstract class ValidationSettings {
-  val isFailFast: Boolean
+abstract class TaggedValidationRules {
 
   def getError(id: Short, e: Throwable): Invalid = getError(id, e.getMessage)
 
