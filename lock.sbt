@@ -16,7 +16,7 @@ dependencyOverrides in ThisBuild ++= Seq(
   "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.9",
   "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.24",
   "com.typesafe.akka" % "akka-stream_2.12" % "2.5.24",
-  "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.9.0",
+  "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.9.2",
   "commons-net" % "commons-net" % "3.6",
   "de.heikoseeberger" % "akka-http-circe_2.12" % "1.19.0",
   "io.circe" % "circe-core_2.12" % "0.9.0",
