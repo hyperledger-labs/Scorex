@@ -16,7 +16,7 @@ dependencyOverrides in ThisBuild ++= Seq(
   "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.9",
   "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.24",
   "com.typesafe.akka" % "akka-stream_2.12" % "2.5.24",
-  "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.9.2",
+  "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.9.0",
   "commons-net" % "commons-net" % "3.6",
   "de.heikoseeberger" % "akka-http-circe_2.12" % "1.19.0",
   "io.circe" % "circe-core_2.12" % "0.9.0",
@@ -33,7 +33,7 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.scala-lang.modules" % "scala-parser-combinators_2.12" % "1.1.2",
   "org.scala-sbt" % "test-interface" % "1.0",
   "org.scalacheck" % "scalacheck_2.12" % "1.13.5",
-  "org.scorexfoundation" % "scorex-util_2.12" % "0.1.3",
+  "org.scorexfoundation" % "scorex-util_2.12" % "0.1.6-SNAPSHOT",
   "org.scorexfoundation" % "scrypto_2.12" % "2.1.5",
   "org.slf4j" % "slf4j-api" % "1.8.0-beta1",
   "org.spire-math" % "jawn-parser_2.12" % "0.11.0",
@@ -44,4 +44,4 @@ dependencyOverrides in ThisBuild ++= Seq(
   "org.typelevel" % "macro-compat_2.12" % "1.1.1",
   "org.whispersystems" % "curve25519-java" % "0.5.0"
 )
-// LIBRARY_DEPENDENCIES_HASH 3d0b64a1166bd4c858ffbc2626c5d505b5623dca
+// LIBRARY_DEPENDENCIES_HASH 4f572c76e37a46b234e18b25de7678590a4d074e

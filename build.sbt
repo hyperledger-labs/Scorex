@@ -33,6 +33,8 @@ lazy val commonSettings = Seq(
       </developers>
 )
 
+lazy val allConfigDependency = "compile->compile;test->test"
+
 enablePlugins(GitVersioning)
 
 version in ThisBuild := {
@@ -61,20 +63,20 @@ val networkDependencies = Seq(
   "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.9",
   "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.24",
   "com.typesafe.akka" % "akka-stream_2.12" % "2.5.24",
-  "org.bitlet" % "weupnp" % "0.1.+",
-  "commons-net" % "commons-net" % "3.+"
+  "org.bitlet" % "weupnp" % "0.1.4",
+  "commons-net" % "commons-net" % "3.6"
 )
 
 val apiDependencies = Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
-  "com.typesafe.akka" %% "akka-http" % "10.+",
+  "com.typesafe.akka" %% "akka-http" % "10.1.9",
   "de.heikoseeberger" %% "akka-http-circe" % "1.19.0"
 )
 
 val loggingDependencies = Seq(
-  "ch.qos.logback" % "logback-classic" % "1.+"
+  "ch.qos.logback" % "logback-classic" % "1.3.0-alpha4"
 )
 
 val testingDependencies = Seq(
@@ -87,8 +89,8 @@ val testingDependencies = Seq(
 
 libraryDependencies ++= Seq(
   "com.iheart" %% "ficus" % "1.4.2",
-  "org.scorexfoundation" %% "scrypto" % "2.+",
-  "org.scorexfoundation" %% "scorex-util" % "0.1.3",
+  "org.scorexfoundation" %% "scrypto" % "2.1.5",
+  "org.scorexfoundation" %% "scorex-util" % "0.1.6-SNAPSHOT" % allConfigDependency,
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 
