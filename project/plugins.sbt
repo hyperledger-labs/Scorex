@@ -6,8 +6,6 @@ resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/release
 
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.5")
 
-addSbtPlugin("com.github.tkawachi" % "sbt-lock" % "0.4.0")
-
 libraryDependencies += "com.typesafe" % "config" % "1.3.0"
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
