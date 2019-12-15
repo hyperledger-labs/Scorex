@@ -104,8 +104,8 @@ val testingDependencies = Seq(
 
 libraryDependencies ++= Seq(
   "com.iheart" %% "ficus" % "1.4.2",
-  "org.scorexfoundation" %% "scrypto" % "2.1.5",
-  "org.scorexfoundation" %% "scorex-util" % "0.1.6-SNAPSHOT" % allConfigDependency,
+  "org.scorexfoundation" %% "scrypto" % "2.1.7",
+  "org.scorexfoundation" %% "scorex-util" % "0.1.6",
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 
 
