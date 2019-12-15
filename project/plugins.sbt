@@ -10,11 +10,11 @@ addSbtPlugin("com.github.tkawachi" % "sbt-lock" % "0.4.0")
 
 libraryDependencies += "com.typesafe" % "config" % "1.3.0"
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.9.3")
+addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
 
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.6")
 
-addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.0")
+addSbtPlugin("com.jsuereth" % "sbt-pgp" % "2.0.0")
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1")
 
@@ -25,3 +25,5 @@ addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.0")
 addSbtPlugin("com.github.sbt" % "sbt-findbugs" % "2.0.0")
 
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.2.1")
+
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.8")
