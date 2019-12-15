@@ -66,7 +66,7 @@ version in ThisBuild := {
 
 git.gitUncommittedChanges in ThisBuild := true
 
-scalaVersion := "2.12.10"
+scalaVersion := "2.12.3"
 organization := "org.scorexfoundation"
 
 val circeVersion = "0.8.0"
