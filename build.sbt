@@ -124,7 +124,10 @@ testOptions in Test += Tests.Argument("-oD", "-u", "target/test-reports")
 
 pomIncludeRepository := { _ => false }
 
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+val credentialFile = Path.userHome / ".ivy2" / ".credentials"
+credentials ++= (for {
+  file <- if (credentialFile.exists) Some(credentialFile) else None
+} yield Credentials(file)).toSeq
 
 lazy val testkit = Project(id = "testkit", base = file(s"testkit"))
   .dependsOn(basics)
