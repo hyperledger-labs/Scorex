@@ -35,7 +35,8 @@ lazy val commonSettings = Seq(
       </developers>,
   publishMavenStyle := true,
   publishArtifact in Test := false,
-  publishTo := sonatypePublishToBundle.value
+  publishTo := sonatypePublishToBundle.value,
+  fork := true // otherwise, "java.net.SocketException: maximum number of DatagramSockets reached"
 )
 
 enablePlugins(GitVersioning)
