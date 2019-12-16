@@ -3,7 +3,7 @@ import scala.util.Try
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.3",
+  scalaVersion := "2.12.7",
   resolvers += Resolver.sonatypeRepo("public"),
   wartremoverErrors ++= Seq(
     Wart.Recursion,
@@ -38,8 +38,6 @@ lazy val commonSettings = Seq(
   publishTo := sonatypePublishToBundle.value
 )
 
-lazy val allConfigDependency = "compile->compile;test->test"
-
 enablePlugins(GitVersioning)
 
 version in ThisBuild := {
@@ -72,14 +70,16 @@ version in ThisBuild := {
 git.gitUncommittedChanges in ThisBuild := true
 
 val circeVersion = "0.8.0"
+val akkaVersion = "2.5.24"
+val akkaHttpVersion = "10.1.9"
 
 val networkDependencies = Seq(
-  "com.typesafe.akka" % "akka-actor_2.12" % "2.5.24",
-  "com.typesafe.akka" % "akka-http-core_2.12" % "10.1.9",
-  "com.typesafe.akka" % "akka-http_2.12" % "10.1.9",
-  "com.typesafe.akka" % "akka-parsing_2.12" % "10.1.9",
-  "com.typesafe.akka" % "akka-protobuf_2.12" % "2.5.24",
-  "com.typesafe.akka" % "akka-stream_2.12" % "2.5.24",
+  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+  "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion,
+  "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+  "com.typesafe.akka" %% "akka-parsing" % akkaHttpVersion,
+  "com.typesafe.akka" %% "akka-protobuf" % akkaVersion,
+  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "org.bitlet" % "weupnp" % "0.1.4",
   "commons-net" % "commons-net" % "3.6"
 )
@@ -88,8 +88,7 @@ val apiDependencies = Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
-  "com.typesafe.akka" %% "akka-http" % "10.1.9",
-  "de.heikoseeberger" %% "akka-http-circe" % "1.19.0"
+  "de.heikoseeberger" %% "akka-http-circe" % "1.20.0"
 )
 
 val loggingDependencies = Seq(
@@ -99,8 +98,8 @@ val loggingDependencies = Seq(
 val scorexUtil = "org.scorexfoundation" %% "scorex-util" % "0.1.6"
 
 val testingDependencies = Seq(
-  "com.typesafe.akka" %% "akka-testkit" % "2.5.+" % "test",
-  "com.typesafe.akka" %% "akka-http-testkit" % "10.+" % "test",
+  "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
+  "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % "test",
   "org.scalactic" %% "scalactic" % "3.0.3" % "test",
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.scalacheck" %% "scalacheck" % "1.13.+",
