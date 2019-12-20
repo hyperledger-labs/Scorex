@@ -5,7 +5,7 @@ Testkit contains property tests common for all blockchains and allow to test blo
 
 ### Example:
 
-All test scenarios are combined in BlockchainSanity test, leaving generators to concrete blockchain implementation. This generators are implemented in [test for Hybrid example](https://github.com/ScorexFoundation/Scorex/blob/testkit/examples/src/test/scala/hybrid/HybridSanity.scala).
+All test scenarios are combined in BlockchainSanity test, leaving generators to concrete blockchain implementation. This generators are implemented in [a test for the Hybrid example](https://github.com/ScorexFoundation/Scorex/blob/master/examples/src/test/scala/hybrid/HybridSanity.scala).
 
 ### Implemented test scenarios
 - [x] Valid block should be successfully applied to history and available by id after that.
