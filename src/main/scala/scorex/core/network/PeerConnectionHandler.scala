@@ -63,14 +63,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     connection ! ResumeReading
 
     context.become(handshaking)
-
-    context.system.scheduler.schedule(5.minutes, 2.minutes) {
-      if ((System.currentTimeMillis() - lastSeen).millis > 2.minutes) {
-        log.info(s"Havent' heard from ${connectionDescription.connectionId.remoteAddress} for 2 mins, " +
-          s"dropping connection")
-        self ! CloseConnection
-      }
-    }
   }
 
   override def receive: Receive = reportStrangeInput
@@ -97,6 +89,15 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
       networkControllerRef ! Handshaked(peerInfo)
       handshakeTimeoutCancellableOpt.map(_.cancel())
+
+      context.system.scheduler.schedule(3.minutes, 2.minutes) {
+        if ((System.currentTimeMillis() - lastSeen).millis > 2.minutes) {
+          log.info(s"Havent' heard from ${connectionDescription.connectionId.remoteAddress} for 2 mins, " +
+            s"dropping connection")
+          self ! CloseConnection
+        }
+      }
+
       connection ! ResumeReading
       context become workingCycleWriting
     } orElse handshakeTimeout orElse fatalCommands
