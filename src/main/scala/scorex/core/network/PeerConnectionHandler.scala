@@ -18,6 +18,7 @@ import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
+import scala.concurrent.duration._
 
 class PeerConnectionHandler(val settings: NetworkSettings,
                             networkControllerRef: ActorRef,
@@ -54,12 +55,20 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private var outMessagesCounter: Long = 0
 
+  private var lastSeen: Long = System.currentTimeMillis()
+
   override def preStart: Unit = {
     context watch connection
     connection ! Register(self, keepOpenOnPeerClosed = false, useResumeWriting = true)
     connection ! ResumeReading
 
     context.become(handshaking)
+
+    context.system.scheduler.schedule(5.minutes, 2.minutes) {
+      if ((System.currentTimeMillis() - lastSeen).millis > 2.minutes) {
+        self ! CloseConnection
+      }
+    }
   }
 
   override def receive: Receive = reportStrangeInput
@@ -182,6 +191,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     case Received(data) =>
 
       chunksBuffer ++= data
+
+      lastSeen = System.currentTimeMillis()
 
       @tailrec
       def process(): Unit = {

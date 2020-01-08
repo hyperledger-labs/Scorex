@@ -200,7 +200,7 @@ class NetworkController(settings: NetworkSettings,
       log.info("Failed to execute command : " + cmd)
 
     case nonsense: Any =>
-      log.warn(s"NetworkController: got something strange $nonsense")
+      log.warn(s"NetworkController: got unexpected input $nonsense")
   }
 
   /**
