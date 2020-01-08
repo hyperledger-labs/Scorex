@@ -66,6 +66,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     context.system.scheduler.schedule(5.minutes, 2.minutes) {
       if ((System.currentTimeMillis() - lastSeen).millis > 2.minutes) {
+        log.info(s"Havent' heard from ${connectionDescription.connectionId.remoteAddress} for 2 mins, " +
+          s"dropping connection")
         self ! CloseConnection
       }
     }
