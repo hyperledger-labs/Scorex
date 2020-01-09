@@ -154,7 +154,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + ", switching to closing mode")
-      if (outMessagesBuffer.isEmpty) connection ! Close else context become closingWithNonEmptyBuffer
+     // if (outMessagesBuffer.isEmpty)
+        writeAll()
+        connection ! Close //else context become closingWithNonEmptyBuffer
 
     case ReceivableMessages.Ack(_) => // ignore ACKs in stable mode
 
@@ -187,7 +189,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + s", switching to closing mode")
       writeAll()
-      context become closingWithNonEmptyBuffer
+      connection ! Close
+      //context become closingWithNonEmptyBuffer
   }
 
   def remoteInterface: Receive = {
