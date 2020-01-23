@@ -240,20 +240,20 @@ object HandshakeSpec {
   */
 class HandshakeSpec(featureSerializers: PeerFeature.Serializers, sizeLimit: Int) extends MessageSpecV1[Handshake] {
 
-  private val peersDataSerializer = new PeerSpecSerializer(featureSerializers)
+  private val peerDataSerializer = new PeerSpecSerializer(featureSerializers)
 
   override val messageCode: MessageCode = HandshakeSpec.messageCode
   override val messageName: String = HandshakeSpec.messageName
 
   override def serialize(obj: Handshake, w: Writer): Unit = {
     w.putULong(obj.time)
-    peersDataSerializer.serialize(obj.peerSpec, w)
+    peerDataSerializer.serialize(obj.peerSpec, w)
   }
 
   override def parse(r: Reader): Handshake = {
     require(r.remaining <= sizeLimit, s"Too big handshake. Size ${r.remaining} exceeds $sizeLimit limit")
     val t = r.getULong()
-    val data = peersDataSerializer.parse(r)
+    val data = peerDataSerializer.parse(r)
     Handshake(data, t)
   }
 }

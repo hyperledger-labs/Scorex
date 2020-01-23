@@ -37,12 +37,11 @@ case class PeerSpec(agentName: String,
 }
 
 class PeerSpecSerializer(featureSerializers: PeerFeature.Serializers) extends ScorexSerializer[PeerSpec] {
-  override def serialize(obj: PeerSpec, w: Writer): Unit = {
 
+  override def serialize(obj: PeerSpec, w: Writer): Unit = {
     w.putShortString(obj.agentName)
     ApplicationVersionSerializer.serialize(obj.protocolVersion, w)
     w.putShortString(obj.nodeName)
-
 
     w.putOption(obj.declaredAddress) { (writer, isa) =>
       val addr = isa.getAddress.getAddress

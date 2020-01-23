@@ -154,9 +154,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + ", switching to closing mode")
-     // if (outMessagesBuffer.isEmpty)
-        writeAll()
-        connection ! Close //else context become closingWithNonEmptyBuffer
+      // if (outMessagesBuffer.isEmpty)
+      writeAll()
+      connection ! Close //else context become closingWithNonEmptyBuffer
 
     case ReceivableMessages.Ack(_) => // ignore ACKs in stable mode
 
@@ -190,7 +190,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       log.info(s"Enforced to abort communication with: " + connectionId + s", switching to closing mode")
       writeAll()
       connection ! Close
-      //context become closingWithNonEmptyBuffer
+    //context become closingWithNonEmptyBuffer
   }
 
   def remoteInterface: Receive = {
@@ -209,7 +209,13 @@ class PeerConnectionHandler(val settings: NetworkSettings,
             chunksBuffer = chunksBuffer.drop(message.messageLength)
             process()
           case Success(None) =>
-          case Failure(e) => log.info(s"Corrupted data from ${connectionId.toString}: ${e.getMessage}")
+          case Failure(e) =>
+            e match {
+              case MaliciousBehaviorException(msg) =>
+                log.warn(s"Banning peer for malicious behaviour($msg): ${connectionId.toString}")
+                PenalizePeer(connectionId.remoteAddress, PenaltyType.PermanentPenalty)
+              case _ => log.info(s"Corrupted data from ${connectionId.toString}: ${e.getMessage}")
+            }
         }
       }
 

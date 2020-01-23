@@ -28,7 +28,7 @@ trait MessageSpec[Content] extends ScorexSerializer[Content] {
 }
 
 /**
-  * P2p messages, that where implemented since the beginning.
+  * P2P messages implemented in an initial version of a protocol.
   */
 trait MessageSpecV1[Content] extends MessageSpec[Content] {
 
