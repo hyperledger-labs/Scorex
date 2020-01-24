@@ -111,7 +111,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
         case Failure(t) =>
           log.info(s"Error during parsing a handshake", t)
-          selfPeer.foreach(c => peerManagerRef ! PenalizePeer(c.connectionId.remoteAddress, PenaltyType.PermanentPenalty))
+          selfPeer.foreach(c => networkControllerRef ! PenalizePeer(c.connectionId.remoteAddress, PenaltyType.PermanentPenalty))
           self ! CloseConnection
       }
   }
@@ -213,8 +213,10 @@ class PeerConnectionHandler(val settings: NetworkSettings,
             e match {
               case MaliciousBehaviorException(msg) =>
                 log.warn(s"Banning peer for malicious behaviour($msg): ${connectionId.toString}")
-                PenalizePeer(connectionId.remoteAddress, PenaltyType.PermanentPenalty)
-              case _ => log.info(s"Corrupted data from ${connectionId.toString}: ${e.getMessage}")
+                networkControllerRef ! PenalizePeer(connectionId.remoteAddress, PenaltyType.PermanentPenalty)
+                self ! CloseConnection
+              case _ =>
+                log.info(s"Corrupted data from ${connectionId.toString}: ${e.getMessage}")
             }
         }
       }
