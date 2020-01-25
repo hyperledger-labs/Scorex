@@ -188,7 +188,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + s", switching to closing mode")
-      writeAll()
+     // writeAll()
       connection ! Close
     //context become closingWithNonEmptyBuffer
   }
