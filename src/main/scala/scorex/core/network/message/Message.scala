@@ -70,7 +70,7 @@ class MessageSerializer(specs: Seq[MessageSpec[_]], magicBytes: Array[Byte]) {
 
       //peer is from another network
       if (!java.util.Arrays.equals(magic, magicBytes)) {
-        throw MaliciousBehaviorException("Wrong magic bytes" + magic.mkString)
+        throw MaliciousBehaviorException(s"Wrong magic bytes, expected ${magicBytes.mkString}, got ${magic.mkString}")
       }
 
       //peer is trying to cause buffer overflow or breaking the parsing
