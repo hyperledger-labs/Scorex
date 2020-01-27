@@ -89,6 +89,7 @@ class NetworkController(settings: NetworkSettings,
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
+      java.lang.System.exit(1) // Terminate node if port is in use
       context stop self
   }
 
