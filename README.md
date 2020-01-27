@@ -1,8 +1,6 @@
 Scorex 2 - The modular blockchain framework [![Build Status](https://travis-ci.org/ScorexFoundation/Scorex.svg?branch=master)](https://travis-ci.org/ScorexFoundation/Scorex) [![Coverage Status](https://coveralls.io/repos/github/ScorexFoundation/Scorex/badge.svg?branch=scoverage-reports)](https://coveralls.io/github/ScorexFoundation/Scorex?branch=scoverage-reports)
 ====================================================================================================================================================================================
 
-[![Join the chat at https://gitter.im/input-output-hk/Scorex](https://badges.gitter.im/input-output-hk/Scorex.svg)](https://gitter.im/input-output-hk/Scorex?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 Scorex and Scorex 2
 -------------------
 
