@@ -30,7 +30,10 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
     }
   }
 
-  override def receive: Receive = peersManagement orElse apiInterface
+  override def receive: Receive = peersManagement orElse apiInterface orElse {
+    case a: Any =>
+      log.error(s"Wrong input for peer manager: $a")
+  }
 
   private def peersManagement: Receive = {
 
@@ -152,7 +155,8 @@ object PeerManager {
                           blacklistedPeers: Seq[InetAddress],
                           sc: ScorexContext): Option[PeerInfo] = {
         val candidates = knownPeers.values.filterNot { p =>
-          excludedPeers.exists(_.peerSpec.address == p.peerSpec.address)
+          excludedPeers.exists(_.peerSpec.address == p.peerSpec.address) &&
+            blacklistedPeers.exists(addr => p.peerSpec.address.map(_.getAddress).contains(addr))
         }.toSeq
         if (candidates.nonEmpty) Some(candidates(Random.nextInt(candidates.size)))
         else None
