@@ -3,7 +3,6 @@ package scorex.core.network
 import java.net._
 
 import akka.actor._
-import akka.io.Tcp.SO.KeepAlive
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.pattern.ask
@@ -73,7 +72,7 @@ class NetworkController(settings: NetworkSettings,
   log.info(s"Declared address: ${scorexContext.externalNodeAddress}")
 
   //bind to listen incoming connections
-  tcpManager ! Bind(self, bindAddress, options = KeepAlive(true) :: Nil, pullMode = false)
+  tcpManager ! Bind(self, bindAddress, options = Nil, pullMode = false)
 
   override def receive: Receive =
     bindingLogic orElse
@@ -90,6 +89,7 @@ class NetworkController(settings: NetworkSettings,
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
+      java.lang.System.exit(1) // Terminate node if port is in use
       context stop self
   }
 
@@ -201,7 +201,7 @@ class NetworkController(settings: NetworkSettings,
       log.info("Failed to execute command : " + cmd)
 
     case nonsense: Any =>
-      log.warn(s"NetworkController: got something strange $nonsense")
+      log.warn(s"NetworkController: got unexpected input $nonsense")
   }
 
   /**
@@ -231,7 +231,7 @@ class NetworkController(settings: NetworkSettings,
           unconfirmedConnections += remote
           tcpManager ! Connect(
             remoteAddress = remote,
-            options = KeepAlive(true) :: Nil,
+            options = Nil,
             timeout = Some(settings.connectionTimeout),
             pullMode = true
           )

@@ -4,7 +4,6 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.io.Tcp
-import akka.io.Tcp.SO.KeepAlive
 import akka.io.Tcp.{Message => _, _}
 import akka.testkit.TestProbe
 import akka.util.ByteString
@@ -294,7 +293,7 @@ class NetworkControllerSpec extends NetworkTests {
       peerManagerRef, scorexContext, tcpManagerProbe.testActor)
 
 
-    tcpManagerProbe.expectMsg(Bind(networkControllerRef, settings.network.bindAddress, options = KeepAlive(true) :: Nil))
+    tcpManagerProbe.expectMsg(Bind(networkControllerRef, settings.network.bindAddress, options = Nil))
 
     tcpManagerProbe.send(networkControllerRef, Bound(settings.network.bindAddress))
     networkControllerRef
@@ -310,7 +309,7 @@ class NetworkControllerSpec extends NetworkTests {
   */
 case class DummyUPnPGateway(override val externalAddress: InetAddress,
                             override val localAddress: InetAddress)
-                           (getLocalAddrForExtPort: (Int => Option[InetSocketAddress])) extends UPnPGateway {
+                           (getLocalAddrForExtPort: Int => Option[InetSocketAddress]) extends UPnPGateway {
 
   override def addPort(port: Int): Unit = {}
 
