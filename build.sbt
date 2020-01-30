@@ -70,7 +70,7 @@ version in ThisBuild := {
 
 git.gitUncommittedChanges in ThisBuild := true
 
-val circeVersion = "0.8.0"
+val circeVersion = "0.9.0"
 val akkaVersion = "2.5.24"
 val akkaHttpVersion = "10.1.9"
 
