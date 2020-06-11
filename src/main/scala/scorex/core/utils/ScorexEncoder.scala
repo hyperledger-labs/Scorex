@@ -38,7 +38,7 @@ class ScorexEncoder extends BytesEncoder {
     * with encode() and decode methods
     */
   @inline
-  def encodeId(input: ModifierId): String = input
+  def encodeId(input: ModifierId): String = input.toString
 
 }
 
