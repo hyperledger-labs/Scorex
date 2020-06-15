@@ -10,11 +10,9 @@ package object core {
   //TODO implement ModifierTypeId as a trait
   object ModifierTypeId extends TaggedType[Byte]
 
-  object VersionTag extends TaggedType[String]
-
   type ModifierTypeId = ModifierTypeId.Type
 
-  type VersionTag = VersionTag.Type
+  type VersionTag = util.ModifierId
 
   def idsToString(ids: Seq[(ModifierTypeId, util.ModifierId)])(implicit enc: ScorexEncoder): String = {
     List(ids.headOption, ids.lastOption)
@@ -33,12 +31,12 @@ package object core {
 
   def idToBytes: util.ModifierId => Array[Byte] = scorex.util.idToBytes
 
-  def bytesToVersion(bytes: Array[Byte]): VersionTag = VersionTag @@ Base16.encode(bytes)
+  def bytesToVersion(bytes: Array[Byte]): VersionTag = scorex.util.bytesToId(bytes)
 
-  def versionToBytes(id: VersionTag): Array[Byte] = Base16.decode(id).get
+  def versionToBytes(id: VersionTag): Array[Byte] = scorex.util.idToBytes(id)
 
-  def versionToId(version: VersionTag): util.ModifierId = util.ModifierId(version)
+  def versionToId(version: VersionTag): util.ModifierId = version
 
-  def idToVersion(id: util.ModifierId): VersionTag = VersionTag @@ id.toString
+  def idToVersion(id: util.ModifierId): VersionTag = id
 
 }
