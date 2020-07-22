@@ -16,7 +16,7 @@ Motivation
  If you have a new design for a blockchain system, there are few options available in regards with an implementation:
  * you can fork codebase of a Bitcoin or Ethereum client. However, such clients are optimized towards concrete 
  protocol, thus implementing something different would be a cumbersome task.
- * there are some modular frameworks frameworks, such as Scorex, where you can change consensus layer, or transactional
+ * there are some modular frameworks, such as Scorex, where you can change consensus layer, or transactional
    layer, or both. Still, these modules have concrete interfaces, so for many design
 
  We have read a lot of research papers to make Scorex 2 supporting their implementations. Its abstract core 
