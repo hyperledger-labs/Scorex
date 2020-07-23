@@ -292,6 +292,9 @@ class NetworkControllerSpec extends NetworkTests {
       "networkController", settings.network,
       peerManagerRef, scorexContext, tcpManagerProbe.testActor)
 
+    val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer",
+      networkControllerRef, peerManagerRef, settings.network, featureSerializers)
+
 
     tcpManagerProbe.expectMsg(Bind(networkControllerRef, settings.network.bindAddress, options = Nil))
 
