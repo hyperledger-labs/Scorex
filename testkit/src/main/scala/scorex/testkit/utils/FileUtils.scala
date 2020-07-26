@@ -35,21 +35,22 @@ trait FileUtils {
     createTempDirForPrefix(prefix)
   }
 
+
+  @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
+  def deleteRecursive(dir: java.io.File): Unit = {
+    for (file <- dir.listFiles) {
+      if (!file.getName.startsWith(".")) {
+        if (file.isDirectory) deleteRecursive(file)
+        file.delete()
+      }
+    }
+  }
+
   /**
     * Recursively remove all files and directories in `root`
     */
   def remove(root: Path): Unit = {
-    Files.walkFileTree(root, new SimpleFileVisitor[Path] {
-      override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-        Files.delete(file)
-        FileVisitResult.CONTINUE
-      }
-
-      override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-        Files.delete(dir)
-        FileVisitResult.CONTINUE
-      }
-    })
+    deleteRecursive(root.toFile)
   }
 
   private def createTempDirForPrefix(prefix: String): java.io.File = {

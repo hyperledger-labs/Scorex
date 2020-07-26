@@ -30,7 +30,7 @@ class ScorexEncoder extends BytesEncoder {
     * with encode() and decode methods
     */
   @inline
-  def encodeVersion(input: VersionTag): String = input
+  def encodeVersion(input: VersionTag): String = input.toString
 
   /**
     * This method might be useful and reimplemented, if encoding of ModifierId and VersionTag
@@ -38,7 +38,7 @@ class ScorexEncoder extends BytesEncoder {
     * with encode() and decode methods
     */
   @inline
-  def encodeId(input: ModifierId): String = input
+  def encodeId(input: ModifierId): String = input.toString
 
 }
 

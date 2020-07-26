@@ -3,7 +3,7 @@ import scala.util.Try
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.3",
+  scalaVersion := "2.12.10",
   resolvers += Resolver.sonatypeRepo("public"),
   wartremoverErrors ++= Seq(
     Wart.Recursion,
@@ -96,7 +96,7 @@ val loggingDependencies = Seq(
   "ch.qos.logback" % "logback-classic" % "1.3.0-alpha4"
 )
 
-val scorexUtil = "org.scorexfoundation" %% "scorex-util" % "0.1.6"
+val scorexUtil = "org.scorexfoundation" %% "scorex-util" % "0.1.7"
 
 val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
