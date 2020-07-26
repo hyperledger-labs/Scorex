@@ -61,11 +61,6 @@ class NetworkController(settings: NetworkSettings,
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
-  //todo: make usage more clear, now we're relying on preStart logic in a actor which is described by a never used val
-  private val featureSerializers: PeerFeature.Serializers = scorexContext.features.map(f => f.featureId -> f.serializer).toMap
-  private val peerSynchronizer: ActorRef = PeerSynchronizerRef("PeerSynchronizer", self, peerManagerRef, settings,
-    featureSerializers)
-
   //check own declared address for validity
   validateDeclaredAddress()
 
