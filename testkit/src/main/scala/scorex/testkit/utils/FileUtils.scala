@@ -33,21 +33,21 @@ trait FileUtils {
     createTempDirForPrefix(prefix)
   }
 
+  /**
+    * Recursively remove all the files and directories in `root`
+    */
+  def remove(root: Path): Unit = {
 
-  @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
-  def deleteRecursive(dir: java.io.File): Unit = {
-    for (file <- dir.listFiles) {
-      if (!file.getName.startsWith(".")) {
-        if (file.isDirectory) deleteRecursive(file)
+    @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
+    def deleteRecursive(dir: java.io.File): Unit = {
+      for (file <- dir.listFiles) {
+        if (file.isDirectory){
+          deleteRecursive(file)
+        }
         file.delete()
       }
     }
-  }
 
-  /**
-    * Recursively remove all files and directories in `root`
-    */
-  def remove(root: Path): Unit = {
     deleteRecursive(root.toFile)
   }
 
