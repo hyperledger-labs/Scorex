@@ -336,6 +336,7 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
   private val messageSpecs = Seq(GetPeersSpec, peersSpec)
   private val messagesSerializer = new MessageSerializer(messageSpecs, settings.network.magicBytes)
 
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   private var connectionHandler: ActorRef = _
 
   /**

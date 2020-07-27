@@ -3,7 +3,7 @@ import scala.util.Try
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.3",
+  scalaVersion := "2.12.10",
   resolvers += Resolver.sonatypeRepo("public"),
   wartremoverErrors ++= Seq(
     Wart.Recursion,
