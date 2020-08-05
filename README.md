@@ -17,7 +17,8 @@ Motivation
  * you can fork codebase of a Bitcoin or Ethereum client. However, such clients are optimized towards concrete 
  protocol, thus implementing something different would be a cumbersome task.
  * there are some modular frameworks, such as Scorex, where you can change consensus layer, or transactional
-   layer, or both. Still, these modules have concrete interfaces, so for many design
+   layer, or both. Still, these modules have concrete interfaces, so for many designs more low-level and abstract 
+   approach was needed.
 
  We have read a lot of research papers to make Scorex 2 supporting their implementations. Its abstract core 
  allows for implementing a broad range of systems, including ones with multiple types of blocks and non-linear history.
@@ -32,7 +33,7 @@ Features
  * Asynchronous networking layer on top of TCP
  * JSON API
  * Cryptographic primitives externalized into [separate scrypto framework](https://github.com/input-output-hk/scrypto)
- * Some examples provided, including once working in production
+ * Some examples provided, including one working in production
 
 Documentation and Communication.
 --------------------------------
