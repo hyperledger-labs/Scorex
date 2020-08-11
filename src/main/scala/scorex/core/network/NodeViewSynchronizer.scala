@@ -32,27 +32,29 @@ import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
 
 /**
-  * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
+  * A component which is synchronizing local node view (processed by NodeViewHolder) with the p2p network.
   *
+  * @tparam TX   transaction
+  * @tparam SIS  SyncInfoMessage specification
+  * @tparam PMOD Basic trait of persistent modifiers type family
+  * @tparam HR   History reader type
+  * @tparam MR   Mempool reader type
   * @param networkControllerRef reference to network controller actor
   * @param viewHolderRef        reference to node view holder actor
   * @param syncInfoSpec         SyncInfo specification
-  * @tparam TX  transaction
-  * @tparam SIS SyncInfoMessage specification
+  * @param networkSettings      network settings instance
+  * @param timeProvider         network time provider
+  * @param modifierSerializers  dictionary of modifiers serializers
   */
-class NodeViewSynchronizer[TX <: Transaction,
-SI <: SyncInfo,
-SIS <: SyncInfoMessageSpec[SI],
-PMOD <: PersistentNodeViewModifier,
-HR <: HistoryReader[PMOD, SI] : ClassTag,
-MR <: MempoolReader[TX] : ClassTag]
+class NodeViewSynchronizer[TX <: Transaction, SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI],
+PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR <: MempoolReader[TX] : ClassTag]
 (networkControllerRef: ActorRef,
  viewHolderRef: ActorRef,
  syncInfoSpec: SIS,
  networkSettings: NetworkSettings,
  timeProvider: NetworkTimeProvider,
- modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext) extends Actor
-  with ScorexLogging with ScorexEncoding {
+ modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext)
+  extends Actor with ScorexLogging with ScorexEncoding {
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
