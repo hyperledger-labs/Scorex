@@ -374,9 +374,9 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
             penalizeNonDeliveringPeer(peer)
             deliveryTracker.onStillWaiting(peer, modifierTypeId, modifierId)
           case None =>
-            // Random peer did not delivered modifier we need, ask another peer
+            // Random peer has not delivered modifier we need, ask another peer
             // We need this modifier - no limit for number of attempts
-            log.info(s"Modifier ${encoder.encodeId(modifierId)} was not delivered on time")
+            log.info(s"Modifier ${encoder.encodeId(modifierId)} has not delivered on time")
             deliveryTracker.setUnknown(modifierId)
             requestDownload(modifierTypeId, Seq(modifierId))
         }
