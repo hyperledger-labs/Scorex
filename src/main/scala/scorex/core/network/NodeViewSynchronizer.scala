@@ -368,17 +368,24 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
   protected def checkDelivery: Receive = {
     case CheckDelivery(peerOpt, modifierTypeId, modifierId) =>
       if (deliveryTracker.status(modifierId) == ModifiersStatus.Requested) {
-        peerOpt match {
-          case Some(peer) =>
-            log.info(s"Peer ${peer.toString} has not delivered asked modifier ${encoder.encodeId(modifierId)} on time")
-            penalizeNonDeliveringPeer(peer)
-            deliveryTracker.onStillWaiting(peer, modifierTypeId, modifierId)
-          case None =>
-            // Random peer has not delivered modifier we need, ask another peer
-            // We need this modifier - no limit for number of attempts
-            log.info(s"Modifier ${encoder.encodeId(modifierId)} has not delivered on time")
-            deliveryTracker.setUnknown(modifierId)
-            requestDownload(modifierTypeId, Seq(modifierId))
+        // If transaction not delivered on time, we just forget about it.
+        // It could be removed from other peer's mempool, so no reason to penalize the peer.
+        if (modifierTypeId == Transaction.ModifierTypeId) {
+          deliveryTracker.clearStatusForModifier(modifierId, ModifiersStatus.Requested)
+        } else {
+          // A persistent modifier is not delivered on time.
+          peerOpt match {
+            case Some(peer) =>
+              log.info(s"Peer ${peer.toString} has not delivered asked modifier ${encoder.encodeId(modifierId)} on time")
+              penalizeNonDeliveringPeer(peer)
+              deliveryTracker.onStillWaiting(peer, modifierTypeId, modifierId)
+            case None =>
+              // Random peer has not delivered modifier we need, ask another peer
+              // We need this modifier - no limit for number of attempts
+              log.info(s"Modifier ${encoder.encodeId(modifierId)} has not delivered on time")
+              deliveryTracker.setUnknown(modifierId)
+              requestDownload(modifierTypeId, Seq(modifierId))
+          }
         }
       }
   }

@@ -96,7 +96,7 @@ val loggingDependencies = Seq(
   "ch.qos.logback" % "logback-classic" % "1.3.0-alpha4"
 )
 
-val scorexUtil = "org.scorexfoundation" %% "scorex-util" % "0.1.7"
+val scorexUtil = "org.scorexfoundation" %% "scorex-util" % "0.1.6"
 
 val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",

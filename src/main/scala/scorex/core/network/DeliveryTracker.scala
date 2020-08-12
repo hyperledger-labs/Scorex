@@ -41,7 +41,7 @@ class DeliveryTracker(system: ActorSystem,
 
   protected case class RequestedInfo(peer: Option[ConnectedPeer], cancellable: Cancellable, checks: Int)
 
-  // when a remote peer is asked a modifier we add the requested data to `requested`
+  // when a remote peer is asked for a modifier we add the requested data to `requested`
   protected val requested: mutable.Map[ModifierId, RequestedInfo] = mutable.Map()
 
   // when our node received invalid modifier we put it to `invalid`
@@ -133,7 +133,7 @@ class DeliveryTracker(system: ActorSystem,
     tryWithLogging {
       val oldStatus: ModifiersStatus = status(id)
       require(isCorrectTransition(oldStatus, Held), s"Illegal status transition: $oldStatus -> Held")
-      clearStatusForModifier(id, oldStatus) // we need only to clear old status in this case
+      clearStatusForModifier(id, oldStatus) // clear old status
     }
 
   /**
@@ -148,7 +148,7 @@ class DeliveryTracker(system: ActorSystem,
     tryWithLogging {
       val oldStatus: ModifiersStatus = status(id)
       require(isCorrectTransition(oldStatus, Unknown), s"Illegal status transition: $oldStatus -> Unknown")
-      clearStatusForModifier(id, oldStatus) // we need only to clear old status in this case
+      clearStatusForModifier(id, oldStatus) // clear old status
     }
 
   /**
@@ -184,17 +184,7 @@ class DeliveryTracker(system: ActorSystem,
       case _ => false
     }
 
-  private def tryWithLogging[T](fn: => T): Try[T] =
-    Try(fn).recoverWith {
-      case e: StopExpectingError =>
-        log.warn(e.getMessage)
-        Failure(e)
-      case e =>
-        log.warn("Unexpected error", e)
-        Failure(e)
-    }
-
-  private def clearStatusForModifier(id: ModifierId, oldStatus: ModifiersStatus): Unit =
+  private[network] def clearStatusForModifier(id: ModifierId, oldStatus: ModifiersStatus): Unit =
     oldStatus match {
       case Requested =>
         requested(id).cancellable.cancel()
@@ -208,4 +198,13 @@ class DeliveryTracker(system: ActorSystem,
   class StopExpectingError(mid: ModifierId, checks: Int)
     extends Error(s"Stop expecting ${encoder.encodeId(mid)} due to exceeded number of retries $checks")
 
+  private def tryWithLogging[T](fn: => T): Try[T] =
+    Try(fn).recoverWith {
+      case e: StopExpectingError =>
+        log.warn(e.getMessage)
+        Failure(e)
+      case e =>
+        log.warn("Unexpected error", e)
+        Failure(e)
+    }
 }
