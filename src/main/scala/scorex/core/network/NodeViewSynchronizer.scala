@@ -32,27 +32,29 @@ import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
 
 /**
-  * A component which is synchronizing local node view (locked inside NodeViewHolder) with the p2p network.
+  * A component which is synchronizing local node view (processed by NodeViewHolder) with the p2p network.
   *
+  * @tparam TX   transaction
+  * @tparam SIS  SyncInfoMessage specification
+  * @tparam PMOD Basic trait of persistent modifiers type family
+  * @tparam HR   History reader type
+  * @tparam MR   Mempool reader type
   * @param networkControllerRef reference to network controller actor
   * @param viewHolderRef        reference to node view holder actor
   * @param syncInfoSpec         SyncInfo specification
-  * @tparam TX  transaction
-  * @tparam SIS SyncInfoMessage specification
+  * @param networkSettings      network settings instance
+  * @param timeProvider         network time provider
+  * @param modifierSerializers  dictionary of modifiers serializers
   */
-class NodeViewSynchronizer[TX <: Transaction,
-SI <: SyncInfo,
-SIS <: SyncInfoMessageSpec[SI],
-PMOD <: PersistentNodeViewModifier,
-HR <: HistoryReader[PMOD, SI] : ClassTag,
-MR <: MempoolReader[TX] : ClassTag]
+class NodeViewSynchronizer[TX <: Transaction, SI <: SyncInfo, SIS <: SyncInfoMessageSpec[SI],
+PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR <: MempoolReader[TX] : ClassTag]
 (networkControllerRef: ActorRef,
  viewHolderRef: ActorRef,
  syncInfoSpec: SIS,
  networkSettings: NetworkSettings,
  timeProvider: NetworkTimeProvider,
- modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext) extends Actor
-  with ScorexLogging with ScorexEncoding {
+ modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext)
+  extends Actor with ScorexLogging with ScorexEncoding {
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
@@ -67,20 +69,22 @@ MR <: MempoolReader[TX] : ClassTag]
   protected var mempoolReaderOpt: Option[MR] = None
 
   override def preStart(): Unit = {
-    //register as a handler for synchronization-specific types of messages
+    // register as a handler for synchronization-specific types of messages
     val messageSpecs: Seq[MessageSpec[_]] = Seq(invSpec, requestModifierSpec, modifiersSpec, syncInfoSpec)
     networkControllerRef ! RegisterMessageSpecs(messageSpecs, self)
 
-    //register as a listener for peers got connected (handshaked) or disconnected
+    // register as a listener for peers got connected (handshaked) or disconnected
     context.system.eventStream.subscribe(self, classOf[HandshakedPeer])
     context.system.eventStream.subscribe(self, classOf[DisconnectedPeer])
 
-    //subscribe for all the node view holder events involving modifiers and transactions
+    // subscribe for all the node view holder events involving modifiers and transactions
     context.system.eventStream.subscribe(self, classOf[ChangedHistory[HR]])
     context.system.eventStream.subscribe(self, classOf[ChangedMempool[MR]])
     context.system.eventStream.subscribe(self, classOf[ModificationOutcome])
     context.system.eventStream.subscribe(self, classOf[DownloadRequest])
     context.system.eventStream.subscribe(self, classOf[ModifiersProcessingResult[PMOD]])
+
+    // subscribe for history and mempool changes
     viewHolderRef ! GetNodeViewChanges(history = true, state = false, vault = false, mempool = true)
 
     statusTracker.scheduleSendSyncInfo()
@@ -364,17 +368,24 @@ MR <: MempoolReader[TX] : ClassTag]
   protected def checkDelivery: Receive = {
     case CheckDelivery(peerOpt, modifierTypeId, modifierId) =>
       if (deliveryTracker.status(modifierId) == ModifiersStatus.Requested) {
-        peerOpt match {
-          case Some(peer) =>
-            log.info(s"Peer ${peer.toString} has not delivered asked modifier ${encoder.encodeId(modifierId)} on time")
-            penalizeNonDeliveringPeer(peer)
-            deliveryTracker.onStillWaiting(peer, modifierTypeId, modifierId)
-          case None =>
-            // Random peer did not delivered modifier we need, ask another peer
-            // We need this modifier - no limit for number of attempts
-            log.info(s"Modifier ${encoder.encodeId(modifierId)} was not delivered on time")
-            deliveryTracker.setUnknown(modifierId)
-            requestDownload(modifierTypeId, Seq(modifierId))
+        // If transaction not delivered on time, we just forget about it.
+        // It could be removed from other peer's mempool, so no reason to penalize the peer.
+        if (modifierTypeId == Transaction.ModifierTypeId) {
+          deliveryTracker.clearStatusForModifier(modifierId, ModifiersStatus.Requested)
+        } else {
+          // A persistent modifier is not delivered on time.
+          peerOpt match {
+            case Some(peer) =>
+              log.info(s"Peer ${peer.toString} has not delivered asked modifier ${encoder.encodeId(modifierId)} on time")
+              penalizeNonDeliveringPeer(peer)
+              deliveryTracker.onStillWaiting(peer, modifierTypeId, modifierId)
+            case None =>
+              // Random peer has not delivered modifier we need, ask another peer
+              // We need this modifier - no limit for number of attempts
+              log.info(s"Modifier ${encoder.encodeId(modifierId)} has not delivered on time")
+              deliveryTracker.setUnknown(modifierId)
+              requestDownload(modifierTypeId, Seq(modifierId))
+          }
         }
       }
   }
