@@ -10,7 +10,6 @@ import scorex.core.consensus.History._
 import scorex.core.consensus.{History, HistoryReader, SyncInfo}
 import scorex.core.network.ModifiersStatus.Requested
 import scorex.core.network.NetworkController.ReceivableMessages.{PenalizePeer, RegisterMessageSpecs, SendToNetwork}
-import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network.message.{InvSpec, RequestModifierSpec, _}
 import scorex.core.network.peer.PenaltyType
@@ -54,13 +53,20 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
  networkSettings: NetworkSettings,
  timeProvider: NetworkTimeProvider,
  modifierSerializers: Map[ModifierTypeId, ScorexSerializer[_ <: NodeViewModifier]])(implicit ec: ExecutionContext)
-  extends Actor with ScorexLogging with ScorexEncoding {
+  extends Actor with Synchronizer with ScorexLogging with ScorexEncoding {
 
   protected val deliveryTimeout: FiniteDuration = networkSettings.deliveryTimeout
   protected val maxDeliveryChecks: Int = networkSettings.maxDeliveryChecks
   protected val invSpec = new InvSpec(networkSettings.maxInvObjects)
   protected val requestModifierSpec = new RequestModifierSpec(networkSettings.maxInvObjects)
   protected val modifiersSpec = new ModifiersSpec(networkSettings.maxPacketSize)
+
+  protected val msgHandlers: PartialFunction[(MessageSpec[_], _, ConnectedPeer), Unit] = {
+    case (_: SIS @unchecked, data: SI @unchecked, remote) => processSync(data, remote)
+    case (_: InvSpec, data: InvData, remote)              => processInv(data, remote)
+    case (_: RequestModifierSpec, data: InvData, remote)  => modifiersReq(data, remote)
+    case (_: ModifiersSpec, data: ModifiersData, remote)  => modifiersFromRemote(data, remote)
+  }
 
   protected val deliveryTracker = new DeliveryTracker(context.system, deliveryTimeout, maxDeliveryChecks, self)
   protected val statusTracker = new SyncTracker(self, context, networkSettings, timeProvider)
@@ -160,11 +166,12 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
     }
   }
 
-  //sync info is coming from another node
-  protected def processSync: Receive = {
-    case DataFromPeer(spec, syncInfo: SI@unchecked, remote)
-      if spec.messageCode == syncInfoSpec.messageCode =>
+  protected def processDataFromPeer: Receive = {
+    case Message(spec, Left(msgBytes), Some(source)) => parseAndHandle(spec, msgBytes, source)
+  }
 
+  //sync info is coming from another node
+  protected def processSync(syncInfo: SI, remote: ConnectedPeer): Unit = {
       historyReaderOpt match {
         case Some(historyReader) =>
           val ext = historyReader.continuationIds(syncInfo, networkSettings.desiredInvObjects)
@@ -212,10 +219,7 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
     * Filter out modifier ids that are already in process (requested, received or applied),
     * request unknown ids from peer and set this ids to requested state.
     */
-  protected def processInv: Receive = {
-    case DataFromPeer(spec, invData: InvData@unchecked, peer)
-      if spec.messageCode == InvSpec.MessageCode =>
-
+  protected def processInv(invData: InvData, peer: ConnectedPeer): Unit = {
       (mempoolReaderOpt, historyReaderOpt) match {
         case (Some(mempool), Some(history)) =>
           val modifierTypeId = invData.typeId
@@ -238,10 +242,7 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
   }
 
   //other node asking for objects by their ids
-  protected def modifiersReq: Receive = {
-    case DataFromPeer(spec, invData: InvData@unchecked, remote)
-      if spec.messageCode == RequestModifierSpec.MessageCode =>
-
+  protected def modifiersReq(invData: InvData, remote: ConnectedPeer): Unit = {
       readersOpt.foreach { readers =>
         val objs: Seq[NodeViewModifier] = invData.typeId match {
           case typeId: ModifierTypeId if typeId == Transaction.ModifierTypeId =>
@@ -261,10 +262,7 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
     * Filter out non-requested modifiers (with a penalty to spamming peer),
     * parse modifiers and send valid modifiers to NodeViewHolder
     */
-  protected def modifiersFromRemote: Receive = {
-    case DataFromPeer(spec, data: ModifiersData@unchecked, remote)
-      if spec.messageCode == ModifiersSpec.MessageCode =>
-
+  protected def modifiersFromRemote(data: ModifiersData@unchecked, remote: ConnectedPeer): Unit = {
       val typeId = data.typeId
       val modifiers = data.modifiers
       log.info(s"Got ${modifiers.size} modifiers of type $typeId from remote connected peer: $remote")
@@ -402,6 +400,10 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
     networkControllerRef ! PenalizePeer(peer.connectionId.remoteAddress, PenaltyType.MisbehaviorPenalty)
   }
 
+  protected def penalizeMaliciousPeer(peer: ConnectedPeer): Unit = {
+    networkControllerRef ! PenalizePeer(peer.connectionId.remoteAddress, PenaltyType.PermanentPenalty)
+  }
+
   /**
     * Local node sending out objects requested to remote
     */
@@ -452,14 +454,11 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
   }
 
   override def receive: Receive =
+    processDataFromPeer orElse
     onDownloadRequest orElse
       getLocalSyncInfo orElse
-      processSync orElse
       processSyncStatus orElse
-      processInv orElse
-      modifiersReq orElse
       responseFromLocal orElse
-      modifiersFromRemote orElse
       viewHolderEvents orElse
       peerManagerEvents orElse
       checkDelivery orElse {
