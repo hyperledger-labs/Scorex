@@ -20,7 +20,7 @@ trait Synchronizer extends ScorexLogging {
     */
   protected def parseAndHandle(spec: MessageSpec[Any], msgBytes: Array[Byte], source: ConnectedPeer): Unit = {
     // attempt to parse the message
-    spec.parseBytes(msgBytes) match {
+    spec.parseBytesTry(msgBytes) match {
       // if a message could be parsed, match the type of content found and ensure a handler is defined
       case Success(content) =>
         val parsedMsg = (spec, content, source)
