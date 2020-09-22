@@ -262,7 +262,7 @@ PMOD <: PersistentNodeViewModifier, HR <: HistoryReader[PMOD, SI] : ClassTag, MR
     * Filter out non-requested modifiers (with a penalty to spamming peer),
     * parse modifiers and send valid modifiers to NodeViewHolder
     */
-  protected def modifiersFromRemote(data: ModifiersData@unchecked, remote: ConnectedPeer): Unit = {
+  protected def modifiersFromRemote(data: ModifiersData, remote: ConnectedPeer): Unit = {
       val typeId = data.typeId
       val modifiers = data.modifiers
       log.info(s"Got ${modifiers.size} modifiers of type $typeId from remote connected peer: $remote")
