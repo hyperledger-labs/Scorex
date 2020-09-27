@@ -2,7 +2,7 @@
 logLevel := Level.Warn
 
 // The Typesafe repository
-resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
+resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/"
 
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.5")
 
