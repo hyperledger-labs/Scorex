@@ -5,6 +5,8 @@ name := "scorex-core"
 lazy val commonSettings = Seq(
   scalaVersion := "2.12.10",
   resolvers += Resolver.sonatypeRepo("public"),
+  resolvers += "Maven Central Server" at "https://repo1.maven.org/maven2",
+  resolvers += "Typesafe Server" at "https://repo.typesafe.com/typesafe/releases",
   wartremoverErrors ++= Seq(
     Wart.Recursion,
     Wart.TraversableOps,
