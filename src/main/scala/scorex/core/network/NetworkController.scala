@@ -20,7 +20,7 @@ import scorex.util.ScorexLogging
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 /**
   * Control all network interaction
@@ -33,7 +33,6 @@ class NetworkController(settings: NetworkSettings,
                        )(implicit ec: ExecutionContext) extends Actor with ScorexLogging {
 
   import NetworkController.ReceivableMessages._
-  import NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
   import PeerConnectionHandler.ReceivableMessages.CloseConnection
   import akka.actor.SupervisorStrategy._
 
@@ -90,21 +89,10 @@ class NetworkController(settings: NetworkSettings,
 
   private def businessLogic: Receive = {
     //a message coming in from another peer
-    case Message(spec, Left(msgBytes), Some(remote)) =>
-      val msgId = spec.messageCode
-
-      spec.parseBytesTry(msgBytes) match {
-        case Success(content) =>
-          messageHandlers.get(msgId) match {
-            case Some(handler) =>
-              handler ! DataFromPeer(spec, content, remote)
-
-            case None =>
-              log.error(s"No handlers found for message $remote: " + msgId)
-          }
-        case Failure(e) =>
-          log.error(s"Failed to deserialize data from $remote: ", e)
-          penalize(remote.connectionId.remoteAddress, PenaltyType.PermanentPenalty)
+    case msg @ Message(spec, _, Some(remote)) =>
+      messageHandlers.get(spec.messageCode) match {
+        case Some(handler) => handler ! msg // forward the message to the appropriate handler for processing
+        case None          => log.error(s"No handlers found for message $remote: " + spec.messageCode)
       }
 
     case SendToNetwork(message, sendingStrategy) =>
