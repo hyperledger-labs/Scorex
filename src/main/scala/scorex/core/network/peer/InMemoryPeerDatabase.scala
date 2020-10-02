@@ -108,6 +108,11 @@ final class InMemoryPeerDatabase(settings: NetworkSettings, timeProvider: TimePr
     stillBanned
   }
 
+  override def peerSeen(peerInfo: PeerInfo): Unit = {
+    val pi = peerInfo.copy(lastSeen = timeProvider.time())
+    addOrUpdateKnownPeer(pi)
+  }
+
   private def penaltyScore(penaltyType: PenaltyType): Int =
     penaltyType match {
       case PenaltyType.NonDeliveryPenalty =>
@@ -127,5 +132,4 @@ final class InMemoryPeerDatabase(settings: NetworkSettings, timeProvider: TimePr
       case PenaltyType.PermanentPenalty =>
         (360 * 10).days.toMillis
     }
-
 }

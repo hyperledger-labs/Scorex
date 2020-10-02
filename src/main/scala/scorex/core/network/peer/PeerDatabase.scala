@@ -10,6 +10,8 @@ trait PeerDatabase {
 
   def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit
 
+  def peerSeen(peerInfo: PeerInfo): Unit
+
   def knownPeers: Map[InetSocketAddress, PeerInfo]
 
   def addToBlacklist(address: InetSocketAddress, penaltyType: PenaltyType): Unit

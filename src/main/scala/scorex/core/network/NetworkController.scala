@@ -80,6 +80,7 @@ class NetworkController(settings: NetworkSettings,
     case Bound(_) =>
       log.info("Successfully bound to the port " + settings.bindAddress.getPort)
       scheduleConnectionToPeer()
+      dropDeadConnections()
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
@@ -94,6 +95,7 @@ class NetworkController(settings: NetworkSettings,
         case Some(handler) => handler ! msg // forward the message to the appropriate handler for processing
         case None          => log.error(s"No handlers found for message $remote: " + spec.messageCode)
       }
+      remote.peerInfo.foreach(pi => peerManagerRef ! PeerSeen(pi))
 
     case SendToNetwork(message, sendingStrategy) =>
       filterConnections(sendingStrategy, message.spec.protocolVersion).foreach { connectedPeer =>
@@ -197,6 +199,18 @@ class NetworkController(settings: NetworkSettings,
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
           peerInfoOpt.foreach(peerInfo => self ! ConnectTo(peerInfo))
         }
+      }
+    }
+  }
+
+  private def dropDeadConnections(): Unit = {
+    context.system.scheduler.schedule(5.seconds, 15.seconds) {
+      connections.values.filter{ cp =>
+        val now = scorexContext.timeProvider.time()
+        val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
+        (now - lastSeen) > 1000 * 90
+      }.foreach { cp =>
+        cp.handlerRef ! CloseConnection
       }
     }
   }
