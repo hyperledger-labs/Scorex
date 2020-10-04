@@ -12,9 +12,10 @@ import org.scalatest.Matchers
 import org.scalatest.OptionValues._
 import org.scalatest.TryValues._
 import scorex.core.app.{ScorexContext, Version}
+import scorex.core.network.NetworkController.ReceivableMessages.GetConnectedPeers
 import scorex.core.network._
 import scorex.core.network.message.{PeersSpec, _}
-import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerManagerRef}
+import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerInfo, PeerManagerRef}
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.LocalTimeProvider
 
@@ -267,6 +268,37 @@ class NetworkControllerSpec extends NetworkTests {
     val peers = testPeer.receivePeers
 
     peers.flatMap(_.address) should contain theSameElementsAs Seq(peerLocalAddress)
+    system.terminate()
+  }
+
+  it should "update last-seen on getting message from peer" in {
+    implicit val system = ActorSystem()
+    val tcpManagerProbe = TestProbe()
+    val p = TestProbe("p")(system)
+
+    val nodeAddr = new InetSocketAddress("88.77.66.55", 12345)
+    val settings2 = settings.copy(network = settings.network.copy(bindAddress = nodeAddr))
+    val networkControllerRef: ActorRef = createNetworkController(settings2, tcpManagerProbe)
+
+    val testPeer = new TestPeer(settings2, networkControllerRef, tcpManagerProbe)
+    val peerAddr = new InetSocketAddress("88.77.66.55", 5678)
+
+    testPeer.connect(peerAddr, nodeAddr)
+    testPeer.receiveHandshake
+    testPeer.sendHandshake(Some(peerAddr), None)
+
+    p.send(networkControllerRef, GetConnectedPeers)
+    val data0 = p.expectMsgClass(classOf[Seq[PeerInfo]])
+    val ls0 = data0(0).lastSeen
+
+    Thread.sleep(1000)
+    testPeer.sendGetPeers()
+    p.send(networkControllerRef, GetConnectedPeers)
+    val data = p.expectMsgClass(classOf[Seq[PeerInfo]])
+    val ls = data(0).lastSeen
+
+    ls should not be ls0
+
     system.terminate()
   }
 

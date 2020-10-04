@@ -95,9 +95,16 @@ class NetworkController(settings: NetworkSettings,
         case Some(handler) => handler ! msg // forward the message to the appropriate handler for processing
         case None => log.error(s"No handlers found for message $remote: " + spec.messageCode)
       }
-      remote.peerInfo.foreach { pi =>
-        log.debug(s"Got a message from ${pi.peerSpec.address}, going to update last-seen")
-        peerManagerRef ! PeerSeen(pi)
+
+      val remoteAddress = remote.connectionId.remoteAddress
+      connections.get(remote.connectionId.remoteAddress) match {
+        case Some(cp) => cp.peerInfo match {
+          case Some(pi) =>
+            val now = scorexContext.timeProvider.time()
+            connections += remoteAddress -> cp.copy(peerInfo = Some(pi.copy(lastSeen = now)))
+          case None => log.warn("Peer info not found for a message got from: " + remoteAddress)
+        }
+        case None => log.warn("Connection not found for a message got from: " + remoteAddress)
       }
 
     case SendToNetwork(message, sendingStrategy) =>
@@ -200,8 +207,8 @@ class NetworkController(settings: NetworkSettings,
     */
   private def scheduleConnectionToPeer(): Unit = {
     context.system.scheduler.schedule(5.seconds, 5.seconds) {
-      log.info(s"Has ${connections.size} connections")
       if (connections.size < settings.maxConnections) {
+        log.info(s"Looking for a new random connection")
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
           peerInfoOpt.foreach(peerInfo => self ! ConnectTo(peerInfo))
@@ -212,14 +219,14 @@ class NetworkController(settings: NetworkSettings,
 
   private def dropDeadConnections(): Unit = {
     context.system.scheduler.schedule(60.seconds, 60.seconds) {
-      connections.values.filter{ cp =>
+      connections.values.filter { cp =>
         val now = scorexContext.timeProvider.time()
         val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
         (now - lastSeen) > 1000 * 60 * 2 // 2 minutes
       }.foreach { cp =>
         val now = scorexContext.timeProvider.time()
         val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
-        log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${(now-lastSeen) / 1000} seconds ago")
+        log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${(now - lastSeen) / 1000} seconds ago")
         cp.handlerRef ! CloseConnection
       }
     }

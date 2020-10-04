@@ -31,6 +31,7 @@ final class InMemoryPeerDatabase(settings: NetworkSettings, timeProvider: TimePr
   override def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit = {
     if (!peerInfo.peerSpec.declaredAddress.exists(x => isBlacklisted(x.getAddress))) {
       peerInfo.peerSpec.address.foreach { address =>
+        log.info(s"Updating peer info for $address")
         peers += address -> peerInfo
       }
     }
@@ -106,11 +107,6 @@ final class InMemoryPeerDatabase(settings: NetworkSettings, timeProvider: TimePr
     val stillBanned = timeProvider.time() < bannedTill
     if (!stillBanned) removeFromBlacklist(address)
     stillBanned
-  }
-
-  override def peerSeen(peerInfo: PeerInfo): Unit = {
-    val pi = peerInfo.copy(lastSeen = timeProvider.time())
-    addOrUpdateKnownPeer(pi)
   }
 
   private def penaltyScore(penaltyType: PenaltyType): Int =
