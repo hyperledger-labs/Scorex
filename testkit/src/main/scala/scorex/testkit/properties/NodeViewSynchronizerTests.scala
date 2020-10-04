@@ -10,7 +10,6 @@ import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.network.NetworkController.ReceivableMessages.{PenalizePeer, SendToNetwork}
-import scorex.core.network.NetworkControllerSharedMessages.ReceivableMessages.DataFromPeer
 import scorex.core.network.NodeViewSynchronizer.Events.{BetterNeighbourAppeared, NoBetterNeighbour, NodeViewSynchronizerEvent}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages._
 import scorex.core.network._
@@ -30,13 +29,12 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
-trait NodeViewSynchronizerTests[
-TX <: Transaction,
-PM <: PersistentNodeViewModifier,
-ST <: MinimalState[PM, ST],
-SI <: SyncInfo,
-HT <: History[PM, SI, HT],
-MP <: MemoryPool[TX, MP]
+trait NodeViewSynchronizerTests[TX <: Transaction,
+                                PM <: PersistentNodeViewModifier,
+                                ST <: MinimalState[PM, ST],
+                                SI <: SyncInfo,
+                                HT <: History[PM, SI, HT],
+                                MP <: MemoryPool[TX, MP]
 ] extends PropSpec
   with Matchers
   with PropertyChecks
@@ -47,7 +45,8 @@ MP <: MemoryPool[TX, MP]
   val historyGen: Gen[HT]
   val memPool: MP
 
-  def nodeViewSynchronizer(implicit system: ActorSystem): (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe, ScorexSerializer[PM])
+  def nodeViewSynchronizer(implicit system: ActorSystem):
+    (ActorRef, SI, PM, TX, ConnectedPeer, TestProbe, TestProbe, TestProbe, TestProbe, ScorexSerializer[PM])
 
   class SynchronizerFixture extends AkkaFixture {
     @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
@@ -114,19 +113,19 @@ MP <: MemoryPool[TX, MP]
   }
 
   //TODO rewrite
-  ignore("NodeViewSynchronizer: DataFromPeer: SyncInfoSpec") {
+  ignore("NodeViewSynchronizer: Message: SyncInfoSpec") {
     withFixture { ctx =>
       import ctx._
 
-      val dummySyncInfoMessageSpec = new SyncInfoMessageSpec[SyncInfo](new ScorexSerializer[SyncInfo]{
+      val dummySyncInfoMessageSpec = new SyncInfoMessageSpec[SyncInfo](serializer = new ScorexSerializer[SyncInfo]{
         override def parse(r: Reader): SyncInfo = {
           throw new Exception()
         }
 
         override def serialize(obj: SyncInfo, w: Writer): Unit = {}
-      }) {}
+      })
 
-      val dummySyncInfo = new SyncInfo {
+      val dummySyncInfo: SyncInfo = new SyncInfo {
         def answer: Boolean = true
 
         def startingPoints: History.ModifierIds = Seq((mod.modifierTypeId, mod.id))
@@ -136,7 +135,9 @@ MP <: MemoryPool[TX, MP]
         def serializer: ScorexSerializer[M] = throw new Exception
       }
 
-      node ! DataFromPeer(dummySyncInfoMessageSpec, dummySyncInfo, peer)
+      val msgBytes = dummySyncInfoMessageSpec.toBytes(dummySyncInfo)
+
+      node ! Message(dummySyncInfoMessageSpec, Left(msgBytes), Some(peer))
       //    vhProbe.fishForMessage(3 seconds) { case m => m == OtherNodeSyncingInfo(peer, dummySyncInfo) }
     }
   }
@@ -190,12 +191,13 @@ MP <: MemoryPool[TX, MP]
     }
   }
 
-  property("NodeViewSynchronizer: DataFromPeer: InvSpec") {
+  property("NodeViewSynchronizer: Message: InvSpec") {
     withFixture { ctx =>
       import ctx._
       val spec = new InvSpec(3)
       val modifiers = Seq(mod.id)
-      node ! DataFromPeer(spec, InvData(mod.modifierTypeId, modifiers), peer)
+      val msgBytes = spec.toBytes(InvData(mod.modifierTypeId, modifiers))
+      node ! Message(spec, Left(msgBytes), Some(peer))
       pchProbe.fishForMessage(5 seconds) {
         case _: Message[_] => true
         case _ => false
@@ -203,7 +205,7 @@ MP <: MemoryPool[TX, MP]
     }
   }
 
-  property("NodeViewSynchronizer: DataFromPeer: RequestModifierSpec") {
+  property("NodeViewSynchronizer: Message: RequestModifierSpec") {
     withFixture { ctx =>
       import ctx._
       @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
@@ -213,9 +215,10 @@ MP <: MemoryPool[TX, MP]
       val m = memPool
       val spec = new RequestModifierSpec(3)
       val modifiers = Seq(mod.id)
+      val msgBytes = spec.toBytes(InvData(mod.modifierTypeId, modifiers))
       node ! ChangedHistory(newH)
       node ! ChangedMempool(m)
-      node ! DataFromPeer(spec, InvData(mod.modifierTypeId, modifiers), peer)
+      node ! Message(spec, Left(msgBytes), Option(peer))
 
       pchProbe.fishForMessage(5 seconds) {
         case _: Message[_] => true
@@ -224,27 +227,32 @@ MP <: MemoryPool[TX, MP]
     }
   }
 
-  property("NodeViewSynchronizer: DataFromPeer: Non-Asked Modifiers from Remote") {
+  property("NodeViewSynchronizer: Message: Non-Asked Modifiers from Remote") {
     withFixture { ctx =>
       import ctx._
 
       val modifiersSpec = new ModifiersSpec(1024 * 1024)
+      val msgBytes = modifiersSpec.toBytes(ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)))
 
-      node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+      node ! Message(modifiersSpec, Left(msgBytes), Option(peer))
       val messages = vhProbe.receiveWhile(max = 3 seconds, idle = 1 second) { case m => m }
       assert(!messages.exists(_.isInstanceOf[ModifiersFromRemote[PM]]))
     }
   }
 
-  property("NodeViewSynchronizer: DataFromPeer: Asked Modifiers from Remote") {
+  property("NodeViewSynchronizer: Message: Asked Modifiers from Remote") {
     withFixture { ctx =>
       import ctx._
       vhProbe.expectMsgType[GetNodeViewChanges]
 
-      val modifiersSpec = new ModifiersSpec(1024 * 1024)
+      val invSpec = new InvSpec(3)
+      val invMsgBytes = invSpec.toBytes(InvData(mod.modifierTypeId, Seq(mod.id)))
 
-      node ! DataFromPeer(new InvSpec(3), InvData(mod.modifierTypeId, Seq(mod.id)), peer)
-      node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
+      val modifiersSpec = new ModifiersSpec(1024 * 1024)
+      val modMsgBytes = modifiersSpec.toBytes(ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)))
+
+      node ! Message(invSpec, Left(invMsgBytes), Option(peer))
+      node ! Message(modifiersSpec, Left(modMsgBytes), Option(peer))
       vhProbe.fishForMessage(3 seconds) {
         case m: ModifiersFromRemote[PM] => m.modifiers.toSeq.contains(mod)
         case _ => false
@@ -252,16 +260,19 @@ MP <: MemoryPool[TX, MP]
     }
   }
 
-  property("NodeViewSynchronizer: DataFromPeer - CheckDelivery -  Do not penalize if delivered") {
+  property("NodeViewSynchronizer: Message - CheckDelivery -  Do not penalize if delivered") {
     withFixture { ctx =>
       import ctx._
 
-      val modifiersSpec = new ModifiersSpec(1024 * 1024)
+      val invSpec = new InvSpec(3)
+      val invMsgBytes = invSpec.toBytes(InvData(mod.modifierTypeId, Seq(mod.id)))
 
-      node ! DataFromPeer(new InvSpec(3), InvData(mod.modifierTypeId, Seq(mod.id)), peer)
-      node ! DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer)
-      system.scheduler.scheduleOnce(1 second, node,
-        DataFromPeer(modifiersSpec, ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)), peer))
+      val modifiersSpec = new ModifiersSpec(1024 * 1024)
+      val modMsgBytes = modifiersSpec.toBytes(ModifiersData(mod.modifierTypeId, Map(mod.id -> mod.bytes)))
+
+      node ! Message(invSpec, Left(invMsgBytes), Option(peer))
+      node ! Message(modifiersSpec, Left(modMsgBytes), Option(peer))
+      system.scheduler.scheduleOnce(1 second, node, Message(modifiersSpec, Left(modMsgBytes), Option(peer)))
       val messages = ncProbe.receiveWhile(max = 5 seconds, idle = 1 second) { case m => m }
       assert(!messages.contains(PenalizePeer(peer.connectionId.remoteAddress, PenaltyType.MisbehaviorPenalty)))
     }
