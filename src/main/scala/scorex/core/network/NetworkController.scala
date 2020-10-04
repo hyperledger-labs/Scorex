@@ -155,8 +155,11 @@ class NetworkController(settings: NetworkSettings,
         case Some(t) => log.info("Failed to connect to : " + c.remoteAddress, t)
         case None => log.info("Failed to connect to : " + c.remoteAddress)
       }
-      // remove not responding peer from database
-      peerManagerRef ! RemovePeer(c.remoteAddress)
+
+      // If enough live connections, remove not responding peer from database
+      if(connections.size > settings.maxConnections / 2) {
+        peerManagerRef ! RemovePeer(c.remoteAddress)
+      }
 
     case Terminated(ref) =>
       connectionForHandler(ref).foreach { connectedPeer =>
@@ -197,6 +200,7 @@ class NetworkController(settings: NetworkSettings,
     */
   private def scheduleConnectionToPeer(): Unit = {
     context.system.scheduler.schedule(5.seconds, 5.seconds) {
+      log.info(s"Has ${connections.size} connections")
       if (connections.size < settings.maxConnections) {
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
