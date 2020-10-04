@@ -90,12 +90,15 @@ class NetworkController(settings: NetworkSettings,
 
   private def businessLogic: Receive = {
     //a message coming in from another peer
-    case msg @ Message(spec, _, Some(remote)) =>
+    case msg@Message(spec, _, Some(remote)) =>
       messageHandlers.get(spec.messageCode) match {
         case Some(handler) => handler ! msg // forward the message to the appropriate handler for processing
-        case None          => log.error(s"No handlers found for message $remote: " + spec.messageCode)
+        case None => log.error(s"No handlers found for message $remote: " + spec.messageCode)
       }
-      remote.peerInfo.foreach(pi => peerManagerRef ! PeerSeen(pi))
+      remote.peerInfo.foreach { pi =>
+        log.debug(s"Got a message from ${pi.peerSpec.address}, going to update last-seen")
+        peerManagerRef ! PeerSeen(pi)
+      }
 
     case SendToNetwork(message, sendingStrategy) =>
       filterConnections(sendingStrategy, message.spec.protocolVersion).foreach { connectedPeer =>
@@ -204,12 +207,15 @@ class NetworkController(settings: NetworkSettings,
   }
 
   private def dropDeadConnections(): Unit = {
-    context.system.scheduler.schedule(5.seconds, 15.seconds) {
+    context.system.scheduler.schedule(60.seconds, 60.seconds) {
       connections.values.filter{ cp =>
         val now = scorexContext.timeProvider.time()
         val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
-        (now - lastSeen) > 1000 * 90
+        (now - lastSeen) > 1000 * 60 * 2 // 2 minutes
       }.foreach { cp =>
+        val now = scorexContext.timeProvider.time()
+        val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
+        log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${(now-lastSeen) / 1000} seconds ago")
         cp.handlerRef ! CloseConnection
       }
     }
