@@ -7,6 +7,7 @@ import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
+import scorex.core.api.http.PeersApiRoute.PeersStatusResponse
 import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
@@ -14,7 +15,7 @@ import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages._
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager, PenaltyType}
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.NetworkUtils
+import scorex.core.utils.{NetworkUtils, TimeProvider}
 import scorex.util.ScorexLogging
 
 import scala.concurrent.ExecutionContext
@@ -60,6 +61,8 @@ class NetworkController(settings: NetworkSettings,
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
+  private var lastIncomingMessage : TimeProvider.Time = 0
+
   //check own declared address for validity
   validateDeclaredAddress()
 
@@ -101,6 +104,7 @@ class NetworkController(settings: NetworkSettings,
         case Some(cp) => cp.peerInfo match {
           case Some(pi) =>
             val now = scorexContext.timeProvider.time()
+            lastIncomingMessage = now
             connections += remoteAddress -> cp.copy(peerInfo = Some(pi.copy(lastSeen = now)))
           case None => log.warn("Peer info not found for a message got from: " + remoteAddress)
         }
@@ -182,6 +186,9 @@ class NetworkController(settings: NetworkSettings,
 
   //calls from API / application
   private def interfaceCalls: Receive = {
+    case GetPeersStatus =>
+      sender() ! PeersStatusResponse(lastIncomingMessage, scorexContext.timeProvider.time())
+
     case GetConnectedPeers =>
       sender() ! connections.values.flatMap(_.peerInfo).toSeq
 
@@ -474,6 +481,7 @@ object NetworkController {
 
     case object GetConnectedPeers
 
+    case object GetPeersStatus
   }
 
 }
