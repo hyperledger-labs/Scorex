@@ -7,9 +7,9 @@ import akka.http.scaladsl.server.Route
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
-import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse}
-import scorex.core.network.NetworkController.ReceivableMessages.{ConnectTo, GetConnectedPeers}
-import scorex.core.network.peer.PeerInfo
+import scorex.core.api.http.PeersApiRoute.{BlacklistedPeers, PeerInfoResponse, PeersStatusResponse}
+import scorex.core.network.NetworkController.ReceivableMessages.{ConnectTo, GetConnectedPeers, GetPeersStatus}
+import scorex.core.network.peer.{PeerInfo, PeersStatus}
 import scorex.core.network.peer.PeerManager.ReceivableMessages.{GetAllPeers, GetBlacklistedPeers}
 import scorex.core.settings.RESTApiSettings
 import scorex.core.utils.NetworkTimeProvider
@@ -23,7 +23,7 @@ case class PeersApiRoute(peerManager: ActorRef,
                         (implicit val context: ActorRefFactory, val ec: ExecutionContext) extends ApiRoute {
 
   override lazy val route: Route = pathPrefix("peers") {
-    allPeers ~ connectedPeers ~ blacklistedPeers ~ connect
+    allPeers ~ connectedPeers ~ blacklistedPeers ~ connect ~ peersStatus
   }
 
   def allPeers: Route = (path("all") & get) {
@@ -45,6 +45,13 @@ case class PeersApiRoute(peerManager: ActorRef,
           connectionType = peerInfo.connectionType.map(_.toString)
         )
       }
+    }
+    ApiResponse(result)
+  }
+
+  def peersStatus: Route  = (path("status") & get) {
+    val result = askActor[PeersStatus](networkController, GetPeersStatus).map {
+      case PeersStatus(lastIncomingMessage,currentNetworkTime) => PeersStatusResponse(lastIncomingMessage,currentNetworkTime)
     }
     ApiResponse(result)
   }
@@ -88,6 +95,8 @@ object PeersApiRoute {
     )
   }
 
+  case class PeersStatusResponse(lastIncomingMessage: Long, currentSystemTime: Long)
+
   case class BlacklistedPeers(addresses: Seq[String])
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
@@ -96,5 +105,7 @@ object PeersApiRoute {
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val encodeBlackListedPeers: Encoder[BlacklistedPeers] = deriveEncoder
 
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  implicit val encodePeersStatusResponse: Encoder[PeersStatusResponse] = deriveEncoder
 }
 
