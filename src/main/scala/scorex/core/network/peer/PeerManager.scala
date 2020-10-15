@@ -124,8 +124,9 @@ object PeerManager {
     }
 
     /**
-      * Choose at most `howMany` random peers, which are connected to our peer or
-      * were connected in at most 1 hour ago and weren't blacklisted.
+      * Choose at most `howMany` random peers, which were connected to our peer and weren't blacklisted.
+      *
+      * Used in peer propagation: peers chosen are recommended to a peer asking our node about more peers.
       */
     case class RecentlySeenPeers(howMany: Int) extends GetPeers[Seq[PeerInfo]] {
 

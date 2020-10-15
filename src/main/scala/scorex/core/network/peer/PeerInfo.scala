@@ -17,7 +17,7 @@ case class PeerInfo(peerSpec: PeerSpec,
                     connectionType: Option[ConnectionDirection] = None)
 
 /**
-  * Information about all peers
+  * Information about P2P layer status
   *
   * @param lastIncomingMessage - timestamp of last received message from any peer
   * @param currentNetworkTime  - current network time

@@ -49,6 +49,10 @@ case class PeersApiRoute(peerManager: ActorRef,
     ApiResponse(result)
   }
 
+  /**
+    * Get status of P2P layer
+    * @return time of last incoming message and network time (got from NTP server)
+    */
   def peersStatus: Route  = (path("status") & get) {
     val result = askActor[PeersStatus](networkController, GetPeersStatus).map {
       case PeersStatus(lastIncomingMessage,currentNetworkTime) => PeersStatusResponse(lastIncomingMessage,currentNetworkTime)
