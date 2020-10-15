@@ -15,6 +15,7 @@ import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages._
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager, PenaltyType}
 import scorex.core.settings.NetworkSettings
+import scorex.core.utils.TimeProvider.Time
 import scorex.core.utils.{NetworkUtils, TimeProvider}
 import scorex.util.ScorexLogging
 
@@ -61,7 +62,11 @@ class NetworkController(settings: NetworkSettings,
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
-  private var lastIncomingMessage : TimeProvider.Time = 0
+  /**
+    * Storing timestamp of a last message got via p2p network.
+    * Used to check whether connectivity is lost.
+    */
+  private var lastIncomingMessageTime : TimeProvider.Time = 0L
 
   //check own declared address for validity
   validateDeclaredAddress()
@@ -91,6 +96,14 @@ class NetworkController(settings: NetworkSettings,
       context stop self
   }
 
+  def networkTime(): Time = scorexContext.timeProvider.time()
+
+  // Checks that connectivity is not lost
+  private def connectivity: Boolean = {
+    connections.nonEmpty &&
+      networkTime() < (lastIncomingMessageTime + settings.syncStatusRefreshStable.toMillis)
+  }
+
   private def businessLogic: Receive = {
     //a message coming in from another peer
     case msg@Message(spec, _, Some(remote)) =>
@@ -103,8 +116,8 @@ class NetworkController(settings: NetworkSettings,
       connections.get(remote.connectionId.remoteAddress) match {
         case Some(cp) => cp.peerInfo match {
           case Some(pi) =>
-            val now = scorexContext.timeProvider.time()
-            lastIncomingMessage = now
+            val now = networkTime()
+            lastIncomingMessageTime = now
             connections += remoteAddress -> cp.copy(peerInfo = Some(pi.copy(lastSeen = now)))
           case None => log.warn("Peer info not found for a message got from: " + remoteAddress)
         }
@@ -168,6 +181,7 @@ class NetworkController(settings: NetworkSettings,
       }
 
       // If enough live connections, remove not responding peer from database
+      // In not enough live connections, maybe connectivity lost but the node has not updated its status, no ban then
       if(connections.size > settings.maxConnections / 2) {
         peerManagerRef ! RemovePeer(c.remoteAddress)
       }
@@ -187,7 +201,7 @@ class NetworkController(settings: NetworkSettings,
   //calls from API / application
   private def interfaceCalls: Receive = {
     case GetPeersStatus =>
-      sender() ! PeersStatusResponse(lastIncomingMessage, scorexContext.timeProvider.time())
+      sender() ! PeersStatusResponse(lastIncomingMessageTime, networkTime())
 
     case GetConnectedPeers =>
       sender() ! connections.values.flatMap(_.peerInfo).toSeq
@@ -226,15 +240,14 @@ class NetworkController(settings: NetworkSettings,
 
   private def dropDeadConnections(): Unit = {
     context.system.scheduler.schedule(60.seconds, 60.seconds) {
-      connections.values.filter { cp =>
-        val now = scorexContext.timeProvider.time()
+      // Drop connections with peers if they seem to be inactive
+      val now = networkTime()
+      connections.values.foreach { cp =>
         val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
-        (now - lastSeen) > 1000 * 60 * 2 // 2 minutes
-      }.foreach { cp =>
-        val now = scorexContext.timeProvider.time()
-        val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
-        log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${(now - lastSeen) / 1000} seconds ago")
-        cp.handlerRef ! CloseConnection
+        if ((now - lastSeen) > settings.syncStatusRefreshStable.toMillis) {
+          log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${(now - lastSeen) / 1000} seconds ago")
+          cp.handlerRef ! CloseConnection
+        }
       }
     }
   }
@@ -481,6 +494,9 @@ object NetworkController {
 
     case object GetConnectedPeers
 
+    /**
+      * Get p2p network status
+      */
     case object GetPeersStatus
   }
 
