@@ -88,7 +88,7 @@ class NetworkController(settings: NetworkSettings,
     case Bound(_) =>
       log.info("Successfully bound to the port " + settings.bindAddress.getPort)
       scheduleConnectionToPeer()
-      dropDeadConnections()
+      scheduleDroppingDeadConnections()
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
@@ -97,12 +97,6 @@ class NetworkController(settings: NetworkSettings,
   }
 
   def networkTime(): Time = scorexContext.timeProvider.time()
-
-  // Checks that connectivity is not lost
-  private def connectivity: Boolean = {
-    connections.nonEmpty &&
-      networkTime() < (lastIncomingMessageTime + settings.syncStatusRefreshStable.toMillis)
-  }
 
   private def businessLogic: Receive = {
     //a message coming in from another peer
@@ -238,7 +232,10 @@ class NetworkController(settings: NetworkSettings,
     }
   }
 
-  private def dropDeadConnections(): Unit = {
+  /**
+    * Schedule a periodic dropping of connections which seem to be inactive
+    */
+  private def scheduleDroppingDeadConnections(): Unit = {
     context.system.scheduler.schedule(60.seconds, 60.seconds) {
       // Drop connections with peers if they seem to be inactive
       val now = networkTime()
