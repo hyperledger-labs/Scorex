@@ -96,7 +96,7 @@ class NetworkController(settings: NetworkSettings,
       context stop self
   }
 
-  def networkTime(): Time = scorexContext.timeProvider.time()
+  private def networkTime(): Time = scorexContext.timeProvider.time()
 
   private def businessLogic: Receive = {
     //a message coming in from another peer
@@ -106,6 +106,7 @@ class NetworkController(settings: NetworkSettings,
         case None => log.error(s"No handlers found for message $remote: " + spec.messageCode)
       }
 
+      // Update last seen message timestamps, global and peer's, with the message timestamp
       val remoteAddress = remote.connectionId.remoteAddress
       connections.get(remote.connectionId.remoteAddress) match {
         case Some(cp) => cp.peerInfo match {
@@ -113,7 +114,8 @@ class NetworkController(settings: NetworkSettings,
             val now = networkTime()
             lastIncomingMessageTime = now
             connections += remoteAddress -> cp.copy(peerInfo = Some(pi.copy(lastSeen = now)))
-          case None => log.warn("Peer info not found for a message got from: " + remoteAddress)
+          case None =>
+            log.warn("Peer info not found for a message got from: " + remoteAddress)
         }
         case None => log.warn("Connection not found for a message got from: " + remoteAddress)
       }
@@ -223,7 +225,7 @@ class NetworkController(settings: NetworkSettings,
   private def scheduleConnectionToPeer(): Unit = {
     context.system.scheduler.schedule(5.seconds, 5.seconds) {
       if (connections.size < settings.maxConnections) {
-        log.info(s"Looking for a new random connection")
+        log.debug(s"Looking for a new random connection")
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
           peerInfoOpt.foreach(peerInfo => self ! ConnectTo(peerInfo))
@@ -241,8 +243,12 @@ class NetworkController(settings: NetworkSettings,
       val now = networkTime()
       connections.values.foreach { cp =>
         val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
-        if ((now - lastSeen) > settings.syncStatusRefreshStable.toMillis) {
-          log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${(now - lastSeen) / 1000} seconds ago")
+        // A peer should send out sync message to us at least once per settings.syncStatusRefreshStable duration.
+        // We wait for more, namely settings.syncStatusRefreshStable.toMillis * 2
+        val timeout = settings.syncStatusRefreshStable.toMillis * 2
+        val delta = now - lastSeen
+        if (delta > timeout) {
+          log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${delta / 1000.0} seconds ago")
           cp.handlerRef ! CloseConnection
         }
       }

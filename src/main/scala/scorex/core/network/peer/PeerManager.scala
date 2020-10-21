@@ -128,7 +128,7 @@ object PeerManager {
       *
       * Used in peer propagation: peers chosen are recommended to a peer asking our node about more peers.
       */
-    case class RecentlySeenPeers(howMany: Int) extends GetPeers[Seq[PeerInfo]] {
+    case class SeenPeers(howMany: Int) extends GetPeers[Seq[PeerInfo]] {
 
       override def choose(knownPeers: Map[InetSocketAddress, PeerInfo],
                           blacklistedPeers: Seq[InetAddress],

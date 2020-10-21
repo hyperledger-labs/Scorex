@@ -478,4 +478,5 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
         messagesSerializer.deserialize(b, None).success.value.value
     }
   }
+
 }
