@@ -16,6 +16,14 @@ case class PeerInfo(peerSpec: PeerSpec,
                     lastSeen: Long,
                     connectionType: Option[ConnectionDirection] = None)
 
+/**
+  * Information about P2P layer status
+  *
+  * @param lastIncomingMessage - timestamp of last received message from any peer
+  * @param currentNetworkTime  - current network time
+  */
+case class PeersStatus(lastIncomingMessage: Long, currentNetworkTime: Long)
+
 object PeerInfo {
 
   /**

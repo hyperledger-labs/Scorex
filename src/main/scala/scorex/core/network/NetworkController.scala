@@ -7,6 +7,7 @@ import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
+import scorex.core.api.http.PeersApiRoute.PeersStatusResponse
 import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
@@ -14,7 +15,8 @@ import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages._
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager, PenaltyType}
 import scorex.core.settings.NetworkSettings
-import scorex.core.utils.NetworkUtils
+import scorex.core.utils.TimeProvider.Time
+import scorex.core.utils.{NetworkUtils, TimeProvider}
 import scorex.util.ScorexLogging
 
 import scala.concurrent.ExecutionContext
@@ -60,6 +62,12 @@ class NetworkController(settings: NetworkSettings,
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
+  /**
+    * Storing timestamp of a last message got via p2p network.
+    * Used to check whether connectivity is lost.
+    */
+  private var lastIncomingMessageTime : TimeProvider.Time = 0L
+
   //check own declared address for validity
   validateDeclaredAddress()
 
@@ -80,6 +88,7 @@ class NetworkController(settings: NetworkSettings,
     case Bound(_) =>
       log.info("Successfully bound to the port " + settings.bindAddress.getPort)
       scheduleConnectionToPeer()
+      scheduleDroppingDeadConnections()
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
@@ -87,12 +96,28 @@ class NetworkController(settings: NetworkSettings,
       context stop self
   }
 
+  private def networkTime(): Time = scorexContext.timeProvider.time()
+
   private def businessLogic: Receive = {
     //a message coming in from another peer
-    case msg @ Message(spec, _, Some(remote)) =>
+    case msg@Message(spec, _, Some(remote)) =>
       messageHandlers.get(spec.messageCode) match {
         case Some(handler) => handler ! msg // forward the message to the appropriate handler for processing
-        case None          => log.error(s"No handlers found for message $remote: " + spec.messageCode)
+        case None => log.error(s"No handlers found for message $remote: " + spec.messageCode)
+      }
+
+      // Update last seen message timestamps, global and peer's, with the message timestamp
+      val remoteAddress = remote.connectionId.remoteAddress
+      connections.get(remoteAddress) match {
+        case Some(cp) => cp.peerInfo match {
+          case Some(pi) =>
+            val now = networkTime()
+            lastIncomingMessageTime = now
+            connections += remoteAddress -> cp.copy(peerInfo = Some(pi.copy(lastSeen = now)))
+          case None =>
+            log.warn("Peer info not found for a message got from: " + remoteAddress)
+        }
+        case None => log.warn("Connection not found for a message got from: " + remoteAddress)
       }
 
     case SendToNetwork(message, sendingStrategy) =>
@@ -150,8 +175,12 @@ class NetworkController(settings: NetworkSettings,
         case Some(t) => log.info("Failed to connect to : " + c.remoteAddress, t)
         case None => log.info("Failed to connect to : " + c.remoteAddress)
       }
-      // remove not responding peer from database
-      peerManagerRef ! RemovePeer(c.remoteAddress)
+
+      // If enough live connections, remove not responding peer from database
+      // In not enough live connections, maybe connectivity lost but the node has not updated its status, no ban then
+      if(connections.size > settings.maxConnections / 2) {
+        peerManagerRef ! RemovePeer(c.remoteAddress)
+      }
 
     case Terminated(ref) =>
       connectionForHandler(ref).foreach { connectedPeer =>
@@ -167,6 +196,9 @@ class NetworkController(settings: NetworkSettings,
 
   //calls from API / application
   private def interfaceCalls: Receive = {
+    case GetPeersStatus =>
+      sender() ! PeersStatusResponse(lastIncomingMessageTime, networkTime())
+
     case GetConnectedPeers =>
       sender() ! connections.values.flatMap(_.peerInfo).toSeq
 
@@ -193,9 +225,31 @@ class NetworkController(settings: NetworkSettings,
   private def scheduleConnectionToPeer(): Unit = {
     context.system.scheduler.schedule(5.seconds, 5.seconds) {
       if (connections.size < settings.maxConnections) {
+        log.debug(s"Looking for a new random connection")
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
           peerInfoOpt.foreach(peerInfo => self ! ConnectTo(peerInfo))
+        }
+      }
+    }
+  }
+
+  /**
+    * Schedule a periodic dropping of connections which seem to be inactive
+    */
+  private def scheduleDroppingDeadConnections(): Unit = {
+    context.system.scheduler.schedule(60.seconds, 60.seconds) {
+      // Drop connections with peers if they seem to be inactive
+      val now = networkTime()
+      connections.values.foreach { cp =>
+        val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
+        // A peer should send out sync message to us at least once per settings.syncStatusRefreshStable duration.
+        // We wait for more, namely settings.syncStatusRefreshStable.toMillis * 3
+        val timeout = settings.syncStatusRefreshStable.toMillis * 3
+        val delta = now - lastSeen
+        if (delta > timeout) {
+          log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${delta / 1000.0} seconds ago")
+          cp.handlerRef ! CloseConnection
         }
       }
     }
@@ -443,6 +497,10 @@ object NetworkController {
 
     case object GetConnectedPeers
 
+    /**
+      * Get p2p network status
+      */
+    case object GetPeersStatus
   }
 
 }

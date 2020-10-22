@@ -31,6 +31,7 @@ final class InMemoryPeerDatabase(settings: NetworkSettings, timeProvider: TimePr
   override def addOrUpdateKnownPeer(peerInfo: PeerInfo): Unit = {
     if (!peerInfo.peerSpec.declaredAddress.exists(x => isBlacklisted(x.getAddress))) {
       peerInfo.peerSpec.address.foreach { address =>
+        log.debug(s"Updating peer info for $address")
         peers += address -> peerInfo
       }
     }
