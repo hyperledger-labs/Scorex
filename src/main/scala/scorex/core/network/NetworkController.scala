@@ -108,7 +108,7 @@ class NetworkController(settings: NetworkSettings,
 
       // Update last seen message timestamps, global and peer's, with the message timestamp
       val remoteAddress = remote.connectionId.remoteAddress
-      connections.get(remote.connectionId.remoteAddress) match {
+      connections.get(remoteAddress) match {
         case Some(cp) => cp.peerInfo match {
           case Some(pi) =>
             val now = networkTime()
