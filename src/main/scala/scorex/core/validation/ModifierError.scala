@@ -1,5 +1,7 @@
 package scorex.core.validation
 
+import scala.util.control.NoStackTrace
+
 /** Base trait for errors that were occurred during NodeView Modifier validation
   */
 trait ModifierError {
@@ -22,11 +24,12 @@ class MalformedModifierError(val message: String, cause: Option[Throwable] = Non
   def toThrowable: Throwable = this
 }
 
-/** Temporary modifier error that may be recovered in future after some history updates
+/** Temporary modifier error that may be recovered in future after some history updates.
+  * When an instance is created, the stack trace is not collected which makes this exception lightweight.
   */
 @SuppressWarnings(Array("org.wartremover.warts.Null"))
 class RecoverableModifierError(val message: String, cause: Option[Throwable] = None)
-    extends Exception(message, cause.orNull) with ModifierError {
+    extends Exception(message, cause.orNull) with ModifierError with NoStackTrace {
   def isFatal: Boolean = false
   def toThrowable: Throwable = this
 }
