@@ -187,7 +187,7 @@ class NetworkController(settings: NetworkSettings,
   //calls from API / application
   private def interfaceCalls: Receive = {
     case GetPeersStatus =>
-      sender() ! PeersStatusResponse(lastIncomingMessage, scorexContext.timeProvider.time())
+      sender() ! PeersStatus(lastIncomingMessage, scorexContext.timeProvider.time())
 
     case GetConnectedPeers =>
       sender() ! connections.values.flatMap(_.peerInfo).toSeq
