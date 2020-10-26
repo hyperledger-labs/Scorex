@@ -243,9 +243,7 @@ class NetworkController(settings: NetworkSettings,
       val now = networkTime()
       connections.values.foreach { cp =>
         val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
-        // A peer should send out sync message to us at least once per settings.syncStatusRefreshStable duration.
-        // We wait for more, namely settings.syncStatusRefreshStable.toMillis * 3
-        val timeout = settings.syncStatusRefreshStable.toMillis * 3
+        val timeout = settings.inactiveConnectionDeadline.toMillis
         val delta = now - lastSeen
         if (delta > timeout) {
           log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${delta / 1000.0} seconds ago")
