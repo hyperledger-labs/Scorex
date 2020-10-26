@@ -24,8 +24,11 @@ trait Synchronizer extends ScorexLogging {
       // if a message could be parsed, match the type of content found and ensure a handler is defined
       case Success(content) =>
         val parsedMsg = (spec, content, source)
-        if (msgHandlers.isDefinedAt(parsedMsg)) msgHandlers.apply(parsedMsg)
-        else log.error(s"Function handler not found for the parsed message: $parsedMsg")
+        if (msgHandlers.isDefinedAt(parsedMsg)) {
+          msgHandlers.apply(parsedMsg)
+        } else {
+          log.error(s"Function handler not found for the parsed message: $parsedMsg")
+        }
 
       // if a message could not be parsed, penalize the remote peer
       case Failure(e) =>

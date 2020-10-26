@@ -27,7 +27,10 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
   private implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
   private val peersSpec = new PeersSpec(featureSerializers, settings.maxPeerSpecObjects)
 
-  protected val msgHandlers: PartialFunction[(MessageSpec[_], _, ConnectedPeer), Unit] = {
+  private val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
+  private val stn = SendToNetwork(msg, SendToRandom)
+
+  protected override val msgHandlers: PartialFunction[(MessageSpec[_], _, ConnectedPeer), Unit] = {
     case (_: PeersSpec, peers: Seq[PeerSpec]@unchecked, _) if peers.cast[Seq[PeerSpec]].isDefined =>
       addNewPeers(peers)
 
@@ -40,9 +43,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
 
     networkControllerRef ! RegisterMessageSpecs(Seq(GetPeersSpec, peersSpec), self)
 
-    val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
-    val stn = SendToNetwork(msg, SendToRandom)
-    context.system.scheduler.schedule(2.seconds, settings.getPeersInterval)(networkControllerRef ! stn)
+    context.system.scheduler.schedule(20.seconds, settings.getPeersInterval)(networkControllerRef ! stn)
   }
 
   override def receive: Receive = {
@@ -54,7 +55,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
     case nonsense: Any => log.warn(s"PeerSynchronizer: got unexpected input $nonsense from ${sender()}")
   }
 
-  override protected def penalizeMaliciousPeer ( peer: ConnectedPeer ): Unit = {
+  override protected def penalizeMaliciousPeer(peer: ConnectedPeer): Unit = {
     networkControllerRef ! PenalizePeer(peer.connectionId.remoteAddress, PenaltyType.PermanentPenalty)
   }
 
@@ -63,21 +64,19 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
     *
     * @param peers sequence of peer specs describing a remote peers details
     */
-  private def addNewPeers ( peers: Seq[PeerSpec] ): Unit =
-    if ( peers.cast[Seq[PeerSpec]].isDefined ) {
-      peers.foreach(peerSpec => peerManager ! AddPeerIfEmpty(peerSpec))
-    }
+  private def addNewPeers(peers: Seq[PeerSpec]): Unit = {
+    peers.foreach(peerSpec => peerManager ! AddPeerIfEmpty(peerSpec))
+  }
 
   /**
     * Handles gossiping about the locally known peer set to a given remote peer
     *
     * @param remote the remote peer to be informed of our local peers
     */
-  private def gossipPeers ( remote: ConnectedPeer ): Unit =
+  private def gossipPeers(remote: ConnectedPeer): Unit =
     (peerManager ? SeenPeers(settings.maxPeerSpecObjects))
       .mapTo[Seq[PeerInfo]]
-      .foreach
-      { peers =>
+      .foreach { peers =>
         val msg = Message(peersSpec, Right(peers.map(_.peerSpec)), None)
         networkControllerRef ! SendToNetwork(msg, SendToPeer(remote))
       }

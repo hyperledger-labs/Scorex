@@ -373,7 +373,7 @@ class NetworkController(settings: NetworkSettings,
     * @param peerAddress - socket address of peer
     * @return Some(ConnectedPeer) when the connection exists for this peer, and None otherwise
     */
-  private def connectionForPeerAddress(peerAddress: InetSocketAddress) = {
+  private def connectionForPeerAddress(peerAddress: InetSocketAddress): Option[ConnectedPeer] = {
     connections.values.find { connectedPeer =>
       connectedPeer.connectionId.remoteAddress == peerAddress ||
         connectedPeer.peerInfo.exists(peerInfo => getPeerAddress(peerInfo).contains(peerAddress))
@@ -543,4 +543,5 @@ object NetworkControllerRef {
       props(settings, peerManagerRef, scorexContext, IO(Tcp)),
       name)
   }
+
 }
