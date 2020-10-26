@@ -24,7 +24,6 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
                        featureSerializers: PeerFeature.Serializers)
                       (implicit ec: ExecutionContext) extends Actor with Synchronizer with ScorexLogging {
 
-  private implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
   private val peersSpec = new PeersSpec(featureSerializers, settings.maxPeerSpecObjects)
 
   private val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
@@ -38,12 +37,16 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
       gossipPeers(remote)
   }
 
+  private def askForPeers: Unit = {
+    networkControllerRef ! stn
+  }
+
   override def preStart: Unit = {
     super.preStart()
 
     networkControllerRef ! RegisterMessageSpecs(Seq(GetPeersSpec, peersSpec), self)
 
-    context.system.scheduler.schedule(20.seconds, settings.getPeersInterval)(networkControllerRef ! stn)
+    context.system.scheduler.schedule(20.seconds, settings.getPeersInterval)(askForPeers)
   }
 
   override def receive: Receive = {
@@ -73,13 +76,16 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
     *
     * @param remote the remote peer to be informed of our local peers
     */
-  private def gossipPeers(remote: ConnectedPeer): Unit =
+  private def gossipPeers(remote: ConnectedPeer): Unit = {
+    implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
+
     (peerManager ? SeenPeers(settings.maxPeerSpecObjects))
       .mapTo[Seq[PeerInfo]]
       .foreach { peers =>
         val msg = Message(peersSpec, Right(peers.map(_.peerSpec)), None)
         networkControllerRef ! SendToNetwork(msg, SendToPeer(remote))
       }
+  }
 }
 
 object PeerSynchronizerRef {
