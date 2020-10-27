@@ -13,7 +13,6 @@ import shapeless.syntax.typeable._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.language.postfixOps
 
 /**
   * Responsible for discovering and sharing new peers.
@@ -37,7 +36,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
       gossipPeers(remote)
   }
 
-  private def askForPeers: Unit = {
+  private def askForPeers(): Unit = {
     networkControllerRef ! stn
   }
 
@@ -46,7 +45,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
 
     networkControllerRef ! RegisterMessageSpecs(Seq(GetPeersSpec, peersSpec), self)
 
-    context.system.scheduler.schedule(20.seconds, settings.getPeersInterval)(askForPeers)
+    context.system.scheduler.schedule(20.seconds, settings.getPeersInterval)(askForPeers())
   }
 
   override def receive: Receive = {
@@ -77,7 +76,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
     * @param remote the remote peer to be informed of our local peers
     */
   private def gossipPeers(remote: ConnectedPeer): Unit = {
-    implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5 seconds))
+    implicit val timeout: Timeout = Timeout(settings.syncTimeout.getOrElse(5.seconds))
 
     (peerManager ? SeenPeers(settings.maxPeerSpecObjects))
       .mapTo[Seq[PeerInfo]]
