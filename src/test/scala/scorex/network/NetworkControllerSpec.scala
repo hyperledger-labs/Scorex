@@ -289,15 +289,15 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.sendHandshake(Some(peerAddr), None)
 
     p.send(networkControllerRef, GetConnectedPeers)
-    val data0 = p.expectMsgClass(classOf[Seq[PeerInfo]])
-    val ls0 = data0(0).lastSeen
+    val data0 = p.expectMsgClass(classOf[Seq[ConnectedPeer]])
+    val ls0 = data0(0).lastMessage
 
     Thread.sleep(1000)
     testPeer.sendGetPeers() // send a message to see node's status update then
 
     p.send(networkControllerRef, GetConnectedPeers)
-    val data = p.expectMsgClass(classOf[Seq[PeerInfo]])
-    val ls = data(0).lastSeen
+    val data = p.expectMsgClass(classOf[Seq[ConnectedPeer]])
+    val ls = data(0).lastMessage
     ls should not be ls0
 
     p.send(networkControllerRef, GetPeersStatus)
