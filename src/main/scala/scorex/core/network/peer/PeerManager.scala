@@ -63,7 +63,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
       }
 
     case RemovePeer(address) =>
-      log.info(s"$address removed")
+      log.info(s"$address removed from peers database")
       peerDatabase.remove(address)
 
     case get: GetPeers[_] =>
