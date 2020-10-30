@@ -9,7 +9,7 @@ import scorex.core.network.{ConnectionDirection, PeerSpec}
   * Information about peer to be stored in PeerDatabase
   *
   * @param peerSpec       - general information about the peer
-  * @param lastHandshake       - timestamp when this peer was last seen in the network
+  * @param lastHandshake  - timestamp when last handshake was done
   * @param connectionType - type of connection (Incoming/Outgoing) established to this peer if any
   */
 case class PeerInfo(peerSpec: PeerSpec,

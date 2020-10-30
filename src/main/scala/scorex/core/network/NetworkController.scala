@@ -312,7 +312,7 @@ class NetworkController(settings: NetworkSettings,
 
     val handler = context.actorOf(handlerProps) // launch connection handler
     context.watch(handler)
-    val connectedPeer = ConnectedPeer(connectionId, handler, 0, None)
+    val connectedPeer = ConnectedPeer(connectionId, handler, networkTime(), None)
     connections += connectionId.remoteAddress -> connectedPeer
     unconfirmedConnections -= connectionId.remoteAddress
   }
