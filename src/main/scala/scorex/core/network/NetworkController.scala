@@ -239,13 +239,11 @@ class NetworkController(settings: NetworkSettings,
       val now = networkTime()
       connections.values.foreach { cp =>
         val lastSeen = cp.lastMessage
-        if (lastSeen != 0) {
-          val timeout = settings.inactiveConnectionDeadline.toMillis
-          val delta = now - lastSeen
-          if (delta > timeout) {
-            log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${delta / 1000.0} seconds ago")
-            cp.handlerRef ! CloseConnection
-          }
+        val timeout = settings.inactiveConnectionDeadline.toMillis
+        val delta = now - lastSeen
+        if (delta > timeout) {
+          log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${delta / 1000.0} seconds ago")
+          cp.handlerRef ! CloseConnection
         }
       }
     }
