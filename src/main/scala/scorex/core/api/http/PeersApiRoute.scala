@@ -38,17 +38,15 @@ case class PeersApiRoute(peerManager: ActorRef,
 
   def connectedPeers: Route = (path("connected") & get) {
     val result = askActor[Seq[ConnectedPeer]](networkController, GetConnectedPeers).map {
-      _.map { con =>
-        con.peerInfo match {
-          case Some(peerInfo) =>
-            PeerInfoResponse(
-              address = peerInfo.peerSpec.declaredAddress.map(_.toString).getOrElse(""),
-              lastMessage = con.lastMessage,
-              lastHandshake = peerInfo.lastHandshake,
-              name = peerInfo.peerSpec.nodeName,
-              connectionType = peerInfo.connectionType.map(_.toString)
-            )
-          case None => throw new Exception("Peer is not connected")
+      _.flatMap { con =>
+        con.peerInfo.map { peerInfo =>
+          PeerInfoResponse(
+            address = peerInfo.peerSpec.declaredAddress.map(_.toString).getOrElse(""),
+            lastMessage = con.lastMessage,
+            lastHandshake = peerInfo.lastHandshake,
+            name = peerInfo.peerSpec.nodeName,
+            connectionType = peerInfo.connectionType.map(_.toString)
+          )
         }
       }
     }
