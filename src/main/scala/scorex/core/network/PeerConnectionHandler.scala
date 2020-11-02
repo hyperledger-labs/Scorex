@@ -143,7 +143,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + ", switching to closing mode")
-      if (outMessagesBuffer.isEmpty) connection ! Close else context become closingWithNonEmptyBuffer
+      if (outMessagesBuffer.isEmpty) connection ! Close
 
     case ReceivableMessages.Ack(_) => // ignore ACKs in stable mode
 
@@ -167,8 +167,9 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case ReceivableMessages.Ack(id) =>
       outMessagesBuffer -= id
-      if (outMessagesBuffer.nonEmpty) writeFirst()
-      else {
+      if (outMessagesBuffer.nonEmpty){
+        writeFirst()
+      } else {
         log.info("Buffered messages processed, exiting buffering mode")
         context become workingCycleWriting
       }
@@ -213,25 +214,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeReading
   }
 
-  def closingWithNonEmptyBuffer: Receive = {
-    case CommandFailed(_: Write) =>
-      connection ! ResumeWriting
-      context.become({
-        case WritingResumed =>
-          writeAll()
-          context.unbecome()
-        case ReceivableMessages.Ack(id) =>
-          outMessagesBuffer -= id
-      }, discardOld = false)
-
-    case ReceivableMessages.Ack(id) =>
-      outMessagesBuffer -= id
-      if (outMessagesBuffer.isEmpty) connection ! Close
-
-    case other =>
-      log.debug(s"Got $other in closing phase")
-  }
-
   private def reportStrangeInput: Receive = {
     case nonsense =>
       log.warn(s"Strange input for PeerConnectionHandler: $nonsense")
@@ -243,12 +225,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
   private def writeFirst(): Unit = {
     outMessagesBuffer.headOption.foreach { case (id, msg) =>
-      connection ! Write(msg, ReceivableMessages.Ack(id))
-    }
-  }
-
-  private def writeAll(): Unit = {
-    outMessagesBuffer.foreach { case (id, msg) =>
       connection ! Write(msg, ReceivableMessages.Ack(id))
     }
   }
@@ -287,6 +263,7 @@ object PeerConnectionHandler {
 }
 
 object PeerConnectionHandlerRef {
+
   def props(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
@@ -311,4 +288,5 @@ object PeerConnectionHandlerRef {
             connectionDescription: ConnectionDescription)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, scorexContext, connectionDescription), name)
+
 }
