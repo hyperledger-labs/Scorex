@@ -25,9 +25,6 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
 
   private val peersSpec = new PeersSpec(featureSerializers, settings.maxPeerSpecObjects)
 
-  private val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
-  private val stn = SendToNetwork(msg, SendToRandom)
-
   protected override val msgHandlers: PartialFunction[(MessageSpec[_], _, ConnectedPeer), Unit] = {
     case (_: PeersSpec, peers: Seq[PeerSpec]@unchecked, _) if peers.cast[Seq[PeerSpec]].isDefined =>
       addNewPeers(peers)
@@ -36,16 +33,14 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
       gossipPeers(remote)
   }
 
-  private def askForPeers(): Unit = {
-    networkControllerRef ! stn
-  }
-
   override def preStart: Unit = {
     super.preStart()
 
     networkControllerRef ! RegisterMessageSpecs(Seq(GetPeersSpec, peersSpec), self)
 
-    context.system.scheduler.schedule(20.seconds, settings.getPeersInterval)(askForPeers())
+    val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
+    val stn = SendToNetwork(msg, SendToRandom)
+    context.system.scheduler.schedule(2.seconds, settings.getPeersInterval)(networkControllerRef ! stn)
   }
 
   override def receive: Receive = {

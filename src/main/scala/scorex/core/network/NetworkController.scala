@@ -176,7 +176,7 @@ class NetworkController(settings: NetworkSettings,
         case None => log.info("Failed to connect to : " + c.remoteAddress)
       }
 
-      // If a message receive from p2p within connection timeout, connectivity is not lost thus we're removing the peer
+      // If a message received from p2p within connection timeout, connectivity is not lost thus we're removing the peer
       if(networkTime() - lastIncomingMessageTime < settings.connectionTimeout.toMillis) {
         peerManagerRef ! RemovePeer(c.remoteAddress)
       }
