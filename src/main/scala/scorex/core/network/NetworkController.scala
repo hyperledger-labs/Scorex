@@ -109,14 +109,10 @@ class NetworkController(settings: NetworkSettings,
       // Update last seen message timestamps, global and peer's, with the message timestamp
       val remoteAddress = remote.connectionId.remoteAddress
       connections.get(remoteAddress) match {
-        case Some(cp) => cp.peerInfo match {
-          case Some(pi) =>
-            val now = networkTime()
-            lastIncomingMessageTime = now
-            connections += remoteAddress -> cp.copy(peerInfo = Some(pi.copy(lastSeen = now)))
-          case None =>
-            log.warn("Peer info not found for a message got from: " + remoteAddress)
-        }
+        case Some(cp) =>
+          val now = networkTime()
+          lastIncomingMessageTime = now
+          cp.lastMessage = now
         case None => log.warn("Connection not found for a message got from: " + remoteAddress)
       }
 
@@ -199,7 +195,7 @@ class NetworkController(settings: NetworkSettings,
       sender() ! PeersStatusResponse(lastIncomingMessageTime, networkTime())
 
     case GetConnectedPeers =>
-      sender() ! connections.values.flatMap(_.peerInfo).toSeq
+      sender() ! connections.values.filter(_.peerInfo.nonEmpty)
 
     case ShutdownNetwork =>
       log.info("Going to shutdown all connections & unbind port")
@@ -241,10 +237,8 @@ class NetworkController(settings: NetworkSettings,
       // Drop connections with peers if they seem to be inactive
       val now = networkTime()
       connections.values.foreach { cp =>
-        val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
-        // A peer should send out sync message to us at least once per settings.syncStatusRefreshStable duration.
-        // We wait for more, namely settings.syncStatusRefreshStable.toMillis * 3
-        val timeout = settings.syncStatusRefreshStable.toMillis * 3
+        val lastSeen = cp.lastMessage
+        val timeout = settings.inactiveConnectionDeadline.toMillis
         val delta = now - lastSeen
         if (delta > timeout) {
           log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${delta / 1000.0} seconds ago")
@@ -315,7 +309,7 @@ class NetworkController(settings: NetworkSettings,
 
     val handler = context.actorOf(handlerProps) // launch connection handler
     context.watch(handler)
-    val connectedPeer = ConnectedPeer(connectionId, handler, None)
+    val connectedPeer = ConnectedPeer(connectionId, handler, networkTime(), None)
     connections += connectionId.remoteAddress -> connectedPeer
     unconfirmedConnections -= connectionId.remoteAddress
   }

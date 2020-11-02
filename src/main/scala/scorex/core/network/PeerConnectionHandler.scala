@@ -81,7 +81,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
         scorexContext.timeProvider.time(),
         Some(direction)
       )
-      val peer = ConnectedPeer(connectionDescription.connectionId, self, Some(peerInfo))
+      val peer = ConnectedPeer(connectionDescription.connectionId, self, 0, Some(peerInfo))
       selfPeer = Some(peer)
 
       networkControllerRef ! Handshaked(peerInfo)
