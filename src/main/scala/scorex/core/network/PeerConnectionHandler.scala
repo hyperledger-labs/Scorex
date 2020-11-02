@@ -175,8 +175,10 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + s", switching to closing mode")
-      writeAll()
-      context become closingWithNonEmptyBuffer
+      connection ! Close
+
+      // writeAll()
+      // context become closingWithNonEmptyBuffer
   }
 
   def remoteInterface: Receive = {
