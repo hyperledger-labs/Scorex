@@ -135,7 +135,7 @@ object PeerManager {
                           sc: ScorexContext): Seq[PeerInfo] = {
         val recentlySeenNonBlacklisted = knownPeers.values.toSeq
           .filter { p =>
-            (p.connectionType.isDefined || p.lastSeen > 0) &&
+            (p.connectionType.isDefined || p.lastHandshake > 0) &&
               !blacklistedPeers.exists(ip => p.peerSpec.declaredAddress.exists(_.getAddress == ip))
           }
         Random.shuffle(recentlySeenNonBlacklisted).take(howMany)
