@@ -143,7 +143,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + ", switching to closing mode")
-      if (outMessagesBuffer.isEmpty) connection ! Close
+      pushAllWithNoAck()
+      connection ! Close
 
     case ReceivableMessages.Ack(_) => // ignore ACKs in stable mode
 
@@ -176,10 +177,8 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + s", switching to closing mode")
+      pushAllWithNoAck()
       connection ! Close
-
-      // writeAll()
-      // context become closingWithNonEmptyBuffer
   }
 
   def remoteInterface: Receive = {
@@ -229,6 +228,12 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     }
   }
 
+  private def pushAllWithNoAck(): Unit = {
+    outMessagesBuffer.foreach { case (_, msg) =>
+      connection ! Write(msg, NoAck)
+    }
+  }
+
   private def createHandshakeMessage() = {
     Handshake(
       PeerSpec(
@@ -263,7 +268,6 @@ object PeerConnectionHandler {
 }
 
 object PeerConnectionHandlerRef {
-
   def props(settings: NetworkSettings,
             networkControllerRef: ActorRef,
             peerManagerRef: ActorRef,
@@ -288,5 +292,4 @@ object PeerConnectionHandlerRef {
             connectionDescription: ConnectionDescription)
            (implicit system: ActorSystem, ec: ExecutionContext): ActorRef =
     system.actorOf(props(settings, networkControllerRef, peerManagerRef, scorexContext, connectionDescription), name)
-
 }
