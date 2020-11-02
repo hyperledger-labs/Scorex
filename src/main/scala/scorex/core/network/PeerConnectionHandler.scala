@@ -124,7 +124,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       reportStrangeInput
 
   private def fatalCommands: Receive = {
-    case _: ConnectionClosed =>
+    case _: ConnectionClosed  =>
       log.info(s"Connection closed to $connectionId")
       context stop self
   }
@@ -144,7 +144,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + ", switching to closing mode")
       pushAllWithNoAck()
-      connection ! Close
+      connection ! Abort
 
     case ReceivableMessages.Ack(_) => // ignore ACKs in stable mode
 
@@ -178,7 +178,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     case CloseConnection =>
       log.info(s"Enforced to abort communication with: " + connectionId + s", switching to closing mode")
       pushAllWithNoAck()
-      connection ! Close
+      connection ! Abort
   }
 
   def remoteInterface: Receive = {
