@@ -172,9 +172,9 @@ class NetworkController(settings: NetworkSettings,
         case None => log.info("Failed to connect to : " + c.remoteAddress)
       }
 
-      // If enough live connections, remove not responding peer from database
-      // In not enough live connections, maybe connectivity lost but the node has not updated its status, no ban then
-      if(connections.size > settings.maxConnections / 2) {
+      // If a message received from p2p within connection timeout,
+      // connectivity is not lost thus we're removing the peer
+      if(networkTime() - lastIncomingMessageTime < settings.connectionTimeout.toMillis) {
         peerManagerRef ! RemovePeer(c.remoteAddress)
       }
 
@@ -367,7 +367,7 @@ class NetworkController(settings: NetworkSettings,
     * @param peerAddress - socket address of peer
     * @return Some(ConnectedPeer) when the connection exists for this peer, and None otherwise
     */
-  private def connectionForPeerAddress(peerAddress: InetSocketAddress) = {
+  private def connectionForPeerAddress(peerAddress: InetSocketAddress): Option[ConnectedPeer] = {
     connections.values.find { connectedPeer =>
       connectedPeer.connectionId.remoteAddress == peerAddress ||
         connectedPeer.peerInfo.exists(peerInfo => getPeerAddress(peerInfo).contains(peerAddress))
@@ -537,4 +537,5 @@ object NetworkControllerRef {
       props(settings, peerManagerRef, scorexContext, IO(Tcp)),
       name)
   }
+
 }
