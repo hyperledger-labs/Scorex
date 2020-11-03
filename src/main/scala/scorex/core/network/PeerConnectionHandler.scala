@@ -131,14 +131,14 @@ class PeerConnectionHandler(val settings: NetworkSettings,
 
     case cc: ConnectionClosed =>
       // connection closed from either side, actor is shutting down itself
-      val reason = if (cc.isErrorClosed) {
+      val reason: String = if (cc.isErrorClosed) {
         "error: " + cc.getErrorCause
       } else if (cc.isPeerClosed) {
         "closed by the peer"
       } else if (cc.isAborted) {
         "aborted locally"
       } else ""
-      log.info(s"Connection closed to $connectionId, reason: $reason")
+      log.info(s"Connection closed to $connectionId, reason: " + reason)
       context stop self
   }
 
