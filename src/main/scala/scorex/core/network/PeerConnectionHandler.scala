@@ -88,7 +88,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       handshakeTimeoutCancellableOpt.map(_.cancel())
       connection ! ResumeReading
       context become workingCycleWriting
-    } orElse handshakeTimeout orElse fatalCommands
+    } orElse handshakeTimeout orElse closeCommands
   }
 
   private def receiveAndHandleHandshake(handler: Handshake => Unit): Receive = {
@@ -114,18 +114,31 @@ class PeerConnectionHandler(val settings: NetworkSettings,
   private def workingCycleWriting: Receive =
     localInterfaceWriting orElse
       remoteInterface orElse
-      fatalCommands orElse
+      closeCommands orElse
       reportStrangeInput
 
   private def workingCycleBuffering: Receive =
     localInterfaceBuffering orElse
       remoteInterface orElse
-      fatalCommands orElse
+      closeCommands orElse
       reportStrangeInput
 
-  private def fatalCommands: Receive = {
-    case _: ConnectionClosed  =>
-      log.info(s"Connection closed to $connectionId")
+  private def closeCommands: Receive = {
+    case CloseConnection =>
+      log.info(s"Enforced to abort communication with: " + connectionId)
+      pushAllWithNoAck()
+      connection ! Abort // we're closing connection without waiting for a confirmation from the peer
+
+    case cc: ConnectionClosed =>
+      // connection closed from either side, actor is shutting down itself
+      val reason = if (cc.isErrorClosed) {
+        "error: " + cc.getErrorCause
+      } else if (cc.isPeerClosed) {
+        "closed by the peer"
+      } else if (cc.isAborted) {
+        "aborted locally"
+      } else ""
+      log.info(s"Connection closed to $connectionId, reason: $reason")
       context stop self
   }
 
@@ -140,11 +153,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
       connection ! ResumeWriting
       buffer(id, msg)
       context become workingCycleBuffering
-
-    case CloseConnection =>
-      log.info(s"Enforced to abort communication with: " + connectionId + ", switching to closing mode")
-      pushAllWithNoAck()
-      connection ! Abort
 
     case ReceivableMessages.Ack(_) => // ignore ACKs in stable mode
 
@@ -174,11 +182,6 @@ class PeerConnectionHandler(val settings: NetworkSettings,
         log.info("Buffered messages processed, exiting buffering mode")
         context become workingCycleWriting
       }
-
-    case CloseConnection =>
-      log.info(s"Enforced to abort communication with: " + connectionId + s", switching to closing mode")
-      pushAllWithNoAck()
-      connection ! Abort
   }
 
   def remoteInterface: Receive = {
@@ -228,6 +231,7 @@ class PeerConnectionHandler(val settings: NetworkSettings,
     }
   }
 
+  // Write into the wire all the buffered messages we have for the peer with no ACK
   private def pushAllWithNoAck(): Unit = {
     outMessagesBuffer.foreach { case (_, msg) =>
       connection ! Write(msg, NoAck)

@@ -33,5 +33,4 @@ object LocalAddressPeerFeatureSerializer extends ScorexSerializer[LocalAddressPe
     val port = r.getUInt().toIntExact
     LocalAddressPeerFeature(new InetSocketAddress(InetAddress.getByAddress(fa), port))
   }
-
 }

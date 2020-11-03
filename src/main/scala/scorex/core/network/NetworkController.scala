@@ -172,7 +172,8 @@ class NetworkController(settings: NetworkSettings,
         case None => log.info("Failed to connect to : " + c.remoteAddress)
       }
 
-      // If a message received from p2p within connection timeout, connectivity is not lost thus we're removing the peer
+      // If a message received from p2p within connection timeout,
+      // connectivity is not lost thus we're removing the peer
       if(networkTime() - lastIncomingMessageTime < settings.connectionTimeout.toMillis) {
         peerManagerRef ! RemovePeer(c.remoteAddress)
       }
@@ -218,7 +219,7 @@ class NetworkController(settings: NetworkSettings,
     * Schedule a periodic connection to a random known peer
     */
   private def scheduleConnectionToPeer(): Unit = {
-    context.system.scheduler.schedule(5.seconds, settings.connectionTimeout * 2) {
+    context.system.scheduler.schedule(5.seconds, 5.seconds) {
       if (connections.size < settings.maxConnections) {
         log.debug(s"Looking for a new random connection")
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
