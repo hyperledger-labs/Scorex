@@ -301,7 +301,7 @@ class NetworkControllerSpec extends NetworkTests {
     ls should not be ls0
 
     p.send(networkControllerRef, GetPeersStatus)
-    val status = p.expectMsgClass(classOf[PeersStatusResponse])
+    val status = p.expectMsgClass(classOf[PeersStatus])
     status.lastIncomingMessage shouldBe ls
 
     system.terminate()
