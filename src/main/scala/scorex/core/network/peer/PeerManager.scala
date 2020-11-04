@@ -63,7 +63,7 @@ class PeerManager(settings: ScorexSettings, scorexContext: ScorexContext) extend
       }
 
     case RemovePeer(address) =>
-      log.info(s"$address removed")
+      log.info(s"$address removed from peers database")
       peerDatabase.remove(address)
 
     case get: GetPeers[_] =>
@@ -124,17 +124,18 @@ object PeerManager {
     }
 
     /**
-      * Choose at most `howMany` random peers, which are connected to our peer or
-      * were connected in at most 1 hour ago and weren't blacklisted.
+      * Choose at most `howMany` random peers, which were connected to our peer and weren't blacklisted.
+      *
+      * Used in peer propagation: peers chosen are recommended to a peer asking our node about more peers.
       */
-    case class RecentlySeenPeers(howMany: Int) extends GetPeers[Seq[PeerInfo]] {
+    case class SeenPeers(howMany: Int) extends GetPeers[Seq[PeerInfo]] {
 
       override def choose(knownPeers: Map[InetSocketAddress, PeerInfo],
                           blacklistedPeers: Seq[InetAddress],
                           sc: ScorexContext): Seq[PeerInfo] = {
         val recentlySeenNonBlacklisted = knownPeers.values.toSeq
           .filter { p =>
-            (p.connectionType.isDefined || p.lastSeen > 0) &&
+            (p.connectionType.isDefined || p.lastHandshake > 0) &&
               !blacklistedPeers.exists(ip => p.peerSpec.declaredAddress.exists(_.getAddress == ip))
           }
         Random.shuffle(recentlySeenNonBlacklisted).take(howMany)

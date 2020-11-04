@@ -11,11 +11,12 @@ import org.scalatest.EitherValues._
 import org.scalatest.Matchers
 import org.scalatest.OptionValues._
 import org.scalatest.TryValues._
+import scorex.core.api.http.PeersApiRoute.PeersStatusResponse
 import scorex.core.app.{ScorexContext, Version}
-import scorex.core.network.NetworkController.ReceivableMessages.GetConnectedPeers
+import scorex.core.network.NetworkController.ReceivableMessages.{GetConnectedPeers, GetPeersStatus}
 import scorex.core.network._
 import scorex.core.network.message.{PeersSpec, _}
-import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerInfo, PeerManagerRef}
+import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerInfo, PeerManagerRef, PeersStatus}
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.LocalTimeProvider
 
@@ -288,16 +289,20 @@ class NetworkControllerSpec extends NetworkTests {
     testPeer.sendHandshake(Some(peerAddr), None)
 
     p.send(networkControllerRef, GetConnectedPeers)
-    val data0 = p.expectMsgClass(classOf[Seq[PeerInfo]])
-    val ls0 = data0(0).lastSeen
+    val data0 = p.expectMsgClass(classOf[Seq[ConnectedPeer]])
+    val ls0 = data0(0).lastMessage
 
     Thread.sleep(1000)
-    testPeer.sendGetPeers()
-    p.send(networkControllerRef, GetConnectedPeers)
-    val data = p.expectMsgClass(classOf[Seq[PeerInfo]])
-    val ls = data(0).lastSeen
+    testPeer.sendGetPeers() // send a message to see node's status update then
 
+    p.send(networkControllerRef, GetConnectedPeers)
+    val data = p.expectMsgClass(classOf[Seq[ConnectedPeer]])
+    val ls = data(0).lastMessage
     ls should not be ls0
+
+    p.send(networkControllerRef, GetPeersStatus)
+    val status = p.expectMsgClass(classOf[PeersStatusResponse])
+    status.lastIncomingMessage shouldBe ls
 
     system.terminate()
   }
@@ -473,4 +478,5 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
         messagesSerializer.deserialize(b, None).success.value.value
     }
   }
+
 }

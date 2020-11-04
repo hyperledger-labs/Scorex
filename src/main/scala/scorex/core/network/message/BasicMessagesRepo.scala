@@ -245,9 +245,15 @@ class HandshakeSpec(featureSerializers: PeerFeature.Serializers, sizeLimit: Int)
   override val messageCode: MessageCode = HandshakeSpec.messageCode
   override val messageName: String = HandshakeSpec.messageName
 
-  override def serialize(obj: Handshake, w: Writer): Unit = {
-    w.putULong(obj.time)
-    peersDataSerializer.serialize(obj.peerSpec, w)
+  /**
+    * Serializing handshake into a byte writer.
+    * @param hs - handshake instance
+    * @param w - writer to write bytes to
+    */
+  override def serialize(hs: Handshake, w: Writer): Unit = {
+    // first writes down handshake time, then peer specification of our node
+    w.putULong(hs.time)
+    peersDataSerializer.serialize(hs.peerSpec, w)
   }
 
   override def parse(r: Reader): Handshake = {

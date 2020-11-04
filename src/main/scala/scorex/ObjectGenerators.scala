@@ -106,6 +106,6 @@ trait ObjectGenerators {
 
   def connectedPeerGen(peerRef: ActorRef): Gen[ConnectedPeer] = for {
     connectionId <- connectionIdGen
-  } yield ConnectedPeer(connectionId, peerRef, None)
+  } yield ConnectedPeer(connectionId, peerRef, 0, None)
 
 }

@@ -15,6 +15,7 @@ import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages._
 import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager, PeersStatus, PenaltyType}
 import scorex.core.settings.NetworkSettings
+import scorex.core.utils.TimeProvider.Time
 import scorex.core.utils.{NetworkUtils, TimeProvider}
 import scorex.util.ScorexLogging
 
@@ -61,7 +62,11 @@ class NetworkController(settings: NetworkSettings,
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
-  private var lastIncomingMessage : TimeProvider.Time = 0
+  /**
+    * Storing timestamp of a last message got via p2p network.
+    * Used to check whether connectivity is lost.
+    */
+  private var lastIncomingMessageTime : TimeProvider.Time = 0L
 
   //check own declared address for validity
   validateDeclaredAddress()
@@ -83,13 +88,15 @@ class NetworkController(settings: NetworkSettings,
     case Bound(_) =>
       log.info("Successfully bound to the port " + settings.bindAddress.getPort)
       scheduleConnectionToPeer()
-      dropDeadConnections()
+      scheduleDroppingDeadConnections()
 
     case CommandFailed(_: Bind) =>
       log.error("Network port " + settings.bindAddress.getPort + " already in use!")
       java.lang.System.exit(1) // Terminate node if port is in use
       context stop self
   }
+
+  private def networkTime(): Time = scorexContext.timeProvider.time()
 
   private def businessLogic: Receive = {
     //a message coming in from another peer
@@ -99,15 +106,13 @@ class NetworkController(settings: NetworkSettings,
         case None => log.error(s"No handlers found for message $remote: " + spec.messageCode)
       }
 
+      // Update last seen message timestamps, global and peer's, with the message timestamp
       val remoteAddress = remote.connectionId.remoteAddress
-      connections.get(remote.connectionId.remoteAddress) match {
-        case Some(cp) => cp.peerInfo match {
-          case Some(pi) =>
-            val now = scorexContext.timeProvider.time()
-            lastIncomingMessage = now
-            connections += remoteAddress -> cp.copy(peerInfo = Some(pi.copy(lastSeen = now)))
-          case None => log.warn("Peer info not found for a message got from: " + remoteAddress)
-        }
+      connections.get(remoteAddress) match {
+        case Some(cp) =>
+          val now = networkTime()
+          lastIncomingMessageTime = now
+          cp.lastMessage = now
         case None => log.warn("Connection not found for a message got from: " + remoteAddress)
       }
 
@@ -167,8 +172,9 @@ class NetworkController(settings: NetworkSettings,
         case None => log.info("Failed to connect to : " + c.remoteAddress)
       }
 
-      // If enough live connections, remove not responding peer from database
-      if(connections.size > settings.maxConnections / 2) {
+      // If a message received from p2p within connection timeout,
+      // connectivity is not lost thus we're removing the peer
+      if(networkTime() - lastIncomingMessageTime < settings.connectionTimeout.toMillis) {
         peerManagerRef ! RemovePeer(c.remoteAddress)
       }
 
@@ -190,7 +196,7 @@ class NetworkController(settings: NetworkSettings,
       sender() ! PeersStatus(lastIncomingMessage, scorexContext.timeProvider.time())
 
     case GetConnectedPeers =>
-      sender() ! connections.values.flatMap(_.peerInfo).toSeq
+      sender() ! connections.values.filter(_.peerInfo.nonEmpty)
 
     case ShutdownNetwork =>
       log.info("Going to shutdown all connections & unbind port")
@@ -215,7 +221,7 @@ class NetworkController(settings: NetworkSettings,
   private def scheduleConnectionToPeer(): Unit = {
     context.system.scheduler.schedule(5.seconds, 5.seconds) {
       if (connections.size < settings.maxConnections) {
-        log.info(s"Looking for a new random connection")
+        log.debug(s"Looking for a new random connection")
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
           peerInfoOpt.foreach(peerInfo => self ! ConnectTo(peerInfo))
@@ -224,17 +230,21 @@ class NetworkController(settings: NetworkSettings,
     }
   }
 
-  private def dropDeadConnections(): Unit = {
+  /**
+    * Schedule a periodic dropping of connections which seem to be inactive
+    */
+  private def scheduleDroppingDeadConnections(): Unit = {
     context.system.scheduler.schedule(60.seconds, 60.seconds) {
-      connections.values.filter { cp =>
-        val now = scorexContext.timeProvider.time()
-        val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
-        (now - lastSeen) > 1000 * 60 * 2 // 2 minutes
-      }.foreach { cp =>
-        val now = scorexContext.timeProvider.time()
-        val lastSeen = cp.peerInfo.map(_.lastSeen).getOrElse(now)
-        log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${(now - lastSeen) / 1000} seconds ago")
-        cp.handlerRef ! CloseConnection
+      // Drop connections with peers if they seem to be inactive
+      val now = networkTime()
+      connections.values.foreach { cp =>
+        val lastSeen = cp.lastMessage
+        val timeout = settings.inactiveConnectionDeadline.toMillis
+        val delta = now - lastSeen
+        if (delta > timeout) {
+          log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${delta / 1000.0} seconds ago")
+          cp.handlerRef ! CloseConnection
+        }
       }
     }
   }
@@ -300,7 +310,7 @@ class NetworkController(settings: NetworkSettings,
 
     val handler = context.actorOf(handlerProps) // launch connection handler
     context.watch(handler)
-    val connectedPeer = ConnectedPeer(connectionId, handler, None)
+    val connectedPeer = ConnectedPeer(connectionId, handler, networkTime(), None)
     connections += connectionId.remoteAddress -> connectedPeer
     unconfirmedConnections -= connectionId.remoteAddress
   }
@@ -357,7 +367,7 @@ class NetworkController(settings: NetworkSettings,
     * @param peerAddress - socket address of peer
     * @return Some(ConnectedPeer) when the connection exists for this peer, and None otherwise
     */
-  private def connectionForPeerAddress(peerAddress: InetSocketAddress) = {
+  private def connectionForPeerAddress(peerAddress: InetSocketAddress): Option[ConnectedPeer] = {
     connections.values.find { connectedPeer =>
       connectedPeer.connectionId.remoteAddress == peerAddress ||
         connectedPeer.peerInfo.exists(peerInfo => getPeerAddress(peerInfo).contains(peerAddress))
@@ -481,6 +491,9 @@ object NetworkController {
 
     case object GetConnectedPeers
 
+    /**
+      * Get p2p network status
+      */
     case object GetPeersStatus
   }
 
@@ -524,4 +537,5 @@ object NetworkControllerRef {
       props(settings, peerManagerRef, scorexContext, IO(Tcp)),
       name)
   }
+
 }
