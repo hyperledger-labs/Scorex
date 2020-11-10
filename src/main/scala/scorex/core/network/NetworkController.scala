@@ -13,7 +13,7 @@ import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{Disconnected
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages._
-import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager, PeersStatus, PenaltyType}
+import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager, PeersStatus, PenaltyType, SessionIdPeerFeature}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.TimeProvider.Time
 import scorex.core.utils.{NetworkUtils, TimeProvider}
@@ -62,6 +62,7 @@ class NetworkController(settings: NetworkSettings,
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
+  private val mySessionIdFeature = SessionIdPeerFeature(settings.magicBytes)
   /**
     * Storing timestamp of a last message got via p2p network.
     * Used to check whether connectivity is lost.
@@ -290,13 +291,11 @@ class NetworkController(settings: NetworkSettings,
           s"New outgoing connection to ${connectionId.remoteAddress} established (bound to local ${connectionId.localAddress})"
       }
     }
-
     val isLocal = connectionId.remoteAddress.getAddress.isSiteLocalAddress ||
       connectionId.remoteAddress.getAddress.isLoopbackAddress
-    val peerFeatures =
-      if (isLocal) scorexContext.features :+ LocalAddressPeerFeature(
+    var peerFeatures = scorexContext.features :+ mySessionIdFeature
+    if (isLocal) peerFeatures = peerFeatures :+ LocalAddressPeerFeature(
         new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort))
-      else scorexContext.features
 
     val selfAddressOpt = getNodeAddressForPeer(connectionId.localAddress)
 
@@ -319,10 +318,12 @@ class NetworkController(settings: NetworkSettings,
     connectionForHandler(peerHandlerRef).foreach { connectedPeer =>
       val remoteAddress = connectedPeer.connectionId.remoteAddress
       val peerAddress = peerInfo.peerSpec.address.getOrElse(remoteAddress)
-
       //drop connection to self if occurred or peer already connected
-      val shouldDrop = isSelf(remoteAddress) ||
-        connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandlerRef)
+      val shouldDrop = peerInfo.peerSpec.features.collectFirst {
+        case SessionIdPeerFeature(networkMagic, sessionId) =>
+          !networkMagic.sameElements(mySessionIdFeature.networkMagic) || sessionId == mySessionIdFeature.sessionId
+      }.getOrElse(
+        connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandlerRef))
       if (shouldDrop) {
         connectedPeer.handlerRef ! CloseConnection
         peerManagerRef ! RemovePeer(peerAddress)
