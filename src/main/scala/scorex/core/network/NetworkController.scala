@@ -318,12 +318,16 @@ class NetworkController(settings: NetworkSettings,
     connectionForHandler(peerHandlerRef).foreach { connectedPeer =>
       val remoteAddress = connectedPeer.connectionId.remoteAddress
       val peerAddress = peerInfo.peerSpec.address.getOrElse(remoteAddress)
-      //drop connection to self if occurred or peer already connected
-      val shouldDrop = peerInfo.peerSpec.features.collectFirst {
-        case SessionIdPeerFeature(networkMagic, sessionId) =>
-          !networkMagic.sameElements(mySessionIdFeature.networkMagic) || sessionId == mySessionIdFeature.sessionId
-      }.getOrElse(
-        connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandlerRef))
+      // Drop connection to self if occurred or peer already connected.
+      // Decision whether connection is local or is from some other network is made
+      // based on SessionIdPeerFeature if exists or in old way using isSelf() function
+      val shouldDrop =
+        connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandlerRef) ||
+        peerInfo.peerSpec.features.collectFirst {
+          case SessionIdPeerFeature(networkMagic, sessionId) =>
+            !networkMagic.sameElements(mySessionIdFeature.networkMagic) || sessionId == mySessionIdFeature.sessionId
+        }.getOrElse(isSelf(remoteAddress))
+
       if (shouldDrop) {
         connectedPeer.handlerRef ! CloseConnection
         peerManagerRef ! RemovePeer(peerAddress)

@@ -8,6 +8,11 @@ import scorex.util.serialization._
 import scorex.core.serialization.ScorexSerializer
 import scorex.util.Extensions._
 
+/**
+  * This peer feature allows to more reliably detect connections to self node and connections from other network
+  * @param networkMagic network magic bytes (taken from settings)
+  * @param sessionId randomly generated 64-bit session identifier
+  */
 case class SessionIdPeerFeature(networkMagic:Array[Byte], sessionId:Long = scala.util.Random.nextLong()) extends PeerFeature {
   override type M = SessionIdPeerFeature
   override val featureId: Id = SessionIdPeerFeature.featureId
