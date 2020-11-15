@@ -293,10 +293,9 @@ class NetworkController(settings: NetworkSettings,
     }
     val isLocal = connectionId.remoteAddress.getAddress.isSiteLocalAddress ||
       connectionId.remoteAddress.getAddress.isLoopbackAddress
-    var peerFeatures = scorexContext.features :+ mySessionIdFeature
-    if (isLocal) peerFeatures = peerFeatures :+ LocalAddressPeerFeature(
-        new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort))
-
+    val mandatoryFeatures = scorexContext.features :+ mySessionIdFeature
+    val peerFeatures = if (isLocal) mandatoryFeatures :+ LocalAddressPeerFeature(new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort))
+         else mandatoryFeatures
     val selfAddressOpt = getNodeAddressForPeer(connectionId.localAddress)
 
     if (selfAddressOpt.isEmpty)
