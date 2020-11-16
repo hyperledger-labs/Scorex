@@ -133,7 +133,7 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] wi
   override val messageCode: MessageCode = MessageCode
   override val messageName: String = MessageName
 
-  private val HeaderLength = 9 // msg type Id + modifiersCount
+  private val HeaderLength = 5 // msg type Id + modifiersCount
 
   override def serialize(data: ModifiersData, w: Writer): Unit = {
 
