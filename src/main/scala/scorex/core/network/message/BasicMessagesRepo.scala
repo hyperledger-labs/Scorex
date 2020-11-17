@@ -10,6 +10,8 @@ import scorex.util.Extensions._
 import scorex.util.serialization.{Reader, Writer}
 import scorex.util.{ModifierId, ScorexLogging, bytesToId, idToBytes}
 
+import scala.collection.immutable
+
 case class ModifiersData(typeId: ModifierTypeId, modifiers: Map[ModifierId, Array[Byte]])
 
 case class InvData(typeId: ModifierTypeId, ids: Seq[ModifierId])
@@ -131,13 +133,15 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] wi
   override val messageCode: MessageCode = MessageCode
   override val messageName: String = MessageName
 
+  private val HeaderLength = 5 // msg type Id + modifiersCount
+
   override def serialize(data: ModifiersData, w: Writer): Unit = {
 
     val typeId = data.typeId
     val modifiers = data.modifiers
     require(modifiers.nonEmpty, "empty modifiers list")
 
-    val (msgCount, msgSize) = modifiers.foldLeft((0, 5)) { case ((c, s), (id, modifier)) =>
+    val (msgCount, msgSize) = modifiers.foldLeft((0, HeaderLength)) { case ((c, s), (id, modifier)) =>
       val size = s + NodeViewModifier.ModifierIdSize + 4 + modifier.length
       val count = if (size <= maxMessageSize) c + 1 else c
       count -> size
@@ -154,21 +158,27 @@ class ModifiersSpec(maxMessageSize: Int) extends MessageSpecV1[ModifiersData] wi
     }
 
     if (msgSize > maxMessageSize) {
-      log.warn(s"Message with modifiers ${modifiers.keySet} have size $msgSize exceeding limit $maxMessageSize." +
+      log.warn(s"Message with modifiers ${modifiers.keySet} has size $msgSize exceeding limit $maxMessageSize." +
         s" Sending ${w.length() - start} bytes instead")
     }
   }
 
   override def parse(r: Reader): ModifiersData = {
-    val typeId = ModifierTypeId @@ r.getByte()
-    val count = r.getUInt().toIntExact
-    val seq = (0 until count).map { _ =>
+    val typeId = ModifierTypeId @@ r.getByte() // 1 byte
+    val count = r.getUInt().toIntExact // 8 bytes
+    val resMap = immutable.Map.newBuilder[ModifierId, Array[Byte]]
+    (0 until count).foldLeft(HeaderLength) { case (msgSize, _) =>
       val id = bytesToId(r.getBytes(NodeViewModifier.ModifierIdSize))
       val objBytesCnt = r.getUInt().toIntExact
+      val newMsgSize = msgSize + NodeViewModifier.ModifierIdSize + objBytesCnt
+      if (newMsgSize > maxMessageSize) {
+        throw new Exception("Too big message with modifiers, size: " + maxMessageSize)
+      }
       val obj = r.getBytes(objBytesCnt)
-      id -> obj
+      resMap += (id -> obj)
+      newMsgSize
     }
-    ModifiersData(typeId, seq.toMap)
+    ModifiersData(typeId, resMap.result())
   }
 }
 
