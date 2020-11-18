@@ -38,7 +38,9 @@ class SyncTracker(nvsRef: ActorRef,
     schedule foreach {
       _.cancel()
     }
-    schedule = Some(context.system.scheduler.scheduleWithFixedDelay(2.seconds, minInterval(),nvsRef, SendLocalSyncInfo))
+
+    val syncTask = context.system.scheduler.scheduleWithFixedDelay(2.seconds, minInterval(),nvsRef, SendLocalSyncInfo)
+    schedule = Some(syncTask)
   }
 
   def maxInterval(): FiniteDuration =
