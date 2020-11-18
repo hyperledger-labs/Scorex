@@ -1,13 +1,13 @@
 package scorex.crypto
 
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
-import scorex.core.transaction.state.{PrivateKey25519Companion, PrivateKey25519Serializer}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import scorex.core.transaction.state.{PrivateKey25519Serializer, PrivateKey25519Companion}
 
 
-class SigningFunctionsSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class SigningFunctionsSpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers {
 
   property("PrivateKey25519Companion generates valid keypair") {

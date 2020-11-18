@@ -2,8 +2,8 @@ package scorex.testkit.properties
 
 import akka.actor._
 import akka.testkit.TestProbe
-import org.scalatest.prop.PropertyChecks
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
 import scorex.ObjectGenerators
 import scorex.core.NodeViewHolder.CurrentView
 import scorex.core.NodeViewHolder.ReceivableMessages.{GetDataFromCurrentView, LocallyGeneratedModifier, ModifiersFromRemote}
@@ -28,9 +28,8 @@ ST <: MinimalState[PM, ST],
 SI <: SyncInfo,
 HT <: History[PM, SI, HT],
 MPool <: MemoryPool[TX, MPool]]
-  extends PropSpec
+  extends AnyPropSpec
     with Matchers
-    with PropertyChecks
     with ScorexLogging
     with SyntacticallyTargetedModifierProducer[PM, SI, HT]
     with TotallyValidModifierProducer[PM, ST, SI, HT]

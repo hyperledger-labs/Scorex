@@ -98,20 +98,21 @@ val loggingDependencies = Seq(
   "ch.qos.logback" % "logback-classic" % "1.3.0-alpha4"
 )
 
-val scorexUtil = "org.scorexfoundation" %% "scorex-util" % "0.1.6"
+val scorexUtil = "org.scorexfoundation" %% "scorex-util" % "0.1.8"
 
 val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % "test",
   "org.scalactic" %% "scalactic" % "3.0.3" % "test",
-  "org.scalatest" %% "scalatest" % "3.0.3" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.13.+",
+  "org.scalatest" %% "scalatest" % "3.1.1" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.14.+",
+  "org.scalatestplus" %% "scalatestplus-scalacheck" % "3.1.0.0-RC2" % Test,
   scorexUtil, (scorexUtil % Test).classifier("tests")
 )
 
 libraryDependencies ++= Seq(
   "com.iheart" %% "ficus" % "1.4.2",
-  "org.scorexfoundation" %% "scrypto" % "2.1.7",
+  "org.scorexfoundation" %% "scrypto" % "2.1.10",
   scorexUtil
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 

@@ -1,23 +1,22 @@
 package scorex.testkit.properties
 
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.consensus.ModifierSemanticValidity.Valid
 import scorex.core.transaction.Transaction
-import scorex.core.transaction.box.proposition.Proposition
 import scorex.testkit.TestkitHelpers
 import scorex.testkit.generators.SyntacticallyTargetedModifierProducer
 import scorex.util.ScorexLogging
 
 
 trait HistoryTests[TX <: Transaction, PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM, SI, HT]]
-  extends PropSpec
-    with GeneratorDrivenPropertyChecks
+  extends AnyPropSpec
+    with ScalaCheckPropertyChecks
     with Matchers
-    with PropertyChecks
     with ScorexLogging
     with TestkitHelpers
     with SyntacticallyTargetedModifierProducer[PM, SI, HT] {

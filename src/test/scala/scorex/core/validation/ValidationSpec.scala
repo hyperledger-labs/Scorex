@@ -1,6 +1,7 @@
 package scorex.core.validation
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import scorex.core.bytesToId
 import scorex.core.consensus.ModifierSemanticValidity
 import scorex.core.utils.ScorexEncoding
@@ -8,7 +9,7 @@ import scorex.core.validation.ValidationResult._
 
 import scala.util.{Failure, Try}
 
-class ValidationSpec extends FlatSpec with Matchers with ScorexEncoding {
+class ValidationSpec extends AnyFlatSpec with Matchers with ScorexEncoding {
 
   val errMsg1 = "Error message 1: "
   val errMsg3 = "Error message 3: "

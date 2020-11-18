@@ -2,14 +2,14 @@ package hybrid.validation
 
 import examples.hybrid.validation.SemanticBlockValidator
 import hybrid.HybridGenerators
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.crypto.hash.Blake2b256
 
 
-class SemanticBlockValidatorSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class SemanticBlockValidatorSpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with HybridGenerators {
 

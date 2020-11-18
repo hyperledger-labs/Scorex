@@ -3,8 +3,8 @@ package scorex.testkit.properties
 import akka.actor._
 import akka.testkit.TestProbe
 import org.scalacheck.Gen
-import org.scalatest.prop.PropertyChecks
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
 import scorex.core.NodeViewHolder.ReceivableMessages.{GetNodeViewChanges, ModifiersFromRemote}
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.consensus.History.{Equal, Nonsense, Older, Younger}
@@ -35,9 +35,8 @@ trait NodeViewSynchronizerTests[TX <: Transaction,
                                 SI <: SyncInfo,
                                 HT <: History[PM, SI, HT],
                                 MP <: MemoryPool[TX, MP]
-] extends PropSpec
+] extends AnyPropSpec
   with Matchers
-  with PropertyChecks
   with ScorexLogging
   with SyntacticallyTargetedModifierProducer[PM, SI, HT]
   with TotallyValidModifierProducer[PM, ST, SI, HT] {

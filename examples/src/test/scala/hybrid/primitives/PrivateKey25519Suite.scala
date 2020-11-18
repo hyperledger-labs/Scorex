@@ -2,14 +2,14 @@ package hybrid.primitives
 
 import examples.commons.PublicKey25519NoncedBox
 import hybrid.HybridGenerators
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.transaction.state.PrivateKey25519Companion
 
 @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-class PrivateKey25519Suite extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class PrivateKey25519Suite extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with HybridGenerators {
 
