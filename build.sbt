@@ -72,9 +72,9 @@ version in ThisBuild := {
 
 git.gitUncommittedChanges in ThisBuild := true
 
-val circeVersion = "0.9.0"
-val akkaVersion = "2.5.24"
-val akkaHttpVersion = "10.1.9"
+val circeVersion = "0.13.0"
+val akkaVersion = "2.6.10"
+val akkaHttpVersion = "10.2.1"
 
 val networkDependencies = Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
