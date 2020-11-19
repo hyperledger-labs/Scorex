@@ -3,16 +3,16 @@ package scorex.core.network
 import java.net.InetSocketAddress
 
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.ObjectGenerators
 import scorex.core.app.Version
 import scorex.core.network.message.HandshakeSpec
 
 
-class HandshakeSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class HandshakeSpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with ObjectGenerators {
 

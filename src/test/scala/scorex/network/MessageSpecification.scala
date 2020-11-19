@@ -1,8 +1,9 @@
 package scorex.network
 
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.ObjectGenerators
 import scorex.core.network.message._
 import scorex.core.ModifierTypeId
@@ -11,9 +12,8 @@ import scorex.util.ModifierId
 
 import scala.util.Try
 
-class MessageSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class MessageSpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with ObjectGenerators {
 

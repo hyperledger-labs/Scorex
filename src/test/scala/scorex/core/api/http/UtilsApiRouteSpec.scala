@@ -2,18 +2,19 @@ package scorex.core.api.http
 
 import java.net.InetSocketAddress
 
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
+import akka.http.scaladsl.model.{ContentTypes, StatusCodes, HttpEntity}
 import akka.http.scaladsl.server
-import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
+import akka.http.scaladsl.testkit.{ScalatestRouteTest, RouteTestTimeout}
 import akka.testkit.TestDuration
 import io.circe.syntax._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import scorex.core.settings.RESTApiSettings
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class UtilsApiRouteSpec extends FlatSpec
+class UtilsApiRouteSpec extends AnyFlatSpec
   with Matchers
   with ScalatestRouteTest
   with Stubs  {

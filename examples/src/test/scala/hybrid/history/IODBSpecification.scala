@@ -5,15 +5,16 @@ import examples.hybrid.blocks.{HybridBlock, PosBlock, PowBlock}
 import hybrid.HybridGenerators
 import io.iohk.iodb.{ByteArrayWrapper, LSMStore}
 import org.scalacheck.Gen
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import org.scalatest.{Matchers, Outcome, fixture}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.{fixture, Outcome}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.utils.ScorexEncoding
 import scorex.testkit.utils.FileUtils
 import scorex.util.ModifierId
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
 class IODBSpecification extends fixture.PropSpec
-  with GeneratorDrivenPropertyChecks
+  with ScalaCheckPropertyChecks
   with Matchers
   with HybridGenerators
   with FileUtils

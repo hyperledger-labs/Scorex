@@ -1,13 +1,13 @@
 package spv.serialization
 
 import examples.spv.{Header, HeaderSerializer}
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import spv.SPVGenerators
 
-class SerializationTests extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class SerializationTests extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with SPVGenerators {
 

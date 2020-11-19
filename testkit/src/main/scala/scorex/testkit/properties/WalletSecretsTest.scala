@@ -1,17 +1,17 @@
 package scorex.testkit.properties
 
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.Transaction
 import scorex.core.transaction.box.proposition.Proposition
 import scorex.core.transaction.wallet.BoxWallet
 
 trait WalletSecretsTest[P <: Proposition, TX <: Transaction, PM <: PersistentNodeViewModifier]
-  extends PropSpec
-    with GeneratorDrivenPropertyChecks
-    with Matchers
-    with PropertyChecks {
+  extends AnyPropSpec
+    with ScalaCheckPropertyChecks
+    with Matchers {
 
   val wallet: BoxWallet[P, TX, PM, _]
 

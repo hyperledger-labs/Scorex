@@ -1,8 +1,9 @@
 package scorex.util
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ScorexLoggingSpec extends FlatSpec with Matchers with ScorexLogging {
+class ScorexLoggingSpec extends AnyFlatSpec with Matchers with ScorexLogging {
 
   "Logger" should "evaluate messages only if the respective log level is enabled" in {
     var i = 0

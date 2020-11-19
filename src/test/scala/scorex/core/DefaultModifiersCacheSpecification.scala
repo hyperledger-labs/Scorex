@@ -1,17 +1,17 @@
 package scorex.core
 
-import org.scalatest.{Matchers, PropSpec}
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import scorex.core.consensus.{History, HistoryReader, ModifierSemanticValidity, SyncInfo}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import scorex.core.consensus.{SyncInfo, History, HistoryReader, ModifierSemanticValidity}
 import scorex.core.consensus.History.ModifierIds
 import scorex.core.serialization.ScorexSerializer
 import scorex.crypto.hash.Blake2b256
 
 import scala.util.Try
 
-class DefaultModifiersCacheSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class DefaultModifiersCacheSpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers {
 
   private class FakeModifier extends PersistentNodeViewModifier {

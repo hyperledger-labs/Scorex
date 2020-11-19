@@ -1,12 +1,12 @@
 package scorex.core.transaction.box.proposition
 
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.transaction.state.PrivateKey25519Companion
 
-class PublicKey25519PropositionSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class PublicKey25519PropositionSpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers {
 
   property("PublicKey25519Proposition generates valid addresses") {

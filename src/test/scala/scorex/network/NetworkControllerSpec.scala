@@ -8,15 +8,14 @@ import akka.io.Tcp.{Message => _, _}
 import akka.testkit.TestProbe
 import akka.util.ByteString
 import org.scalatest.EitherValues._
-import org.scalatest.Matchers
 import org.scalatest.OptionValues._
 import org.scalatest.TryValues._
-import scorex.core.api.http.PeersApiRoute.PeersStatusResponse
-import scorex.core.app.{ScorexContext, Version}
+import org.scalatest.matchers.should.Matchers
+import scorex.core.app.{Version, ScorexContext}
 import scorex.core.network.NetworkController.ReceivableMessages.{GetConnectedPeers, GetPeersStatus}
 import scorex.core.network._
 import scorex.core.network.message.{PeersSpec, _}
-import scorex.core.network.peer.{LocalAddressPeerFeature, LocalAddressPeerFeatureSerializer, PeerInfo, PeerManagerRef, PeersStatus}
+import scorex.core.network.peer.{LocalAddressPeerFeature, PeerManagerRef, LocalAddressPeerFeatureSerializer, PeersStatus}
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.LocalTimeProvider
 
