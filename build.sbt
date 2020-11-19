@@ -3,7 +3,7 @@ import scala.util.Try
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.12.12",
   resolvers += Resolver.sonatypeRepo("public"),
   resolvers += "Maven Central Server" at "https://repo1.maven.org/maven2",
   resolvers += "Typesafe Server" at "https://repo.typesafe.com/typesafe/releases",
@@ -72,9 +72,9 @@ version in ThisBuild := {
 
 git.gitUncommittedChanges in ThisBuild := true
 
-val circeVersion = "0.9.0"
-val akkaVersion = "2.5.24"
-val akkaHttpVersion = "10.1.9"
+val circeVersion = "0.13.0"
+val akkaVersion = "2.6.10"
+val akkaHttpVersion = "10.2.1"
 
 val networkDependencies = Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
