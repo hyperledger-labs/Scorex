@@ -6,7 +6,7 @@ libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % "1.14.+" % "test",
   "org.scalatestplus" %% "scalatestplus-scalacheck" % "3.1.0.0-RC2" % Test,
   "org.scorexfoundation" %% "iodb" % "0.3.2",
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.17" % "test"
+  "com.typesafe.akka" %% "akka-testkit" % "2.6.10" % "test"
 )
 
 mainClass in assembly := Some("examples.hybrid.HybridApp")

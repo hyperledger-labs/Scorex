@@ -40,7 +40,7 @@ class PeerSynchronizer(val networkControllerRef: ActorRef,
 
     val msg = Message[Unit](GetPeersSpec, Right(Unit), None)
     val stn = SendToNetwork(msg, SendToRandom)
-    context.system.scheduler.schedule(2.seconds, settings.getPeersInterval)(networkControllerRef ! stn)
+    context.system.scheduler.scheduleWithFixedDelay(2.seconds, settings.getPeersInterval, networkControllerRef, stn)
   }
 
   override def receive: Receive = {

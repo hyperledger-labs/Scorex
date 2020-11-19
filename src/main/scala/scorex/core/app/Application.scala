@@ -5,7 +5,6 @@ import java.net.InetSocketAddress
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
-import akka.stream.ActorMaterializer
 import scorex.core.api.http.{ApiErrorHandler, ApiRejectionHandler, ApiRoute, CompositeHttpService}
 import scorex.core.network._
 import scorex.core.network.message._
@@ -101,10 +100,9 @@ trait Application extends ScorexLogging {
     log.debug(s"Max memory available: ${Runtime.getRuntime.maxMemory}")
     log.debug(s"RPC is allowed at ${settings.restApi.bindAddress.toString}")
 
-    implicit val materializer: ActorMaterializer = ActorMaterializer()
     val bindAddress = settings.restApi.bindAddress
 
-    Http().bindAndHandle(combinedRoute, bindAddress.getAddress.getHostAddress, bindAddress.getPort)
+    Http().newServerAt(bindAddress.getAddress.getHostAddress, bindAddress.getPort).bindFlow(combinedRoute)
 
     //on unexpected shutdown
     Runtime.getRuntime.addShutdownHook(new Thread() {
