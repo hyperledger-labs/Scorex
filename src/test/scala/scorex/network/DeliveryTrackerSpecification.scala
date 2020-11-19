@@ -2,15 +2,16 @@ package scorex.core.network
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.ObjectGenerators
 import scorex.core.consensus.ContainsModifiers
 import scorex.core.network.ModifiersStatus._
 import scorex.core.serialization.ScorexSerializer
-import scorex.core.{ModifierTypeId, PersistentNodeViewModifier}
+import scorex.core.{PersistentNodeViewModifier, ModifierTypeId}
 import scorex.crypto.hash.Blake2b256
-import scorex.util.{ModifierId, bytesToId}
+import scorex.util.{bytesToId, ModifierId}
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,9 +21,8 @@ import scala.concurrent.duration._
   "org.wartremover.warts.Null",
   "org.wartremover.warts.TraversableOps",
   "org.wartremover.warts.OptionPartial"))
-class DeliveryTrackerSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class DeliveryTrackerSpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with ObjectGenerators {
 

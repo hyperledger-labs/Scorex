@@ -3,17 +3,17 @@ package hybrid.history
 import examples.hybrid.history.{HybridHistory, HybridSyncInfo}
 import hybrid.HybridGenerators
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
-import scorex.core.consensus.History.{Equal, HistoryComparisonResult, Older, Younger}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import scorex.core.consensus.History.{Older, HistoryComparisonResult, Equal, Younger}
 import scorex.core.utils.ScorexEncoding
 import scorex.core.ModifierTypeId
 import scorex.util.ModifierId
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps", "org.wartremover.warts.OptionPartial"))
-class HybridHistorySpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class HybridHistorySpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with HybridGenerators
   with ScorexEncoding {

@@ -4,11 +4,12 @@ import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.circe.Json
 import io.circe.syntax._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.Future
 
-class ApiResponseTest extends FlatSpec with Matchers with ScalatestRouteTest {
+class ApiResponseTest extends AnyFlatSpec with Matchers with ScalatestRouteTest {
 
   private val request = HttpRequest()
 

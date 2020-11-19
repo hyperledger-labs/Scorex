@@ -3,8 +3,9 @@ package spv
 import examples.spv.simulation.SimulatorFuctions
 import examples.spv.{Header, KLS16ProofSerializer, KMZProofSerializer, SpvAlgos}
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.state.{PrivateKey25519, PrivateKey25519Companion}
 import scorex.crypto.hash
@@ -12,9 +13,8 @@ import scorex.crypto.hash.Blake2b256
 import scorex.util.ModifierId
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-class ChainTests extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class ChainTests extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with SPVGenerators
   with SimulatorFuctions {

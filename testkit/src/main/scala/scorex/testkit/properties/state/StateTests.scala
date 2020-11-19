@@ -1,18 +1,18 @@
 package scorex.testkit.properties.state
 
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.PersistentNodeViewModifier
 import scorex.core.transaction.state.MinimalState
 import scorex.testkit.TestkitHelpers
-import scorex.testkit.generators.{CoreGenerators, SemanticallyInvalidModifierProducer, SemanticallyValidModifierProducer}
+import scorex.testkit.generators.{SemanticallyValidModifierProducer, SemanticallyInvalidModifierProducer, CoreGenerators}
 
 trait StateTests[PM <: PersistentNodeViewModifier, ST <: MinimalState[PM, ST]]
-  extends PropSpec
-    with GeneratorDrivenPropertyChecks
+  extends AnyPropSpec
+    with ScalaCheckPropertyChecks
     with Matchers
-    with PropertyChecks
     with CoreGenerators
     with TestkitHelpers
     with SemanticallyValidModifierProducer[PM, ST]
