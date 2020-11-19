@@ -39,17 +39,17 @@ class NetworkController(settings: NetworkSettings,
   import akka.actor.SupervisorStrategy._
 
   override val supervisorStrategy: OneForOneStrategy = OneForOneStrategy(
-      maxNrOfRetries = NetworkController.ChildActorHandlingRetriesNr,
-      withinTimeRange = 1.minute) {
-        case _: ActorKilledException => Stop
-        case _: DeathPactException => Stop
-        case e: ActorInitializationException =>
-          log.warn(s"Stopping child actor failed with: $e")
-          Stop
-        case e: Exception =>
-          log.warn(s"Restarting child actor failed with: $e")
-          Restart
-      }
+    maxNrOfRetries = NetworkController.ChildActorHandlingRetriesNr,
+    withinTimeRange = 1.minute) {
+    case _: ActorKilledException => Stop
+    case _: DeathPactException => Stop
+    case e: ActorInitializationException =>
+      log.warn(s"Stopping child actor failed with: $e")
+      Stop
+    case e: Exception =>
+      log.warn(s"Restarting child actor failed with: $e")
+      Restart
+  }
 
   private implicit val system: ActorSystem = context.system
 
@@ -67,7 +67,7 @@ class NetworkController(settings: NetworkSettings,
     * Storing timestamp of a last message got via p2p network.
     * Used to check whether connectivity is lost.
     */
-  private var lastIncomingMessageTime : TimeProvider.Time = 0L
+  private var lastIncomingMessageTime: TimeProvider.Time = 0L
 
   //check own declared address for validity
   validateDeclaredAddress()
@@ -175,7 +175,7 @@ class NetworkController(settings: NetworkSettings,
 
       // If a message received from p2p within connection timeout,
       // connectivity is not lost thus we're removing the peer
-      if(networkTime() - lastIncomingMessageTime < settings.connectionTimeout.toMillis) {
+      if (networkTime() - lastIncomingMessageTime < settings.connectionTimeout.toMillis) {
         peerManagerRef ! RemovePeer(c.remoteAddress)
       }
 
@@ -220,8 +220,8 @@ class NetworkController(settings: NetworkSettings,
     * Schedule a periodic connection to a random known peer
     */
   private def scheduleConnectionToPeer(): Unit = {
-    context.system.scheduler.schedule(5.seconds, 5.seconds) {
-      if (connections.size < settings.maxConnections) {
+    context.system.scheduler.scheduleWithFixedDelay(5.seconds, 5.seconds) {
+      () => if (connections.size < settings.maxConnections) {
         log.debug(s"Looking for a new random connection")
         val randomPeerF = peerManagerRef ? RandomPeerExcluding(connections.values.flatMap(_.peerInfo).toSeq)
         randomPeerF.mapTo[Option[PeerInfo]].foreach { peerInfoOpt =>
@@ -235,16 +235,18 @@ class NetworkController(settings: NetworkSettings,
     * Schedule a periodic dropping of connections which seem to be inactive
     */
   private def scheduleDroppingDeadConnections(): Unit = {
-    context.system.scheduler.schedule(60.seconds, 60.seconds) {
-      // Drop connections with peers if they seem to be inactive
-      val now = networkTime()
-      connections.values.foreach { cp =>
-        val lastSeen = cp.lastMessage
-        val timeout = settings.inactiveConnectionDeadline.toMillis
-        val delta = now - lastSeen
-        if (delta > timeout) {
-          log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${delta / 1000.0} seconds ago")
-          cp.handlerRef ! CloseConnection
+    context.system.scheduler.scheduleWithFixedDelay(60.seconds, 60.seconds) {
+      () => {
+        // Drop connections with peers if they seem to be inactive
+        val now = networkTime()
+        connections.values.foreach { cp =>
+          val lastSeen = cp.lastMessage
+          val timeout = settings.inactiveConnectionDeadline.toMillis
+          val delta = now - lastSeen
+          if (delta > timeout) {
+            log.info(s"Dropping connection with ${cp.peerInfo}, last seen ${delta / 1000.0} seconds ago")
+            cp.handlerRef ! CloseConnection
+          }
         }
       }
     }
@@ -279,7 +281,7 @@ class NetworkController(settings: NetworkSettings,
     * Creates a PeerConnectionHandler for the established connection
     *
     * @param connectionId - connection detailed info
-    * @param connection - connection ActorRef
+    * @param connection   - connection ActorRef
     */
   private def createPeerConnectionHandler(connectionId: ConnectionId,
                                           connection: ActorRef): Unit = {
@@ -499,6 +501,7 @@ object NetworkController {
       * Get p2p network status
       */
     case object GetPeersStatus
+
   }
 
 }
