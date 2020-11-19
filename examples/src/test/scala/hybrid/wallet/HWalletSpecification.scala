@@ -4,8 +4,9 @@ import examples.commons.Value
 import examples.hybrid.blocks.PosBlock
 import examples.hybrid.wallet.HBoxWallet
 import hybrid.HybridGenerators
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.bytesToId
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.proof.Signature25519
@@ -16,9 +17,8 @@ import scala.annotation.tailrec
 import scala.util.Random
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-class HWalletSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class HWalletSpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with HybridGenerators {
 

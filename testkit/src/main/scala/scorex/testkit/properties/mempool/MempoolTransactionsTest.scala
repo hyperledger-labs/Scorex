@@ -1,16 +1,16 @@
 package scorex.testkit.properties.mempool
 
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.transaction.{MemoryPool, Transaction}
 
 @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
 trait MempoolTransactionsTest[TX <: Transaction, MPool <: MemoryPool[TX, MPool]]
-  extends PropSpec
-    with GeneratorDrivenPropertyChecks
+  extends AnyPropSpec
+    with ScalaCheckPropertyChecks
     with Matchers
-    with PropertyChecks
     with MemoryPoolTest[TX, MPool] {
 
   val transactionSeqGenerator: Gen[Seq[TX]] = Gen.nonEmptyContainerOf[Seq, TX](transactionGenerator)

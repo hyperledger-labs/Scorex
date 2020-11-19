@@ -3,7 +3,7 @@ import scala.util.Try
 name := "scorex-core"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.12.12",
   resolvers += Resolver.sonatypeRepo("public"),
   resolvers += "Maven Central Server" at "https://repo1.maven.org/maven2",
   resolvers += "Typesafe Server" at "https://repo.typesafe.com/typesafe/releases",
@@ -72,9 +72,9 @@ version in ThisBuild := {
 
 git.gitUncommittedChanges in ThisBuild := true
 
-val circeVersion = "0.9.0"
-val akkaVersion = "2.5.24"
-val akkaHttpVersion = "10.1.9"
+val circeVersion = "0.13.0"
+val akkaVersion = "2.6.10"
+val akkaHttpVersion = "10.2.1"
 
 val networkDependencies = Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
@@ -98,20 +98,21 @@ val loggingDependencies = Seq(
   "ch.qos.logback" % "logback-classic" % "1.3.0-alpha4"
 )
 
-val scorexUtil = "org.scorexfoundation" %% "scorex-util" % "0.1.6"
+val scorexUtil = "org.scorexfoundation" %% "scorex-util" % "0.1.8"
 
 val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % "test",
   "org.scalactic" %% "scalactic" % "3.0.3" % "test",
-  "org.scalatest" %% "scalatest" % "3.0.3" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.13.+",
+  "org.scalatest" %% "scalatest" % "3.1.1" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.14.+",
+  "org.scalatestplus" %% "scalatestplus-scalacheck" % "3.1.0.0-RC2" % Test,
   scorexUtil, (scorexUtil % Test).classifier("tests")
 )
 
 libraryDependencies ++= Seq(
   "com.iheart" %% "ficus" % "1.4.2",
-  "org.scorexfoundation" %% "scrypto" % "2.1.7",
+  "org.scorexfoundation" %% "scrypto" % "2.1.10",
   scorexUtil
 ) ++ networkDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies
 

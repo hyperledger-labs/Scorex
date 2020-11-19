@@ -34,6 +34,7 @@ class VLQByteStringReader(byteString: ByteString) extends VLQReader {
 
   @inline
   override def getBytes(size: Int): Array[Byte] = {
+    require(size <= remaining, s"Not enough bytes in the buffer: $size")
     incPosition(size)
     it.getBytes(size)
   }

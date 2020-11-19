@@ -65,7 +65,7 @@ class MessageSerializer(specs: Seq[MessageSpec[_]], magicBytes: Array[Byte]) {
 
           //peer reported incorrect checksum
           if (!java.util.Arrays.equals(checksum, digest)) {
-            throw MaliciousBehaviorException(s"Wrong checksum, expected ${checksum.mkString}, got ${checksum.mkString}")
+            throw MaliciousBehaviorException(s"Wrong checksum, expected ${digest.mkString}, got ${checksum.mkString}")
           }
           data
         } else {

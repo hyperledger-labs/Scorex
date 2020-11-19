@@ -2,13 +2,14 @@ package scorex.core.serialization
 
 import io.circe.Encoder
 import io.circe.syntax._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import scorex.core.serialization.SerializerRegistry.SerializerRecord
 
 import scala.reflect.ClassTag
 import scala.util.{Random, Try}
 
-class SerializerRegistrySpec extends FlatSpec with Matchers {
+class SerializerRegistrySpec extends AnyFlatSpec with Matchers {
 
   sealed trait Creature
   sealed case class Human(name: String, country: String) extends Creature
