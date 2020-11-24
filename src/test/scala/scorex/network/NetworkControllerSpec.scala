@@ -400,7 +400,8 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     * @return
     */
   def sendHandshake(declaredAddress: Option[InetSocketAddress], localAddress: Option[InetSocketAddress]): Tcp.ResumeReading.type = {
-    val features = localAddress.map(LocalAddressPeerFeature(_)).toSeq :+ SessionIdPeerFeature(settings.network.magicBytes)
+    val localFeature:Seq[PeerFeature] = localAddress.map(LocalAddressPeerFeature(_)).toSeq
+    val features = localFeature :+ SessionIdPeerFeature(settings.network.magicBytes)
     val handshakeToNode = Handshake(PeerSpec(settings.network.agentName,
       Version(settings.network.appVersion), "test",
       declaredAddress, features), timeProvider.time())
