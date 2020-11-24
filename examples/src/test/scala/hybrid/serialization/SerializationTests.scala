@@ -4,15 +4,15 @@ import examples.commons.{PublicKey25519NoncedBox, PublicKey25519NoncedBoxSeriali
 import examples.hybrid.blocks.{PosBlock, PosBlockSerializer, PowBlock, PowBlockSerializer}
 import examples.hybrid.history.{HybridSyncInfo, HybridSyncInfoSerializer}
 import hybrid.HybridGenerators
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.transaction.box.proposition.PublicKey25519Proposition
 import scorex.core.transaction.wallet.{WalletBox, WalletBoxSerializer}
 
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-class SerializationTests extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class SerializationTests extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with HybridGenerators {
 

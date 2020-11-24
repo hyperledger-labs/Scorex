@@ -1,8 +1,9 @@
 package scorex.testkit.properties.mempool
 
 import org.scalacheck.Gen
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.{PersistentNodeViewModifier, TransactionsCarryingPersistentNodeViewModifier}
 import scorex.core.consensus.{History, SyncInfo}
 import scorex.core.transaction.{MemoryPool, Transaction}
@@ -16,10 +17,9 @@ MPool <: MemoryPool[TX, MPool],
 PM <: PersistentNodeViewModifier,
 CTM <: PM with TransactionsCarryingPersistentNodeViewModifier[TX],
 HT <: History[PM, SI, HT],
-SI <: SyncInfo] extends PropSpec
-  with GeneratorDrivenPropertyChecks
+SI <: SyncInfo] extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
-  with PropertyChecks
   with ScorexLogging
   with TestkitHelpers
   with MemoryPoolTest[TX, MPool]

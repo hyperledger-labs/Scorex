@@ -1,17 +1,17 @@
 package scorex.testkit.properties.mempool
 
 import java.security.MessageDigest
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
-import scorex.core.transaction.box.proposition.Proposition
+
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.transaction.{MemoryPool, Transaction}
 import scorex.core.utils._
 
 trait MempoolFilterPerformanceTest[TX <: Transaction, MPool <: MemoryPool[TX, MPool]]
-  extends PropSpec
-    with GeneratorDrivenPropertyChecks
+  extends AnyPropSpec
+    with ScalaCheckPropertyChecks
     with Matchers
-    with PropertyChecks
     with MemoryPoolTest[TX, MPool] {
 
   var initializedMempool: Option[MPool] = None

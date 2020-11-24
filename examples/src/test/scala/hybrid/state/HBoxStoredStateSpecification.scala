@@ -3,15 +3,15 @@ package hybrid.state
 import examples.hybrid.blocks.HybridBlock
 import examples.hybrid.state.HBoxStoredState
 import hybrid.HybridGenerators
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.transaction.state.{Insertion, Removal}
 import scorex.testkit.properties.state.StateTests
 
 @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-class HBoxStoredStateSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
+class HBoxStoredStateSpecification extends AnyPropSpec
+  with ScalaCheckPropertyChecks
   with Matchers
   with HybridGenerators
   with StateTests[HybridBlock, HBoxStoredState] {

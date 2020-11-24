@@ -1,11 +1,12 @@
 package scorex.testkit
 
 import org.scalacheck.Gen
-import org.scalatest.{Assertion, Matchers}
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatest.Assertion
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import scorex.core.serialization.ScorexSerializer
 
-trait SerializationTests extends GeneratorDrivenPropertyChecks with Matchers {
+trait SerializationTests extends ScalaCheckPropertyChecks with Matchers {
   def checkSerializationRoundtrip[A](generator: Gen[A], serializer: ScorexSerializer[A]): Assertion = {
     forAll(generator) { b: A =>
       val recovered = serializer.parseBytes(serializer.toBytes(b))

@@ -37,6 +37,13 @@ class VLQByteStringWriter extends VLQWriter {
     this
   }
 
+  override def putBytes(xs: Array[Byte],
+                        offset: Int,
+                        length: Int): VLQByteStringWriter.this.type = {
+    builder.putBytes(xs, offset, length)
+    this
+  }
+
   @inline
   override def putBytes(xs: Array[Byte]): this.type = {
     builder.putBytes(xs)
