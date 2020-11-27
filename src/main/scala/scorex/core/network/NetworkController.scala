@@ -7,7 +7,6 @@ import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.core.api.http.PeersApiRoute.PeersStatusResponse
 import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
@@ -296,8 +295,13 @@ class NetworkController(settings: NetworkSettings,
     val isLocal = connectionId.remoteAddress.getAddress.isSiteLocalAddress ||
       connectionId.remoteAddress.getAddress.isLoopbackAddress
     val mandatoryFeatures = scorexContext.features :+ mySessionIdFeature
-    val peerFeatures = if (isLocal) mandatoryFeatures :+ LocalAddressPeerFeature(new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort))
-         else mandatoryFeatures
+    val peerFeatures = if (isLocal) {
+      val la = new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort)
+      val localAddrFeature = LocalAddressPeerFeature(la)
+      mandatoryFeatures :+ localAddrFeature
+    } else {
+      mandatoryFeatures
+    }
     val selfAddressOpt = getNodeAddressForPeer(connectionId.localAddress)
 
     if (selfAddressOpt.isEmpty)
