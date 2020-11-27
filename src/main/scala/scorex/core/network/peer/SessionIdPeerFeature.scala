@@ -1,12 +1,10 @@
 package scorex.core.network.peer
 
-import java.net.{InetAddress, InetSocketAddress}
-
 import scorex.core.network.PeerFeature
 import scorex.core.network.PeerFeature.Id
+import scorex.core.network.message.Message
 import scorex.util.serialization._
 import scorex.core.serialization.ScorexSerializer
-import scorex.util.Extensions._
 
 /**
   * This peer feature allows to more reliably detect connections to self node and connections from other network
@@ -26,13 +24,12 @@ object SessionIdPeerFeature {
 
 object SessionIdPeerFeatureSerializer extends ScorexSerializer[SessionIdPeerFeature] {
   override def serialize(obj: SessionIdPeerFeature, w: Writer): Unit = {
-    w.putInt(obj.networkMagic.size)
     w.putBytes(obj.networkMagic)
     w.putLong(obj.sessionId)
   }
 
   override def parse(r: Reader): SessionIdPeerFeature = {
-    val networkMagic = r.getBytes(r.getInt())
+    val networkMagic = r.getBytes(Message.MagicLength)
     val sessionId = r.getLong()
     SessionIdPeerFeature(networkMagic, sessionId)
   }
