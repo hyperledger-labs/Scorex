@@ -71,9 +71,3 @@ Contributions are welcome! Please take a look into [issues](https://github.com/S
 
 New examples would be very helpful as well! 
 
-License
--------
-
-To the extent possible under law, the authors have dedicated all copyright and related and neighboring
-rights to this software to the public domain worldwide. This software is distributed without any warranty.
-You can find applied CC0 license legalcode in the [COPYING](COPYING)
