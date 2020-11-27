@@ -7,13 +7,12 @@ import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.pattern.ask
 import akka.util.Timeout
-import scorex.core.api.http.PeersApiRoute.PeersStatusResponse
 import scorex.core.app.{ScorexContext, Version}
 import scorex.core.network.NodeViewSynchronizer.ReceivableMessages.{DisconnectedPeer, HandshakedPeer}
 import scorex.core.network.message.Message.MessageCode
 import scorex.core.network.message.{Message, MessageSpec}
 import scorex.core.network.peer.PeerManager.ReceivableMessages._
-import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager, PeersStatus, PenaltyType}
+import scorex.core.network.peer.{LocalAddressPeerFeature, PeerInfo, PeerManager, PeersStatus, PenaltyType, SessionIdPeerFeature}
 import scorex.core.settings.NetworkSettings
 import scorex.core.utils.TimeProvider.Time
 import scorex.core.utils.{NetworkUtils, TimeProvider}
@@ -62,6 +61,7 @@ class NetworkController(settings: NetworkSettings,
   private var connections = Map.empty[InetSocketAddress, ConnectedPeer]
   private var unconfirmedConnections = Set.empty[InetSocketAddress]
 
+  private val mySessionIdFeature = SessionIdPeerFeature(settings.magicBytes)
   /**
     * Storing timestamp of a last message got via p2p network.
     * Used to check whether connectivity is lost.
@@ -292,14 +292,16 @@ class NetworkController(settings: NetworkSettings,
           s"New outgoing connection to ${connectionId.remoteAddress} established (bound to local ${connectionId.localAddress})"
       }
     }
-
     val isLocal = connectionId.remoteAddress.getAddress.isSiteLocalAddress ||
       connectionId.remoteAddress.getAddress.isLoopbackAddress
-    val peerFeatures =
-      if (isLocal) scorexContext.features :+ LocalAddressPeerFeature(
-        new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort))
-      else scorexContext.features
-
+    val mandatoryFeatures = scorexContext.features :+ mySessionIdFeature
+    val peerFeatures = if (isLocal) {
+      val la = new InetSocketAddress(connectionId.localAddress.getAddress, settings.bindAddress.getPort)
+      val localAddrFeature = LocalAddressPeerFeature(la)
+      mandatoryFeatures :+ localAddrFeature
+    } else {
+      mandatoryFeatures
+    }
     val selfAddressOpt = getNodeAddressForPeer(connectionId.localAddress)
 
     if (selfAddressOpt.isEmpty)
@@ -321,10 +323,16 @@ class NetworkController(settings: NetworkSettings,
     connectionForHandler(peerHandlerRef).foreach { connectedPeer =>
       val remoteAddress = connectedPeer.connectionId.remoteAddress
       val peerAddress = peerInfo.peerSpec.address.getOrElse(remoteAddress)
+      // Drop connection to self if occurred or peer already connected.
+      // Decision whether connection is local or is from some other network is made
+      // based on SessionIdPeerFeature if exists or in old way using isSelf() function
+      val shouldDrop =
+        connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandlerRef) ||
+        peerInfo.peerSpec.features.collectFirst {
+          case SessionIdPeerFeature(networkMagic, sessionId) =>
+            !networkMagic.sameElements(mySessionIdFeature.networkMagic) || sessionId == mySessionIdFeature.sessionId
+        }.getOrElse(isSelf(remoteAddress))
 
-      //drop connection to self if occurred or peer already connected
-      val shouldDrop = isSelf(remoteAddress) ||
-        connectionForPeerAddress(peerAddress).exists(_.handlerRef != peerHandlerRef)
       if (shouldDrop) {
         connectedPeer.handlerRef ! CloseConnection
         peerManagerRef ! RemovePeer(peerAddress)

@@ -15,7 +15,7 @@ import scorex.core.app.{Version, ScorexContext}
 import scorex.core.network.NetworkController.ReceivableMessages.{GetConnectedPeers, GetPeersStatus}
 import scorex.core.network._
 import scorex.core.network.message.{PeersSpec, _}
-import scorex.core.network.peer.{LocalAddressPeerFeature, PeerManagerRef, LocalAddressPeerFeatureSerializer, PeersStatus}
+import scorex.core.network.peer.{LocalAddressPeerFeature, PeerManagerRef, LocalAddressPeerFeatureSerializer, PeersStatus, SessionIdPeerFeature}
 import scorex.core.settings.ScorexSettings
 import scorex.core.utils.LocalTimeProvider
 
@@ -399,7 +399,8 @@ class TestPeer(settings: ScorexSettings, networkControllerRef: ActorRef, tcpMana
     * @return
     */
   def sendHandshake(declaredAddress: Option[InetSocketAddress], localAddress: Option[InetSocketAddress]): Tcp.ResumeReading.type = {
-    val features = localAddress.map(LocalAddressPeerFeature(_)).toSeq
+    val localFeature:Seq[PeerFeature] = localAddress.map(LocalAddressPeerFeature(_)).toSeq
+    val features = localFeature :+ SessionIdPeerFeature(settings.network.magicBytes)
     val handshakeToNode = Handshake(PeerSpec(settings.network.agentName,
       Version(settings.network.appVersion), "test",
       declaredAddress, features), timeProvider.time())
