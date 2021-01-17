@@ -149,6 +149,7 @@ object PeerManager {
                           sc: ScorexContext): Map[InetSocketAddress, PeerInfo] = knownPeers
     }
 
+    // Extract /16 IPv4 prefix (IP group)
     private  def getIpGroup(addr : InetSocketAddress) : Int = {
       val ip = addr.getAddress.getAddress
       val group = ((ip(0) & 0xFF) << 8) | (ip(1) & 0xFF)
@@ -160,12 +161,15 @@ object PeerManager {
       override def choose(knownPeers: Map[InetSocketAddress, PeerInfo],
                           blacklistedPeers: Seq[InetAddress],
                           sc: ScorexContext): Option[PeerInfo] = {
+        // First of all try to establish connections to the hosts from different IP group
+		// It will complicate eclipse attacks
         val excludedGroups = excludedPeers.flatMap(_.peerSpec.address).map(getIpGroup(_)).toSet
         val allCandidates = knownPeers.values.filterNot { p =>
           excludedPeers.exists(_.peerSpec.address == p.peerSpec.address) ||
           blacklistedPeers.exists(addr => p.peerSpec.address.map(_.getAddress).contains(addr))
         }.toSeq
         val preferredCandidates = allCandidates.filterNot(_.peerSpec.address.fold(true)(addr => excludedGroups.contains(getIpGroup(addr))))
+		// If it is not possible to connect to the node from different IP group, then try to connect somewhere
         val candidates = if (preferredCandidates.nonEmpty) preferredCandidates else allCandidates
         if (candidates.nonEmpty) Some(candidates(Random.nextInt(candidates.size)))
         else None
