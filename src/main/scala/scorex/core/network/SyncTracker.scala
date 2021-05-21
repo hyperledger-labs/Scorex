@@ -92,6 +92,10 @@ class SyncTracker(nvsRef: ActorRef,
   private def outdatedPeers(): Seq[ConnectedPeer] =
     lastSyncSentTime.filter(t => (timeProvider.time() - t._2).millis > maxInterval()).keys.toSeq
 
+
+  def peersByStatus: Map[HistoryComparisonResult, Iterable[ConnectedPeer]] =
+    statuses.groupBy(_._2).mapValues(_.keys).view.force
+
   private def numOfSeniors(): Int = statuses.count(_._2 == Older)
 
   /**
