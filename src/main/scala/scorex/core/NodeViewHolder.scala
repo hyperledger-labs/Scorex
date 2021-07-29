@@ -248,13 +248,23 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
       if (updateInfo.failedMod.isEmpty) {
         updateInfo.state.applyModifier(modToApply) match {
           case Success(stateAfterApply) =>
-            val newHis = history.reportModifierIsValid(modToApply)
-            context.system.eventStream.publish(SemanticallySuccessfulModifier(modToApply))
-            UpdateInformation(newHis, stateAfterApply, None, None, updateInfo.suffix :+ modToApply)
+            history.reportModifierIsValid(modToApply) match {
+              case Success(newHis) =>
+                context.system.eventStream.publish(SemanticallySuccessfulModifier(modToApply))
+                UpdateInformation(newHis, stateAfterApply, None, None, updateInfo.suffix :+ modToApply)
+              case Failure(t) =>
+                log.error("Applying valid modifier to history failed", t)
+                UpdateInformation(history, updateInfo.state, Some(modToApply), None, updateInfo.suffix)
+            }
           case Failure(e) =>
-            val (newHis, newProgressInfo) = history.reportModifierIsInvalid(modToApply, progressInfo)
-            context.system.eventStream.publish(SemanticallyFailedModification(modToApply, e))
-            UpdateInformation(newHis, updateInfo.state, Some(modToApply), Some(newProgressInfo), updateInfo.suffix)
+            history.reportModifierIsInvalid(modToApply, progressInfo) match {
+              case Success((newHis, newProgressInfo)) =>
+                context.system.eventStream.publish(SemanticallyFailedModification(modToApply, e))
+                UpdateInformation(newHis, updateInfo.state, Some(modToApply), Some(newProgressInfo), updateInfo.suffix)
+              case Failure(t) =>
+                log.error("Applying invalid modifier to history failed", t)
+                UpdateInformation(history, updateInfo.state, Some(modToApply), None, updateInfo.suffix)
+            }
         }
       } else updateInfo
     }
