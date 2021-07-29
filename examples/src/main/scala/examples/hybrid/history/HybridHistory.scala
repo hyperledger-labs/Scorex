@@ -474,7 +474,7 @@ class HybridHistory(val storage: HistoryStorage,
     chainBack(storage.bestPosBlock, isGenesis).get.map(_._2).map(encoder.encodeId).mkString(",")
   }
 
-  override def reportModifierIsValid(modifier: HybridBlock): HybridHistory = {
+  override def reportModifierIsValid(modifier: HybridBlock): Try[HybridHistory] = Try {
     storage.updateValidity(modifier, Valid)
     storage.update(modifier, None, isBest = true)
 
@@ -482,8 +482,8 @@ class HybridHistory(val storage: HistoryStorage,
   }
 
   override def reportModifierIsInvalid(modifier: HybridBlock,
-                                       progressInfo: ProgressInfo[HybridBlock]): (HybridHistory,
-    ProgressInfo[HybridBlock]) = {
+                                       progressInfo: ProgressInfo[HybridBlock]): Try[(HybridHistory,
+    ProgressInfo[HybridBlock])] = Try {
     storage.updateValidity(modifier, Invalid)
 
     new HybridHistory(storage, settings, validators, statsLogger, timeProvider) ->
