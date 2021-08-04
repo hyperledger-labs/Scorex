@@ -31,7 +31,7 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
     * Report that modifier is valid from point of view of the state component
     *
     * @param modifier - valid modifier
-    * @return modified history
+    * @return modified history, or failure if reporting was not successful
     */
   def reportModifierIsValid(modifier: PM): Try[HT]
 
@@ -40,7 +40,7 @@ trait History[PM <: PersistentNodeViewModifier, SI <: SyncInfo, HT <: History[PM
     *
     * @param modifier     - invalid modifier
     * @param progressInfo - what suffix failed to be applied because of an invalid modifier
-    * @return modified history and new progress info
+    * @return modified history and new progress info, or failure if reporting was not successful
     */
   def reportModifierIsInvalid(modifier: PM, progressInfo: ProgressInfo[PM]): Try[(HT, ProgressInfo[PM])]
 
