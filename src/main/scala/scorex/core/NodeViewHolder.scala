@@ -163,7 +163,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     }
   }
 
-  private def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
+  protected def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
     pi.toDownload.foreach { case (tid, id) =>
       context.system.eventStream.publish(DownloadRequest(tid, id))
     }
@@ -206,7 +206,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
    **/
 
   @tailrec
-  private def updateState(history: HIS,
+  protected final def updateState(history: HIS,
                           state: MS,
                           progressInfo: ProgressInfo[PMOD],
                           suffixApplied: IndexedSeq[PMOD]): (HIS, Try[MS], Seq[PMOD]) = {
