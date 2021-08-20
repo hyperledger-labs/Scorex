@@ -40,7 +40,7 @@ jobs:
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
 
       - name: Run tests
-        run: sbt "project examples" clean coverage test && sbt test && sbt "project examples" coverageReport coveralls
+        run: sbt "project examples" clean coverage test && sbt test
 
 #      - name: Publish
 #        run: openssl aes-256-cbc -K $encrypted_03ddc50c8705_key -iv $encrypted_03ddc50c8705_iv
