@@ -51,6 +51,13 @@ class SyncTracker(nvsRef: ActorRef,
     if (stableSyncRegime) networkSettings.syncIntervalStable
     else networkSettings.syncInterval
 
+  /**
+    * Get synchronization status for given connected peer
+    */
+  def getStatus(peer: ConnectedPeer): Option[HistoryComparisonResult] = {
+    statuses.get(peer)
+  }
+
   def updateStatus(peer: ConnectedPeer, status: HistoryComparisonResult): Unit = {
     val seniorsBefore = numOfSeniors()
     statuses += peer -> status
