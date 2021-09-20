@@ -42,14 +42,3 @@ jobs:
       - name: Run tests
         run: sbt "project examples" clean coverage test && sbt test
 
-#      - name: Publish
-#        run: openssl aes-256-cbc -K $encrypted_03ddc50c8705_key -iv $encrypted_03ddc50c8705_iv
-#              -in ci/secring.asc.enc -out ci/secring.asc -d && gpg --import ci/secring.asc
-#              && sbt publishSigned testkit/publishSigned sonatypeBundleRelease
-
-
-#      - name: Publish a wallet snapshot ${{ github.ref }}
-#        run: sbt ++${{ matrix.scala }} +ergoWallet/publish
-#        env:
-#          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-#          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
