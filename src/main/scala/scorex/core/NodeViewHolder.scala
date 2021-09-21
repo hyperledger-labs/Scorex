@@ -163,7 +163,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     }
   }
 
-  private def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
+  protected def requestDownloads(pi: ProgressInfo[PMOD]): Unit =
     pi.toDownload.foreach { case (tid, id) =>
       context.system.eventStream.publish(DownloadRequest(tid, id))
     }
@@ -206,7 +206,7 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
    **/
 
   @tailrec
-  private def updateState(history: HIS,
+  protected final def updateState(history: HIS,
                           state: MS,
                           progressInfo: ProgressInfo[PMOD],
                           suffixApplied: IndexedSeq[PMOD]): (HIS, Try[MS], Seq[PMOD]) = {
@@ -222,14 +222,18 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
     stateToApplyTry match {
       case Success(stateToApply) =>
-        val stateUpdateInfo = applyState(history, stateToApply, suffixTrimmed, progressInfo)
-
-        stateUpdateInfo.failedMod match {
-          case Some(_) =>
-            @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-            val alternativeProgressInfo = stateUpdateInfo.alternativeProgressInfo.get
-            updateState(stateUpdateInfo.history, stateUpdateInfo.state, alternativeProgressInfo, stateUpdateInfo.suffix)
-          case None => (stateUpdateInfo.history, Success(stateUpdateInfo.state), stateUpdateInfo.suffix)
+        applyState(history, stateToApply, suffixTrimmed, progressInfo) match {
+          case Success(stateUpdateInfo) =>
+            stateUpdateInfo.failedMod match {
+              case Some(_) =>
+                @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
+                val alternativeProgressInfo = stateUpdateInfo.alternativeProgressInfo.get
+                updateState(stateUpdateInfo.history, stateUpdateInfo.state, alternativeProgressInfo, stateUpdateInfo.suffix)
+              case None =>
+                (stateUpdateInfo.history, Success(stateUpdateInfo.state), stateUpdateInfo.suffix)
+            }
+          case Failure(ex) =>
+            (history, Failure(ex), suffixTrimmed)
         }
       case Failure(e) =>
         log.error("Rollback failed: ", e)
@@ -239,24 +243,30 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
     }
   }
 
-  protected def applyState(history: HIS,
+  private def applyState(history: HIS,
                            stateToApply: MS,
                            suffixTrimmed: IndexedSeq[PMOD],
-                           progressInfo: ProgressInfo[PMOD]): UpdateInformation = {
+                           progressInfo: ProgressInfo[PMOD]): Try[UpdateInformation] = {
     val updateInfoSample = UpdateInformation(history, stateToApply, None, None, suffixTrimmed)
-    progressInfo.toApply.foldLeft(updateInfoSample) { case (updateInfo, modToApply) =>
-      if (updateInfo.failedMod.isEmpty) {
-        updateInfo.state.applyModifier(modToApply) match {
-          case Success(stateAfterApply) =>
-            val newHis = history.reportModifierIsValid(modToApply)
-            context.system.eventStream.publish(SemanticallySuccessfulModifier(modToApply))
-            UpdateInformation(newHis, stateAfterApply, None, None, updateInfo.suffix :+ modToApply)
-          case Failure(e) =>
-            val (newHis, newProgressInfo) = history.reportModifierIsInvalid(modToApply, progressInfo)
-            context.system.eventStream.publish(SemanticallyFailedModification(modToApply, e))
-            UpdateInformation(newHis, updateInfo.state, Some(modToApply), Some(newProgressInfo), updateInfo.suffix)
-        }
-      } else updateInfo
+    progressInfo.toApply.foldLeft[Try[UpdateInformation]](Success(updateInfoSample)) {
+      case (f@Failure(ex), _) =>
+        log.error("Reporting modifier failed", ex)
+        f
+      case (success@Success(updateInfo), modToApply) =>
+        if (updateInfo.failedMod.isEmpty) {
+          updateInfo.state.applyModifier(modToApply) match {
+            case Success(stateAfterApply) =>
+              history.reportModifierIsValid(modToApply).map { newHis =>
+                context.system.eventStream.publish(SemanticallySuccessfulModifier(modToApply))
+                UpdateInformation(newHis, stateAfterApply, None, None, updateInfo.suffix :+ modToApply)
+              }
+            case Failure(e) =>
+              history.reportModifierIsInvalid(modToApply, progressInfo).map { case (newHis, newProgressInfo) =>
+                context.system.eventStream.publish(SemanticallyFailedModification(modToApply, e))
+                UpdateInformation(newHis, updateInfo.state, Some(modToApply), Some(newProgressInfo), updateInfo.suffix)
+              }
+          }
+        } else success
     }
   }
 
@@ -294,8 +304,8 @@ trait NodeViewHolder[TX <: Transaction, PMOD <: PersistentNodeViewModifier]
 
               case Failure(e) =>
                 log.warn(s"Can`t apply persistent modifier (id: ${pmod.encodedId}, contents: $pmod) to minimal state", e)
+                // not publishing SemanticallyFailedModification as this is an internal error
                 updateNodeView(updatedHistory = Some(newHistory))
-                context.system.eventStream.publish(SemanticallyFailedModification(pmod, e))
             }
           } else {
             requestDownloads(progressInfo)
