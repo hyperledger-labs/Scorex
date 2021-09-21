@@ -203,7 +203,7 @@ class NetworkController(settings: NetworkSettings,
       filterConnections(Broadcast, Version.initial).foreach { connectedPeer =>
         connectedPeer.handlerRef ! CloseConnection
       }
-      self ! Unbind
+      tcpManager ! Unbind
       context stop self
   }
 
