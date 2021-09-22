@@ -8,8 +8,6 @@ addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.5")
 
 libraryDependencies += "com.typesafe" % "config" % "1.3.0"
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
-
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.6")
 
 addSbtPlugin("com.jsuereth" % "sbt-pgp" % "2.0.0")
@@ -25,3 +23,5 @@ addSbtPlugin("com.github.sbt" % "sbt-findbugs" % "2.0.0")
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.2.1")
 
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.8")
+
+addSbtPlugin("com.dwijnand" % "sbt-dynver" % "4.1.1")
