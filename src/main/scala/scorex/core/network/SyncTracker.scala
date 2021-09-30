@@ -96,14 +96,14 @@ class SyncTracker(nvsRef: ActorRef,
 
   def elapsedTimeSinceLastSync(): Long = timeProvider.time() - lastSyncInfoSentTime
 
-  private def outdatedPeers(): Seq[ConnectedPeer] =
+  protected def outdatedPeers(): Seq[ConnectedPeer] =
     lastSyncSentTime.filter(t => (timeProvider.time() - t._2).millis > maxInterval()).keys.toSeq
 
 
   def peersByStatus: Map[HistoryComparisonResult, Iterable[ConnectedPeer]] =
     statuses.groupBy(_._2).mapValues(_.keys).view.force
 
-  private def numOfSeniors(): Int = statuses.count(_._2 == Older)
+  protected def numOfSeniors(): Int = statuses.count(_._2 == Older)
 
   /**
     * Return the peers to which this node should send a sync signal, including:
