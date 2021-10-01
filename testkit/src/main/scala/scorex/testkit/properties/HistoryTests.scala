@@ -53,7 +53,7 @@ trait HistoryTests[TX <: Transaction, PM <: PersistentNodeViewModifier, SI <: Sy
   property(propertyNameGenerator("report semantically validation after appending valid modifier")) {
     forAll(generatorWithValidModifier) { case (h, m) =>
       h.append(m)
-      h.reportModifierIsValid(m)
+      h.reportModifierIsValid(m).get
       h.isSemanticallyValid(m.id) shouldBe Valid
     }
   }
