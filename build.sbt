@@ -41,37 +41,6 @@ lazy val commonSettings = Seq(
   fork := true // otherwise, "java.net.SocketException: maximum number of DatagramSockets reached"
 )
 
-enablePlugins(GitVersioning)
-
-version in ThisBuild := {
-  if (git.gitCurrentTags.value.nonEmpty) {
-    git.gitDescribedVersion.value.get
-  } else {
-    if (git.gitHeadCommit.value.contains(git.gitCurrentBranch.value)) {
-      // see https://docs.travis-ci.com/user/environment-variables/#default-environment-variables
-      if (Try(sys.env("TRAVIS")).getOrElse("false") == "true") {
-        // pull request number, "false" if not a pull request
-        if (Try(sys.env("TRAVIS_PULL_REQUEST")).getOrElse("false") != "false") {
-          // build is triggered by a pull request
-          val prBranchName = Try(sys.env("TRAVIS_PULL_REQUEST_BRANCH")).get
-          val prHeadCommitSha = Try(sys.env("TRAVIS_PULL_REQUEST_SHA")).get
-          prBranchName + "-" + prHeadCommitSha.take(8) + "-SNAPSHOT"
-        } else {
-          // build is triggered by a push
-          val branchName = Try(sys.env("TRAVIS_BRANCH")).get
-          branchName + "-" + git.gitHeadCommit.value.get.take(8) + "-SNAPSHOT"
-        }
-      } else {
-        git.gitHeadCommit.value.get.take(8) + "-SNAPSHOT"
-      }
-    } else {
-      git.gitCurrentBranch.value + "-" + git.gitHeadCommit.value.get.take(8) + "-SNAPSHOT"
-    }
-  }
-}
-
-git.gitUncommittedChanges in ThisBuild := true
-
 val circeVersion = "0.13.0"
 val akkaVersion = "2.6.10"
 val akkaHttpVersion = "10.2.1"
@@ -156,8 +125,13 @@ credentials ++= (for {
 pgpPublicRing := file("ci/pubring.asc")
 pgpSecretRing := file("ci/secring.asc")
 pgpPassphrase := sys.env.get("PGP_PASSPHRASE").map(_.toArray)
-usePgpKeyHex("8F9FA382AAC56B7CEB1AEEC47D89C5BBC71D56BA")
+usePgpKeyHex("D78982639AD538EF361DEC6BF264D529385A0333")
 
 //FindBugs settings
 
 findbugsReportType := Some(FindbugsReport.PlainHtml)
+
+// prefix version with "-SNAPSHOT" for builds without a git tag
+dynverSonatypeSnapshots in ThisBuild := true
+// use "-" instead of default "+"
+dynverSeparator in ThisBuild := "-"

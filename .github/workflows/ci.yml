@@ -14,9 +14,11 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.12.10, 2.11.12]
+        scala: [2.12.12]
         java: [adopt@1.8]
     runs-on: ${{ matrix.os }}
+    env:
+      HAS_SECRETS: ${{ secrets.SONATYPE_PASSWORD != '' }}
     steps:
       - name: Checkout current branch (full)
         uses: actions/checkout@v2
@@ -43,3 +45,9 @@ jobs:
       - name: Run tests
         run: sbt "project examples" clean coverage test && sbt test
 
+      - name: Publish a snapshot 
+        if: env.HAS_SECRETS == 'true'
+        run: sbt ++${{ matrix.scala }} publish
+        env:
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
